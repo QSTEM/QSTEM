@@ -1,0 +1,36 @@
+#!/bin/bash
+declare -a Edges
+declare index
+declare sourcecfg inputqsc
+declare Xrot Yrot Zrot
+
+pi=3.1415926
+
+inputqsc=$(ls *.qsc)
+sourcecfg=$(ls *.cfg)
+
+Xrot=$(echo "($1/180)*$pi" | bc -l)
+Yrot=$(echo "($2/180)*$pi" | bc -l)
+Zrot=$(echo "($3/180)*$pi" | bc -l)
+
+index=0
+for var in $(qscRg $sourcecfg $1 $2 $3 $4|sed -n 5p)
+do
+Edges[$index]=$var
+index=$index+1
+done
+
+mkdir X"$1"Y"$2"
+
+sed '30,31d' $inputqsc|sed "30i scan_x_start:  ${Edges[1]}\nscan_x_stop:   ${Edges[0]}"|sed '33,34d'|sed "33i scan_y_start:  ${Edges[3]}\nscan_y_stop:   ${Edges[2]}"|sed '46,48d'|sed "46i Crystal tilt X: $Xrot\nCrystal tilt Y: $Yrot\nCrystal tilt Z: $Zrot"|sed '8d'|sed "8i filename: \"$PWD/$sourcecfg\""|sed '84d'|sed "84i Folder: \"$PWD/X$1Y$2\"" > $PWD/X$1Y$2/X$1Y$2.qsc
+
+#sed "5a /bb/phy/gxh115/bin/stem3 \"\$PBS_O_WORKDIR\"/X$1Y$2.qsc" /bb/phy/gxh115/templates/jobscript|sed "5a \#PBS -N $sourcecfg\_X$1Y$2" > $PWD/X$1Y$2/jobscript
+
+#cd $PWD/X$1Y$2
+#qsub jobscript
+#cd ..
+
+for ((i=0;i<$index;i=i+1))
+do
+        echo ${Edges[$i]}
+done
