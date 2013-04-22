@@ -2625,54 +2625,62 @@ void doSTEM() {
 #pragma omp parallel firstprivate(ix, header, header_read, timer) private(iy, ixa, iya, wave) shared(pCount, chisq, muls, waves)
 				        {
 #pragma omp for ordered
-					for(iy=0;iy<muls.scanYN;iy++) {
+					for(iy=0;iy<muls.scanYN;iy++) 
+					{
 						// printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
                         wave = waves[iy];
                         xpos = muls.scanXStart+
                                   ix*(muls.scanXStop-muls.scanXStart)/(float)muls.scanXN;
                         ypos = muls.scanYStart+
                                   iy*(muls.scanYStop-muls.scanYStart)/(float)muls.scanYN;
-					/* if this is run=0, create the inc. probe wave function */
-                                      if (pCount == 0) {
-                                            probe(&muls, &wave, muls.nx/2*muls.resolutionX, muls.ny/2*muls.resolutionY);
+						/* if this is run=0, create the inc. probe wave function */
+                        if (pCount == 0) 
+						{
+							probe(&muls, &wave, muls.nx/2*muls.resolutionX, muls.ny/2*muls.resolutionY);
 
-											// TODO: modifying shared value from multiple threads?
-                                            muls.nslic0 = 0;
-                                            muls.thickness = 0.0;
-                                          }
-                                          else {
-                                            /* load incident wave function and then propagate it */
-                                            sprintf(wave.fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
-                                            readStartWave(&muls, &wave);  /* this also sets the thickness!!! */	  
-											// TODO: modifying shared value from multiple threads?
-                                            muls.nslic0 = pCount;
-                                          }
-                                          /* run multislice algorithm
-                                             and save exit wave function for this position 
-                                             (done by runMulsSTEM), 
-                                             but we need to define the file name */
-                                          sprintf(wave.fileout,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
-										  // TODO: modifying shared value from multiple threads?
-                                          muls.saveFlag = 1;
+							// TODO: modifying shared value from multiple threads?
+                            muls.nslic0 = 0;
+                            muls.thickness = 0.0;
+                        }
+                                          
+						else 
+						{
+							/* load incident wave function and then propagate it */
+                            sprintf(wave.fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
+                            readStartWave(&muls, &wave);  /* this also sets the thickness!!! */	  
+							// TODO: modifying shared value from multiple threads?
+							muls.nslic0 = pCount;
+                        }
+                        /* run multislice algorithm
+                           and save exit wave function for this position 
+                           (done by runMulsSTEM), 
+                           but we need to define the file name */
+                        sprintf(wave.fileout,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
+						// TODO: modifying shared value from multiple threads?
+                        muls.saveFlag = 1;
 
-                                          wave.iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/
-                                                            ((float)muls.scanXN*muls.resolutionX));
-                                          wave.iPosY = (int)(iy*(muls.scanYStop-muls.scanYStart)/
-                                                             ((float)muls.scanYN*muls.resolutionY));
-                                          if (wave.iPosX > muls.potNx-muls.nx)
-                                            wave.iPosX = muls.potNx-muls.nx;  
-                                          if (wave.iPosY > muls.potNy-muls.ny)
-                                            wave.iPosY = muls.potNy-muls.ny;
+                        wave.iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/
+                                          ((float)muls.scanXN*muls.resolutionX));
+                        wave.iPosY = (int)(iy*(muls.scanYStop-muls.scanYStart)/
+                                           ((float)muls.scanYN*muls.resolutionY));
+                        if (wave.iPosX > muls.potNx-muls.nx)
+						{
+							wave.iPosX = muls.potNx-muls.nx;  
+						}
+                        if (wave.iPosY > muls.potNy-muls.ny)
+						{
+							wave.iPosY = muls.potNy-muls.ny;
+						}
 
-                                          // MCS - update the probe wavefunction with its position
-                                          wave.detPosX=ix;
-                                          wave.detPosY=iy;
-                                          // obsolete - muls no longer tracks detPos.
-                                          //muls.detPosX = ix;
-                                          //muls.detPosY = iy;
-                                          /* printf("slices: %d, cz0: %g picts: %d, pCount: %d\n",
-                                             muls.slices,muls.cz[0],picts,pCount);
-                                          */
+                        // MCS - update the probe wavefunction with its position
+                        wave.detPosX=ix;
+                        wave.detPosY=iy;
+                        // obsolete - muls no longer tracks detPos.
+                        //muls.detPosX = ix;
+                        //muls.detPosY = iy;
+                        /* printf("slices: %d, cz0: %g picts: %d, pCount: %d\n",
+                        muls.slices,muls.cz[0],picts,pCount);
+                        */
 
 					runMulsSTEM(&muls,&wave); 
 
@@ -2692,11 +2700,18 @@ void doSTEM() {
 #endif	    
 						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
 
-						if (muls.saveLevel > 0) {
-							if (muls.avgCount == 0)  {
-							// initialize the avgArray from the diffpat
-								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++)
-									wave.avgArray[ixa][iya]=wave.diffpat[ixa][iya];
+						if (muls.saveLevel > 0) 
+						{
+							if (muls.avgCount == 0)  
+							{
+								// initialize the avgArray from the diffpat
+								for (ixa=0;ixa<muls.nx;ixa++) 
+								{
+									for (iya=0;iya<muls.ny;iya++)
+									{
+										wave.avgArray[ixa][iya]=wave.diffpat[ixa][iya];
+									}
+								}
 								/* memcopy((void *)avgArray[0],(void *)muls.diffpat[0],
 								(size_t)(muls.nx*muls.ny*sizeof(real)));
 								*/
@@ -2752,7 +2767,9 @@ void doSTEM() {
 					  * was the last slice
 					  */
 					#pragma omp critical
-					muls.complete_pixels+=1;
+					{
+						muls.complete_pixels+=1;
+					}
 					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) {
 							printf("Pixels complete: (%d/%d), int.=%.3f, time per pixel: %.2fsec\n",
 								muls.complete_pixels,muls.scanYN*muls.scanYN,muls.intIntensity,

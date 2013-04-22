@@ -2713,19 +2713,20 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 #endif
 			propagate_slow((void **)wave->wave, muls->nx, muls->ny, muls);
 
+			#pragma omp critical
+			{
 			/* collect the STEM signal for intermediate output */
-#pragma omp critical
 			interimCollect(muls,wave,muls->totalSliceCount+islice*(1+mRepeat),((islice == muls->slices-1) && (mRepeat == muls->mulsRepeat1-1)));
 			/* collect the STEM signal on the annular detector(s) */
 			if ((islice == muls->slices-1) && (mRepeat == muls->mulsRepeat1-1))	
 			{
-#pragma omp critical
 				detectorCollect(muls,wave);
 			}
 			if (muls->mode != STEM) {
 				/* write pendelloesung plots, if this is not STEM */
 				writeBeams(muls,wave,islice);
-			}      
+			}
+			}
 
 			// go back to real space:
 #if FLOAT_PRECISION == 1
@@ -2769,8 +2770,10 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 				}
 			}
 			// TODO: modifying shared value from multiple threads?
-#pragma omp single
-			muls->thickness += muls->cz[islice];
+			//#pragma omp single
+			{
+				muls->thickness += muls->cz[islice];
+			}
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
 				interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
@@ -2786,13 +2789,13 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	***************************************************/
 
 	// TODO: modifying shared value from multiple threads?
-	#pragma omp single
+	//#pragma omp single
 	muls->rmin  = wave->wave[0][0][0];
-	#pragma omp single
+	//#pragma omp single
 	muls->rmax  = (*muls).rmin;
-	#pragma omp single
+	//#pragma omp single
 	muls->aimin = wave->wave[0][0][1];
-	#pragma omp single
+	//#pragma omp single
 	muls->aimax = (*muls).aimin;
 
 	sum = 0.0;
@@ -2807,7 +2810,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	}
 	// TODO: modifying shared value from multiple threads?
 	//  Is this sum supposed to be across multiple pixels?
-	#pragma omp critical
+	//#pragma omp critical
 	muls->intIntensity = sum*scale;
 
 	if (printFlag) {
@@ -3051,10 +3054,10 @@ void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
 
 	// write the output STEM images, if this is the last pixel:
 	// wait for all threads to join so that image is complete.
-	#pragma omp barrier
+	//#pragma omp barrier
 	if ((muls->mode == STEM) && (wave->detPosX == muls->scanXN-1) && (wave->detPosY == muls->scanYN-1)) 
 	{
-		printf("%d, %d, %d, %d\n", wave->detPosX, muls->scanXN-1,wave->detPosY, muls->scanYN-1);
+		//printf("%d, %d, %d, %d\n", wave->detPosX, muls->scanXN-1,wave->detPosY, muls->scanYN-1);
 		if (header == NULL) 
 		{
 			header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN,muls->thickness,
@@ -3091,7 +3094,7 @@ void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
 			writeRealImage((void **)detectors[t][i].image,header,fileName,sizeof(real));    
 		}
 	}
-	printf("exiting interimCollect (%d)\n",slice);
+	//printf("exiting interimCollect (%d)\n",slice);
 }
 
 
