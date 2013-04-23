@@ -22,7 +22,7 @@ good energies: 327, 360,393,520 keV
 #ifndef WIN32
 #ifdef __cplusplus
 #include <cmath>
-else
+#else
 #include <math.h>
 #endif
 #else
