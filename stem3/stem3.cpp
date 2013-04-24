@@ -5,7 +5,7 @@
 5 kV: gaussian parameter: 11
 good energies: 327, 360,393,520 keV
 */
-#define VERSION 2.15
+#define VERSION 2.22
 #define VIB_IMAGE_TEST
 // #define VIB_IMAGE_TEST_CBED
 
@@ -37,11 +37,6 @@ good energies: 327, 360,393,520 keV
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-
-//#ifdef __cplusplus
-//extern "C"
-//{
-//#endif /* __cplusplus */
 
 #include "memory_fftw3.h"	/* memory allocation routines */
 #include "readparams.h"
@@ -1506,13 +1501,12 @@ void readFile() {
 				muls.hbeam[i] = 0;
 				muls.kbeam[i] = 0;
 				sscanf(buf,"%d %d",muls.hbeam+i,muls.kbeam+i);
-				/* printf("beam %d [%d %d]\n",i,muls.hbeam[i],muls.kbeam[i]); */
 				muls.hbeam[i] *= muls.nCellX;
 				muls.kbeam[i] *= muls.nCellY;
 
 				muls.hbeam[i] = (muls.hbeam[i]+muls.nx) % muls.nx;
-				muls.kbeam[i] = (muls.kbeam[i]+muls.nx) % muls.nx;
-			}
+				muls.kbeam[i] = (muls.kbeam[i]+muls.ny) % muls.ny;
+				printf("beam %d [%d %d]\n",i,muls.hbeam[i],muls.kbeam[i]); 			}
 		}
 	}
 
@@ -2619,10 +2613,10 @@ void doSTEM() {
                                 // globals are automatically shared.  No muls here, because it's global.
 				// fork threads here.  Each thread shares muls, but gets its own wave.
 
+		        timer=cputim();
 				for(ix=0;ix<muls.scanXN;ix++) {
 				        // start the timer for this row
-				        timer=cputim();
-#pragma omp parallel firstprivate(ix, header, header_read, timer) private(iy, ixa, iya, wave) shared(pCount, chisq, muls, waves)
+#pragma omp parallel firstprivate(ix, header, header_read,timer) private(iy, ixa, iya,wave) shared(pCount,chisq,muls,waves)
 				        {
 #pragma omp for ordered
 					for(iy=0;iy<muls.scanYN;iy++) 
@@ -2720,7 +2714,6 @@ void doSTEM() {
 							else {
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
 
-								// TODO: modifying shared value from multiple threads (muls)?
 								header_read = readImage((void ***)(&wave.avgArray),muls.nx,muls.ny,wave.avgName);
 								chisq[muls.avgCount-1] = 0.0;
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
@@ -2773,7 +2766,8 @@ void doSTEM() {
 					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) {
 							printf("Pixels complete: (%d/%d), int.=%.3f, time per pixel: %.2fsec\n",
 								muls.complete_pixels,muls.scanYN*muls.scanYN,muls.intIntensity,
-								(cputim()-timer)/muls.displayProgInterval);
+								(cputim()-timer)/muls.complete_pixels);
+					        timer=cputim();
 						}
 					//free(&wave);
 					//_CrtDumpMemoryLeaks();
@@ -2812,6 +2806,3 @@ void doSTEM() {
 	} /* end of for muls.avgCount=0..25 */
 }
 
-//#ifdef __cplusplus
-//}
-//#endif /* __cplusplus */

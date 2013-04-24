@@ -4,10 +4,6 @@
 #include <math.h>
 #include <time.h>
 
-//#ifdef __cplusplus
-//extern "C"
-//{
-//#endif /* __cplusplus */
 #include "stemlib.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
 #include "stemutil.h"
@@ -2689,8 +2685,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 			// if ((muls->cubez > 0) && (muls->thickness >= muls->cubez)) break;
 			//  else if ((muls->cubez == 0) && (muls->thickness >= muls->c)) break;
-			try
-			{
+
 			/***********************************************************************
 			* Transmit is a simple multiplication of wave with trans in real space
 			**********************************************************************/
@@ -2738,11 +2733,6 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
 			// TODO: modifying shared value from multiple threads?
 			(*muls).nslic0 +=  1;
-			}
-			catch (...)
-			{
-				exit(-1);
-			}
 			/*
 			sprintf(outStr,"wave%d.img",islice);
 			writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,"wavep.img");
@@ -3451,7 +3441,7 @@ void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer) {
 	static char fileBeam[32];
 	static FILE *fp1 = NULL,*fpAmpl = NULL,*fpPhase=NULL;
 	int ib;
-	static int nx,ny,*hbeam=NULL,*kbeam=NULL;
+	static int *hbeam=NULL,*kbeam=NULL;
 	static real zsum = 0.0f,scale;
 	real rPart,iPart,ampl,phase;
 	static char systStr[64];
@@ -3472,9 +3462,7 @@ void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer) {
 		}
 
 		if ((fp1 == NULL) || (fpAmpl == NULL) || (fpPhase == NULL)) {
-			scale = 1.0F / ( ((real)(*muls).nx) * ((real)(*muls).ny) );
-			nx = (*muls).nx;
-			ny = (*muls).ny;
+			scale = 1.0F / ( ((real)muls->nx) * ((real)muls->ny) );
 			hbeam = (*muls).hbeam;
 			kbeam = (*muls).kbeam;
 			if ((hbeam == NULL) || (kbeam == NULL)) {
@@ -3502,24 +3490,26 @@ void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer) {
 			}
 			fprintf(fp1, " (h,k) = ");
 			for(ib=0; ib<(*muls).nbout; ib++) {
-				fprintf(fp1," (%d,%d)", (*muls).hbeam[ib],  (*muls).kbeam[ib]);
+				fprintf(fp1," (%d,%d)", muls->hbeam[ib],  muls->kbeam[ib]);
 			}
 			fprintf( fp1, "\n" );
 			fprintf( fp1, "nslice, (real,imag) (real,imag) ...\n\n");
-			for( ib=0; ib<(*muls).nbout; ib++)
+			for( ib=0; ib<muls->nbout; ib++)
 			{
-				if(hbeam[ib] < 0 ) hbeam[ib] = nx + hbeam[ib];
-				if(kbeam[ib] < 0 ) kbeam[ib] = ny + kbeam[ib];
+				// printf("beam: %d [%d,%d]",ib,hbeam[ib],kbeam[ib]);			
+				if(hbeam[ib] < 0 ) hbeam[ib] = muls->nx + hbeam[ib];
+				if(kbeam[ib] < 0 ) kbeam[ib] = muls->ny + kbeam[ib];
 				if(hbeam[ib] < 0 ) hbeam[ib] = 0;
 				if(kbeam[ib] < 0 ) kbeam[ib] = 0;
-				if(hbeam[ib] > nx-1 ) hbeam[ib] = nx-1;
-				if(kbeam[ib] > ny-1 ) kbeam[ib] = ny-1;
+				if(hbeam[ib] > muls->nx-1 ) hbeam[ib] = muls->nx-1;
+				if(kbeam[ib] > muls->ny-1 ) kbeam[ib] = muls->ny-1;
+				// printf(" => [%d,%d] %d %d\n",hbeam[ib],kbeam[ib],muls->nx,muls->ny);			
 			}
 			/****************************************************/
 			/* setup of beam files, include the t=0 information */
 			fprintf( fpAmpl, "%g",0.0);
 			fprintf( fpPhase, "%g",0.0);
-			for( ib=0; ib<(*muls).nbout; ib++) {
+			for( ib=0; ib<muls->nbout; ib++) {
 				ampl = 0.0;
 				if ((hbeam[ib] == 0) && (kbeam[ib]==0))
 					ampl = 1.0;
@@ -3549,28 +3539,31 @@ void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer) {
 		fprintf( fpAmpl, "\n");
 		fprintf( fpPhase, "\n");
 	} /* end of if muls.mode != REFINE */
+	
 	if (muls->mode == TEM) {
 		if (muls->pendelloesung == NULL) {
 			muls->pendelloesung = 
 				float2D((*muls).nbout,
 				(*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2*(*muls).cellDiv,
 				"pendelloesung");
-			scale = 1.0/((*muls).nx*(*muls).ny); 
+			scale = 1.0/(muls->nx*muls->ny); 
 			printf("Allocated memory for pendelloesung plot (%d x %d)\n",
 				(*muls).nbout,(*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2);
 		}
-		for( ib=0; ib<(*muls).nbout; ib++) {
-			rPart = (*wave).wave[(*muls).hbeam[ib]][(*muls).kbeam[ib]][0];
-			iPart = (*wave).wave[(*muls).hbeam[ib]][(*muls).kbeam[ib]][1];
-			(*muls).pendelloesung[ib][(*muls).nslic0] = scale*(real)(rPart*rPart+iPart*iPart);
-			/* printf("slice: %d beam: %d [%d,%d], intensity: %g\n",
-			(*muls).nslic0,ib,
-			(*muls).hbeam[ib],(*muls).kbeam[ib],
-			(*muls).pendelloesung[ib][(*muls).nslic0]);
-			*/
-		} /* end of ib=0 ... */
+		for( ib=0; ib<muls->nbout; ib++) {
+			rPart = (*wave).wave[muls->hbeam[ib]][muls->kbeam[ib]][0];
+			iPart = (*wave).wave[muls->hbeam[ib]][muls->kbeam[ib]][1];
+			muls->pendelloesung[ib][(*muls).nslic0] = scale*(real)(rPart*rPart+iPart*iPart);
+			// printf("slice: %d beam: %d [%d,%d], intensity: %g\n",muls->nslic0,ib,muls->hbeam[ib],muls->kbeam[ib],muls->pendelloesung[ib][muls->nslic0]);			
+		} // end of ib=0 ... 
 	}
+	
 }
+
+
+
+
+
 
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -3782,6 +3775,3 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 }
 #undef SHOW_SINGLE_POTENTIAL
 
-//#ifdef __cplusplus
-//}
-//#endif /* __cplusplus */
