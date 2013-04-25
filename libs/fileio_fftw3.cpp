@@ -7,11 +7,6 @@
 #include <time.h>
 #include <ctype.h>
 
-//#ifdef __cplusplus
-//extern "C"
-//{
-//#endif /* __cplusplus */
-
 // #include "../lib/floatdef.h"
 #include "stemtypes_fftw3.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
@@ -2674,7 +2669,3 @@ void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls) {
 
 	fclose(fp);
 }
-
-//#ifdef __cplusplus
-//}
-//#endif /* __cplusplus */

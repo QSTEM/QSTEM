@@ -3,10 +3,6 @@
 
 #include "stemtypes_fftw3.h"
 
-//#ifdef __cplusplus 
-//extern "C"
-//{
-//#endif
 atom *readUnitCell(int *natom,char *fileName,MULS *muls,int handleVacancies);
 void replicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVacancies);
 atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancies);
@@ -35,7 +31,4 @@ double ran1(long *idum);
 float ran(long *idum);
 int atomCompareZYX(const void *atPtr1,const void *atPtr2);
 int atomCompareZnum(const void *atPtr1,const void *atPtr2);
-//#ifdef __cplusplus
-//}
-//#endif
 #endif /* FILEIO_H */

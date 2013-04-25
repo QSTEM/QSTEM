@@ -1,11 +1,6 @@
 #ifndef MATRIXLIB_H
 #define MATRIXLIB_H
 
-//#ifdef __cplusplus
-//extern "C"
-//{
-//#endif /* __cplusplus */
-
 #include "stemtypes_fftw3.h"
 
 #define PI 3.1415926535898
@@ -40,9 +35,5 @@ double vectLength(double *vect);
 /* c = a*b */
 void matrixProduct(double **a,int Nxa, int Nya, double **b,int Nxb, int Nyb, double **c);
 void matrixProductInt(double **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, double **c);
-
-//#ifdef __cplusplus
-//}
-//#endif /* __cplusplus */
 
 #endif

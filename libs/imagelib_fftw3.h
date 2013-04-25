@@ -1,11 +1,6 @@
 #ifndef IMAGELIB_H
 #define IMAGELIB_H
 
-//#ifdef __cplusplus
-//extern "C"
-//{
-//#endif /* __cplusplus */
-
 // #include "fftw.h"
 // #include "floatdef.h"
 #include "stemtypes_fftw3.h"
@@ -76,14 +71,4 @@ void readRealImage(fftw_real **pix, int nx, int ny,real *dx,
  * members nx, and ny.]
  **************************************************************/
 
-//#ifdef __cplusplus
-//}
-//#endif /* __cplusplus */
-
 #endif
-
-
-
-
-
-
