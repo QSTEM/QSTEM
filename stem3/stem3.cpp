@@ -2737,6 +2737,7 @@ void doSTEM() {
 										(avgArray[ixa][iya]-t);
 									wave->avgArray[ixa][iya] = t;
 								}
+
 							// TODO: this is being done by every thread - should only be done by 1.
 							chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 							}

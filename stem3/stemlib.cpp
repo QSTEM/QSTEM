@@ -2890,7 +2890,7 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
 	// we write directly to the shared muls object.  This is safe only because 
-	//    each thread is accessing different pixels in the output image.
+	//    each thread is accessing different pixels in the output images.
 	detectors = muls->detectors;
 
 	if (muls->outputInterval == 0) t = 0;
