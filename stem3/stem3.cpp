@@ -2505,7 +2505,15 @@ void doSTEM() {
 	int islice;
 
 	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
-	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
+	//WAVEFUNC *wave = *(new WAVEFUNC(muls.nx,muls.ny));
+	std::vector<WAVEFUNC *> waves;
+	WAVEFUNC *wave;
+
+	for (int th=0; th<omp_get_max_threads(); th++)
+	{
+		waves.push_back(new WAVEFUNC(muls.nx,muls.ny));
+	}
+
 	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
 	// zero-out the chisq array
 	memset(chisq, 0, muls.avgRuns*sizeof(double));
@@ -2618,12 +2626,14 @@ void doSTEM() {
 				* scan through the different probe positions
 				*************************************************/
 		        timer=cputim();
-#pragma omp parallel firstprivate(header, header_read, wave) private(ix, iy, ixa, iya) shared(pCount, chisq, muls, collectedIntensity, timer) 
+#pragma omp parallel firstprivate(header, header_read) private(ix, iy, ixa, iya, wave) shared(pCount, chisq, muls, collectedIntensity, timer, waves) 
 #pragma omp for
 				for (i=0; i < (muls.scanXN * muls.scanYN); i++)
 				{
 					ix = i / muls.scanYN;
 					iy = i % muls.scanYN;
+
+					wave = waves[omp_get_thread_num()];
 							
 					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
 
@@ -2718,10 +2728,10 @@ void doSTEM() {
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
 
-								header_read = readImage((void ***)(wave->avgArray),muls.nx,muls.ny,wave->avgName);
+								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
-									t = ((real)muls.avgCount*wave->avgArray[ixa][iya]+
-										wave->diffpat[ixa][iya])/((real)(muls.avgCount+1));
+									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
+										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
 									#pragma omp atomic
 									chisq[muls.avgCount-1] += (avgArray[ixa][iya]-t)*
 										(avgArray[ixa][iya]-t);
@@ -2805,6 +2815,9 @@ void doSTEM() {
 	} /* end of for muls.avgCount=0..25 */
 
 	free(chisq);
-	delete(wave);
+	for (int th=0; th<omp_get_num_threads(); th++)
+	{
+		delete(waves[th]);
+	}
 }
 

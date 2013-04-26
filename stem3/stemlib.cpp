@@ -2848,7 +2848,7 @@ void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 }
 
 /********************************************************************
-* interimCollect(muls)
+* collectIntensity(muls, wave, slice)
 * collect the STEM signal on the annular detector(s) defined in muls
 * and write the appropriate pixel in the image for each detector and thickness
 * The number of images is determined by the following formula:
@@ -2990,125 +2990,12 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 		// do the rescaling for the average image:
 		detectors[t][i].image[wave->detPosX][wave->detPosY] /= detectors[t][i].Navg+1;	
 	}
-	//printf("exiting collectIntensity (%d)\n",slice);
 }
 
-
-
-
-/********************************************************************
-* detectorCollect(muls)
-* collect the STEM signal on the annular detector(s) defined in muls
-* and write the appropriate pixel in the image for each detector
-*******************************************************************/
-/*
-void detectorCollect(MULS *muls, WAVEFUNC *wave) {
-	int i,ix,iy,ixs,iys;
-	real k2;
-	double intensity, scale, intensity_save;
-	static char fileName[256]; 
-	static imageStruct *header = NULL;
-	static int initialized = 0;
-
-	// the detector plane is the one at the very end of the thicknesses.
-	detectors = (*(muls->detectors.back()))
-
-	if ((*wave).diffpat == NULL) {
-		(*wave).diffpat = float2D(muls->nx, muls->ny, "diffraction pattern");
-	}
-
-	if (!initialized) {
-		for (i=0;i<muls->detectorNum;i++) {
-			// reset the chi^2 counter to 0, if this is the first pixel
-			detectors[i].image[wave->detPosX][wave->detPosY] = 0.0f;    
-		}
-		initialized = 1;
-	}
-	// add the intensities in the already fourier transformed wave function 
-
-	scale = 1.0/sqrt((double)(muls->nx*muls->ny));
-	for (ix=0;ix<muls->nx;ix++) {
-		for (iy=0;iy<muls->ny;iy++) {	   
-			k2 = muls->kx2[ix]+muls->ky2[iy];
-			intensity = scale*(wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
-				wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
-			wave->diffpat[(ix+muls->nx/2)%muls->nx][(iy+muls->ny/2)%muls->ny] = intensity;
-			for (i=0; i < muls->detectorNum; i++) {
-				if ((k2 >= detectors[i].k2Inside) &&
-					(k2 <= detectors[i].k2Outside)) 
-				{
-					if ((detectors[i].shiftX == 0) && ((*muls).detectors[i].shiftY == 0)) 
-					{
-							detectors[i].image[wave->detPosX][wave->detPosY] += intensity;
-					}
-					// special case for shifted detectors: 
-					else 
-					{
-							intensity_save = intensity;
-							ixs = (ix + (int)detectors[i].shiftX + muls->nx) % muls->nx;
-							iys = (iy + (int)detectors[i].shiftY + muls->ny) % muls->ny;		
-							intensity = scale * (wave->wave[ixs][iys][0] * wave->wave[ixs][iys][0]+
-								wave->wave[ixs][iys][1] * wave->wave[ixs][iys][1]);
-							detectors[i].image[wave->detPosX][wave->detPosY] += intensity;
-							// restore intensity, so that it will not be shifted for the other detectors 
-							intensity = intensity_save;
-					}
-				} // end of if k2 ... 
-			} // end of for i=0 ... detectorNum 
-		} // end of for iy=0... 
-	} // end of for ix = ... 
-
-	// Write the first detector shadow in the diffraction pattern, if STEM 
-	if ((muls->mode == STEM) && (muls->detectorNum > 0)) {
-		for (iy = (*muls).ny/2+1;iy<(*muls).ny;iy++) {
-			for (ix=iy; ix < muls->nx; ix++) {		
-				k2 = (*muls).kx2[ix]+(*muls).ky2[iy];
-				if ((k2 >= detectors[0].k2Inside) &&
-					(k2 <= detectors[0].k2Outside)) {
-						ixs = (ix+(int)detectors[0].shiftX+(*muls).nx) % (*muls).nx;
-						iys = (iy+(int)detectors[0].shiftY+(*muls).ny) % (*muls).ny;		
-						wave->diffpat[(ixs+3*(*muls).nx/2) % (*muls).nx][(iys+3*(*muls).ny/2)%(*muls).ny] = 0.0;
-				}
-			}
-		}
-		for (iy = (*muls).ny/2-1;iy>=0;iy--) {
-			for (ix=iy;ix>=0;ix--) {		
-				k2 = (*muls).kx2[ix]+(*muls).ky2[iy];
-				if ((k2 >= detectors[0].k2Inside) &&
-					(k2 <= detectors[0].k2Outside)) {
-						ixs = (ix+(int)detectors[0].shiftX+(*muls).nx) % (*muls).nx;
-						iys = (iy+(int)detectors[0].shiftY+(*muls).ny) % (*muls).ny;		
-						(*wave).diffpat[(ixs+3*(*muls).nx/2) % (*muls).nx][(iys+3*(*muls).ny/2)%(*muls).ny] = 0.0;
-				}
-			}
-		}
-	}	
-	if ((muls->mode == CBED) || (muls->mode == TEM)) {
-#ifndef WIN32
-		sprintf(fileName,"%s/diff.img",muls->folder);
-#else
-		sprintf(fileName,"%s\\diff.img",muls->folder);
-#endif
-		// writeRealImage_old((*wave).diffpat,(*muls).nx,(*muls).ny,(*muls).thickness,fileName);
-		if (header == NULL) {
-			header = makeNewHeaderCompact(0,muls->nx,muls->ny,muls->thickness,
-				1.0/muls->ax,1.0/muls->by,
-				// (muls->tomoTilt == 0) ? 0 : 1,
-				// (muls->tomoTilt == 0) ? NULL : &(muls->tomoTilt),
-				0,NULL, "Diffraction pattern");
-			header->params = (double *)malloc(2*sizeof(double));
-			header->paramSize = 2;
-		}
-		header->t = muls->thickness;
-		header->dx = 1.0/muls->ax;
-		header->dy = 1.0/muls->by;
-		header->params[0] = muls->tomoTilt;
-		header->params[1] = 1.0/wavelength(muls->v0);
-		writeRealImage((void **)wave->diffpat, header, fileName, sizeof(float));	 
-	}
-}
-*/
-
+/*****  saveSTEMImages *******/
+// Saves all detector images (STEM images) that are defined in muls.
+//   When saving intermediate STEM images is enabled, this also saves
+//   the intermediate STEM images for each detector.
 void saveSTEMImages(MULS *muls)
 {
 	int i, ix, islice;
@@ -3166,17 +3053,15 @@ void saveSTEMImages(MULS *muls)
 }
 
 void readStartWave(MULS *muls, WAVEFUNC *wave) {
-	static imageStruct *header;
-
-	header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart);
+	imageStruct *header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart);
 	// TODO: modifying shared value from multiple threads?
-	muls->thickness = header->t;
+	//muls->thickness = header->t;
 	if (muls->nx != header->nx) {
 		printf("Warning -> wrong image format (%d,%d) instead of (%d,%d)\n",
 			header->nx,header->ny,muls->nx,muls->ny);
 		// TODO: modifying shared value from multiple threads?
-		muls->nx = header->nx;
-		muls->ny = header->ny;
+		//muls->nx = header->nx;
+		//muls->ny = header->ny;
 	}
 	//readImage_old((*muls).wave,(*muls).nx,(*muls).ny,&((*muls).thickness),(*muls).fileStart);
 }

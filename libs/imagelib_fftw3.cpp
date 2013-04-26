@@ -143,13 +143,13 @@ imageStruct *readImage(void ***pix,int nx,int ny,char *fileName) {
       }
       nRead = fread((void *)pix[0][0],header->dataSize,(size_t)(nx*ny),fp);
       if (nRead != nx*ny) {
-	freadError = 1;
-	printf("Error while reading data from file %s:"
+		freadError = 1;
+		printf("Error while reading data from file %s:"
 	       " %d (of %d) elements read\n",
 	       fileName,nRead,(nx)*(ny));
-	printf("EOF: %d, Ferror: %d, dataSize: %d\n",feof(fp),ferror(fp),header->dataSize);
-	fclose(fp);
-	fp = NULL;
+		printf("EOF: %d, Ferror: %d, dataSize: %d\n",feof(fp),ferror(fp),header->dataSize);
+		fclose(fp);
+		fp = NULL;
       }
     }
     /* we will try three times to read this file. */
