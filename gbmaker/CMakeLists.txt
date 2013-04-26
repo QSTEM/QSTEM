@@ -9,6 +9,5 @@ else(MINGW)
 endif(MINGW)
 
 add_executable(gbmaker gbmaker.cpp)
-target_link_libraries(gbmaker readparams memory matrixlib fileio ${FFTW3_LIBS}
-			${FFTW3F_LIBS} ${M_LIB})
+target_link_libraries(gbmaker qstem_libs ${FFTW3_LIBS}	${FFTW3F_LIBS} ${M_LIB})
  

@@ -8,19 +8,10 @@ else(MINGW)
 	include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}")	
 endif(MINGW)
 
-set (fileio_LIB_SRC fileio_fftw3.h fileio_fftw3.cpp stemtypes_fftw3.h)
-add_library(fileio STATIC ${fileio_LIB_SRC})
+FILE(GLOB STEM3_LIBS_C_FILES "${CMAKE_SOURCE_DIR}/libs/*.cpp")
+FILE(GLOB STEM3_LIBS_H_FILES "${CMAKE_SOURCE_DIR}/libs/*.h")
 
-set (imagelib_LIB_SRC imagelib_fftw3.h imagelib_fftw3.cpp stemtypes_fftw3.h)
-add_library(imagelib STATIC ${imagelib_LIB_SRC})
-
-set (memory_LIB_SRC memory_fftw3.h memory_fftw3.cpp)
-add_library(memory STATIC ${memory_LIB_SRC})
-
-set (matrixlib_LIB_SRC matrixlib.h matrixlib.cpp stemtypes_fftw3.h)
-add_library(matrixlib STATIC ${matrixlib_LIB_SRC})
-
-set (readparams_LIB_SRC readparams.h readparams.cpp stemtypes_fftw3.h)
-add_library(readparams STATIC ${readparams_LIB_SRC})
+set (qstem_libs_src ${STEM3_LIBS_C_FILES} ${STEM3_LIBS_H_FILES})
+add_library(qstem_libs STATIC ${qstem_libs_src})
 
  

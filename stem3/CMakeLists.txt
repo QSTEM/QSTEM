@@ -19,12 +19,10 @@ FILE(GLOB STEM3_H_FILES "${CMAKE_SOURCE_DIR}/stem3/*.h")
 
 add_executable(stem3 ${STEM3_C_FILES} ${STEM3_H_FILES} ${QSTEM_LIB_HEADERS})
 if(MINGW)
-	target_link_libraries(stem3 fileio imagelib memory matrixlib readparams 
-				${FFTW3_LIBS} ${FFTW3F_LIBS}
+	target_link_libraries(stem3 qstem_libs ${FFTW3_LIBS} ${FFTW3F_LIBS}
                                 ${PTHREAD_LIB} ${M_LIB})
 else(MINGW)
-	target_link_libraries(stem3 fileio imagelib memory matrixlib readparams 
-				${FFTW3_LIBS} ${FFTW3F_LIBS} ${M_LIB})
+	target_link_libraries(stem3 qstem_libs	${FFTW3_LIBS} ${FFTW3F_LIBS} ${M_LIB})
 endif(MINGW)
  
  if(OPENMP)
