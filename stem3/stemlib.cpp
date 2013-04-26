@@ -2713,7 +2713,10 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 #endif
 			// old code: fftwnd_one((*muls).fftPlanInv,(fftw_complex *)wave[0][0], NULL);
 			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
+
 			// TODO: modifying shared value from multiple threads?
+			// TODO: is this correct with every thread performing this operation?
+			#pragma omp atomic
 			(*muls).nslic0 +=  1;
 			/*
 			sprintf(outStr,"wave%d.img",islice);
@@ -2741,11 +2744,12 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 					for (i=0;i<(int)strlen(outStr);i++) printf("\b");
 				}
 			}
-			// TODO: modifying shared value from multiple threads?
-			//#pragma omp single
-			{
-				muls->thickness += muls->cz[islice];
-			}
+
+			// TODO: modifying shared value from multiple threads?  
+			//    Does this thickness measure matter?  The STEM image thickness does not seem to depend on it.
+			#pragma omp atomic
+			muls->thickness += muls->cz[islice];
+
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
 				// TODO (MCS 2013/04): this restructure probably broke this file saving - 
@@ -2885,6 +2889,8 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 
 	tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
+	// we write directly to the shared muls object.  This is safe only because 
+	//    each thread is accessing different pixels in the output image.
 	detectors = muls->detectors;
 
 	if (muls->outputInterval == 0) t = 0;
@@ -2924,15 +2930,18 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 			intensity *= scale;
 #endif
 			for (i=0;i<muls->detectorNum;i++) {
-				if ((k2 >= detectors[t][i].k2Inside) && (k2 <= detectors[t][i].k2Outside)) {
+				if ((k2 >= detectors[t][i].k2Inside) && (k2 <= detectors[t][i].k2Outside)) 
+				{
 					// detector in center of diffraction pattern:
-					if ((detectors[t][i].shiftX == 0) && (detectors[t][i].shiftY == 0)) {
+					if ((detectors[t][i].shiftX == 0) && (detectors[t][i].shiftY == 0)) 
+					{
 						detectors[t][i].image[wave->detPosX][wave->detPosY] += intensity;
 						// misuse the error number for collecting this pixels raw intensity
 						detectors[t][i].error += intensity;
 					}
 					/* special case for shifted detectors: */		
-					else {
+					else 
+					{
 						intensity_save = intensity;
 						ixs = (ix+(int)detectors[t][i].shiftX+muls->nx) % muls->nx;
 						iys = (iy+(int)detectors[t][i].shiftY+muls->ny) % muls->ny;	    
