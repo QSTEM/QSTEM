@@ -8,6 +8,15 @@
 #include "memory_fftw3.h"
 // #include "nrutil.h" 
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdio.h>	/* ANSI C libraries */
+#include <stdlib.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
+
 #define TINY 0.0 // 1.0e-20; //A small number. 
 
 static float sqrarg = 0.0f; 

@@ -10,6 +10,15 @@
 #include "imagelib_fftw3.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdio.h>	/* ANSI C libraries */
+#include <stdlib.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
+
 #define VERSION 1  // please update this number, if anything in the image header 
                    // format changes.
 

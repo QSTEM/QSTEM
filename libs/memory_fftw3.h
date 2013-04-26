@@ -1,3 +1,5 @@
+#ifndef MEMORY_H
+#define MEMORY_H
 
 // #include <stdlib.h>
 #include <stdio.h>
@@ -79,3 +81,5 @@ fftwf_complex ***complex3Df(int nx, int ny,int nz, const char *message); // sing
 
 void **any2D( int nx, int ny,int size, const char *message );
 void ***any3D( int nx, int ny,int nz,int size, const char *message );
+
+#endif

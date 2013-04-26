@@ -181,7 +181,8 @@ long **long2D( int nx, int ny, const char *message )
 */
 
 float **float32_2D( int nx, int ny, const char *message )
-{	float **m;
+{	
+	float **m;
 	int i;
 
 	m = (float**) fftw_malloc( nx * sizeof( float* ) ); 
@@ -216,7 +217,8 @@ float **float32_2D( int nx, int ny, const char *message )
 
 */
 float_tt **float2D( int nx, int ny, const char *message )
-{	float_tt **m;
+{	
+	float_tt **m;
 	int i;
 
 	m = (float_tt**) fftw_malloc( nx * sizeof( float_tt* ) ); 
@@ -238,6 +240,12 @@ float_tt **float2D( int nx, int ny, const char *message )
 #ifdef PRINT_MESSAGE
 	printf("allocated memory for %s (float_tt) = %d\n",message,(int)m);
 #endif
+
+	// initialize array to 0
+	for (int ix=0;ix<nx;ix++) for (int iy=0;iy < ny; iy++)
+	{
+		m[ix][iy] = 0.0f;
+	}
 
 	return m;
 
@@ -358,6 +366,13 @@ double **double2D( int nx, int ny, const char *message )
 	for (i=1; i<nx; i++){
 	  m[i] = &(m[0][i*ny]);
 	}
+
+	// initialize array to 0
+	for (int ix=0;ix<nx;ix++) for (int iy=0;iy < ny; iy++)
+	{
+		m[ix][iy] = 0.0;
+	}
+
 #ifdef PRINT_MESSAGE
 	printf("allocated memory for %s\n",message);
 #endif

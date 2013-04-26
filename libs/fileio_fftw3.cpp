@@ -16,6 +16,15 @@
 #include "fileio_fftw3.h"
 // #include "stemlib.h"
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdio.h>	/* ANSI C libraries */
+#include <stdlib.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
+
 #define NCINMAX  500	/* max number of characers in stacking spec */
 #define NRMAX	50	/* number of values in look-up-table in vzatomLUT */
 #define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
@@ -470,7 +479,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 							   if ((fpPhonon = fopen(muls->phononFile,"r")) == NULL) {
 								   printf("Cannot find phonon mode file, will use random displacements!");
 								   muls->Einstein = 1;
-								   muls->phononFile = NULL;
+								   //muls->phononFile = NULL;
 							   }
 							   else {
 
@@ -1034,8 +1043,6 @@ MULS initMu() {
 	// muls.wave = NULL;
 	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
 
-	muls.cin2 = (char *) malloc(NCINMAX*sizeof(char));
-
 	for (sCount =0;sCount<slices;sCount++)
 		muls.cin2[sCount] = 'a'+sCount;
 	for (sCount = slices;sCount < NCINMAX;sCount++)
@@ -1093,7 +1100,6 @@ int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,do
 					 int j;
 					 MULS mu = initMu();
 
-					 mu.phononFile = NULL;
 					 mu.atomKinds = 0;
 					 mu.Znums = NULL;
 					 mu.tds = 0;

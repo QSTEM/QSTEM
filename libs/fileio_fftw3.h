@@ -1,6 +1,7 @@
 #ifndef FILEIO_H
 #define FILEIO_H
 
+#include "data_containers.h"
 #include "stemtypes_fftw3.h"
 
 atom *readUnitCell(int *natom,char *fileName,MULS *muls,int handleVacancies);

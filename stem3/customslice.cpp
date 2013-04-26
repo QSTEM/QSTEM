@@ -11,6 +11,15 @@
 #include "customslice.h"
 #include "fileio_fftw3.h"
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdio.h>	/* ANSI C libraries */
+#include <stdlib.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
+
 #define FTBOX_AX 40
 #define FTBOX_CZ 40
 #define FTBOX_NX 1024
