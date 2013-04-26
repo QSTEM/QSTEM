@@ -1,6 +1,7 @@
 #ifndef STEMUTIL_H
 #define STEMUTIL_H
 
+#include "data_containers.h"
 #include "stemtypes_fftw3.h"
 
 #define pNPIX		0   /* number of pix 1 for real and 2 for complex */
@@ -33,7 +34,7 @@ typedef struct timeval timev;
 typedef struct timezone timez;
 
 
-int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls);
+int writeCFG(atom *atoms,int natoms,char *fileName, MULS *muls);
 int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 		       int icz,int atomCount,double dw,int maxAtom, int Znum);
 

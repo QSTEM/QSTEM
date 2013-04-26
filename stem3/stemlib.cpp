@@ -13,6 +13,16 @@
 // #include "floatdef.h"
 // #include "imagelib.h"
 
+
+#define _CRTDBG_MAP_ALLOC
+#include <stdio.h>	/* ANSI C libraries */
+#include <stdlib.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
+
 #define OVERSAMP_X 2
 #define OVERSAMP_Z 18
 
@@ -2386,7 +2396,7 @@ void probe(MULS *muls, WAVEFUNC *wave, double dx, double dy)
 
 }  /* end probe() */
 
-
+/*
 WAVEFUNC initWave(int nx, int ny) {
 	char waveFile[256];
 	const char *waveFileBase = "mulswav";
@@ -2398,9 +2408,6 @@ WAVEFUNC initWave(int nx, int ny) {
 	wave.diffpat=float2D(nx,ny,"diffpat");
 	wave.avgArray = float2D(nx,ny,"avgArray");
 
-	wave.fileout	= (char *)malloc(256*sizeof(char));
-	wave.fileStart	= (char *)malloc(256*sizeof(char));
-	wave.avgName	= (char *)malloc(256*sizeof(char));
 #if FLOAT_PRECISION == 1
 	wave.wave = complex2Df(nx, ny, "wave");
 	wave.fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave.wave[0],wave.wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
@@ -2413,12 +2420,11 @@ WAVEFUNC initWave(int nx, int ny) {
 		fftMeasureFlag);
 #endif
 
-	/*
-	muls.cin2 = NULL;  muls.fileout = NULL; muls.fileStart = NULL;
-	muls.cin2		= realloc(muls.cin2,256*sizeof(char));
-	muls.fileout	= realloc(muls.fileout,256*sizeof(char));
-	muls.fileStart	= realloc(muls.fileStart,256*sizeof(char));
-	*/	
+	//muls.cin2 = NULL;  muls.fileout = NULL; muls.fileStart = NULL;
+	//muls.cin2		= realloc(muls.cin2,256*sizeof(char));
+	//muls.fileout	= realloc(muls.fileout,256*sizeof(char));
+	//muls.fileStart	= realloc(muls.fileStart,256*sizeof(char));
+		
 	if ((wave.fileout == NULL) || (wave.fileStart == NULL)) {
 		printf("Could not allocate string arrays fileout, and fileStart \n");
 		exit(0);
@@ -2430,6 +2436,7 @@ WAVEFUNC initWave(int nx, int ny) {
 
 	return wave;
 }
+*/
 
 /**************************************************************
 * The imaginary part of the trans arrays is already allocated
@@ -2631,6 +2638,11 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 
 /******************************************************************
 * runMulsSTEM() - do the multislice propagation in STEM/CBED mode
+* 
+*    Each probe position is running this function.  Each CPU is thus
+*      running a separate instance of the function.  It is nested in
+*      the main OpenMP parallel region - specifying critical, single, and
+*      barrier OpenMP pragmas should be OK.
 *
 * waver, wavei are expected to contain incident wave function 
 * they will be updated at return
@@ -2661,27 +2673,10 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	if (printFlag)
 		printf("Specimen thickness: %g Angstroms\n", cztot);
 
-	scale = 1.0F / (((real)(*muls).nx) * ((real)(*muls).ny));
+	scale = 1.0F / (((real)muls->nx) * ((real)muls->ny));
 
-	/****************************************************
-	****************************************************
-	**            THIS IS THE BIG LOOP !!!            **
-	****************************************************
-	***************************************************/
-	//MCS - isn't this a pretty serious failure?  Shouldn't we just crash out here, 
-	//		and tell the user to fix their settings?
-	/*
-	if ((*muls).nx+wave->iPosX > (*muls).potNx) {
-		printf("position exceeds potential array\n");
-		wave->iPosX = (*muls).potNx-(*muls).nx;
-	}
-	if ((*muls).ny+wave->iPosY > (*muls).potNy) {
-		printf("position exceeds potential array\n");
-		wave->iPosY = (*muls).potNy-(*muls).ny;
-	}
-        */
-	for (mRepeat = 0;mRepeat<(*muls).mulsRepeat1;mRepeat++) {
-		for( islice=0; islice<(*muls).slices; islice++ ) {
+	for (mRepeat = 0; mRepeat < muls->mulsRepeat1; mRepeat++) {
+		for( islice=0; islice < muls->slices; islice++ ) {
 
 			// if ((muls->cubez > 0) && (muls->thickness >= muls->cubez)) break;
 			//  else if ((muls->cubez == 0) && (muls->thickness >= muls->c)) break;
@@ -2697,30 +2692,17 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			* but it also takes care of the bandwidth limiting
 			*******************************************************/
 #if FLOAT_PRECISION == 1
-			// old code: fftwnd_one((*muls).fftPlanForw,(fftw_complex *)&(wave[0][0]), NULL);
-			// newer, but old code (not thread safe):
-			// fftwf_execute(wave->fftPlanWaveForw);
-			// thread-safe, new code:
 			fftwf_execute(wave->fftPlanWaveForw);
 #else
-			//fftw_execute(wave->fftPlanWaveForw);
 			fftw_execute(wave->fftPlanWaveForw);
 #endif
 			propagate_slow((void **)wave->wave, muls->nx, muls->ny, muls);
 
-			#pragma omp critical
-			{
-			/* collect the STEM signal for intermediate output */
-			interimCollect(muls,wave,muls->totalSliceCount+islice*(1+mRepeat),((islice == muls->slices-1) && (mRepeat == muls->mulsRepeat1-1)));
-			/* collect the STEM signal on the annular detector(s) */
-			if ((islice == muls->slices-1) && (mRepeat == muls->mulsRepeat1-1))	
-			{
-				detectorCollect(muls,wave);
-			}
+			collectIntensity(muls, wave, muls->totalSliceCount+islice*(1+mRepeat));
+
 			if (muls->mode != STEM) {
 				/* write pendelloesung plots, if this is not STEM */
 				writeBeams(muls,wave,islice);
-			}
 			}
 
 			// go back to real space:
@@ -2729,7 +2711,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 #else
 			fftw_execute(wave->fftPlanWaveInv);
 #endif
-			// old code: fftwnd_one((*muls).fftPlanInv,(fftw_complex *)&wave[0][0], NULL);
+			// old code: fftwnd_one((*muls).fftPlanInv,(fftw_complex *)wave[0][0], NULL);
 			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
 			// TODO: modifying shared value from multiple threads?
 			(*muls).nslic0 +=  1;
@@ -2766,7 +2748,9 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			}
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
-				interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
+				// TODO (MCS 2013/04): this restructure probably broke this file saving - 
+				//   need to rewrite a function to save things for TEM/CBED?
+				collectIntensity(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
 			}
 		} /* end for(islice...) */
 	} /* end of mRepeat = 0 ... */
@@ -2875,27 +2859,21 @@ void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 // somehow overwriting the one that is created by detectorCollect.
 // One way to avoid this wouldb be to not call this function when 
 #define USE_LOCAL_DIFF 0
-void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
+void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice) 
+{
 	int i,ix,iy,ixs,iys,t;
 	real k2;
 	double intensity,scale,scaleCBED,scaleDiff,intensity_save;
-	static char fileName[256],avgName[256]; 
-	static imageStruct *header = NULL;
-	static imageStruct *diffHeader = NULL;
+	char fileName[256],avgName[256]; 
+	imageStruct *header = NULL;
+	imageStruct *diffHeader = NULL;
 #if USE_LOCAL_DIFF
-	static real **diffpat = NULL;
+	static float_tt **diffpat = NULL;
 #endif
-	static real **diffpatAvg = NULL;
-	static DETECTOR **detectors = NULL;
-	static int tCount = 0;
+	float_tt **diffpatAvg = NULL;
+	int tCount = 0;
 
-	// if this is the last slice, then do it anyway!
-	if (!finalSlice) {	
-		if (muls->outputInterval == 0) return;
-		if ((muls->slices*muls->cellDiv > slice+1) && ((slice+1) % muls->outputInterval != 0)) return;
-	}
-
-	// printf("entering interimCollect\n");
+	std::vector<std::vector<DETECTOR>> detectors;
 
 	scale = muls->electronScale/((double)(muls->nx*muls->ny)*(muls->nx*muls->ny));
 	// scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
@@ -2903,70 +2881,41 @@ void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
 
 	#if USE_LOCAL_DIFF
 		if (diffpat == NULL) diffpat = float2D(muls->nx,muls->ny,"diffraction pattern");
-	#else
-		if (wave->diffpat == NULL) (*wave).diffpat = float2D(muls->nx,muls->ny,"diffraction pattern");
 	#endif
 
-	/////////////////////////////////////////////////////////////////////////////
-	// initialize the arrays, if this is the first run:
-	if (detectors == NULL) {
-		diffpatAvg = float2D(muls->nx,muls->ny,"Average diffraction pattern");
-		tCount = (int)(ceil((double)((muls->slices*muls->cellDiv)/muls->outputInterval)));
-		diffHeader = makeNewHeaderCompact(0,muls->nx,muls->ny,0,
-				1.0/(muls->nx*muls->resolutionX),1.0/(muls->ny*muls->resolutionY),
-				0,NULL,"Intermediate averaged diffraction pattern, unit: 1/A");
+	tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
-		detectors = (DETECTOR **)any2D(tCount,muls->detectorNum,sizeof(DETECTOR),"detectors");
-		// copy all the numbers, but create own image arrays:
-		for (t=0;t<tCount;t++) {
-			memcpy(detectors[t],muls->detectors,muls->detectorNum*sizeof(DETECTOR));
-			for (i=0;i<muls->detectorNum;i++) {
-				detectors[t][i].Navg = 0;
-#if FLOAT_PRECISION == 1
-				detectors[t][i].image = float2D(muls->scanXN,muls->scanYN,"ADFimag");	
-				detectors[t][i].image2 = float2D(muls->scanXN,muls->scanYN,"ADFimag");	
-				// printf("allocating memory %d,%d\n",t,i);
-				memset(detectors[t][i].image[0],0,muls->scanXN*muls->scanYN*sizeof(float_tt));
-				memset(detectors[t][i].image2[0],0,muls->scanXN*muls->scanYN*sizeof(float_tt));
-#else
-				if (sizeof(float_tt) == sizeof(float)) {
-					detectors[t][i].image = float2D(muls->scanXN,muls->scanYN,"ADFimag");
-					detectors[t][i].image2 = float2D(muls->scanXN,muls->scanYN,"ADFimag");
-				}
-				else {
-					detectors[t][i].image = double2D(muls->scanXN,muls->scanYN,"ADFimag");	
-					detectors[t][i].image2 = double2D(muls->scanXN,muls->scanYN,"ADFimag");	
-				}
-				memset(detectors[t][i].image[0],0,muls->scanXN*muls->scanYN*sizeof(float_tt));
-				memset(detectors[t][i].image2[0],0,muls->scanXN*muls->scanYN*sizeof(float_tt));
-#endif
-				// initialize STEM image arrays:
-				detectors[t][i].Navg = 0;
-			}
-		}
-	}
+	detectors = muls->detectors;
 
 	if (muls->outputInterval == 0) t = 0;
-	else {
-		t = (int)((slice)/muls->outputInterval);
-		if (t >= tCount) {
+	else 
+	{
+		t = (int)((slice) / muls->outputInterval);
+		if (t >= tCount) 
+		{
 			// printf("t = %d, which is greater than tCount (%d)\n",t,tCount);
 			t = tCount-1;
 		}
 	}
+
+	int position_offset = wave->detPosY * muls->scanXN + wave->detPosX;
+
 	// Multiply each image by its number of averages and divide by it later again:
-	for (i=0;i<muls->detectorNum;i++) {
+	for (i=0;i<muls->detectorNum;i++) 
+	{
 		detectors[t][i].image[wave->detPosX][wave->detPosY]  *= detectors[t][i].Navg;	
 		detectors[t][i].image2[wave->detPosX][wave->detPosY] *= detectors[t][i].Navg;	
 		detectors[t][i].error = 0;
 	}
 	/* add the intensities in the already 
 	fourier transformed wave function */
-	for (ix=0;ix<muls->nx;ix++) {
-		for (iy=0;iy<muls->ny;iy++) {       
+	for (ix = 0; ix < muls->nx; ix++) 
+	{
+		for (iy = 0; iy < muls->ny; iy++) 
+		{
 			k2 = muls->kx2[ix]+muls->ky2[iy];
-			intensity = ((*wave).wave[ix][iy][0]*(*wave).wave[ix][iy][0]+
-				(*wave).wave[ix][iy][1]*(*wave).wave[ix][iy][1]);
+			intensity = (wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
+				wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
 #if USE_LOCAL_DIFF
 			diffpat[(ix+muls->nx/2)%muls->nx][(iy+muls->ny/2)%muls->ny] = intensity*scaleDiff;
 			intensity *= scale;
@@ -2985,12 +2934,12 @@ void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
 					/* special case for shifted detectors: */		
 					else {
 						intensity_save = intensity;
-						ixs = (ix+(int)detectors[t][i].shiftX+(*muls).nx) % (*muls).nx;
-						iys = (iy+(int)detectors[t][i].shiftY+(*muls).ny) % (*muls).ny;	    
-						intensity = scale * ((*wave).wave[ixs][iys][0]*(*wave).wave[ixs][iys][0]+
-							(*wave).wave[ixs][iys][1]*(*wave).wave[ixs][iys][1]);
+						ixs = (ix+(int)detectors[t][i].shiftX+muls->nx) % muls->nx;
+						iys = (iy+(int)detectors[t][i].shiftY+muls->ny) % muls->ny;	    
+						intensity = scale * (wave->wave[ixs][iys][0]*wave->wave[ixs][iys][0]+
+							wave->wave[ixs][iys][1]*wave->wave[ixs][iys][1]);
 						detectors[t][i].image[wave->detPosX][wave->detPosY] += intensity;
-						// misuse the error number for collecting this pixels raw intensity
+						// repurpose the error number for collecting this pixels raw intensity
 						detectors[t][i].error += intensity;
 						/* restore intensity, so that it will not be shifted for the other detectors */
 						intensity = intensity_save;
@@ -3040,51 +2989,8 @@ void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
 
 		// do the rescaling for the average image:
 		detectors[t][i].image[wave->detPosX][wave->detPosY] /= detectors[t][i].Navg+1;	
-	} 
-
-	// write the output STEM images, if this is the last pixel:
-	// wait for all threads to join so that image is complete.
-	//#pragma omp barrier
-	if ((muls->mode == STEM) && (wave->detPosX == muls->scanXN-1) && (wave->detPosY == muls->scanYN-1)) 
-	{
-		//printf("%d, %d, %d, %d\n", wave->detPosX, muls->scanXN-1,wave->detPosY, muls->scanYN-1);
-		if (header == NULL) 
-		{
-			header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN,muls->thickness,
-				(muls->scanXStop-muls->scanXStart)/(float)muls->scanXN,
-				(muls->scanYStop-muls->scanYStart)/(float)muls->scanYN,
-				0,NULL, "STEM image");
-			header->params = (double *)malloc((2+muls->scanXN*muls->scanYN)*sizeof(double));
-			header->paramSize = 2+muls->scanXN*muls->scanYN;
-		}
-		for (i=0;i<muls->detectorNum;i++) 
-		{
-			detectors[t][i].Navg++;
-
-			// calculate the standard error for this image:
-			detectors[t][i].error = 0;
-			intensity             = 0;
-			for (ix=0;ix<muls->scanXN*muls->scanYN;ix++) 
-			{
-				detectors[t][i].error += (detectors[t][i].image2[0][ix]-
-					detectors[t][i].image[0][ix]*detectors[t][i].image[0][ix]);
-				intensity += detectors[t][i].image[0][ix]*detectors[t][i].image[0][ix];
-			}
-			detectors[t][i].error /= intensity;
-
-			sprintf(fileName,"%s/%s_%d.img",muls->folder,detectors[t][i].name,t);
-			header->t = slice*muls->sliceThickness;
-			header->params[0] = (double)detectors[t][i].Navg;
-			header->params[1] = (double)detectors[t][i].error;
-
-			for (ix=0;ix<muls->scanXN*muls->scanYN;ix++) 
-			{
-				header->params[2+ix] = (double)detectors[t][i].image2[0][ix];
-			}
-			writeRealImage((void **)detectors[t][i].image,header,fileName,sizeof(real));    
-		}
 	}
-	//printf("exiting interimCollect (%d)\n",slice);
+	//printf("exiting collectIntensity (%d)\n",slice);
 }
 
 
@@ -3095,53 +3001,55 @@ void interimCollect(MULS *muls, WAVEFUNC *wave, int slice,int finalSlice) {
 * collect the STEM signal on the annular detector(s) defined in muls
 * and write the appropriate pixel in the image for each detector
 *******************************************************************/
+/*
 void detectorCollect(MULS *muls, WAVEFUNC *wave) {
 	int i,ix,iy,ixs,iys;
 	real k2;
-	double intensity,scale,intensity_save;
+	double intensity, scale, intensity_save;
 	static char fileName[256]; 
 	static imageStruct *header = NULL;
 	static int initialized = 0;
 
+	// the detector plane is the one at the very end of the thicknesses.
+	detectors = (*(muls->detectors.back()))
+
 	if ((*wave).diffpat == NULL) {
-		(*wave).diffpat = float2D((*muls).nx,(*muls).ny,"diffraction pattern");
-		// printf("%d\n",sizeof(fftw_real));
-		// (*wave).diffpat = (fftw_real **)any2D((*muls).nx,(*muls).ny,sizeof(fftw_real),"diffraction pattern");
+		(*wave).diffpat = float2D(muls->nx, muls->ny, "diffraction pattern");
 	}
 
-	// TODO: modifying shared value from multiple threads?
 	if (!initialized) {
 		for (i=0;i<muls->detectorNum;i++) {
-			/* reset the chi^2 counter to 0, if this is the first pixel */
-			muls->detectors[i].image[wave->detPosX][wave->detPosY] = 0.0f;    
+			// reset the chi^2 counter to 0, if this is the first pixel
+			detectors[i].image[wave->detPosX][wave->detPosY] = 0.0f;    
 		}
 		initialized = 1;
 	}
-	/* add the intensities in the already 
-	fourier transformed wave function */
-	/*
+	// add the intensities in the already fourier transformed wave function 
+
 	scale = 1.0/sqrt((double)(muls->nx*muls->ny));
 	for (ix=0;ix<muls->nx;ix++) {
 		for (iy=0;iy<muls->ny;iy++) {	   
 			k2 = muls->kx2[ix]+muls->ky2[iy];
-			intensity = scale*((*wave).wave[ix][iy][0]*(*wave).wave[ix][iy][0]+
-				(*wave).wave[ix][iy][1]*(*wave).wave[ix][iy][1]);
-			(*wave).diffpat[(ix+(*muls).nx/2)%(*muls).nx][(iy+(*muls).ny/2)%(*muls).ny] = intensity;
-			for (i=0;i<(*muls).detectorNum;i++) {
-				if ((k2 >= (*muls).detectors[i].k2Inside) &&
-					(k2 <= (*muls).detectors[i].k2Outside)) {
-						if (((*muls).detectors[i].shiftX == 0) && ((*muls).detectors[i].shiftY == 0)) {
-							(*muls).detectors[i].image[wave->detPosX][wave->detPosY] += intensity;
+			intensity = scale*(wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
+				wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
+			wave->diffpat[(ix+muls->nx/2)%muls->nx][(iy+muls->ny/2)%muls->ny] = intensity;
+			for (i=0; i < muls->detectorNum; i++) {
+				if ((k2 >= detectors[i].k2Inside) &&
+					(k2 <= detectors[i].k2Outside)) 
+				{
+					if ((detectors[i].shiftX == 0) && ((*muls).detectors[i].shiftY == 0)) 
+					{
+							detectors[i].image[wave->detPosX][wave->detPosY] += intensity;
 					}
 					// special case for shifted detectors: 
-					else {
+					else 
+					{
 							intensity_save = intensity;
-							ixs = (ix+(int)(*muls).detectors[i].shiftX+(*muls).nx) % (*muls).nx;
-							iys = (iy+(int)(*muls).detectors[i].shiftY+(*muls).ny) % (*muls).ny;		
-							intensity = scale * ((*wave).wave[ixs][iys][0]*(*wave).wave[ixs][iys][0]+
-								(*wave).wave[ixs][iys][1]*(*wave).wave[ixs][iys][1]);
-							(*muls).detectors[i].image[wave->detPosX][wave->detPosY] += 
-								intensity;
+							ixs = (ix + (int)detectors[i].shiftX + muls->nx) % muls->nx;
+							iys = (iy + (int)detectors[i].shiftY + muls->ny) % muls->ny;		
+							intensity = scale * (wave->wave[ixs][iys][0] * wave->wave[ixs][iys][0]+
+								wave->wave[ixs][iys][1] * wave->wave[ixs][iys][1]);
+							detectors[i].image[wave->detPosX][wave->detPosY] += intensity;
 							// restore intensity, so that it will not be shifted for the other detectors 
 							intensity = intensity_save;
 					}
@@ -3149,27 +3057,27 @@ void detectorCollect(MULS *muls, WAVEFUNC *wave) {
 			} // end of for i=0 ... detectorNum 
 		} // end of for iy=0... 
 	} // end of for ix = ... 
-	*/
-	/* Write the first detector shadow in the diffraction pattern, if STEM */
+
+	// Write the first detector shadow in the diffraction pattern, if STEM 
 	if ((muls->mode == STEM) && (muls->detectorNum > 0)) {
 		for (iy = (*muls).ny/2+1;iy<(*muls).ny;iy++) {
-			for (ix=iy;ix<(*muls).nx;ix++) {		
+			for (ix=iy; ix < muls->nx; ix++) {		
 				k2 = (*muls).kx2[ix]+(*muls).ky2[iy];
-				if ((k2 >= (*muls).detectors[0].k2Inside) &&
-					(k2 <= (*muls).detectors[0].k2Outside)) {
-						ixs = (ix+(int)(*muls).detectors[0].shiftX+(*muls).nx) % (*muls).nx;
-						iys = (iy+(int)(*muls).detectors[0].shiftY+(*muls).ny) % (*muls).ny;		
-						(*wave).diffpat[(ixs+3*(*muls).nx/2) % (*muls).nx][(iys+3*(*muls).ny/2)%(*muls).ny] = 0.0;
+				if ((k2 >= detectors[0].k2Inside) &&
+					(k2 <= detectors[0].k2Outside)) {
+						ixs = (ix+(int)detectors[0].shiftX+(*muls).nx) % (*muls).nx;
+						iys = (iy+(int)detectors[0].shiftY+(*muls).ny) % (*muls).ny;		
+						wave->diffpat[(ixs+3*(*muls).nx/2) % (*muls).nx][(iys+3*(*muls).ny/2)%(*muls).ny] = 0.0;
 				}
 			}
 		}
 		for (iy = (*muls).ny/2-1;iy>=0;iy--) {
 			for (ix=iy;ix>=0;ix--) {		
 				k2 = (*muls).kx2[ix]+(*muls).ky2[iy];
-				if ((k2 >= (*muls).detectors[0].k2Inside) &&
-					(k2 <= (*muls).detectors[0].k2Outside)) {
-						ixs = (ix+(int)(*muls).detectors[0].shiftX+(*muls).nx) % (*muls).nx;
-						iys = (iy+(int)(*muls).detectors[0].shiftY+(*muls).ny) % (*muls).ny;		
+				if ((k2 >= detectors[0].k2Inside) &&
+					(k2 <= detectors[0].k2Outside)) {
+						ixs = (ix+(int)detectors[0].shiftX+(*muls).nx) % (*muls).nx;
+						iys = (iy+(int)detectors[0].shiftY+(*muls).ny) % (*muls).ny;		
 						(*wave).diffpat[(ixs+3*(*muls).nx/2) % (*muls).nx][(iys+3*(*muls).ny/2)%(*muls).ny] = 0.0;
 				}
 			}
@@ -3196,10 +3104,66 @@ void detectorCollect(MULS *muls, WAVEFUNC *wave) {
 		header->dy = 1.0/muls->by;
 		header->params[0] = muls->tomoTilt;
 		header->params[1] = 1.0/wavelength(muls->v0);
-		writeRealImage((void **)(*wave).diffpat,header,fileName,sizeof(float));	 
+		writeRealImage((void **)wave->diffpat, header, fileName, sizeof(float));	 
 	}
 }
+*/
 
+void saveSTEMImages(MULS *muls)
+{
+	int i, ix, islice;
+	double intensity;
+	static char fileName[256]; 
+	imageStruct *header = NULL;
+	std::vector<DETECTOR> detectors;
+	float t;
+
+	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
+
+	// Loop over slices (intermediates)
+	for (islice=0; islice < tCount; islice++)
+	{
+		//t = (islice+1)*muls->sliceThickness;
+		detectors = muls->detectors[islice];
+		// write the output STEM images:
+		// This is done only after all pixels have completed, so that image is complete.
+		if (header == NULL) 
+		{
+			header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN,muls->thickness,
+				(muls->scanXStop-muls->scanXStart)/(float)muls->scanXN,
+				(muls->scanYStop-muls->scanYStart)/(float)muls->scanYN,
+				0, NULL, "STEM image");
+			header->params = (double *)malloc((2+muls->scanXN*muls->scanYN)*sizeof(double));
+			header->paramSize = 2+muls->scanXN*muls->scanYN;
+		}
+		for (i=0; i<muls->detectorNum; i++) 
+		{
+			detectors[i].Navg++;
+
+			// calculate the standard error for this image:
+			detectors[i].error = 0;
+			intensity             = 0;
+			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
+			{
+				detectors[i].error += (detectors[i].image2[0][ix]-
+					detectors[i].image[0][ix] * detectors[i].image[0][ix]);
+				intensity += detectors[i].image[0][ix] * detectors[i].image[0][ix];
+			}
+			detectors[i].error /= intensity;
+
+			sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i].name, islice);
+			header->t = islice*muls->sliceThickness;
+			header->params[0] = (double)detectors[i].Navg;
+			header->params[1] = (double)detectors[i].error;
+
+			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
+			{
+				header->params[2+ix] = (double)detectors[i].image2[0][ix];
+			}
+			writeRealImage((void **)detectors[i].image, header, fileName, sizeof(real));    
+		}
+	}
+}
 
 void readStartWave(MULS *muls, WAVEFUNC *wave) {
 	static imageStruct *header;

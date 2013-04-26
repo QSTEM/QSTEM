@@ -22,6 +22,14 @@
 
 // #define WRITEK
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdio.h>	/* ANSI C libraries */
+#include <stdlib.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
 
 
 #define K_B 1.38062e-23      /* Boltzman constant */

@@ -3,9 +3,8 @@
 
 // #define WIN
 
-
-
 #include "stemtypes_fftw3.h"
+#include "data_containers.h"
 
 
 /**********************************************
@@ -15,12 +14,13 @@
  *********************************************/
 // int probe(MULS *muls,double dx, double dy);
 void probe(MULS *muls, WAVEFUNC *wave, double dx, double dy);
-void probePlot(MULS *muls,WAVEFUNC *wave);
+void probePlot(MULS *muls, WAVEFUNC *wave);
 
 void initSTEMSlices(MULS *muls, int nlayer);
 void interimWave(MULS *muls,WAVEFUNC *wave,int slice);
-void interimCollect(MULS *muls, WAVEFUNC *wave, int slices,int finalSlice);
-void detectorCollect(MULS *muls, WAVEFUNC *wave);
+void collectIntensity(MULS *muls, WAVEFUNC *wave, int slices);
+//void detectorCollect(MULS *muls, WAVEFUNC *wave);
+void saveSTEMImages(MULS *muls);
 
 void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center);
 void make3DSlicesFFT(MULS *muls,int nlayer,char *fileName,atom *center);

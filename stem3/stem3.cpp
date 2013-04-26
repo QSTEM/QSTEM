@@ -14,10 +14,15 @@ good energies: 327, 360,393,520 keV
 #endif
 /* #define USE_FFT_POT */
 // #define WINDOWS
-//#define _CRTDBG_MAP_ALLOC
+// for memory leak checking
+#define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>
-//#include <crtdbg.h>
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
 #include <string.h>
 #ifndef WIN32
 #ifdef __cplusplus
@@ -47,7 +52,7 @@ good energies: 327, 360,393,520 keV
 #include "stemutil.h"
 // #include "weblib.h"
 #include "customslice.h"
-
+#include "data_containers.h"
 
 #define NCINMAX 1024
 #define NPARAM	64    /* number of parameters */
@@ -113,8 +118,6 @@ int main(int argc, char *argv[]) {
 	system("date");
 #endif
 
-
-
 	/*************************************************************
 	* read in the parameters
 	************************************************************/  
@@ -130,6 +133,9 @@ int main(int argc, char *argv[]) {
 	readFile();
 
 	displayParams();
+#ifdef _OPENMP
+	omp_set_dynamic(1);
+#endif
 
 	/* report the result on the web page 
 	add2Webpage("diff_0_0.img"); 
@@ -141,7 +147,7 @@ int main(int argc, char *argv[]) {
 			muls.dE_E = muls.dE_EArray[muls.avgCount];
 			// printf("dE/E: %g\n",muls.dE_E);
 #ifndef WIN32
-			//probePlot(&muls, &wave);
+			//probePlot(&muls, wave);
 #endif
 		}    
 
@@ -169,8 +175,10 @@ int main(int argc, char *argv[]) {
 		  printf("Mode not supported\n");
 	}
 
-
 	parClose();
+#if _DEBUG
+	_CrtDumpMemoryLeaks();
+#endif
 
 	return 0;
 }
@@ -192,28 +200,12 @@ void initMuls() {
 
 	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
 
-	muls.cin2		= (char *)malloc(NCINMAX*sizeof(char));
-
-	/*
-	muls.cin2 = NULL;  muls.fileout = NULL; muls.fileStart = NULL;
-	muls.cin2		= realloc(muls.cin2,256*sizeof(char));
-	muls.fileout	= realloc(muls.fileout,256*sizeof(char));
-	muls.fileStart	= realloc(muls.fileStart,256*sizeof(char));
-	*/	
-	if (muls.cin2 == NULL)  {
-		printf("Could not allocate string arrays cin2 (%d)\n",
-			(&muls.cin2));
-		exit(0);
-	}
-
-
 	for (sCount =0;sCount<slices;sCount++)
 		muls.cin2[sCount] = 'a'+sCount;
 	for (sCount = slices;sCount < NCINMAX;sCount++)
 		muls.cin2[sCount] = 0;
 	muls.nlayer = slices;
 	muls.saveFlag = 0;
-
 
 	muls.sigmaf = 0;
 	muls.dfdelt = 0;
@@ -229,7 +221,6 @@ void initMuls() {
 	muls.tomoStart = 0;
 	muls.tomoStep = 0;
 	muls.tomoCount = 0;  // indicate: NO Tomography simulation.
-
 
 	/* make multislice read the inout files and assign transr and transi: */
 	muls.trans = NULL;
@@ -537,16 +528,16 @@ void displayParams() {
 			0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
 		printf("* Number of detectors:  %d\n",muls.detectorNum);
 		for (i=0;i<muls.detectorNum;i++) {
-			printf("* %d (\"%s\"):",i+1,muls.detectors[i].name);
-			for (j=0;j<14-strlen(muls.detectors[i].name);j++) printf(" ");
+			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name);
+			for (j=0;j<14-strlen(muls.detectors[0][i].name);j++) printf(" ");
 			printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
-				muls.detectors[i].rInside,
-				muls.detectors[i].rOutside,
-				muls.detectors[i].k2Inside,
-				muls.detectors[i].k2Outside);
-			if ((muls.detectors[i].shiftX != 0) ||(muls.detectors[i].shiftY != 0))
+				muls.detectors[0][i].rInside,
+				muls.detectors[0][i].rOutside,
+				muls.detectors[0][i].k2Inside,
+				muls.detectors[0][i].k2Outside);
+			if ((muls.detectors[0][i].shiftX != 0) ||(muls.detectors[0][i].shiftY != 0))
 				printf("*   center shifted:     dkx=%g, dky=%g\n",
-				muls.detectors[i].shiftX,muls.detectors[i].shiftY);
+				muls.detectors[0][i].shiftX,muls.detectors[0][i].shiftY);
 		}
 		printf("* Scan window:          (%g,%g) to (%g,%g)A, %d x %d = %d pixels\n",
 			muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
@@ -693,8 +684,8 @@ void readFile() {
 	/************************************************************************
 	* Basic microscope/simulation parameters, 
 	*/ 
-	muls.fileBase = (char *)malloc(512);
-	muls.atomPosFile = (char *)malloc(512);
+	//muls.fileBase = (char *)malloc(512);
+	//muls.atomPosFile = (char *)malloc(512);
 	if (!readparam("filename:",buf,1)) exit(0); sscanf(buf,"%s",muls.fileBase);
 	// printf("buf: %s\n",buf);
 	// printf("fileBase: %s\n",muls.fileBase);
@@ -799,9 +790,8 @@ void readFile() {
 	if (readparam("temperature:",buf,1)) sscanf(buf,"%g",&(muls.tds_temp));
 	else muls.tds_temp = 300.0;
 	muls.Einstein = 1;
-	muls.phononFile = NULL;
+	//muls.phononFile = NULL;
 	if (readparam("phonon-File:",buf,1)) {
-		muls.phononFile = (char *)malloc(64);
 		sscanf(buf,"%s",muls.phononFile);
 		muls.Einstein = 0;
 	}
@@ -1257,9 +1247,6 @@ void readFile() {
 	muls.phi62 /= (float)RAD2DEG;
 
 
-
-
-
 	if (!readparam("alpha:",buf,1)) exit(0); 
 	sscanf(buf,"%g",&(muls.alpha)); /* in mrad */
 
@@ -1304,7 +1291,6 @@ void readFile() {
 		sscanf(buf,"%s",answer);
 		muls.showProbe = (tolower(answer[0]) == (int)'y');
 	}
-	muls.folder = (char *)malloc(512);
 	sprintf(muls.folder,"data");
 	if (readparam("Folder:",buf,1)) 
 		sscanf(buf," %s",muls.folder);
@@ -1327,39 +1313,60 @@ void readFile() {
 	/*  readBeams(parFp); */  
 	/************************************************************************/  
 	/* read the different detector configurations                           */
-	/* first determine number of detectors */
 	resetParamFile();
 	muls.detectorNum = 0;
 
-	if (muls.mode == STEM) {
+	if (muls.mode == STEM) 
+	{
+		int tCount = (int)(ceil((double)((muls.slices * muls.cellDiv) / muls.outputInterval)));
+
+		/* first determine number of detectors */
 		while (readparam("detector:",buf,0)) muls.detectorNum++;  
-		muls.detectors = (DETECTOR *)malloc(muls.detectorNum*sizeof(DETECTOR));
 		/* now read in the list of detectors: */
 		resetParamFile();
-		i=0;
-		while (readparam("detector:",buf,0)) {
-			muls.detectors[i].shiftX = 0.0;
-			muls.detectors[i].shiftY = 0.0;
-			muls.detectors[i].error = 0.0;
-			sscanf(buf,"%g %g %s %g %g",&(muls.detectors[i].rInside),
-				&(muls.detectors[i].rOutside),
-				muls.detectors[i].name,
-				&(muls.detectors[i].shiftX),&(muls.detectors[i].shiftY));  
 
-			muls.detectors[i].image = float2D(muls.scanXN,muls.scanYN,"ADFimage");
-			for (ix=0;ix<muls.scanXN;ix++) for (iy=0;iy<muls.scanYN;iy++)
-				muls.detectors[i].image[ix][iy] = 0.0;
+		// loop over thickness planes where we're going to record intermediates
+		// TODO: is this too costly in terms of memory?  It simplifies the parallelization to
+		//       save each of the thicknesses in memory, then save to disk afterwards.
+		for (int islice=0; islice<tCount; islice++)
+		{
+			std::vector<DETECTOR> detectors;
+			resetParamFile();
+			while (readparam("detector:",buf,0)) {
+				DETECTOR det;
+				det.shiftX = 0.0;
+				det.shiftY = 0.0;
+				det.error = 0.0;
+				det.Navg = 0;
+				sscanf(buf,"%g %g %s %g %g",&(det.rInside),
+					&(det.rOutside), det.name, &(det.shiftX),&(det.shiftY));  
 
-			/* determine v0 specific k^2 values corresponding to the angles */
-			muls.detectors[i].k2Inside = 
-				(float)(sin(muls.detectors[i].rInside*0.001)/(wavelength(muls.v0)));
-			muls.detectors[i].k2Outside = 
-				(float)(sin(muls.detectors[i].rOutside*0.001)/(wavelength(muls.v0)));
-			// printf("Detector %d: %f .. %f, lambda = %f (%f)\n",i,muls.detectors[i].k2Inside,muls.detectors[i].k2Outside,wavelength(muls.v0),muls.v0);
-			/* calculate the squares of the ks */
-			muls.detectors[i].k2Inside *= muls.detectors[i].k2Inside;
-			muls.detectors[i].k2Outside *= muls.detectors[i].k2Outside;
-			i++;
+#if FLOAT_PRECISION == 1
+				det.image = float2D(muls.scanXN,muls.scanYN,"ADFimag");
+				det.image2 = float2D(muls.scanXN,muls.scanYN,"ADFimag");
+#else
+				det.image = double2D(muls.scanXN,muls.scanYN,"ADFimag");	
+				det.image2 = double2D(muls.scanXN,muls.scanYN,"ADFimag");	
+#endif
+
+				//for (ix=0;ix<muls.scanXN;ix++) for (iy=0;iy < muls.scanYN; iy++)
+				//{
+					//det.image[ix][iy] = 0.0;
+					//det.image2[ix][iy] = 0.0;
+				//}
+
+				/* determine v0 specific k^2 values corresponding to the angles */
+				det.k2Inside = 
+					(float)(sin(det.rInside*0.001)/(wavelength(muls.v0)));
+				det.k2Outside = 
+					(float)(sin(det.rOutside*0.001)/(wavelength(muls.v0)));
+				// printf("Detector %d: %f .. %f, lambda = %f (%f)\n",i,muls.detectors[i].k2Inside,muls.detectors[i].k2Outside,wavelength(muls.v0),muls.v0);
+				/* calculate the squares of the ks */
+				det.k2Inside *= det.k2Inside;
+				det.k2Outside *= det.k2Outside;
+				detectors.push_back(det);
+			}
+			muls.detectors.push_back(detectors);
 		}
 	}
 	/************************************************************************/   
@@ -1514,13 +1521,15 @@ void readFile() {
 	// muls.btilty = 0;
 	//muls.thickness = 0.0;
 
-	/* if cfgFile != NULL, the program will later write a the atomic config to this file */
-	muls.cfgFile = NULL;
-	if (readparam("CFG-file:",buf,1)) {
-		muls.cfgFile = (char *)malloc(128);
+	/* TODO: possible breakage here - MCS 2013/04 - made muls.cfgFile be allocated on the struct
+	       at runtim - thus this null check doesn't make sense anymore.  Change cfgFile set
+	   Old comment:
+		if cfgFile != NULL, the program will later write a the atomic config to this file */
+	//muls.cfgFile = NULL;
+	if (readparam("CFG-file:",buf,1)) 
+	{
 		sscanf(buf,"%s",muls.cfgFile);
 	}
-
 
 	/* allocate memory for wave function */
 
@@ -1727,7 +1736,7 @@ void doCBED() {
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
-	WAVEFUNC wave = initWave(muls.nx,muls.ny);
+	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
 	static imageStruct *header = NULL;
 	imageStruct *header_read = NULL;
 
@@ -1769,7 +1778,7 @@ void doCBED() {
 		probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
 		muls.scanXStart = probeCenterX+probeOffsetX;
 		muls.scanYStart = probeCenterY+probeOffsetY;
-		probe(&muls,&wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
+		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
 		if (muls.saveLevel > 2) {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(1,muls.nx,muls.ny,muls.thickness,
@@ -1777,9 +1786,9 @@ void doCBED() {
 				0,NULL,"wave function");
 			header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
-			writeImage((void **)wave.wave,header,systStr);
-			// writeImage(muls.wave,header,"wave.img");
-			// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,"wave.img");
+			writeImage((void **)wave->wave,header,systStr);
+			// writeImage(muls.wave,header,"wave->img");
+			// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,"wave->img");
 			// system("showimage diff.img 2 &");
 		} 	
 		// printf("Probe: (%g, %g)\n",muls.scanXStart,muls.scanYStart);
@@ -1887,7 +1896,7 @@ void doCBED() {
 
 				timer = cputim();
 				// what probe should runMulsSTEM use here?
-				runMulsSTEM(&muls,&wave); 
+				runMulsSTEM(&muls,wave); 
 
 				printf("Thickness: %gA, int.=%g, time: %gsec\n",
 					muls.thickness,muls.intIntensity,cputim()-timer);
@@ -1900,7 +1909,7 @@ void doCBED() {
 						0,NULL,"wave function");
 					header->t = muls.thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
-					writeImage((void **)wave.wave,header,systStr);
+					writeImage((void **)wave->wave,header,systStr);
 					// writeImage(muls.wave,header,"wave.img");
 					// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,"wave.img");
 					// system("showimage diff.img 2 &");
@@ -2057,9 +2066,7 @@ void doCBED() {
 		} /* end of if lbemas ... */
 		displayProgress(1);
 	} /* end of for muls.avgCount=0.. */
-
-
-
+	delete(wave);
 }
 /************************************************************************
 * End of doCBED()
@@ -2086,7 +2093,7 @@ void doTEM() {
 	static long iseed=0;
 	static imageStruct *header = NULL;
 	static imageStruct *header_read = NULL;
-	WAVEFUNC wave=initWave(muls.nx,muls.ny);
+	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
 	static fftwf_complex **imageWave = NULL;
 
 	if (iseed == 0) iseed = -(long) time( NULL );
@@ -2128,7 +2135,7 @@ void doTEM() {
 		// produce an incident plane wave:
 		if ((muls.btiltx == 0) && (muls.btilty == 0)) {
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				wave.wave[ix][iy][0] = 1;	wave.wave[ix][iy][1] = 0;
+				wave->wave[ix][iy][0] = 1;	wave->wave[ix][iy][1] = 0;
 			}
 		}
 		else {
@@ -2139,8 +2146,8 @@ void doTEM() {
 				x = muls.resolutionX*(ix-muls.nx/2);
 				for (iy=0;iy<muls.ny;iy++) {
 					y = muls.resolutionY*(ix-muls.nx/2);
-					wave.wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
-					wave.wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
+					wave->wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
+					wave->wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
 				}
 			}
 		}
@@ -2208,7 +2215,7 @@ void doTEM() {
 				}
 
 				timer = cputim();
-				runMulsSTEM(&muls,&wave); 
+				runMulsSTEM(&muls,wave); 
 				muls.totalSliceCount += muls.slices;
 
 				if (muls.printLevel > 0) {
@@ -2233,15 +2240,15 @@ void doTEM() {
 							x = muls.resolutionX*(ix-muls.nx/2);
 							for (iy=0;iy<muls.ny;iy++) {
 								y = muls.resolutionY*(ix-muls.nx/2);
-								wave.wave[ix][iy][0] *= cos(ktx*x+kty*y);	
-								wave.wave[ix][iy][1] *= sin(ktx*x+kty*y);
+								wave->wave[ix][iy][0] *= cos(ktx*x+kty*y);	
+								wave->wave[ix][iy][1] *= sin(ktx*x+kty*y);
 							}
 						}
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
 					}
 
 
-					writeImage((void **)wave.wave,header,systStr);
+					writeImage((void **)wave->wave,header,systStr);
 					//    system("showimage diff.img 2 &");
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
@@ -2270,7 +2277,7 @@ void doTEM() {
 
 
 					setHeaderComment(header,"complex exit face Wave function");
-					writeImage((void **)wave.wave,header,systStr);
+					writeImage((void **)wave->wave,header,systStr);
 				}
 #endif 
 
@@ -2329,12 +2336,12 @@ void doTEM() {
 			**********************************************************/ 
 			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
-			fftwf_execute(wave.fftPlanWaveForw);
+			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave[ix][iy][0] = wave.wave[ix][iy][0];
-				imageWave[ix][iy][1] = wave.wave[ix][iy][1];
+				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
+				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
 			}
-			fftwf_execute_dft(wave.fftPlanWaveInv,imageWave[0],imageWave[0]);
+			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 			// get the amplitude squared:
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				diffArray[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
@@ -2411,12 +2418,12 @@ void doTEM() {
 			**********************************************************/ 
 			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
-			fftwf_execute(wave.fftPlanWaveForw);
+			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave[ix][iy][0] = wave.wave[ix][iy][0];
-				imageWave[ix][iy][1] = wave.wave[ix][iy][1];
+				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
+				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
 			}
-			fftwf_execute_dft(wave.fftPlanWaveInv,imageWave[0],imageWave[0]);
+			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 
 			// save the amplitude squared:
 			sprintf(avgName,"%s/image.img",muls.folder); 
@@ -2471,6 +2478,7 @@ void doTEM() {
 		} /* end of if lbemas ... */		 
 		displayProgress(1);
 	} /* end of for muls.avgCount=0.. */  
+	delete(wave);
 }
 /************************************************************************
 * end of doTEM
@@ -2485,22 +2493,22 @@ void doTEM() {
 
 void doSTEM() {
 	int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
-	double timer;
+	double timer, total_time=0;
 	char buf[BUF_LEN],avgName[256],systStr[256];
 	char jpgName[256], tifName[256];
 	real xpos,ypos,t;
 	static real **avgArray=NULL;
-	double *chisq,collectIntensity;
-	WAVEFUNC *waves;
-    WAVEFUNC wave;
+	double *chisq,collectedIntensity;
 	static imageStruct *header = NULL;
 	static imageStruct *header_read = NULL;
 	float cztot;
 	int islice;
 
-	waves = (WAVEFUNC *)malloc(muls.scanYN*sizeof(WAVEFUNC));
-
+	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
+	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
 	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	// zero-out the chisq array
+	memset(chisq, 0, muls.avgRuns*sizeof(double));
 	muls.chisq = chisq;
 	totalRuns = muls.avgRuns;
 	timer = cputim();
@@ -2512,7 +2520,7 @@ void doSTEM() {
            - To make an FFTW plan for each thread, we had to allocated a wave struct per thread
            - Allocating so many wave structs made the heap too big, causing the leak (I think)
         */
-        for(iy=0;iy<muls.scanYN;iy++) waves[iy]=initWave(muls.nx,muls.ny);
+        //for(iy=0;iy<muls.scanYN*muls.scanXN;iy++) waves[iy]=initWave(muls.nx,muls.ny);
 
 	if (avgArray == NULL)
 		avgArray = float2D(muls.nx,muls.ny,"avgArray");
@@ -2530,7 +2538,7 @@ void doSTEM() {
 	displayProgress(-1);
 
 	for (muls.avgCount = 0;muls.avgCount < totalRuns; muls.avgCount++) {
-		collectIntensity = 0;
+		collectedIntensity = 0;
 		muls.totalSliceCount = 0;
 		muls.dE_E = muls.dE_EArray[muls.avgCount];
 
@@ -2579,8 +2587,8 @@ void doSTEM() {
 
 
 			if (muls.equalDivs) {
-				make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-				initSTEMSlices(&muls,muls.slices);
+				make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
+				initSTEMSlices(&muls, muls.slices);
 				timer = cputim();
 			}
 
@@ -2609,89 +2617,84 @@ void doSTEM() {
 				/**************************************************
 				* scan through the different probe positions
 				*************************************************/
-                                // shared variables are implicitly private for parallel for loops.  This doesn't make all too much sense.
-                                // globals are automatically shared.  No muls here, because it's global.
-				// fork threads here.  Each thread shares muls, but gets its own wave.
-
 		        timer=cputim();
-				for(ix=0;ix<muls.scanXN;ix++) {
-				        // start the timer for this row
-#pragma omp parallel firstprivate(ix, header, header_read,timer) private(iy, ixa, iya,wave) shared(pCount,chisq,muls,waves)
-				        {
-#pragma omp for ordered
-					for(iy=0;iy<muls.scanYN;iy++) 
-					{
-						// printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
-                        wave = waves[iy];
-                        xpos = muls.scanXStart+
+#pragma omp parallel firstprivate(header, header_read, wave) private(ix, iy, ixa, iya) shared(pCount, chisq, muls, collectedIntensity, timer) 
+#pragma omp for
+				for (i=0; i < (muls.scanXN * muls.scanYN); i++)
+				{
+					ix = i / muls.scanYN;
+					iy = i % muls.scanYN;
+							
+					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
+
+					//wave = waves[i];
+					xpos = muls.scanXStart+
                                   ix*(muls.scanXStop-muls.scanXStart)/(float)muls.scanXN;
-                        ypos = muls.scanYStart+
+					ypos = muls.scanYStart+
                                   iy*(muls.scanYStop-muls.scanYStart)/(float)muls.scanYN;
-						/* if this is run=0, create the inc. probe wave function */
-                        if (pCount == 0) 
-						{
-							probe(&muls, &wave, muls.nx/2*muls.resolutionX, muls.ny/2*muls.resolutionY);
+					/* if this is run=0, create the inc. probe wave function */
+					if (pCount == 0) 
+					{
+						probe(&muls, wave, muls.nx/2*muls.resolutionX, muls.ny/2*muls.resolutionY);
 
-							// TODO: modifying shared value from multiple threads?
-                            muls.nslic0 = 0;
-                            muls.thickness = 0.0;
-                        }
-                                          
-						else 
-						{
-							/* load incident wave function and then propagate it */
-                            sprintf(wave.fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
-                            readStartWave(&muls, &wave);  /* this also sets the thickness!!! */	  
-							// TODO: modifying shared value from multiple threads?
-							muls.nslic0 = pCount;
-                        }
-                        /* run multislice algorithm
-                           and save exit wave function for this position 
-                           (done by runMulsSTEM), 
-                           but we need to define the file name */
-                        sprintf(wave.fileout,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
 						// TODO: modifying shared value from multiple threads?
-                        muls.saveFlag = 1;
+						muls.nslic0 = 0;
+						muls.thickness = 0.0;
+					}
+                                          
+					else 
+					{
+						/* load incident wave function and then propagate it */
+						sprintf(wave->fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
+						readStartWave(&muls, wave);  /* this also sets the thickness!!! */	  
+						// TODO: modifying shared value from multiple threads?
+						muls.nslic0 = pCount;
+					}
+					/* run multislice algorithm
+					   and save exit wave function for this position 
+					   (done by runMulsSTEM), 
+					   but we need to define the file name */
+					sprintf(wave->fileout,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
+					// TODO: modifying shared value from multiple threads?
+					muls.saveFlag = 1;
 
-                        wave.iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/
-                                          ((float)muls.scanXN*muls.resolutionX));
-                        wave.iPosY = (int)(iy*(muls.scanYStop-muls.scanYStart)/
-                                           ((float)muls.scanYN*muls.resolutionY));
-                        if (wave.iPosX > muls.potNx-muls.nx)
-						{
-							wave.iPosX = muls.potNx-muls.nx;  
-						}
-                        if (wave.iPosY > muls.potNy-muls.ny)
-						{
-							wave.iPosY = muls.potNy-muls.ny;
-						}
+					wave->iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/
+									  ((float)muls.scanXN*muls.resolutionX));
+					wave->iPosY = (int)(iy*(muls.scanYStop-muls.scanYStart)/
+									   ((float)muls.scanYN*muls.resolutionY));
+					if (wave->iPosX > muls.potNx-muls.nx)
+					{
+						wave->iPosX = muls.potNx-muls.nx;  
+					}
+					if (wave->iPosY > muls.potNy-muls.ny)
+					{
+						wave->iPosY = muls.potNy-muls.ny;
+					}
 
-                        // MCS - update the probe wavefunction with its position
-                        wave.detPosX=ix;
-                        wave.detPosY=iy;
-                        // obsolete - muls no longer tracks detPos.
-                        //muls.detPosX = ix;
-                        //muls.detPosY = iy;
-                        /* printf("slices: %d, cz0: %g picts: %d, pCount: %d\n",
-                        muls.slices,muls.cz[0],picts,pCount);
-                        */
+					// MCS - update the probe wavefunction with its position
+					wave->detPosX=ix;
+					wave->detPosY=iy;
 
-					runMulsSTEM(&muls,&wave); 
+					runMulsSTEM(&muls,wave); 
+
 
 					/***************************************************************
 					* In order to save some disk space we will add the diffraction 
 					* patterns to their averages now.  The diffraction pattern 
-					* should be stored in muls.diffpat, if detectorCollect() has
-					* been executed correctly.
+					* should be stored in wave->diffpat (which each thread has independently), 
+					* if collectIntensity() has been executed correctly.
 					***************************************************************/
 
-					if (pCount == picts-1) {  /* if this is the last slice ... */
-						collectIntensity += muls.intIntensity;
-						sprintf(wave.avgName,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
-#ifndef WIN32
+					#pragma omp atomic
+					collectedIntensity += muls.intIntensity;
+
+					if (pCount == picts-1)  /* if this is the last slice ... */
+					{
+						sprintf(wave->avgName,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
+	#ifndef WIN32
 						sprintf(tifName,"%s/diffAvg_%d_%d.tif",muls.folder,ix,iy);
 						sprintf(jpgName,"%s/diffAvg_%d_%d_%d.jpg",muls.folder,ix,iy,muls.avgCount);
-#endif	    
+	#endif	    
 						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
 
 						if (muls.saveLevel > 0) 
@@ -2703,7 +2706,7 @@ void doSTEM() {
 								{
 									for (iya=0;iya<muls.ny;iya++)
 									{
-										wave.avgArray[ixa][iya]=wave.diffpat[ixa][iya];
+										wave->avgArray[ixa][iya]=wave->diffpat[ixa][iya];
 									}
 								}
 								/* memcopy((void *)avgArray[0],(void *)muls.diffpat[0],
@@ -2711,83 +2714,79 @@ void doSTEM() {
 								*/
 								// printf("Copied to avgArray %d %d\n",muls.nx, muls.ny);	
 							}
-							else {
+							else 
+							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
 
-								header_read = readImage((void ***)(&wave.avgArray),muls.nx,muls.ny,wave.avgName);
-								chisq[muls.avgCount-1] = 0.0;
+								header_read = readImage((void ***)(wave->avgArray),muls.nx,muls.ny,wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
-									t = ((real)muls.avgCount*wave.avgArray[ixa][iya]+
-										wave.diffpat[ixa][iya])/((real)(muls.avgCount+1));
-									/* chisq[muls.avgCount-1] += (avgArray[ixa][iya]-t)*
-									(avgArray[ixa][iya]-t); */
-									wave.avgArray[ixa][iya] = t;
+									t = ((real)muls.avgCount*wave->avgArray[ixa][iya]+
+										wave->diffpat[ixa][iya])/((real)(muls.avgCount+1));
+									#pragma omp atomic
+									chisq[muls.avgCount-1] += (avgArray[ixa][iya]-t)*
+										(avgArray[ixa][iya]-t);
+									wave->avgArray[ixa][iya] = t;
 								}
-								/* chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/
-								(double)(muls.nx*muls.ny); */
+							// TODO: this is being done by every thread - should only be done by 1.
+							chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 							}
 							/* Write the array to a file, resize and crop it, 
 							* and convert it to jpg format 
 							*/
 							// writeRealImage_old(avgArray,muls.nx,muls.ny,muls.thickness,avgName);
 							if (header == NULL) 
-								header = makeNewHeaderCompact(0,muls.nx,muls.ny,muls.thickness,
-								muls.resolutionX,muls.resolutionY,
-								0,NULL,"diffraction pattern");
-							// printf("Created header\n");
-						header->t = muls.thickness;
-						writeRealImage((void **)wave.avgArray,header,wave.avgName,sizeof(real));
-						}	
-						else {
-							if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
-						}
-						/* make file names for tif and jpg files */
-						/* crop, resize, convert to jpg, delete tif file */	    
-						/* sprintf(systStr,"showimage %s 6; convert -crop 17%c "
-						"-geometry 256x256 %s %s/%s; rm %s",
-						avgName,'%',tifName,muls.folder,jpgName,tifName);
-						*/
-#ifndef WIN32
-						// MCS - Commented 07-2010
-					
-						//sprintf(systStr,"showimage %s 6; convert -crop 70x70+60+60%% "
-						//	"-geometry 256x256 %s %s; rm %s",
-						//	avgName,tifName,jpgName,tifName);
-						/* printf("%s\n",systStr); */
-						//system(systStr);
-#endif
+									header = makeNewHeaderCompact(0,muls.nx,muls.ny,muls.thickness,
+										muls.resolutionX,muls.resolutionY,
+										0,NULL,"diffraction pattern");
+								// printf("Created header\n");
+							header->t = muls.thickness;
+							writeRealImage((void **)wave->avgArray,header,wave->avgName,sizeof(real));
+							}	
+							else {
+								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
+							}
+							/* make file names for tif and jpg files */
+							/* crop, resize, convert to jpg, delete tif file */	    
+							/* sprintf(systStr,"showimage %s 6; convert -crop 17%c "
+							"-geometry 256x256 %s %s/%s; rm %s",
+							avgName,'%',tifName,muls.folder,jpgName,tifName);
+							*/
+	#ifndef WIN32
+							// MCS - Commented 07-2010
+						
+							//sprintf(systStr,"showimage %s 6; convert -crop 70x70+60+60%% "
+							//	"-geometry 256x256 %s %s; rm %s",
+							//	avgName,tifName,jpgName,tifName);
+							/* printf("%s\n",systStr); */
+							//system(systStr);
+	#endif
 					} /* end of if pCount == picts, i.e. conditional code, if this
-					  * was the last slice
-					  */
-					#pragma omp critical
-					{
-						muls.complete_pixels+=1;
-					}
-					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) {
-							printf("Pixels complete: (%d/%d), int.=%.3f, time per pixel: %.2fsec\n",
-								muls.complete_pixels,muls.scanYN*muls.scanYN,muls.intIntensity,
-								(cputim()-timer)/muls.complete_pixels);
-					        timer=cputim();
-						}
-					//free(&wave);
-					//_CrtDumpMemoryLeaks();
-					} // end (parallel) loop
-					} /* end of parallel section */
+						  * was the last slice
+						  */
 
+					#pragma omp atomic
+					muls.complete_pixels+=1;
+
+					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) 
+					{
+						total_time += cputim()-timer;
+						printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
+							muls.complete_pixels,muls.scanYN*muls.scanYN,muls.intIntensity,
+							(total_time)/muls.complete_pixels);
+						timer=cputim();
+					}
 				} /* end of looping through STEM image pixels */
-				/* save STEM images in tiff files for the current thickness
-				*/
-				// saveSTEMimages(&muls);	
-				// printf("saved STEM images\n");
+				/* save STEM images in img files */
+				saveSTEMImages(&muls);	
 				muls.totalSliceCount += muls.slices;
 				/*  calculate the total specimen thickness and echo */
 				cztot=0.0;
-				for( islice=0; islice<muls.slices; islice++) {
+				for( islice=0; islice<muls.slices; islice++) 
+				{
 					cztot += muls.cz[islice];
 				}
 				muls.thickness=cztot*(pCount+1);
 			} /* end of loop through thickness (pCount) */
-
 		} /* end of  while (readparam("sequence: ",buf,0)) */
 		// printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
@@ -2801,8 +2800,11 @@ void doSTEM() {
 #endif
 		/*************************************************************/
 
-		muls.intIntensity = collectIntensity/(muls.scanXN*muls.scanYN);
+		muls.intIntensity = collectedIntensity/(muls.scanXN*muls.scanYN);
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
+
+	free(chisq);
+	delete(wave);
 }
 
