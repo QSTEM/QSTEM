@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 		muls.showProbe = 0;
 		muls.avgCount = -1;
 		/*
-		muls.thickness = 600;
+		wave->thickness = 600;
 		makeSTEMPendelloesungPlot();
 		*/    
 #ifndef WIN32
@@ -1328,7 +1328,7 @@ void readFile() {
 		// loop over thickness planes where we're going to record intermediates
 		// TODO: is this too costly in terms of memory?  It simplifies the parallelization to
 		//       save each of the thicknesses in memory, then save to disk afterwards.
-		for (int islice=0; islice<tCount; islice++)
+		for (int islice=0; islice<=tCount; islice++)
 		{
 			std::vector<DETECTOR> detectors;
 			resetParamFile();
@@ -1519,7 +1519,7 @@ void readFile() {
 
 	// muls.btiltx = 0;
 	// muls.btilty = 0;
-	//muls.thickness = 0.0;
+	//wave->thickness = 0.0;
 
 	/* TODO: possible breakage here - MCS 2013/04 - made muls.cfgFile be allocated on the struct
 	       at runtim - thus this null check doesn't make sense anymore.  Change cfgFile set
@@ -1781,14 +1781,14 @@ void doCBED() {
 		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
 		if (muls.saveLevel > 2) {
 			if (header == NULL) 
-				header = makeNewHeaderCompact(1,muls.nx,muls.ny,muls.thickness,
+				header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
 				0,NULL,"wave function");
 			header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
 			writeImage((void **)wave->wave,header,systStr);
 			// writeImage(muls.wave,header,"wave->img");
-			// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,"wave->img");
+			// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave->img");
 			// system("showimage diff.img 2 &");
 		} 	
 		// printf("Probe: (%g, %g)\n",muls.scanXStart,muls.scanYStart);
@@ -1796,10 +1796,10 @@ void doCBED() {
 		* For debugging only!!!
 		*
 		if (header == NULL) 
-		header = makeNewHeaderCompact(1,muls.nx,muls.ny,muls.thickness,
+		header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 		muls.resolutionX,muls.resolutionY,
 		0,NULL,"probe function");
-		header->t = muls.thickness;
+		header->t = wave->thickness;
 		writeImage(muls.wave,header,"probe.img");
 		*****************************************************************/
 
@@ -1824,7 +1824,6 @@ void doCBED() {
 #endif
 		}
 		muls.nslic0 = 0;
-		muls.thickness = 0.0;
 
 		result = readparam("sequence: ",buf,0);
 		while (result) {
@@ -1899,30 +1898,30 @@ void doCBED() {
 				runMulsSTEM(&muls,wave); 
 
 				printf("Thickness: %gA, int.=%g, time: %gsec\n",
-					muls.thickness,muls.intIntensity,cputim()-timer);
+					wave->thickness,wave->intIntensity,cputim()-timer);
 
 				/***************** Only if Save level > 2: ****************/
 				if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
 					if (header == NULL) 
-						header = makeNewHeaderCompact(1,muls.nx,muls.ny,muls.thickness,
+						header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 						muls.resolutionX,muls.resolutionY,
 						0,NULL,"wave function");
-					header->t = muls.thickness;
+					header->t = wave->thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
 					writeImage((void **)wave->wave,header,systStr);
 					// writeImage(muls.wave,header,"wave.img");
-					// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,"wave.img");
+					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
 					// system("showimage diff.img 2 &");
 				} 	
 #ifdef VIB_IMAGE_TEST_CBED
 				if (header == NULL) 
-					header = makeNewHeaderCompact(1,muls.nx,muls.ny,muls.thickness,
+					header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 					muls.resolutionX,muls.resolutionY,
 					1,&(muls.tomoTilt),"wave function");
-				header->t = muls.thickness;
+				header->t = wave->thickness;
 				sprintf(systStr,"%s/wave_%d.img",muls.folder,muls.avgCount);
 				writeImage(muls.wave,header,systStr);
-				// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,systStr);
+				// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,systStr);
 #endif 
 				muls.totalSliceCount += muls.slices;
 
@@ -1945,7 +1944,7 @@ void doCBED() {
 			avgArray[ix][iy] = diffArray[ix][iy]; */
 			memcpy((void *)avgArray[0],(void *)diffArray[0],
 				(size_t)(muls.nx*muls.ny*sizeof(real)));
-			// writeRealImage_old(avgArray,muls.nx,muls.ny,muls.thickness,avgName);
+			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			sprintf(systStr,"mv %s/diff.img %s",muls.folder,avgName);
@@ -1970,13 +1969,13 @@ void doCBED() {
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
-			// writeRealImage_old(avgArray,muls.nx,muls.ny,muls.thickness,avgName);
+			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,muls.thickness,
+				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
 				1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
 			else {
-				header->t = muls.thickness;
+				header->t = wave->thickness;
 				header->dx = 1.0/(muls.nx*muls.resolutionX);
 				header->dy = 1.0/(muls.ny*muls.resolutionY);
 				if (header->paramSize < 1) {
@@ -2131,7 +2130,6 @@ void doTEM() {
 		// probe(&muls,muls.scanXStart,muls.scanYStart);
 
 		muls.nslic0 = 0;
-		muls.thickness = 0.0;
 		// produce an incident plane wave:
 		if ((muls.btiltx == 0) && (muls.btilty == 0)) {
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
@@ -2220,14 +2218,14 @@ void doTEM() {
 
 				if (muls.printLevel > 0) {
 					printf("t=%gA, int.=%g time: %gsec (avgCount=%d)\n",
-						muls.thickness,muls.intIntensity,cputim()-timer,muls.avgCount);
+						wave->thickness,wave->intIntensity,cputim()-timer,muls.avgCount);
 				}
 
 				/***************** FOR DEBUGGING ****************/		
 				if ((muls.avgCount == 0) && (muls.saveLevel >=0) && (pCount+1==muls.mulsRepeat2*muls.cellDiv)) {
-					// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,"wave.img");
+					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
 					if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
-					header->t = muls.thickness;
+					header->t = wave->thickness;
 					header->dx = muls.resolutionX;
 					header->dy = muls.resolutionY;
 					if (muls.tds) setHeaderComment(header,"Test wave function for run 0");
@@ -2254,9 +2252,9 @@ void doTEM() {
 #ifdef VIB_IMAGE_TEST  // doTEM
 				if ((muls.tds) && (muls.saveLevel > 2)) {
 					sprintf(systStr,"%s/wave_%d.img",muls.folder,muls.avgCount);
-					// writeImage_old(muls.wave,muls.nx,muls.ny,muls.thickness,systStr);
+					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,systStr);
 					if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
-					header->t = muls.thickness;
+					header->t = wave->thickness;
 					header->dx = muls.resolutionX;
 					header->dy = muls.resolutionY;
 					header->complexFlag = 1;
@@ -2306,7 +2304,7 @@ void doTEM() {
 			* Save the diffraction pattern
 			**********************************************************/	
 			memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(real)));
-			// writeRealImage_old(avgArray,muls.nx,muls.ny,muls.thickness,avgName);
+			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
 			sprintf(avgName,"diffAvg_%d.img",muls.avgCount+1);
@@ -2347,10 +2345,10 @@ void doTEM() {
 				diffArray[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
 			}
 			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,muls.thickness,
+				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
 				0,NULL,"Image");
-			header->t = muls.thickness;
+			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
 			sprintf(avgName,"%s/image.img",muls.folder);
 			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
@@ -2369,12 +2367,12 @@ void doTEM() {
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
-			// writeRealImage_old(avgArray,muls.nx,muls.ny,muls.thickness,avgName);
+			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,muls.thickness,
+				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
 				0,NULL,"diffraction pattern");
-			header->t = muls.thickness;
+			header->t = wave->thickness;
 			writeRealImage((void **)avgArray,header,avgName,sizeof(real));
 
 
@@ -2433,7 +2431,7 @@ void doTEM() {
 					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(real)(muls.avgCount+1);
 				diffArray[ix][iy] = t;
 			}
-			header->t = muls.thickness;
+			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
 			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
 			// End of Image writing (if avgCount > 0)
@@ -2606,7 +2604,7 @@ void doSTEM() {
 						* then also be adjusted, so that it is off-center
 						*/
 			muls.nslic0 = 0;
-			muls.thickness = 0.0;
+			//wave->thickness = 0.0;
 
 			/****************************************
 			* do the (small) loop over slabs
@@ -2649,7 +2647,7 @@ void doSTEM() {
 
 						// TODO: modifying shared value from multiple threads?
 						muls.nslic0 = 0;
-						muls.thickness = 0.0;
+						//wave->thickness = 0.0;
 					}
                                           
 					else 
@@ -2696,7 +2694,7 @@ void doSTEM() {
 					***************************************************************/
 
 					#pragma omp atomic
-					collectedIntensity += muls.intIntensity;
+					collectedIntensity += wave->intIntensity;
 
 					if (pCount == picts-1)  /* if this is the last slice ... */
 					{
@@ -2744,14 +2742,14 @@ void doSTEM() {
 							/* Write the array to a file, resize and crop it, 
 							* and convert it to jpg format 
 							*/
-							// writeRealImage_old(avgArray,muls.nx,muls.ny,muls.thickness,avgName);
+							// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 							if (header == NULL) 
-									header = makeNewHeaderCompact(0,muls.nx,muls.ny,muls.thickness,
+									header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 										muls.resolutionX,muls.resolutionY,
 										0,NULL,"diffraction pattern");
 								// printf("Created header\n");
-							header->t = muls.thickness;
-							writeRealImage((void **)wave->avgArray,header,wave->avgName,sizeof(real));
+							header->t = wave->thickness;
+							writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
@@ -2782,21 +2780,26 @@ void doSTEM() {
 					{
 						total_time += cputim()-timer;
 						printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
-							muls.complete_pixels,muls.scanYN*muls.scanYN,muls.intIntensity,
+							muls.complete_pixels, muls.scanYN*muls.scanYN, wave->intIntensity,
 							(total_time)/muls.complete_pixels);
 						timer=cputim();
 					}
 				} /* end of looping through STEM image pixels */
 				/* save STEM images in img files */
-				saveSTEMImages(&muls);	
+				saveSTEMImages(&muls);
 				muls.totalSliceCount += muls.slices;
 				/*  calculate the total specimen thickness and echo */
+				// commented 2013/04 MCS - we're already tracking total 
+				//   thickness by reading intermediate mulswav.  
+				//   What is this here for?
+				/*
 				cztot=0.0;
 				for( islice=0; islice<muls.slices; islice++) 
 				{
 					cztot += muls.cz[islice];
 				}
 				muls.thickness=cztot*(pCount+1);
+				*/
 			} /* end of loop through thickness (pCount) */
 		} /* end of  while (readparam("sequence: ",buf,0)) */
 		// printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 

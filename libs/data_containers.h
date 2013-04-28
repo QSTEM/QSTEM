@@ -17,6 +17,9 @@ public:
 	real **diffpat;
 	real **avgArray;
 	char avgName[512];
+	float_tt thickness;
+	float_tt intIntensity;
+
 #if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
 	fftwf_complex  **wave; /* complex wave function */
@@ -30,6 +33,8 @@ public:
 	WAVEFUNC(int nx, int ny);
 	// define a copy constructor to create new arrays
 	WAVEFUNC( WAVEFUNC& other );
+
+	void ZeroWave(void);
 };
 
 class MULS {
@@ -100,7 +105,7 @@ public:
   int potNx,potNy;                      /* size of projected potential in pixels */
   int nx,ny;				/* size of wave function arrays */
   int avgCount;
-  float_tt thickness;
+  //float_tt thickness;
 
   float_tt C5;
   float_tt dE_E;

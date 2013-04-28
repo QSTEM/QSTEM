@@ -2,14 +2,17 @@
 #include <string.h>
 #include "data_containers.h"
 
-WAVEFUNC::WAVEFUNC(int x, int y)
+WAVEFUNC::WAVEFUNC(int x, int y) :
+detPosX(0),
+detPosY(0),
+iPosX(0),
+iPosY(0),
+thickness(0.0),
+nx(0),
+ny(0)
 {
 	char waveFile[256];
 	const char *waveFileBase = "mulswav";
-	detPosX=0;
-	detPosY=0;
-	iPosX=0;
-	iPosY=0;
 	nx = x;
 	ny = y;
 	diffpat = float2D(nx,ny,"diffpat");
@@ -60,4 +63,10 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 	fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
 		fftMeasureFlag);
 #endif
+}
+
+// reset the wave's thickness
+void WAVEFUNC::ZeroWave(void)
+{
+
 }
