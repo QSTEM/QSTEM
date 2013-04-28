@@ -2725,10 +2725,7 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-								#pragma omp critical
-								{
-									header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
-								}
+								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
 										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
@@ -2751,10 +2748,7 @@ void doSTEM() {
 										0,NULL,"diffraction pattern");
 								// printf("Created header\n");
 							header->t = wave->thickness;
-							#pragma omp critical
-							{
-								writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
-							}
+							writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
