@@ -2747,7 +2747,8 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 			// TODO: modifying shared value from multiple threads?  
 			//    Does this thickness measure matter?  The STEM image thickness does not seem to depend on it.
-			wave->thickness += muls->cz[islice];
+			//wave->thickness += muls->cz[islice];
+			wave->thickness = (muls->totalSliceCount+islice+1)*muls->sliceThickness;
 
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
