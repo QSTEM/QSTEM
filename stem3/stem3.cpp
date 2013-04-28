@@ -5,7 +5,7 @@
 5 kV: gaussian parameter: 11
 good energies: 327, 360,393,520 keV
 */
-#define VERSION 2.22
+#define VERSION 2.23
 #define VIB_IMAGE_TEST
 // #define VIB_IMAGE_TEST_CBED
 
