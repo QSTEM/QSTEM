@@ -2805,6 +2805,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 				header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,muls->resolutionX,
 				muls->resolutionX,0,NULL,"wave function");
 			header->t = wave->thickness;
+//#pragma omp critical
 			writeImage((void **)wave->wave,header,wave->fileout);
 			// writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,(*muls).fileout);
 			if (printFlag)
@@ -3048,8 +3049,6 @@ void saveSTEMImages(MULS *muls)
 		}
 		for (i=0; i<muls->detectorNum; i++) 
 		{
-			detectors[i].Navg++;
-
 			// calculate the standard error for this image:
 			detectors[i].error = 0;
 			intensity             = 0;
@@ -3065,7 +3064,7 @@ void saveSTEMImages(MULS *muls)
 			else
 				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i].name, islice);
 			header->t = t;
-			header->params[0] = (double)detectors[i].Navg;
+			header->params[0] = (double)muls->avgCount+1;
 			header->params[1] = (double)detectors[i].error;
 
 			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
