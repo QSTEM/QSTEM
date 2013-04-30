@@ -2747,8 +2747,8 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 			// TODO: modifying shared value from multiple threads?  
 			//    Does this thickness measure matter?  The STEM image thickness does not seem to depend on it.
-			#pragma omp atomic
-			muls->thickness += muls->cz[islice];
+			//wave->thickness += muls->cz[islice];
+			wave->thickness = (muls->totalSliceCount+islice+1)*muls->sliceThickness;
 
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
@@ -2757,6 +2757,8 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 				collectIntensity(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
 			}
 		} /* end for(islice...) */
+		// collect intensity at the final slice
+		//collectIntensity(muls, wave, muls->totalSliceCount+muls->slices*(1+mRepeat));
 	} /* end of mRepeat = 0 ... */
 	if (printFlag) printf("\n***************************************\n");
 
@@ -2789,7 +2791,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	// TODO: modifying shared value from multiple threads?
 	//  Is this sum supposed to be across multiple pixels?
 	//#pragma omp critical
-	muls->intIntensity = sum*scale;
+	wave->intIntensity = sum*scale;
 
 	if (printFlag) {
 		printf( "pix range %g to %g real,\n"
@@ -2800,9 +2802,10 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	if (muls->saveFlag) {
 		if ((muls->saveLevel > 1) || (muls->cellDiv > 1)) {
 			if (header == NULL) 
-				header = makeNewHeaderCompact(1,muls->nx,muls->ny,muls->thickness,muls->resolutionX,
+				header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,muls->resolutionX,
 				muls->resolutionX,0,NULL,"wave function");
-			header->t = muls->thickness;
+			header->t = wave->thickness;
+//#pragma omp critical
 			writeImage((void **)wave->wave,header,wave->fileout);
 			// writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,(*muls).fileout);
 			if (printFlag)
@@ -2823,11 +2826,11 @@ void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 	if ((slice < muls->slices*muls->cellDiv-1) && ((slice+1) % muls->outputInterval != 0)) return;
 
 	if (header == NULL) {
-		header = makeNewHeaderCompact(1,muls->nx,muls->ny,muls->thickness,
+		header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,
 			muls->resolutionX,muls->resolutionY,0,NULL, "wave function");
 	}
 	t = (int)((slice)/muls->outputInterval);
-	header->t = muls->thickness;
+	header->t = wave->thickness;
 	// write the high tension, too:
 	header->paramSize = 9;
 	if (header->params == NULL)
@@ -2894,14 +2897,18 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	detectors = muls->detectors;
 
 	if (muls->outputInterval == 0) t = 0;
-	else 
+	else if (slice < ((muls->slices*muls->cellDiv)-1))
 	{
 		t = (int)((slice) / muls->outputInterval);
-		if (t >= tCount) 
-		{
+		//if (t > tCount)
+		//{
 			// printf("t = %d, which is greater than tCount (%d)\n",t,tCount);
-			t = tCount-1;
-		}
+			//t = tCount-1;
+		//}
+	}
+	else
+	{
+		t = tCount;
 	}
 
 	int position_offset = wave->detPosY * muls->scanXN + wave->detPosX;
@@ -3017,15 +3024,23 @@ void saveSTEMImages(MULS *muls)
 	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
 	// Loop over slices (intermediates)
-	for (islice=0; islice < tCount; islice++)
+	for (islice=0; islice <= tCount; islice++)
 	{
+		if (islice<tCount)
+		{
+			t = ((islice+1) * muls->outputInterval ) * muls->sliceThickness;
+		}
+		else
+		{
+			t = muls->slices*muls->cellDiv*muls->sliceThickness;
+		}
 		//t = (islice+1)*muls->sliceThickness;
 		detectors = muls->detectors[islice];
 		// write the output STEM images:
 		// This is done only after all pixels have completed, so that image is complete.
 		if (header == NULL) 
 		{
-			header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN,muls->thickness,
+			header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN, t,
 				(muls->scanXStop-muls->scanXStart)/(float)muls->scanXN,
 				(muls->scanYStop-muls->scanYStart)/(float)muls->scanYN,
 				0, NULL, "STEM image");
@@ -3034,8 +3049,6 @@ void saveSTEMImages(MULS *muls)
 		}
 		for (i=0; i<muls->detectorNum; i++) 
 		{
-			detectors[i].Navg++;
-
 			// calculate the standard error for this image:
 			detectors[i].error = 0;
 			intensity             = 0;
@@ -3046,10 +3059,12 @@ void saveSTEMImages(MULS *muls)
 				intensity += detectors[i].image[0][ix] * detectors[i].image[0][ix];
 			}
 			detectors[i].error /= intensity;
-
-			sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i].name, islice);
-			header->t = islice*muls->sliceThickness;
-			header->params[0] = (double)detectors[i].Navg;
+			if (islice <tCount)
+				sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i].name, islice);
+			else
+				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i].name, islice);
+			header->t = t;
+			header->params[0] = (double)muls->avgCount+1;
 			header->params[1] = (double)detectors[i].error;
 
 			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
@@ -3064,13 +3079,13 @@ void saveSTEMImages(MULS *muls)
 void readStartWave(MULS *muls, WAVEFUNC *wave) {
 	imageStruct *header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart);
 	// TODO: modifying shared value from multiple threads?
-	//muls->thickness = header->t;
+	wave->thickness = header->t;
 	if (muls->nx != header->nx) {
 		printf("Warning -> wrong image format (%d,%d) instead of (%d,%d)\n",
 			header->nx,header->ny,muls->nx,muls->ny);
 		// TODO: modifying shared value from multiple threads?
-		//muls->nx = header->nx;
-		//muls->ny = header->ny;
+		muls->nx = header->nx;
+		muls->ny = header->ny;
 	}
 	//readImage_old((*muls).wave,(*muls).nx,(*muls).ny,&((*muls).thickness),(*muls).fileStart);
 }
