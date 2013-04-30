@@ -11,3 +11,35 @@
 *.lai
 *.la
 *.a
+/.project
+
+
+# Visual studio project files
+*.vcproj
+*.vcproj.*
+*.vcproj.*.*
+*.sln
+*.ncb
+*.suo
+*.obj
+*.dep
+*.manifest
+*.manifest.*
+BuildLog.htm
+*.idb
+*.pdb
+*.lib
+
+# binaries
+/bin
+
+# build-generated CMake garbage
+/CMakeFiles
+*/CMakeFiles
+*.cmake
+CMakeCache.txt
+
+
+# img results from debug testing
+*.img
+
