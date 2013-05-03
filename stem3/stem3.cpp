@@ -2544,7 +2544,7 @@ void doSTEM() {
 	displayProgress(-1);
 
 	for (muls.avgCount = 0;muls.avgCount < totalRuns; muls.avgCount++) {
-		total_time=0;
+		total_time = 0;
 		collectedIntensity = 0;
 		muls.totalSliceCount = 0;
 		muls.dE_E = muls.dE_EArray[muls.avgCount];
