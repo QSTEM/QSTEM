@@ -1823,7 +1823,7 @@ void doCBED() {
 			system(buf);
 #endif
 		}
-		muls.nslic0 = 0;
+		//muls.nslic0 = 0;
 
 		result = readparam("sequence: ",buf,0);
 		while (result) {
@@ -2129,7 +2129,7 @@ void doTEM() {
 		// muls.scanYStart = muls.ny/2*muls.resolutionY+muls.sourceRadius*gasdev(&iseed)*sqrt(2);
 		// probe(&muls,muls.scanXStart,muls.scanYStart);
 
-		muls.nslic0 = 0;
+		//muls.nslic0 = 0;
 		// produce an incident plane wave:
 		if ((muls.btiltx == 0) && (muls.btilty == 0)) {
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
@@ -2528,8 +2528,8 @@ void doSTEM() {
         */
         //for(iy=0;iy<muls.scanYN*muls.scanXN;iy++) waves[iy]=initWave(muls.nx,muls.ny);
 
-	if (avgArray == NULL)
-		avgArray = float2D(muls.nx,muls.ny,"avgArray");
+	//if (avgArray == NULL)
+	//	avgArray = float2D(muls.nx,muls.ny,"avgArray");
 	/* create the target folder, if it does not exist yet */
 	/*  sprintf(avgName,"diffAvg_%d_%d.img",ix,iy);
 	sprintf(tifName,"diffAvg_%d_%d.tif",ix,iy);
@@ -2544,6 +2544,7 @@ void doSTEM() {
 	displayProgress(-1);
 
 	for (muls.avgCount = 0;muls.avgCount < totalRuns; muls.avgCount++) {
+		total_time=0;
 		collectedIntensity = 0;
 		muls.totalSliceCount = 0;
 		muls.dE_E = muls.dE_EArray[muls.avgCount];
@@ -2591,7 +2592,6 @@ void doSTEM() {
 			}
 			picts *= muls.cellDiv;
 
-
 			if (muls.equalDivs) {
 				make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
 				initSTEMSlices(&muls, muls.slices);
@@ -2603,7 +2603,7 @@ void doSTEM() {
 						/* if the potential array is not big enough, the probe can 
 						* then also be adjusted, so that it is off-center
 						*/
-			muls.nslic0 = 0;
+			//muls.nslic0 = 0;
 			//wave->thickness = 0.0;
 
 			/****************************************
@@ -2623,11 +2623,16 @@ void doSTEM() {
 				/**************************************************
 				* scan through the different probe positions
 				*************************************************/
-		        timer=cputim();
-#pragma omp parallel firstprivate(header, header_read) private(ix, iy, ixa, iya, wave, t) shared(pCount, chisq, muls, collectedIntensity, timer, waves) 
+				// default(none) forces us to specify all of the variables that are used in the parallel section.  
+				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
+#pragma omp parallel firstprivate(header, header_read) \
+	private(ix, iy, ixa, iya, wave, t, timer) \
+	shared(pCount, picts, chisq, muls, collectedIntensity, total_time, waves) \
+	default(none)
 #pragma omp for
 				for (i=0; i < (muls.scanXN * muls.scanYN); i++)
 				{
+					timer=cputim();
 					ix = i / muls.scanYN;
 					iy = i % muls.scanYN;
 
@@ -2636,17 +2641,17 @@ void doSTEM() {
 					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
 
 					//wave = waves[i];
-					xpos = muls.scanXStart+
-                                  ix*(muls.scanXStop-muls.scanXStart)/(float)muls.scanXN;
-					ypos = muls.scanYStart+
-                                  iy*(muls.scanYStop-muls.scanYStart)/(float)muls.scanYN;
+					//xpos = muls.scanXStart+
+                                  //ix*(muls.scanXStop-muls.scanXStart)/(float)muls.scanXN;
+					//ypos = muls.scanYStart+
+                                  //iy*(muls.scanYStop-muls.scanYStart)/(float)muls.scanYN;
 					/* if this is run=0, create the inc. probe wave function */
 					if (pCount == 0) 
 					{
 						probe(&muls, wave, muls.nx/2*muls.resolutionX, muls.ny/2*muls.resolutionY);
 
 						// TODO: modifying shared value from multiple threads?
-						muls.nslic0 = 0;
+						//muls.nslic0 = 0;
 						//wave->thickness = 0.0;
 					}
                                           
@@ -2654,9 +2659,9 @@ void doSTEM() {
 					{
 						/* load incident wave function and then propagate it */
 						sprintf(wave->fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
-						readStartWave(&muls, wave);  /* this also sets the thickness!!! */	  
+						readStartWave(&muls, wave);  /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
-						muls.nslic0 = pCount;
+						//muls.nslic0 = pCount;
 					}
 					/* run multislice algorithm
 					   and save exit wave function for this position 
@@ -2730,13 +2735,10 @@ void doSTEM() {
 									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
 										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
 									#pragma omp atomic
-									chisq[muls.avgCount-1] += (avgArray[ixa][iya]-t)*
-										(avgArray[ixa][iya]-t);
+									chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
+										(wave->avgArray[ixa][iya]-t);
 									wave->avgArray[ixa][iya] = t;
 								}
-
-							// TODO: this is being done by every thread - should only be done by 1.
-							chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 							}
 							/* Write the array to a file, resize and crop it, 
 							* and convert it to jpg format 
@@ -2777,6 +2779,7 @@ void doSTEM() {
 
 					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) 
 					{
+						#pragma omp atomic
 						total_time += cputim()-timer;
 						printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
 							muls.complete_pixels, muls.scanYN*muls.scanYN, wave->intIntensity,
@@ -2813,6 +2816,7 @@ void doSTEM() {
 #endif
 		/*************************************************************/
 
+		chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 		muls.intIntensity = collectedIntensity/(muls.scanXN*muls.scanYN);
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */

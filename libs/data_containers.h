@@ -87,7 +87,7 @@ public:
   char filebeam[512];		 	/* file, that beams get recorded in */
   int nbout;				/* number of recorded beams */
 
-  int nslic0;				/* slice counter */
+  //int nslic0;				/* slice counter */
   int mulsRepeat1;                      /* # of times to repeat structure */
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   int slices;                           /* number of different slices */

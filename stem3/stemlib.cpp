@@ -2655,6 +2655,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	real wavlen,scale,sum=0.0; //,zsum=0.0
 	// static int *layer=NULL;
 	real x,y;
+	int absolute_slice;
 
 	char outStr[64];
 	double fftScale;
@@ -2675,8 +2676,11 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 	scale = 1.0F / (((real)muls->nx) * ((real)muls->ny));
 
-	for (mRepeat = 0; mRepeat < muls->mulsRepeat1; mRepeat++) {
-		for( islice=0; islice < muls->slices; islice++ ) {
+	for (mRepeat = 0; mRepeat < muls->mulsRepeat1; mRepeat++) 
+	{
+		for( islice=0; islice < muls->slices; islice++ ) 
+		{
+			absolute_slice = (muls->totalSliceCount+islice);
 
 			// if ((muls->cubez > 0) && (muls->thickness >= muls->cubez)) break;
 			//  else if ((muls->cubez == 0) && (muls->thickness >= muls->c)) break;
@@ -2702,7 +2706,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 			if (muls->mode != STEM) {
 				/* write pendelloesung plots, if this is not STEM */
-				writeBeams(muls,wave,islice);
+				writeBeams(muls,wave,islice, absolute_slice);
 			}
 
 			// go back to real space:
@@ -2714,10 +2718,6 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			// old code: fftwnd_one((*muls).fftPlanInv,(fftw_complex *)wave[0][0], NULL);
 			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
 
-			// TODO: modifying shared value from multiple threads?
-			// TODO: is this correct with every thread performing this operation?
-			#pragma omp atomic
-			(*muls).nslic0 +=  1;
 			/*
 			sprintf(outStr,"wave%d.img",islice);
 			writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,"wavep.img");
@@ -2728,6 +2728,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			/********************************************************************
 			* show progress:
 			********************************************************************/
+			wave->thickness = (absolute_slice+1)*muls->sliceThickness;
 			if ((printFlag)) {
 				sum = 0.0;
 				for( ix=0; ix<(*muls).nx; ix++)  for( iy=0; iy<(*muls).ny; iy++) {
@@ -2736,7 +2737,9 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 				}
 				sum *= scale;
 
-				sprintf(outStr,"slice %4d (%.2f), int. = %f",(*muls).nslic0,(*muls).cz[islice],sum );
+				sprintf(outStr,"position (%3d, %3d), slice %4d (%.2f), int. = %f", 
+					wave->detPosX, wave->detPosY,
+					muls->totalSliceCount+islice,wave->thickness,sum );
 				if (showEverySlice)
 					printf("%s\n",outStr);
 				else {
@@ -2744,17 +2747,12 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 					for (i=0;i<(int)strlen(outStr);i++) printf("\b");
 				}
 			}
-
-			// TODO: modifying shared value from multiple threads?  
-			//    Does this thickness measure matter?  The STEM image thickness does not seem to depend on it.
-			//wave->thickness += muls->cz[islice];
-			wave->thickness = (muls->totalSliceCount+islice+1)*muls->sliceThickness;
-
+			
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
 				// TODO (MCS 2013/04): this restructure probably broke this file saving - 
 				//   need to rewrite a function to save things for TEM/CBED?
-				collectIntensity(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
+				collectIntensity(muls,wave,absolute_slice*(1+mRepeat));
 			}
 		} /* end for(islice...) */
 		// collect intensity at the final slice
@@ -3308,7 +3306,7 @@ void showPotential(fftw_complex ***pot,int nz,int nx,int ny,double dx,double dy,
 * This function will write a data file with the pendeloesungPlot 
 * for selected beams
 ****************************************************************/
-void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer) {
+void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer, int absolute_slice) {
 	static char fileAmpl[32];
 	static char filePhase[32];
 	static char fileBeam[32];
@@ -3426,7 +3424,7 @@ void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer) {
 		for( ib=0; ib<muls->nbout; ib++) {
 			rPart = (*wave).wave[muls->hbeam[ib]][muls->kbeam[ib]][0];
 			iPart = (*wave).wave[muls->hbeam[ib]][muls->kbeam[ib]][1];
-			muls->pendelloesung[ib][(*muls).nslic0] = scale*(real)(rPart*rPart+iPart*iPart);
+			muls->pendelloesung[ib][absolute_slice] = scale*(real)(rPart*rPart+iPart*iPart);
 			// printf("slice: %d beam: %d [%d,%d], intensity: %g\n",muls->nslic0,ib,muls->hbeam[ib],muls->kbeam[ib],muls->pendelloesung[ib][muls->nslic0]);			
 		} // end of ib=0 ... 
 	}

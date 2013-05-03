@@ -48,7 +48,7 @@ void showPotential(fftw_complex ***pot,int nz,int nx,int ny,
 		   double dx,double dy,double dz);
 void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,
 			   double z,double B);
-void writeBeams(MULS *muls, WAVEFUNC *wave,int ilayer);
+void writeBeams(MULS *muls, WAVEFUNC *wave,int ilayer, int absolute_slice);
 
 /***********************************************************************************
  * old image read/write functions, may soon be outdated
