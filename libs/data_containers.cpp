@@ -15,8 +15,15 @@ ny(0)
 	const char *waveFileBase = "mulswav";
 	nx = x;
 	ny = y;
-	diffpat = float2D(nx,ny,"diffpat");
-	avgArray = float2D(nx,ny,"avgArray");
+	diffpat = boost::shared_ptr<2d_float_array>(new 2d_float_array(boost::extents[nx][ny]));
+	avgArray = boost::shared_ptr<2d_float_array>(new 2d_float_array(boost::extents[nx][ny]));
+	//diffpat = float2D(nx,ny,"diffpat");
+	//avgArray = float2D(nx,ny,"avgArray");
+
+	kx2 = float1D(nx, "kx2" );
+	kx  = float1D(nx, "kx" );
+	ky2 = float1D(ny, "ky2" );
+	ky  = float1D(ny, "ky" );
 
 #if FLOAT_PRECISION == 1
 	wave = complex2Df(nx, ny, "wave");
@@ -51,6 +58,11 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 
 	diffpat = float2D(nx,ny,"diffpat");
 	avgArray = float2D(nx,ny,"avgArray");
+
+	kx2 = float1D(nx, "kx2" );
+	kx  = float1D(nx, "kx" );
+	ky2 = float1D(ny, "ky2" );
+	ky  = float1D(ny, "ky" );
 
 #if FLOAT_PRECISION == 1
 	wave = complex2Df(nx, ny, "wave");

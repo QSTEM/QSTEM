@@ -43,6 +43,9 @@ good energies: 327, 360,393,520 keV
 #include <omp.h>
 #endif
 
+// from Boost
+#include "boost/shared_ptr.hpp"
+
 #include "memory_fftw3.h"	/* memory allocation routines */
 #include "readparams.h"
 #include "imagelib_fftw3.h"
@@ -237,50 +240,12 @@ void initMuls() {
 	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
 	for (i=0;i<NPARAM;i++)
 		muls.sparam[i] = 0.0;
-	muls.kx = NULL;
-	muls.kx2= NULL;
-	muls.ky = NULL;
-	muls.ky2= NULL;
 
 	/****************************************************/
 	/* copied from slicecell.c                          */
 	muls.pendelloesung = NULL;
 }
 
-/*
-void writeIntPix(char *outFile,real **pict,int nx,int ny) {
-real rmin,rmax;
-int i,j, result;
-long **pix;
-
-rmin  = pict[0][0];
-rmax  = rmin;
-
-for( i=0; i<nx; i++)
-for(j=0; j<ny; j++)
-{
-if(pict[i][j] < rmin ) rmin = pict[i][j];
-if(pict[i][j] > rmax ) rmax = pict[i][j];
-}
-printf("min: %g  max: %g\n",rmin,rmax);
-
-pix = long2D(ny,nx,"pix array");
-
-for (i=0;i<ny;i++) {
-for(j=0;j<nx;j++) {
-pix[i][j] =(long)((pow(2,NBITS)-1.0)*((pict[j][i]-rmin)/(rmax-rmin)));
-}
-}
-result = tcreatePixFile(outFile,pix,nx,ny,
-0,0,NBITS,0,0,1.0,1.0);
-printf("output written to %s\n",outFile);
-
-if (result != 1)
-printf("\ncould not write output file %s\n",outFile);
-
-free(pix); 
-}
-*/
 int DirExists(char *filename) { 
   struct stat status; 
   status.st_mode = 0;
@@ -702,7 +667,6 @@ void readFile() {
 		strPtr = strchr(muls.fileBase,'"');
 		*strPtr = '\0';
 	}
-
 
 	// printf("fileBase: %s\n",muls.fileBase);
 
@@ -2501,13 +2465,14 @@ void doSTEM() {
 	static imageStruct *header_read = NULL;
 	float cztot;
 	int islice;
+	int th;
 
 	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
 	//WAVEFUNC *wave = *(new WAVEFUNC(muls.nx,muls.ny));
 	std::vector<WAVEFUNC *> waves;
 	WAVEFUNC *wave;
 
-	for (int th=0; th<omp_get_max_threads(); th++)
+	for (th=0; th<omp_get_max_threads(); th++)
 	{
 		waves.push_back(new WAVEFUNC(muls.nx,muls.ny));
 	}
@@ -2519,30 +2484,9 @@ void doSTEM() {
 	totalRuns = muls.avgRuns;
 	timer = cputim();
 
-        //pre-allocate several waves (enough for one row of the scan.  
-        //This fixes a memory leak bug.  What was causing it:
-        /* 
-           - OpenMP required that each thread needs its own FFTW plan
-           - To make an FFTW plan for each thread, we had to allocated a wave struct per thread
-           - Allocating so many wave structs made the heap too big, causing the leak (I think)
-        */
-        //for(iy=0;iy<muls.scanYN*muls.scanXN;iy++) waves[iy]=initWave(muls.nx,muls.ny);
-
-	//if (avgArray == NULL)
-	//	avgArray = float2D(muls.nx,muls.ny,"avgArray");
-	/* create the target folder, if it does not exist yet */
-	/*  sprintf(avgName,"diffAvg_%d_%d.img",ix,iy);
-	sprintf(tifName,"diffAvg_%d_%d.tif",ix,iy);
-	sprintf(jpgName,"diffAvg_%d_%d.jpg",ix,iy);
-
-	sprintf(systStr,"showimage %s 6; convert -crop 17%c -geometry 256x256 %s %s/%s; rm %s",
-	avgName,'%',tifName,muls.folder,jpgName,tifName);
-	printf("%s\n",systStr);
-	system(systStr);
-	*/
-	/* average over several runs of for TDS */
 	displayProgress(-1);
 
+	/* average over several runs of for TDS */
 	for (muls.avgCount = 0;muls.avgCount < totalRuns; muls.avgCount++) {
 		total_time = 0;
 		collectedIntensity = 0;
@@ -2598,14 +2542,6 @@ void doSTEM() {
 				timer = cputim();
 			}
 
-			//MCS - initialize the probe wavefunction that will be copied to each thread.
-			/* make incident probe wave function with probe exactly in the center */
-						/* if the potential array is not big enough, the probe can 
-						* then also be adjusted, so that it is off-center
-						*/
-			//muls.nslic0 = 0;
-			//wave->thickness = 0.0;
-
 			/****************************************
 			* do the (small) loop over slabs
 			*****************************************/
@@ -2617,6 +2553,11 @@ void doSTEM() {
 					make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
 					initSTEMSlices(&muls,muls.slices);
 					timer = cputim();
+				}
+
+				for (th=0; th<omp_get_max_threads(); th++)
+				{
+					initializePropagators(&muls, waves[th]);
 				}
 
 				muls.complete_pixels=0;
@@ -2821,10 +2762,10 @@ void doSTEM() {
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-	free(chisq);
-	for (int th=0; th<omp_get_num_threads(); th++)
-	{
-		delete(waves[th]);
-	}
+	//free(chisq);
+	//for (int th=0; th<omp_get_num_threads(); th++)
+	//{
+		//delete(waves[th]);
+	//}
 }
 

@@ -235,8 +235,8 @@ void saveSTEMimages(MULS *muls) {
   static int nx_old=0,ny_old=0;
   double t;
 
-  nx = (*muls).scanXN;
-  ny = (*muls).scanYN;
+  nx = muls->scanXN;
+  ny = muls->scanYN;
 
   if ((nx !=nx_old) || (ny!=ny_old) || (image == NULL)) {
     if (image != NULL) {
@@ -250,17 +250,17 @@ void saveSTEMimages(MULS *muls) {
     ny_old = ny;
   }
 
-  //  printf("will save STEM images for %d detectors\n",(*muls).detectorNum);
-  for (i=0;i<(*muls).detectorNum;i++) {
-    sprintf(fileName,"./%s/%s_%d.tif",(*muls).folder,(*muls).detectors[i].name,
-	    (int)((*muls).thickness+0.5));
+  //  printf("will save STEM images for %d detectors\n",muls->detectorNum);
+  for (i=0;i<muls->detectorNum;i++) {
+    sprintf(fileName,"./%s/%s_%d.tif",muls->folder,muls->detectors[i].name,
+	    (int)(muls->thickness+0.5));
     
     /**********************************************************
      * if this is not the first averaging run, we want to read
      * the average of previous runs first and include this one
      **********************************************************
-    if ((*muls).avgCount > 0) {
-      // printf("will open %s now (avgCount=%d)\n",fileName,(*muls).avgCount);
+    if (muls->avgCount > 0) {
+      // printf("will open %s now (avgCount=%d)\n",fileName,muls->avgCount);
       if( topenFloat(fileName) != 1 ) {
 	printf("Cannot open floating point image %s (change to .img format)\n",fileName);	
 	for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) image[ix][iy] = 0.0;
@@ -279,15 +279,15 @@ void saveSTEMimages(MULS *muls) {
     else
       for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) image[ix][iy] = 0.0;
       
-    (*muls).detectors[i].error = 0.0;
+    muls->detectors[i].error = 0.0;
     for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-      t = ((double)((*muls).avgCount)*image[ix][iy] + 
-	       (double)((*muls).detectors[i].image[ix][iy])) /
-	((double)((*muls).avgCount+1.0));
-      (*muls).detectors[i].error += (image[ix][iy]-t)*(image[ix][iy]-t);
+      t = ((double)(muls->avgCount)*image[ix][iy] + 
+	       (double)(muls->detectors[i].image[ix][iy])) /
+	((double)(muls->avgCount+1.0));
+      muls->detectors[i].error += (image[ix][iy]-t)*(image[ix][iy]-t);
       image[ix][iy] = t;
     }
-    (*muls).detectors[i].error = sqrt((*muls).detectors[i].error/(nx*ny));
+    muls->detectors[i].error = sqrt(muls->detectors[i].error/(nx*ny));
 
     rmin = image[0][0];
     rmax = rmin;
@@ -301,19 +301,19 @@ void saveSTEMimages(MULS *muls) {
     param[pIMAX]  = 0.0f;
     param[pRMIN]  = rmin;
     param[pIMIN]  = 0.0f;
-    param[pXCTILT] = (*muls).ctiltx;
-    param[pYCTILT] = (*muls).ctiltx;
-    param[pENERGY] = (*muls).v0;
-    param[pDX] = ((*muls).scanXStop-(*muls).scanXStart)/(real)nx;
-    param[pDY] = ((*muls).scanYStop-(*muls).scanYStart)/(real)ny;
-    param[pWAVEL] = (real)wavelength((*muls).v0);
-    param[pNSLICES] = (real)((*muls).nslic0);
-    param[pDEFOCUS] = (*muls).df0;
+    param[pXCTILT] = muls->ctiltx;
+    param[pYCTILT] = muls->ctiltx;
+    param[pENERGY] = muls->v0;
+    param[pDX] = (muls->scanXStop-muls->scanXStart)/(real)nx;
+    param[pDY] = (muls->scanYStop-muls->scanYStart)/(real)ny;
+    param[pWAVEL] = (real)wavelength(muls->v0);
+    param[pNSLICES] = (real)(muls->nslic0);
+    param[pDEFOCUS] = muls->df0;
     param[pOAPERT] = 0.0;
-    param[pCS] = (*muls).Cs;
-    param[pCAPERT] = (*muls).alpha;
+    param[pCS] = muls->Cs;
+    param[pCAPERT] = muls->alpha;
     param[pDDF] = 0.0;
-    param[pC]= (*muls).thickness;
+    param[pC]= muls->thickness;
 
     // printf("will create file %s now,nx:%d, ny:%d\n",fileName,nx,ny);
     tcreateFloatPixFile(fileName,image, (long)nx,(long)ny, 1,param );

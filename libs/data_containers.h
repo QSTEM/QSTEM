@@ -4,6 +4,13 @@
 #include <vector>
 #include "stemtypes_fftw3.h"
 
+#include "boost/shared_ptr.hpp"
+#include "boost/multi_array.hpp"
+
+typedef boost::multi_array<float_tt, 3> 3d_float_array;
+typedef boost::multi_array<float_tt, 2> 2d_float_array;
+typedef boost::multi_array<float_tt, 1> 1d_float_array;
+
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
 class WAVEFUNC 
@@ -14,11 +21,17 @@ public:
 	int detPosX,detPosY;
 	char fileStart[512];
 	char fileout[512];
-	real **diffpat;
-	real **avgArray;
+	boost::shared_ptr<2d_float_array> diffpat;
+	//real **diffpat;
+	boost::shared_ptr<2d_float_array> avgArray;
+	//real **avgArray;
 	char avgName[512];
 	float_tt thickness;
 	float_tt intIntensity;
+
+	float_tt rmin,rmax;		/* min and max of real part */
+	float_tt aimin,aimax;		/* min and max of imag part */
+	float_tt *kx2,*ky2,*kx,*ky;
 
 #if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
@@ -167,15 +180,17 @@ public:
   float_tt dfa2,dfa3;
   float_tt dfa2phi,dfa3phi;
   float_tt chi,phi;
-  float_tt *sparam;
+  boost::shared_ptr<float_tt> sparam;
 
   int saveFlag;			/* flag indicating, whether to save the result */
-  float_tt rmin,rmax;		/* min and max of real part */
-  float_tt aimin,aimax;		/* min and max of imag part */
-  float_tt *kx2,*ky2,k2max,*kx,*ky;
+  float_tt k2max;
+
+  // propagators used in propagate_slow
+  float_tt *propxr,*propyr;
+  float_tt *propxi,*propyi;
 
   int nlayer;
-  float_tt *cz;
+  boost::shared_ptr<float_tt> cz;
   float_tt sliceThickness;
   int onlyFresnel;
   int startSpherical;
@@ -199,8 +214,8 @@ public:
   char phononFile[512];    /* file name for detailed phonon modes */
   int atomKinds;
   int *Znums;
-  double **rPotential;   /* array containing real space potential LUT for each atom kind present */
-  double *sfkArray;
+  //boost::shared_ptr<boost::shared_ptr<double>> rPotential;   /* array containing real space potential LUT for each atom kind present */
+  boost::shared_ptr<double> sfkArray;
   double **sfTable;
   int sfNk;              /* number of k-points in sfTable and sfkArray */
   double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */

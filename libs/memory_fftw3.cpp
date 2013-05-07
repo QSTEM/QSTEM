@@ -11,245 +11,68 @@
 #define PRINT_MESSAGE
 */
 
+// template design inspired by:
+// https://svn.ssec.wisc.edu/repos/lib_ifts/trunk/lib_ifts/src/fftw.hxx
+
+#ifdef NDEBUG
+#define BOOST_DISABLE_ASSERTS
+#endif
 
 
 
-/*---------------------------- float1D() -------------------------------*/
-/*
-	1D array allocator for type float
-	make space for m[0...(n-1)]
-	printf error message and exit if not successful
-	
-	this save checking for a NULL return etc every time 
-	
-*/
-float_tt *float1D( int n, const char *message )
+
+
+/*************  1D arrays ****************/
+
+boost::shared_ptr<float_1D_type> float1D(int size, std::string message)
 {
-	float_tt *m;
-	
-	m = (float_tt*) fftw_malloc( n * sizeof( float_tt) );
-	if( m == NULL ) {
-		printf("float1D() cannot allocate memory size=%d: %s\n",
-		       n, message);
-		exit( 0 );
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s\n",message);
-#endif
+	float1D_type arr(boost::extents[size]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return boost::shared_ptr<float1D_type>(arr);
+}
 
-	return( m );
+/*************   2D arrays  *************/
 
-}  /* end float1D() */
-
-/*---------------------------- double1D() -------------------------------*/
-/*
-	1D array allocator for type double
-	make space for m[0...(n-1)]
-	printf error message and exit if not successful
-	
-	this save checking for a NULL return etc every time 
-	
-*/
-double* double1D( int n, const char *message )
+boost::shared_ptr<float2D_type> float2D(int nx, int ny, std::string message)
 {
-	double *m;
-	
-	m = (double*) fftw_malloc( n * sizeof( double ) );
-	if( m == NULL ) {
-		printf("double1D() cannot allocate memory size=%d: %s\n",
-		       n, message);
-		exit( 0 );
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s\n",message);
-#endif
+	float2D_type arr(boost::extents[nx][ny]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return boost::shared_ptr<float2D_type>(arr);
+}
 
-	return( m );
+boost::shared_ptr<double2D_type> double2D(int nx, int ny, std::string message)
+{
+	double2D_type arr(boost::extents[nx][ny]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return boost::shared_ptr<double2D_type>(arr);
+}
 
-} /* end double1D() */
+boost::shared_ptr<short2D_type> int2D(int nx, int ny, std::string message)
+{
+	short2D_type arr(boost::extents[nx][ny]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return boost::shared_ptr<short2D_type>(arr);
+}
 
-
-/*---------------------------- short2D() -------------------------------*/
-/*
-	2D array allocator for type short
-	make space for m[0...(nx-1)][0..(ny-1)]
-	
-	message = char[] with error message
-	
-*/
-short **short2D( int nx, int ny, const char *message )
-{	short **m;
-	int i;
-
-	m = (short**) fftw_malloc( nx * sizeof( short* ) ); 
-	if( m == NULL ) {
-		printf("short2D cannot allocate pointers, size=%d : %s\n",
-		       nx, message );
-		exit(0);
-	}
-	m[0] = (short *) fftw_malloc( ny *nx* sizeof(short) );
-	if( m[0] == NULL ){
-	  printf("long2D cannot allocate arrays, size=%d: %s\n",
-		 ny*nx, message );
-	  exit(0);
-	}
-	for (i=1; i<nx; i++){
-	  m[i] = &(m[0][i*ny]);
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s\n",message);
-#endif
-
-	return m;
-}  /* end short2d() */
-
-/*---------------------------- int2D() -------------------------------*/
-/*
-	2D array allocator for type int
-	make space for m[0...(nx-1)][0..(ny-1)]
-
-*/
-int **int2D( int nx, int ny, const char *message )
-{	int **m;
-	int i;
-
-	m = (int**) fftw_malloc( nx * sizeof(int* ) ); 
-	if( m == NULL ) {
-		printf("int2D cannot allocate pointers, size=%d: %s\n",
-		       nx, message );
-		exit(0);
-	}
-
-	m[0] = (int *) fftw_malloc( ny *nx* sizeof(int) );
-	if( m[0] == NULL ){
-	  printf("int2D cannot allocate arrays, size=%d: %s\n",
-		 ny*nx, message );
-	  exit(0);
-	}
-	for (i=1; i<nx; i++){
-	  m[i] = (int *)(&m[0][i*ny]);
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s (int) = %d\n",message,(int)m);
-#endif
-
-	return m;
-
-}  /* end int2D() */
-
-/*---------------------------- long2D() -------------------------------*/
-/*
-	2D array allocator for type long
-	make space for m[0...(nx-1)][0..(ny-1)]
-	
-	message = char[] with error message
-	
-*/
-long **long2D( int nx, int ny, const char *message )
-{	long **m;
-	int i;
-
-	m = (long**) fftw_malloc( nx * sizeof( long* ) ); 
-	if( m == NULL ) {
-		printf("long2D cannot allocate pointers, size=%d : %s\n",
-		       nx, message );
-		exit(0);
-	}
-
-	m[0] = (long *) fftw_malloc( ny *nx* sizeof(long) );
-	if( m[0] == NULL ){
-	  printf("long2D cannot allocate arrays, size=%d: %s\n",
-		 ny*nx, message );
-	  exit(0);
-	}
-	for (i=1; i<nx; i++){
-	  m[i] = &(m[0][i*ny]);
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s\n",message);
-#endif
-
-	return m;
-
-}  /* end long2d() */
-
-/*---------------------------- float32_2D() -------------------------------*/
-/*
-	2D array allocator for type float
-	make space for m[0...(nx-1)][0..(ny-1)]
-
-*/
-
-float **float32_2D( int nx, int ny, const char *message )
-{	
-	float **m;
-	int i;
-
-	m = (float**) fftw_malloc( nx * sizeof( float* ) ); 
-	if( m == NULL ) {
-		printf("float2D cannot allocate pointers, size=%d: %s\n",
-		       nx, message );
-		exit(0);
-	}
-
-	m[0] = (float *) fftw_malloc( ny *nx* sizeof( float ) );
-	if( m[0] == NULL ){
-	  printf("float2D cannot allocate arrays, size=%d: %s\n",
-		 ny*nx, message );
-	  exit(0);
-	}
-	for (i=1; i<nx; i++){
-	  m[i] = (float *)(&m[0][i*ny]);
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s (float_tt) = %d\n",message,(int)m);
-#endif
-
-	return m;
-
-}  /* end float2D() */
+/*************    3D arrays *************/
 
 
-/*---------------------------- float2D() -------------------------------*/
-/*
-	2D array allocator for type float
-	make space for m[0...(nx-1)][0..(ny-1)]
+// complex double matrix aligned for SIMD instructions
+typedef boost::multi_array<std::complex<double>, 2, fftw_allocator< std::complex<double> > > fftw_cplx_doubleses;
 
-*/
-float_tt **float2D( int nx, int ny, const char *message )
-{	
-	float_tt **m;
-	int i;
 
-	m = (float_tt**) fftw_malloc( nx * sizeof( float_tt* ) ); 
-	if( m == NULL ) {
-		printf("float2D cannot allocate pointers, size=%d: %s\n",
-		       nx, message );
-		exit(0);
-	}
-
-	m[0] = (float_tt *) fftw_malloc( ny *nx* sizeof( float_tt ) );
-	if( m[0] == NULL ){
-	  printf("float2D cannot allocate arrays, size=%d: %s\n",
-		 ny*nx, message );
-	  exit(0);
-	}
-	for (i=1; i<nx; i++){
-	  m[i] = (float_tt *)(&m[0][i*ny]);
-	}
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s (float_tt) = %d\n",message,(int)m);
-#endif
-
-	// initialize array to 0
-	for (int ix=0;ix<nx;ix++) for (int iy=0;iy < ny; iy++)
-	{
-		m[ix][iy] = 0.0f;
-	}
-
-	return m;
-
-}  /* end float2D() */
 /*---------------------------- float3D() -------------------------------*/
 /*
 	3D array allocator for type float_tt
@@ -339,47 +162,6 @@ float ***float32_3D( int nx, int ny,int nz, const char *message )
 
 
 
-
-/*---------------------------- double2D() -------------------------------*/
-/*
-	2D array allocator for type doubel
-	make space for m[0...(nx-1)][0..(ny-1)]
-
-*/
-double **double2D( int nx, int ny, const char *message )
-{	double **m;
-	int i;
-
-	m = (double**) fftw_malloc( nx * sizeof(double* ) ); 
-	if( m == NULL ) {
-		printf("double2D cannot allocate pointers, size=%d: %s\n",
-		       nx, message );
-		exit(0);
-	}
-
-	m[0] = (double *) fftw_malloc( ny *nx* sizeof(double) );
-	if( m[0] == NULL ){
-	  printf("double2D cannot allocate arrays, size=%d: %s\n",
-		 ny*nx, message );
-	  exit(0);
-	}
-	for (i=1; i<nx; i++){
-	  m[i] = &(m[0][i*ny]);
-	}
-
-	// initialize array to 0
-	for (int ix=0;ix<nx;ix++) for (int iy=0;iy < ny; iy++)
-	{
-		m[ix][iy] = 0.0;
-	}
-
-#ifdef PRINT_MESSAGE
-	printf("allocated memory for %s\n",message);
-#endif
-
-	return m;
-
-}  /* end double2D() */
 
 /*---------------------------- complex2D() -------------------------------*/
 /*

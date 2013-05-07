@@ -491,8 +491,8 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 								   fread(&Ns,sizeof(int),1,fpPhonon);
 								   massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
 								   fread(massPrim,sizeof(float),Ns,fpPhonon);
-								   kVecs = float32_2D(Nk,3,"kVecs");
-								   omega = float32_2D(Nk,3*Ns,"omega");          /* array of eigenvalues for every k-vector 
+								   kVecs = float2D(Nk,3,"kVecs");
+								   omega = float2D(Nk,3*Ns,"omega");          /* array of eigenvalues for every k-vector 
 																				 * omega is given in THz, but the 2pi-factor
 																				 * is still there, i.e. f=omega/2pi
 																				 */
@@ -1080,10 +1080,6 @@ MULS initMu() {
 	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
 	for (i=0;i<NPARAM;i++)
 		muls.sparam[i] = 0.0;
-	muls.kx = NULL;
-	muls.kx2= NULL;
-	muls.ky = NULL;
-	muls.ky2= NULL;
 
 	/****************************************************/
 	/* copied from slicecell.c                          */

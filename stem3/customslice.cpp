@@ -117,7 +117,7 @@ void make3DSlicesFT(MULS *muls) {
     xOversample = 1;
     while (dX > 0.1) dX = dXp/(double)(++xOversample);    
     Nx = (int)(ax/dX); if (Nx/2 < 0.5*(double)Nx) Nx++;
-    ax = (double)Nx*dX;
+    ax = (float)Nx*dX;
     // sAtom.x = 0.5*ax;  sAtom.y = 0.5*ax;  sAtom.z = 0.5*cz;
         
     printf("box: (%g, %g, %g), sampled: (%g, %g, %g)\n",axp,byp,czp,dXp,dYp,dZp);
@@ -244,13 +244,13 @@ void make3DSlicesFT(MULS *muls) {
   atoms = muls->atoms;
   if (divCount == 0) {
     qsort(atoms,muls->natom,sizeof(atom),atomCompare);
-    if ((*muls).cfgFile != NULL) {
+    if (muls->cfgFile != NULL) {
       sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
       writeCFG(atoms,muls->natom,buf,muls);	
     }
   }
-  zStart = (*muls).czOffset+(double)divCount*czp/((double)(*muls).cellDiv);
-  divCount = (divCount + 1) % (*muls).cellDiv;
+  zStart = muls->czOffset+(double)divCount*czp/((double)muls->cellDiv);
+  divCount = (divCount + 1) % muls->cellDiv;
   
   if (Nzp > 1) {
     timer = getTime();  

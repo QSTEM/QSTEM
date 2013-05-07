@@ -7,13 +7,22 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX
 
 project(qstem)
 set (stem3_VERSION_MAJOR 2)
-set (stem3_VERSION_MINOR 22)
+set (stem3_VERSION_MINOR 23)
 
 set (EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
 find_package(fftw3 REQUIRED)
+
+SET(BOOST_MIN_VERSION "1.38.0")
+FIND_PACKAGE(Boost ${BOOST_MIN_VERSION} REQUIRED)
+
+IF (Boost_FOUND)
+	message(STATUS "Found Boost.  Ignore message that it is not found.")
+    INCLUDE_DIRECTORIES(${BOOST_INCLUDE_DIR})
+    ADD_DEFINITIONS( "-DHAS_BOOST" )
+ENDIF()
 
 set (M_LIB "")
 
