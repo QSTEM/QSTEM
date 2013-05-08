@@ -2,6 +2,8 @@
 #include <string.h>
 #include "data_containers.h"
 
+#include "memory_fftw3.h"
+
 WAVEFUNC::WAVEFUNC(int x, int y) :
 detPosX(0),
 detPosY(0),
@@ -15,8 +17,8 @@ ny(0)
 	const char *waveFileBase = "mulswav";
 	nx = x;
 	ny = y;
-	diffpat = boost::shared_ptr<float2D_type>(new 2d_float_array(boost::extents[nx][ny]));
-	avgArray = boost::shared_ptr<float2D_type>(new 2d_float_array(boost::extents[nx][ny]));
+	diffpat = float2D(nx, ny, "diffpat");
+	avgArray = float2D(nx, ny, "avgArray");
 	//diffpat = float2D(nx,ny,"diffpat");
 	//avgArray = float2D(nx,ny,"avgArray");
 
@@ -25,16 +27,16 @@ ny(0)
 	ky2 = float1D(ny, "ky2" );
 	ky  = float1D(ny, "ky" );
 
+	wave = complex2D(nx, ny, "wave");
+
 #if FLOAT_PRECISION == 1
-	wave = complex2D(nx, ny, "wave");
-	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
-	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftwf_complex *data = reinterpret_cast<fftwf_complex *>(wave.data());
+	fftPlanWaveForw = fftwf_plan_dft_2d(nx, ny, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftPlanWaveInv = fftwf_plan_dft_2d(nx, ny, data, data, FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
-	wave = complex2D(nx, ny, "wave");
-	fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD,
-		fftMeasureFlag);
-	fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
-		fftMeasureFlag);
+	fftw_complex *data = reinterpret_cast<fftw_complex *>(wave.data());
+	fftPlanWaveForw = fftw_plan_dft_2d(nx, ny, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftPlanWaveInv = fftw_plan_dft_2d(nx, ny, data, data, FFTW_BACKWARD, FFTW_ESTIMATE);
 #endif
 
 	sprintf(waveFile,"%s.img",waveFileBase);
@@ -64,16 +66,16 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 	ky2 = float1D(ny, "ky2" );
 	ky  = float1D(ny, "ky" );
 
+	wave = complex2D(nx, ny, "wave");
+
 #if FLOAT_PRECISION == 1
-	wave = complex2D(nx, ny, "wave");
-	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
-	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
+	fftwf_complex *data = reinterpret_cast<fftwf_complex *>(wave.data());
+	fftPlanWaveForw = fftwf_plan_dft_2d(nx, ny, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftPlanWaveInv = fftwf_plan_dft_2d(nx, ny, data, data, FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
-	wave = complex2D(nx, ny, "wave");
-	fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD,
-		fftMeasureFlag);
-	fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
-		fftMeasureFlag);
+	fftw_complex *data = reinterpret_cast<fftw_complex *>(wave.data());
+	fftPlanWaveForw = fftw_plan_dft_2d(nx, ny, data, data, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftPlanWaveInv = fftw_plan_dft_2d(nx, ny, data, data, FFTW_BACKWARD, FFTW_ESTIMATE);
 #endif
 }
 

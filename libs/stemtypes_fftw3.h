@@ -173,17 +173,18 @@ public:
 
 /******************* Vector and array type definitions *****************/
 // vectors aligned for SIMD instructions
-typedef boost::multi_array<float_tt, 1, fftw_allocator<float_tt>> float1D_type;
-typedef boost::multi_array<double, 1, fftw_allocator<double>> double1D_type;
+typedef boost::multi_array<float_tt, 1, fftw_allocator<float_tt>> float1DArray;
+typedef boost::multi_array<double, 1, fftw_allocator<double>> double1DArray;
+typedef boost::multi_array<int, 1, fftw_allocator<int>> int1DArray;
 
 // 2D arrays aligned for SIMD instructions
-typedef boost::multi_array<float_tt, 2, fftw_allocator<float_tt>> float2D_type;
-typedef boost::multi_array<double, 2, fftw_allocator<double>> double2D_type;
-typedef boost::multi_array<int, 2, fftw_allocator<int>> int2D_type;
-typedef boost::multi_array<std::complex<float_tt>, 2, fftw_allocator<std::complex<float_tt>>> complex2D_type;
+typedef boost::multi_array<float_tt, 2, fftw_allocator<float_tt>> float2DArray;
+typedef boost::multi_array<double, 2, fftw_allocator<double>> double2DArray;
+typedef boost::multi_array<int, 2, fftw_allocator<int>> int2DArray;
+typedef boost::multi_array<std::complex<float_tt>, 2, fftw_allocator<std::complex<float_tt>>> complex2DArray;
 
 // 3D arrays aligned for SIMD instructions
-typedef boost::multi_array<float_tt, 3, fftw_allocator<float_tt>> float3D_type;
-typedef boost::multi_array<std::complex<float_tt>, 3, fftw_allocator<std::complex<float_tt>>> complex3D_type;
+typedef boost::multi_array<float_tt, 3, fftw_allocator<float_tt>> float3DArray;
+typedef boost::multi_array<std::complex<float_tt>, 3, fftw_allocator<std::complex<float_tt>>> complex3DArray;
 
 #endif // STEMTYPES_H

@@ -3,10 +3,6 @@
 
 #include <vector>
 #include "stemtypes_fftw3.h"
-#include "memory_fftw3.h"
-
-#include "boost/shared_ptr.hpp"
-#include "boost/multi_array.hpp"
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -18,9 +14,9 @@ public:
 	int detPosX,detPosY;
 	char fileStart[512];
 	char fileout[512];
-	boost::shared_ptr<float2D_type> diffpat;
+	float2DArray diffpat;
 	//real **diffpat;
-	boost::shared_ptr<float2D_type> avgArray;
+	float2DArray avgArray;
 	//real **avgArray;
 	char avgName[512];
 	float_tt thickness;
@@ -28,15 +24,10 @@ public:
 
 	float_tt rmin,rmax;		/* min and max of real part */
 	float_tt aimin,aimax;		/* min and max of imag part */
-	boost::shared_ptr<float1D_type> kx2, ky2, kx, ky;
+	float1DArray kx2, ky2, kx, ky;
 
-#if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
-	fftwf_complex  **wave; /* complex wave function */
-#else
-	fftw_plan fftPlanWaveForw,fftPlanWaveInv;
-	fftw_complex  **wave; /* complex wave function */
-#endif
+	complex2DArray wave; /* complex wave function */
 
 public:
 	// initializing constructor:
@@ -60,7 +51,7 @@ public:
   fftwf_plan fftPlanPotInv,fftPlanPotForw;
   // wave moved to probeStruct
   //fftwf_complex  **wave; /* complex wave function */
-  fftwf_complex ***trans;
+  complex3DArray trans;
 #else
   fftw_plan fftPlanPotInv,fftPlanPotForw;
   // wave moved to probeStruct
@@ -68,7 +59,7 @@ public:
   fftw_complex ***trans;
 #endif
 
-  boost::shared_ptr<float2D_type> diffpat;
+  float2DArray diffpat;
   real czOffset;
   real xOffset;
   real yOffset;
@@ -102,10 +93,10 @@ public:
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   int slices;                           /* number of different slices */
   int centerSlices;                     /* flag indicating how to cut the sample */
-  boost::shared_ptr<float2D_type> pendelloesung;              /* pendelloesung plot for REFINE mode */
+  float2DArray pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt ax,by,c;	                /* lattice parameters */
   float_tt cAlpha,cBeta,cGamma;
-  boost::shared_ptr<double2D_type> Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
+  double2DArray Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
   int nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
   int natom;				/* number of atoms in "atoms" */
   atom *atoms;				/* 3D atoms array */	
@@ -177,17 +168,17 @@ public:
   float_tt dfa2,dfa3;
   float_tt dfa2phi,dfa3phi;
   float_tt chi,phi;
-  boost::shared_ptr<float_tt> sparam;
+  float1DArray sparam;
 
   int saveFlag;			/* flag indicating, whether to save the result */
   float_tt k2max;
 
   // propagators used in propagate_slow
-  boost::shared_ptr<float1D_type> propxr, propyr;
-  boost::shared_ptr<float1D_type> propxi, propyi;
+  float1DArray propxr, propyr;
+  float1DArray propxi, propyi;
 
   int nlayer;
-  boost::shared_ptr<float_tt> cz;
+  float1DArray cz;
   float_tt sliceThickness;
   int onlyFresnel;
   int startSpherical;
@@ -212,8 +203,8 @@ public:
   int atomKinds;
   int *Znums;
   //boost::shared_ptr<boost::shared_ptr<double>> rPotential;   /* array containing real space potential LUT for each atom kind present */
-  boost::shared_ptr<double> sfkArray;
-  double **sfTable;
+  double2DArray sfkArray;
+  double2DArray sfTable;
   int sfNk;              /* number of k-points in sfTable and sfkArray */
   double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
   float_tt tds_temp;
@@ -242,7 +233,7 @@ public:
   //DETECTOR *detectors;
   int save_output_flag;
   
-  double *dE_EArray;
+  double1DArray dE_EArray;
 
   // Tomography parameters:
   double tomoTilt;  // current tilt in tomography series

@@ -19,93 +19,101 @@
 #endif
 
 
-
 /*************  1D arrays ****************/
 
-boost::shared_ptr<float1D_type> float1D(int size, std::string message)
+float1DArray float1D(int size, std::string message)
 {
-	float1D_type arr(boost::extents[size]);
+	float1DArray arr(boost::extents[size]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<float1D_type>(arr);
+	return arr;
 }
 
-boost::shared_ptr<double1D_type> double1D(int size, std::string message)
+double1DArray double1D(int size, std::string message)
 {
-	double1D_type arr(boost::extents[size]);
+	double1DArray arr(boost::extents[size]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<double1D_type>(arr);
+	return arr;
 }
 
+int1DArray int1D(int size, std::string message)
+{
+	int1DArray arr(boost::extents[size]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return arr;
+}
 
 /*************   2D arrays  *************/
 
-boost::shared_ptr<float2D_type> float2D(int nx, int ny, std::string message)
+float2DArray float2D(int nx, int ny, std::string message)
 {
-	float2D_type arr(boost::extents[nx][ny]);
+	float2DArray arr(boost::extents[nx][ny]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<float2D_type>(arr);
+	return arr;
 }
 
-boost::shared_ptr<double2D_type> double2D(int nx, int ny, std::string message)
+double2DArray double2D(int nx, int ny, std::string message)
 {
-	double2D_type arr(boost::extents[nx][ny]);
+	double2DArray arr(boost::extents[nx][ny]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<double2D_type>(arr);
+	return arr;
 }
 
-boost::shared_ptr<short2D_type> int2D(int nx, int ny, std::string message)
+int2DArray int2D(int nx, int ny, std::string message)
 {
-	int2D_type arr(boost::extents[nx][ny]);
+	int2DArray arr(boost::extents[nx][ny]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<int2D_type>(arr);
+	return arr;
 }
 
-boost::shared_ptr<complex2D_type> complex2D(int nx, int ny, std::string message)
+complex2DArray complex2D(int nx, int ny, std::string message)
 {
-	complex2D_type arr(boost::extents[nx][ny]);
+	complex2DArray arr(boost::extents[nx][ny]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<complex2D_type>(arr);
+	return arr;
 }
 
 
 /*************    3D arrays *************/
 
-boost::shared_ptr<float3D_type> float3D(int nx, int ny, int nz, std::string message)
+float3DArray float3D(int nx, int ny, int nz, std::string message)
 {
-	float3D_type arr(boost::extents[nx][ny][nz]);
+	float3DArray arr(boost::extents[nx][ny][nz]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<float3D_type>(arr);
+	return arr;
 }
 
-boost::shared_ptr<complex3D_type> complex3D(int nx, int ny,int nz, const char *message)
+complex3DArray complex3D(int nx, int ny,int nz, std::string message)
 {
-	complex3D_type arr(boost::extents[nx][ny][nz]);
+	complex3DArray arr(boost::extents[nx][ny][nz]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
-	return boost::shared_ptr<complex3D_type>(arr);
+	return arr;
 }
 
 

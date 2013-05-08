@@ -37,7 +37,7 @@ void ludcmp(double **a, int n, int *indx, double *d) {
   */
   int i,imax=0,j,k; 
   double big,dum,sum,temp; 
-  double *vv; 
+  double1DArray vv; 
   /*
     vv stores the implicit scaling of each row.
   */ 
@@ -103,8 +103,6 @@ void ludcmp(double **a, int n, int *indx, double *d) {
     } 
   } 
   // Go back for the next column in the reduction. 
-  free(vv);
-  // free_vector(vv,1,n); 
 }
 
 void lubksb(double **a, int n, int *indx, double b[]) { 
@@ -170,72 +168,7 @@ void inverse() {
   */
 }
 
-/******************************************************************************
- Routine:   det_3x3
- Input:     m - matrix (3x3) address
- Output:    returns the determinant of 'm'
-******************************************************************************/
-double det_3x3 (const double *mat)
-{
-    double det;
 
-    det = mat[0] * (mat[4] * mat[8] - mat[7] * mat[5])
-        - mat[1] * (mat[3] * mat[8] - mat[6] * mat[5])
-        + mat[2] * (mat[3] * mat[7] - mat[6] * mat[4]);
-
-    return det;
-}
-
-/******************************************************************************
- Routine:   trans_3x3
- Input:     Mstarget,Msource - matrix (3x3)
-******************************************************************************/
-void trans_3x3 (double *Mt, const double *Ms)
-{
-  int i,j;
-  for (i=0;i<2;i++) for (j=0;j<3;j++) Mt[i*3+j] = Ms[j*3+i];
-  return;
-}
-
-
-/******************************************************************************
- Routine:   inverse_3x3
- Input:     m - matrix (3x3) address
- Output:    returns the inverse matrix of 'm'
-******************************************************************************/
-void inverse_3x3 (double *res, const double *a)
-{
-    double det = det_3x3 (a);
-
-    // printf("det: %g\n",det);
-
-    if (fabs (det) < 0.0005f)
-    {
-        res[0] = 1.0f;
-        res[1] = 0.0f;
-        res[2] = 0.0f;
-        res[3] = 0.0f;
-        res[4] = 1.0f;
-        res[5] = 0.0f;
-        res[6] = 0.0f;
-        res[7] = 0.0f;
-        res[8] = 1.0f;
-        return;
-    }
-
-    det = 1.0f / det;
-    res[0] =  (a[4]*a[8] - a[5]*a[7]) * det;
-    res[1] = -(a[1]*a[8] - a[7]*a[2]) * det;
-    res[2] =  (a[1]*a[5] - a[4]*a[2]) * det;
-      
-    res[3] = -(a[3]*a[8] - a[5]*a[6]) * det;
-    res[4] =  (a[0]*a[8] - a[6]*a[2]) * det;
-    res[5] = -(a[0]*a[5] - a[3]*a[2]) * det;
-      
-    res[6] =  (a[3]*a[7] - a[6]*a[4]) * det;
-    res[7] = -(a[0]*a[7] - a[6]*a[1]) * det;
-    res[8] =  (a[0]*a[4] - a[1]*a[3]) * det;
-}
 
 /* This routine calculates inv(M)*M for any square N x M matrix (M >= N).
  * This function is useful for determining, whether a vector is represented by M or not,
@@ -244,18 +177,15 @@ void inverse_3x3 (double *res, const double *a)
  * the matrix M will be preserved
  * The invMM matrix will be of size M X M
  */
-double **invMM(double **Mmatrix, int N, int M) {
+double2DArray invMM(double2DArray Mmatrix, int N, int M) {
   static int Mold = 0; // Nold = 0, 
-  static double **invMMmatrix = NULL;
+  static double2DArray invMMmatrix;
   // int i;
 
-  if (N > M) return NULL;
+  if (N > M) return double2DArray();
   
   if (Mold < M) {
     Mold = M;
-    if (invMMmatrix != NULL) {
-      free(invMMmatrix[0]); free(invMMmatrix);
-    }
     invMMmatrix = double2D(M,M,"invMMmatrix");
   }
   
@@ -263,7 +193,7 @@ double **invMM(double **Mmatrix, int N, int M) {
 }
 
 
-void svdcmp1(double **a, int m, int n, double w[], double **v) {
+void svdcmp1(double2DArray a, int m, int n, double w[], double2DArray v) {
   /* Given a matrix a[1..m][1..n], this routine computes its singular value decomposition,
      A = U   W   V T . 
      The matrix U replaces a on output. The diagonal matrix of singular values 
@@ -272,10 +202,9 @@ void svdcmp1(double **a, int m, int n, double w[], double **v) {
   */
   // uses:  double pythag(double a, double b); 
   int flag,i,its,j,jj,k,l=0,nm=0; 
-  double anorm,c,f,g,h,s,scale,x,y,z,*rv1; 
+  double anorm,c,f,g,h,s,scale,x,y,z;
+  double1DArray rv1 = double1D(n+1,"rv1"); 
 
-  // rv1=vector(1,n); we will just alloacte memory for n+1 elements
-  rv1 = (double *)malloc((n+1)*sizeof(double));
   g=scale=anorm=0.0; // Householder reduction to bidiagonal form. 
   for (i=1;i<=n;i++) { 
     l=i+1; 
@@ -457,8 +386,6 @@ void svdcmp1(double **a, int m, int n, double w[], double **v) {
       w[k]=x; 
     } 
   } 
-  //  free_vector(rv1,1,n); 
-  free(rv1);
 }
 
 
@@ -528,43 +455,38 @@ void showMatrix(double **M,int Nx, int Ny,char *name) {
  * This is important for using the reversed order in the atom struct.
  */
 double findLambda(plane *p, float *point, int revFlag) {
-  static double **M=NULL;
-  static double **Minv=NULL;
-  static double *diff=NULL;
-  double lambda; /* dummy variable */
+	double2DArray M;
+	double2DArray Minv;
+	double1DArray diff;
+	double lambda; /* dummy variable */
 
-
-  if ((M == NULL) || (Minv == NULL) || (diff==NULL)) {
-    M = double2D(3,3,"M");
+	M = double2D(3,3,"M");
     Minv = double2D(3,3,"Minv");
     diff = double1D(3,"diff");
-  }
 
-  /*
-  printf("hello x=(%g %g %g)\n",p->pointX,p->pointY,p->pointZ);
-  printf("hello p->norm=(%g %g %g), (%d %d %d)\n",p->normX,p->normY,p->normZ,
-	 (int)M[0],(int)M[1],(int)M[2]);
-  */
+	/*
+	printf("hello x=(%g %g %g)\n",p->pointX,p->pointY,p->pointZ);
+	printf("hello p->norm=(%g %g %g), (%d %d %d)\n",p->normX,p->normY,p->normZ,
+		(int)M[0],(int)M[1],(int)M[2]);
+	*/
 
-  M[0][0] = -((*p).normX); 
-  M[0][3] = -((*p).normY); 
-  M[0][6] = -((*p).normZ);
-  M[0][1] = p->vect1X; M[1][1] = p->vect1Y; M[2][1] = p->vect1Z;
-  M[0][2] = p->vect2X; M[1][2] = p->vect2Y; M[2][2] = p->vect2Z;
-  vectDiff_f(point,&(p->pointX),diff,revFlag);
+	M[0][0] = -((*p).normX); 
+	M[0][3] = -((*p).normY); 
+	M[0][6] = -((*p).normZ);
+	M[0][1] = p->vect1X; M[1][1] = p->vect1Y; M[2][1] = p->vect1Z;
+	M[0][2] = p->vect2X; M[1][2] = p->vect2Y; M[2][2] = p->vect2Z;
+	vectDiff_f(point,&(p->pointX),diff,revFlag);
 
-  
-  inverse_3x3 (Minv[0],M[0]);
-  // showMatrix(M,3,3,"M");
-  // showMatrix(Minv,3,3,"Minv");
-  // showMatrix(&diff,1,3,"diff");
-  // ludcmp(M,3,index,&d);
-  // lubksb(M,3,index,point);	
+	inverse_3x3 (Minv,M);
+	// showMatrix(M,3,3,"M");
+	// showMatrix(Minv,3,3,"Minv");
+	// showMatrix(&diff,1,3,"diff");
+	// ludcmp(M,3,index,&d);
+	// lubksb(M,3,index,point);	
 
-  lambda = dotProduct(Minv[0],diff);
-  // printf("lambda: %g\n",lambda);
-  return lambda;
-
+	lambda = dotProduct(Minv[0],diff);
+	// printf("lambda: %g\n",lambda);
+	return lambda;
 }
 
 
@@ -615,42 +537,45 @@ void rotateVect(double *vectIn,double *vectOut, double phi_x, double phi_y, doub
   return;
 }
 
-void rotateMatrix(double *matrixIn,double *matrixOut, double phi_x, double phi_y, double phi_z) {
-int i,j,k;
-static double **Mrot = NULL;
-static double *matrixOutTemp = NULL;
-static double sphi_x=0, sphi_y=0, sphi_z=0;
-// static double *vectOut = NULL;
-// printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
+void rotateMatrix(double *matrixIn,double2DArray matrixOut, double phi_x, double phi_y, double phi_z) 
+{
+	int i,j,k;
+	static double2DArray Mrot;
+	static double1DArray matrixOutTemp;
+	static double sphi_x=0, sphi_y=0, sphi_z=0;
+	// static double *vectOut = NULL;
+	// printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
-if (Mrot == NULL) {
 	Mrot = double2D(3,3,"Mrot");
-	memset(Mrot[0],0,9*sizeof(double));
+	memset(Mrot.data(),0,9*sizeof(double));
 	Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
 	matrixOutTemp = double1D(9,"vectOutTemp");
-}
-if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
-	Mrot[0][0] = cos(phi_z)*cos(phi_y);
-	Mrot[0][1] = cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x);
-	Mrot[0][2] = cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x);
+	
+	if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) 
+	{
+		Mrot[0][0] = cos(phi_z)*cos(phi_y);
+		Mrot[0][1] = cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x);
+		Mrot[0][2] = cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x);
 
-	Mrot[1][0] = sin(phi_z)*cos(phi_y);
-	Mrot[1][1] = sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x);
-	Mrot[1][2] = sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x);
+		Mrot[1][0] = sin(phi_z)*cos(phi_y);
+		Mrot[1][1] = sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x);
+		Mrot[1][2] = sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x);
 
-	Mrot[2][0] = -sin(phi_y);
-	Mrot[2][1] = cos(phi_y)*sin(phi_x);
-	Mrot[2][2] = cos(phi_y)*cos(phi_x);
+		Mrot[2][0] = -sin(phi_y);
+		Mrot[2][1] = cos(phi_y)*sin(phi_x);
+		Mrot[2][2] = cos(phi_y)*cos(phi_x);
 
-	sphi_x = phi_x;
-	sphi_y = phi_y;
-	sphi_z = phi_z;
-}
-memset(matrixOutTemp,0,9*sizeof(double));
-for (i=0;i<3;i++) for (j=0;j<3;j++) for (k=0;k<3;k++) {
-	matrixOutTemp[i*3+j] += Mrot[i][k]*matrixIn[k*3+j];
-}
-memcpy(matrixOut,matrixOutTemp,9*sizeof(double));
+		sphi_x = phi_x;
+		sphi_y = phi_y;
+		sphi_z = phi_z;
+	}
+	memset(matrixOutTemp.data(),0,9*sizeof(double));
+	for (i=0;i<3;i++) for (j=0;j<3;j++) for (k=0;k<3;k++) 
+	{
+		matrixOutTemp[i*3+j] += Mrot[i][k]*matrixIn[k*3+j];
+	}
+	matrixOut = matrixOutTemp;
+	//memcpy(matrixOut,matrixOutTemp,9*sizeof(double));
 
 return;
 }
