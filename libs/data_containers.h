@@ -3,13 +3,10 @@
 
 #include <vector>
 #include "stemtypes_fftw3.h"
+#include "memory_fftw3.h"
 
 #include "boost/shared_ptr.hpp"
 #include "boost/multi_array.hpp"
-
-typedef boost::multi_array<float_tt, 3> 3d_float_array;
-typedef boost::multi_array<float_tt, 2> 2d_float_array;
-typedef boost::multi_array<float_tt, 1> 1d_float_array;
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -21,9 +18,9 @@ public:
 	int detPosX,detPosY;
 	char fileStart[512];
 	char fileout[512];
-	boost::shared_ptr<2d_float_array> diffpat;
+	boost::shared_ptr<float2D_type> diffpat;
 	//real **diffpat;
-	boost::shared_ptr<2d_float_array> avgArray;
+	boost::shared_ptr<float2D_type> avgArray;
 	//real **avgArray;
 	char avgName[512];
 	float_tt thickness;
@@ -31,7 +28,7 @@ public:
 
 	float_tt rmin,rmax;		/* min and max of real part */
 	float_tt aimin,aimax;		/* min and max of imag part */
-	float_tt *kx2,*ky2,*kx,*ky;
+	boost::shared_ptr<float1D_type> kx2, ky2, kx, ky;
 
 #if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
@@ -71,7 +68,7 @@ public:
   fftw_complex ***trans;
 #endif
 
-  real **diffpat;
+  boost::shared_ptr<float2D_type> diffpat;
   real czOffset;
   real xOffset;
   real yOffset;
@@ -105,10 +102,10 @@ public:
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   int slices;                           /* number of different slices */
   int centerSlices;                     /* flag indicating how to cut the sample */
-  float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
+  boost::shared_ptr<float2D_type> pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt ax,by,c;	                /* lattice parameters */
   float_tt cAlpha,cBeta,cGamma;
-  double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
+  boost::shared_ptr<double2D_type> Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
   int nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
   int natom;				/* number of atoms in "atoms" */
   atom *atoms;				/* 3D atoms array */	
@@ -186,8 +183,8 @@ public:
   float_tt k2max;
 
   // propagators used in propagate_slow
-  float_tt *propxr,*propyr;
-  float_tt *propxi,*propyi;
+  boost::shared_ptr<float1D_type> propxr, propyr;
+  boost::shared_ptr<float1D_type> propxi, propyi;
 
   int nlayer;
   boost::shared_ptr<float_tt> cz;

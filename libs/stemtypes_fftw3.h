@@ -1,14 +1,6 @@
 #ifndef STEMTYPES_H
 #define STEMTYPES_H
 
-#include "memory_fftw3.h"
-
-////////////////////////////////////////////////////////////////////////
-// define whether to use single or double precision
-///////////////////////////////////////////////////////////////////////
-#define FLOAT_PRECISION 1
-
-
 #define BW (2.0F/3.0F)	/* bandwidth limit */
 #define DOYLE_TURNER 0
 #define WEICK_KOHL 1
@@ -29,6 +21,14 @@
 
 // #include "floatdef.h"
 #include "fftw3.h"
+
+#include "boost/shared_ptr.hpp"
+#include "boost/multi_array.hpp"
+
+////////////////////////////////////////////////////////////////////////
+// define whether to use single or double precision
+///////////////////////////////////////////////////////////////////////
+#define FLOAT_PRECISION 1
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
@@ -116,5 +116,74 @@ typedef struct detectorStruct {
   float_tt shiftX,shiftY;
   int Navg;
 } DETECTOR;
+
+/**************** storage/memory allocation structures ***************/
+template <class T> class fftw_allocator
+{
+public:
+    typedef T                 value_type;
+    typedef value_type*       pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type&       reference;
+    typedef const value_type& const_reference;
+    typedef std::size_t       size_type;
+    typedef std::ptrdiff_t    difference_type;
+
+  template <class U> 
+    struct rebind { typedef fftw_allocator<U> other; };
+
+    fftw_allocator() {}
+    fftw_allocator(const fftw_allocator&) {}
+    
+  template <class U> 
+    fftw_allocator(const fftw_allocator<U>&) {}
+    
+    ~fftw_allocator() {}
+
+    pointer address(reference x) const 
+        { return &x; }
+        
+    const_pointer address(const_reference x) const 
+        { return x; }
+
+    pointer allocate(size_type n, const_pointer = 0) 
+    {
+        void* p = fftw_malloc(n * sizeof(T));
+        if (!p)
+            throw std::bad_alloc();
+        return static_cast<pointer>(p);
+    }
+
+    void deallocate(pointer p, size_type) 
+        { fftw_free(p); }
+
+    size_type max_size() const 
+        { return static_cast<size_type>(-1) / sizeof(T); }
+
+    void construct(pointer p, const value_type& x) 
+        { new(p) value_type(x); }
+    
+    void destroy(pointer p) 
+        { p->~value_type(); }
+
+    void operator=(const fftw_allocator&x) 
+        { }
+};
+
+
+/******************* Vector and array type definitions *****************/
+// vectors aligned for SIMD instructions
+typedef boost::multi_array<float_tt, 1, fftw_allocator<float_tt>> float1D_type;
+typedef boost::multi_array<double, 1, fftw_allocator<double>> double1D_type;
+
+// 2D arrays aligned for SIMD instructions
+typedef boost::multi_array<float_tt, 2, fftw_allocator<float_tt>> float2D_type;
+typedef boost::multi_array<double, 2, fftw_allocator<double>> double2D_type;
+typedef boost::multi_array<int, 2, fftw_allocator<int>> int2D_type;
+typedef boost::multi_array<std::complex<float_tt>, 2, fftw_allocator<std::complex<float_tt>>> complex2D_type;
+
+// 3D arrays aligned for SIMD instructions
+typedef boost::multi_array<float_tt, 3, fftw_allocator<float_tt>> float3D_type;
+typedef boost::multi_array<std::complex<float_tt>, 3, fftw_allocator<std::complex<float_tt>>> complex3D_type;
 
 #endif // STEMTYPES_H

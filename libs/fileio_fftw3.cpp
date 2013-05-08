@@ -1632,11 +1632,11 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancies) {
 	int atomKinds = 0;
 	int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
-	static double *axCell,*byCell,*czCell=NULL;
-	static double **Mm = NULL, **Mminv = NULL, **MpRed = NULL, **MpRedInv = NULL;
-	static double **MbPrim = NULL, **MbPrimInv = NULL, **MmOrig = NULL,**MmOrigInv=NULL;
-	static double **a = NULL,**aOrig = NULL,**b= NULL,**bfloor=NULL,**blat=NULL;
-	static double *uf;
+	boost::shared_ptr<double1D_type> axCell, byCell, czCell;
+	boost::shared_ptr<double2D_type> Mm, Mminv, MpRed, MpRedInv;
+	boost::shared_ptr<double2D_type> MbPrim, MbPrimInv, MmOrig, MmOrigInv;
+	boost::shared_ptr<double2D_type> a, aOrig, b, bfloor, blat;
+	boost::shared_ptr<double1D_type> u, uf;
 	static int oldAtomSize = 0;
 	double x,y,z,dx,dy,dz; 
 	double totOcc,lastOcc,choice;
@@ -1658,7 +1658,6 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	//static double u2=0;
 	//static int u2Count = 0;
 	// static long iseed=0;
-	static double *u;
 	static long idum = -1;
 
 
@@ -1692,10 +1691,9 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 		b			= double2D(1,3,"b");
 		bfloor		= double2D(1,3,"bfloor");
 		blat		= double2D(1,3,"blat");
-		uf			= (double *)malloc(3*sizeof(double));
-		u			= (double *)malloc(3*sizeof(double));
+		uf			= double1D(3, "uf");
+		u			= double1D(3, "u");
 	}
-
 
 	dx = 0; dy = 0; dz = 0;
 	dx = muls->xOffset;
@@ -1719,34 +1717,34 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	rotateVect(byCell,byCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	rotateVect(czCell,czCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	*/
-	inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
+	inverse_3x3((*Mminv)[0],(*Mm)[0]);  // computes Mminv from Mm!
 	/* find out how far we will have to go in unit of unit cell vectors.
 	* when creating the supercell by checking the number of unit cell vectors 
 	* necessary to reach every corner of the supercell box.
 	*/
 	// showMatrix(MmOrig,3,3,"Morig");
 	// printf("%d %d\n",(int)Mm, (int)MmOrig);
-	memset(a[0],0,3*sizeof(double));
+	memset((*a)[0],0,3*sizeof(double));
 	// matrixProduct(a,1,3,Mminv,3,3,b);
-	matrixProduct(Mminv,3,3,a,3,1,b);
+	matrixProduct((*Mminv),3,3,(*a),3,1,(*b));
 	// showMatrix(Mm,3,3,"M");
 	// showMatrix(Mminv,3,3,"M");
-	nxmin = nxmax = (int)floor(b[0][0]-dx); 
-	nymin = nymax = (int)floor(b[0][1]-dy); 
-	nzmin = nzmax = (int)floor(b[0][2]-dz);
+	nxmin = nxmax = (int)floor((*b)[0][0]-dx); 
+	nymin = nymax = (int)floor((*b)[0][1]-dy); 
+	nzmin = nzmax = (int)floor((*b)[0][2]-dz);
 	for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
-		a[0][0]=ix*muls->cubex; a[0][1]=iy*muls->cubey; a[0][2]=iz*muls->cubez;
+		(*a)[0][0]=ix*muls->cubex; (*a)[0][1]=iy*muls->cubey; (*a)[0][2]=iz*muls->cubez;
 
 		// matrixProduct(a,1,3,Mminv,3,3,b);
-		matrixProduct(Mminv,3,3,a,3,1,b);
+		matrixProduct((*Mminv),3,3,(*a),3,1,(*b));
 
 		// showMatrix(b,1,3,"b");
-		if (nxmin > (int)floor(b[0][0]-dx)) nxmin=(int)floor(b[0][0]-dx);
-		if (nxmax < (int)ceil( b[0][0]-dx)) nxmax=(int)ceil( b[0][0]-dx);
-		if (nymin > (int)floor(b[0][1]-dy)) nymin=(int)floor(b[0][1]-dy);
-		if (nymax < (int)ceil( b[0][1]-dy)) nymax=(int)ceil( b[0][1]-dy);
-		if (nzmin > (int)floor(b[0][2]-dz)) nzmin=(int)floor(b[0][2]-dz);
-		if (nzmax < (int)ceil( b[0][2]-dz)) nzmax=(int)ceil( b[0][2]-dz);	  
+		if (nxmin > (int)floor((*b)[0][0]-dx)) nxmin=(int)floor((*b)[0][0]-dx);
+		if (nxmax < (int)ceil( (*b)[0][0]-dx)) nxmax=(int)ceil( (*b)[0][0]-dx);
+		if (nymin > (int)floor((*b)[0][1]-dy)) nymin=(int)floor((*b)[0][1]-dy);
+		if (nymax < (int)ceil( (*b)[0][1]-dy)) nymax=(int)ceil( (*b)[0][1]-dy);
+		if (nzmin > (int)floor((*b)[0][2]-dz)) nzmin=(int)floor((*b)[0][2]-dz);
+		if (nzmax < (int)ceil( (*b)[0][2]-dz)) nzmax=(int)ceil( (*b)[0][2]-dz);	  
 	}
 
 	// nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;

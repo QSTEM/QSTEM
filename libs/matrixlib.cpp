@@ -731,29 +731,6 @@ double vectLength(double *vect) {
   return sqrt(vect[0]*vect[0]+vect[1]*vect[1]+vect[2]*vect[2]);
 }
 
-/* c = a*b */
-void matrixProduct(double **a,int Nxa, int Nya, double **b,int Nxb, int Nyb, double **c) {
-  int i,j,k;
-
-  if (Nya != Nxb) {
-    printf("multiplyMatrix: Inner Matrix dimensions do not agree!\n");
-    return;
-  }
-
-  /*
-  for (i=0;i<Nxa;i++)
-    for (j=0;j<Nyb;j++) {
-      c[i][j] = 0.0;
-      for (k=0;k<Nya;k++)
-	c[i][j] += a[i][k]*b[k][j];
-    }
-  */
-  for (i=0;i<Nxa;i++) for (j=0;j<Nyb;j++) {
-      c[0][i*Nyb+j] = 0.0;
-      for (k=0;k<Nya;k++) c[0][i*Nyb+j] += a[0][i*Nya+k] * b[0][k*Nyb+j];
-    }
-}
-
 
 /* c = a*b */
 void matrixProductInt(double **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, double **c) {

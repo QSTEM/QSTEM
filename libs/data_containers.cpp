@@ -15,8 +15,8 @@ ny(0)
 	const char *waveFileBase = "mulswav";
 	nx = x;
 	ny = y;
-	diffpat = boost::shared_ptr<2d_float_array>(new 2d_float_array(boost::extents[nx][ny]));
-	avgArray = boost::shared_ptr<2d_float_array>(new 2d_float_array(boost::extents[nx][ny]));
+	diffpat = boost::shared_ptr<float2D_type>(new 2d_float_array(boost::extents[nx][ny]));
+	avgArray = boost::shared_ptr<float2D_type>(new 2d_float_array(boost::extents[nx][ny]));
 	//diffpat = float2D(nx,ny,"diffpat");
 	//avgArray = float2D(nx,ny,"avgArray");
 
@@ -26,7 +26,7 @@ ny(0)
 	ky  = float1D(ny, "ky" );
 
 #if FLOAT_PRECISION == 1
-	wave = complex2Df(nx, ny, "wave");
+	wave = complex2D(nx, ny, "wave");
 	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
 	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
@@ -65,7 +65,7 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 	ky  = float1D(ny, "ky" );
 
 #if FLOAT_PRECISION == 1
-	wave = complex2Df(nx, ny, "wave");
+	wave = complex2D(nx, ny, "wave");
 	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
 	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
 #else

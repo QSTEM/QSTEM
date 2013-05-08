@@ -34,7 +34,19 @@ void rotateMatrix(double *matrixIn,double *matrixOut, double phi_x, double phi_y
 double vectLength(double *vect);
 
 /* c = a*b */
-void matrixProduct(double **a,int Nxa, int Nya, double **b,int Nxb, int Nyb, double **c);
+template <class T> void matrixProduct(T a,int Nxa, int Nya, T b,int Nxb, int Nyb, T c) {
+  int i,j,k;
+
+  if (Nya != Nxb) {
+    printf("multiplyMatrix: Inner Matrix dimensions do not agree!\n");
+    return;
+  }
+
+  for (i=0;i<Nxa;i++) for (j=0;j<Nyb;j++) {
+      c[0][i*Nyb+j] = 0.0;
+      for (k=0;k<Nya;k++) c[0][i*Nyb+j] += a[0][i*Nya+k] * b[0][k*Nyb+j];
+    }
+}
 void matrixProductInt(double **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, double **c);
 
 #endif
