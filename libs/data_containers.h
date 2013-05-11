@@ -3,29 +3,37 @@
 
 #include <vector>
 #include "stemtypes_fftw3.h"
+#include <Eigen/Dense>
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
+
+typedef Eigen::Matrix<float_tt, Dynamic, Dynamic> QSMat;
+typedef Eigen::Matrix<float_tt, Dynamic, 1> QSfVec;
+typedef Eigen::Matrix<int, Dynamic, 1> QSiVec;
+
 class WAVEFUNC 
 {
 public:
 	int iPosX,iPosY;      /* integer position of probe position array */
 	int nx, ny;			/* size of diffpat arrays */
 	int detPosX,detPosY;
-	char fileStart[512];
-	char fileout[512];
-	real **diffpat;
-	real **avgArray;
-	char avgName[512];
+        std::string fileStart;
+        std::string fileout;
+        std::string avgName;
+        QSMat diffpat;
+        QSMat avgArray;
+        QSMat wave;
 	float_tt thickness;
 	float_tt intIntensity;
+        
 
 #if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
-	fftwf_complex  **wave; /* complex wave function */
+	//fftwf_complex  **wave; /* complex wave function */ 
 #else
 	fftw_plan fftPlanWaveForw,fftPlanWaveInv;
-	fftw_complex  **wave; /* complex wave function */
+	//fftw_complex  **wave; /* complex wave function */
 #endif
 
 public:
@@ -46,45 +54,49 @@ public:
   int saveLevel;
   int complete_pixels;  //the number of pixels completed so far
 
+  // Need to figure out good way of doing 3D things with Eigen
 #if FLOAT_PRECISION == 1
   fftwf_plan fftPlanPotInv,fftPlanPotForw;
-  // wave moved to probeStruct
-  //fftwf_complex  **wave; /* complex wave function */
   fftwf_complex ***trans;
 #else
   fftw_plan fftPlanPotInv,fftPlanPotForw;
-  // wave moved to probeStruct
-  //fftw_complex  **wave; /* complex wave function */
   fftw_complex ***trans;
 #endif
 
-  real **diffpat;
+  //real **diffpat;
+  QSMat diffpat;
   real czOffset;
   real xOffset;
   real yOffset;
-  
-  char cin2[1024];				/* stacking sequence */
-  char fileBase[512];
-  char **filein;			/* array of input potential files */
+  std::string cin2;
+  std::string fileBase;
+  std::vector<std::string> filein;
+  //char cin2[1024];				/* stacking sequence */
+  //char fileBase[512];
+  //char **filein;			/* array of input potential files */
   int lpartl, lstartl;	                /* flags indicating partial 
 					   coherence */
-  char atomPosFile[512];
+  std::string atomPosFile;
+  //char atomPosFile[512];
                                         /* and start wavefunction */	
   float_tt v0;				/* inc. beam energy */
   float_tt resolutionX;                  /* real space pixelsize for wave function and potential */
   float_tt resolutionY;                  /* real space pixelsize for wave function and potential */
   float_tt ctiltx,ctilty,ctiltz;	        /* crystal tilt in mrad */
-  char cfgFile[512];                        /* file name for writing tilted atomic configuration */
+  std::string cfgFile;
+  //char cfgFile[512];                        /* file name for writing tilted atomic configuration */
   float_tt cubex,cubey,cubez;            /* dimension of crystal cube, if zero, then nx,ny,nz *
 					 * will be used */
   int adjustCubeSize;
   float_tt btiltx,btilty;   	        /* beam tilt in mrad*/
   int tiltBack;               /* tilt back the wave below the specimen */
-  int *hbeam,*kbeam;		        /* arrays to hold recorded 
+  QSiVec hbeam, kbeam;        /* arrays to hold recorded 
 					   beam indicies */
+  // int *hbeam,*kbeam;		        
   int lbeams;				/* flag indicating, whether 
 					   to record beams */	
-  char filebeam[512];		 	/* file, that beams get recorded in */
+  std::string filebeam;
+  //char filebeam[512];		 	/* file, that beams get recorded in */
   int nbout;				/* number of recorded beams */
 
   //int nslic0;				/* slice counter */
@@ -92,13 +104,17 @@ public:
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   int slices;                           /* number of different slices */
   int centerSlices;                     /* flag indicating how to cut the sample */
-  float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
+  QSMat pendelloesung;
+  //float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt ax,by,c;	                /* lattice parameters */
   float_tt cAlpha,cBeta,cGamma;
-  double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
+  // TODO: should be double? or OK to be dynamic?
+  QSMat Mm;
+    //double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
   int nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
   int natom;				/* number of atoms in "atoms" */
-  atom *atoms;				/* 3D atoms array */	
+  std::vector<atom> atoms;
+  // atom *atoms;				/* 3D atoms array */	
   float_tt atomRadius;                   /* for atom potential boxes */
   float_tt potOffsetX,potOffsetY;        /* offset of potential array from zero */
   float_tt potSizeX,potSizeY;            /* real space dimensions of potential array in A */
@@ -167,15 +183,18 @@ public:
   float_tt dfa2,dfa3;
   float_tt dfa2phi,dfa3phi;
   float_tt chi,phi;
-  float_tt *sparam;
+  QSfVec sparam;
+  //float_tt *sparam;
 
   int saveFlag;			/* flag indicating, whether to save the result */
   float_tt rmin,rmax;		/* min and max of real part */
   float_tt aimin,aimax;		/* min and max of imag part */
-  float_tt *kx2,*ky2,k2max,*kx,*ky;
+  QSfVec kx2, ky2, k2max, kx, ky;
+  //float_tt *kx2,*ky2,k2max,*kx,*ky;
 
   int nlayer;
-  float_tt *cz;
+  QSfVec cz;
+  //float_tt *cz;
   float_tt sliceThickness;
   int onlyFresnel;
   int startSpherical;
@@ -196,14 +215,23 @@ public:
   int storeSeries;
   int tds;
   int Einstein;        /* if set (default=set), the Einstein model will be used */
-  char phononFile[512];    /* file name for detailed phonon modes */
+  std::string phononFile;
+  // char phononFile[512];    /* file name for detailed phonon modes */
   int atomKinds;
-  int *Znums;
-  double **rPotential;   /* array containing real space potential LUT for each atom kind present */
-  double *sfkArray;
-  double **sfTable;
+  QSiVec Znums;
+  //int *Znums;
+  // TODO: Does this need to be double, or can it be float (as might be done dynamically?
+  QSMat rPotential;
+  //double **rPotential;   /* array containing real space potential LUT for each atom kind present */
+  //double *sfkArray;
+  QSfVec sfkArray;
+  // TODO: Does this need to be double, or can it be float (as might be done dynamically?
+  QSMat sfTable;
+  //double **sfTable;
   int sfNk;              /* number of k-points in sfTable and sfkArray */
-  double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
+  // TODO: Does this need to be double, or can it be float (as might be done dynamically?
+  QSfVec u2, u2avg;
+  //double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
   float_tt tds_temp;
   int savePotential;
   int saveTotalPotential;
@@ -217,7 +245,9 @@ public:
   int potential3D;
   int scatFactor;
   int Scherzer;
-  double *chisq;
+  // TODO: Does this need to be double, or can it be float (as might be done dynamically?
+  QSfVec chisq;
+  //  double *chisq;
   int webUpdate;
   int cellDiv;
   int equalDivs;           // this flag indicates whether we can reuse already pre-calculated potential data
@@ -226,11 +256,13 @@ public:
   int detectorNum;
   /* we will alow as many detector 
 			   definitions as the user wants */
-  std::vector<std::vector<DETECTOR>> detectors;
+  std::vector<std::vector<DETECTOR> > detectors;
   //DETECTOR *detectors;
   int save_output_flag;
   
-  double *dE_EArray;
+    // TODO: Does this need to be double, or can it be float (as might be done dynamically?
+  QSMat dE_EArray;
+  //double *dE_EArray;
 
   // Tomography parameters:
   double tomoTilt;  // current tilt in tomography series
