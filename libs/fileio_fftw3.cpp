@@ -25,31 +25,6 @@
 #endif
 #endif
 
-#define NCINMAX  500	/* max number of characers in stacking spec */
-#define NRMAX	50	/* number of values in look-up-table in vzatomLUT */
-#define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
-#define RMAX	5
-
-#define NPDTMAX 8       /* number of parameters for doyle turner sfacts */
-#define NPMAX	12	/* number of parameters for each Z */
-#define NZMIN	1	/* min Z in featom.tab */
-#define NZMAX	98      /* max Z (in featom.dat ZMAX=103) */
-#define	NCMAX	132	/* characters per line to read */
-#define NPARAM	64	/* number of parameters in tiff files */
-
-#define N_A 6.022e+23
-#define K_B 1.38062e-23      /* Boltzman constant */
-#define PID 3.14159265358979 /* pi */
-#define SQRT_PI 1.77245385090552 /* sqrt(pi) */
-#define HPLANCK 6.6262e-34   /* planck's constant */
-#define AMU 1.66053e-27      /* atomic mass unit */
-#define THZ_AMU_PI_HBAR 0.05012012918415 /*  A°^2*THz*amu/(pi*hbar) */
-#define THZ_AMU_HBAR 0.15745702964189    /*   A°^2*THz*amu/(hbar)   */
-// 4.46677327584453 /* 1e10/sqrt(THz*amu/(pi*hbar)) */ 
-#define THZ_HBAR_2KB  3.81927135604119     /* THz*hbar/(2*kB) */
-#define THZ_HBAR_KB   1.90963567802059     /* THz*hbar/kB */
-#define AMU_THZ2_A2_KB   1.20274224623720     /* AMU*THz^2*A^2/kB */
-
 std::string elTable = "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
                       "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
                       "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
@@ -337,7 +312,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   //	static float *massPrim;   // masses for every atom in primitive basis
   QSfMat omega;
   //	static float **omega;     // array of eigenvalues for every k-vector 
-  QSf3DMat EigVecs;
+  std::vector <QSfMat> EigVecs;
   //	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
   QSfMat kVecs;
   //	static float **kVecs;     // array for Nk 3-dim k-vectors
@@ -357,7 +332,8 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   //	double **Mm=NULL,**MmInv=NULL;
   // static double **MmOrig=NULL,**MmOrigInv=NULL;
   QSfVec uf(3), b(3);
-  static double *axCell,*byCell,*czCell;//*uf,*b;
+  // axCell and the rest are unused - were used at one point in makeCellVectMuls.
+  //static double *axCell,*byCell,*czCell;//*uf,*b;
   static double wobScale = 0,sq3,scale=0;
   
   if (muls->tds == 0) return 0;
@@ -400,7 +376,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   //    uf = double1D(3,"uf");
   //    b = double1D(3,"uf");
   
-  axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
+  //axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
   // memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
   // We need to copy the transpose of muls->Mm to Mm.
   // we therefore cannot use the following command:
@@ -474,7 +450,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   
   
   if ((muls->Einstein == 0) && (fpPhonon == NULL)) {
-    if ((fpPhonon = fopen(muls->phononFile,"r")) == NULL) {
+    if ((fpPhonon = fopen(muls->phononFile.c_str(),"r")) == NULL) {
       printf("Cannot find phonon mode file, will use random displacements!");
       muls->Einstein = 1;
       //muls->phononFile = NULL;
@@ -499,13 +475,17 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
        * omega is given in THz, but the 2pi-factor
        * is still there, i.e. f=omega/2pi
        */
-      eigVecs = QSC3DMat(Nk, 3*Ns, 3*Ns);
+      std::vector<QSCMat> eigVecs = std::vector<QSCMat>(Nk);
+	  for (int i=0; i<Nk; i++)
+	  {
+		  eigVecs[i] = QSCMat(3*Ns, 3*Ns)
+	  }
       //      eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
       
       for (ix=0;ix<Nk;ix++) {
         fread(kVecs.data()+ix,sizeof(float),3,fpPhonon);  // k-vector
         for (iy=0;iy<3*Ns;iy++) {
-          fread(omega[ix]+iy,sizeof(float),1,fpPhonon);
+          fread(omega[ix][iy],sizeof(float),1,fpPhonon);
           fread(eigVecs[ix][iy],2*sizeof(float),3*Ns,fpPhonon);
         }	
       }
@@ -1034,77 +1014,16 @@ int readNextCSSRAtom(atom *newAtom,int flag, char *fileName) {
 // #define NCINMAX 500
 // #define NPARAM	64    /* number of parameters */
 
-//MCS - why do we have this function and initMuls in stem3.cpp?
-MULS initMu() {
-	MULS muls;
-	int sCount,i,slices = 2;
-	char waveFile[32];
-	char *waveFileBase = "w";
-
-	muls.slices = slices;
-
-	/* general setup: */
-	muls.lpartl = 0;
-
-	// muls.wave = NULL;
-	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
-
-	for (sCount =0;sCount<slices;sCount++)
-		muls.cin2[sCount] = 'a'+sCount;
-	for (sCount = slices;sCount < NCINMAX;sCount++)
-		muls.cin2[sCount] = 0;
-	muls.nlayer = slices;
-	muls.saveFlag = 0;
-
-	muls.sigmaf = 0;
-	muls.dfdelt = 0;
-	muls.acmax = 0;
-	muls.acmin = 0;
-	muls.aobj = 0;
-	muls.Cs = 0;
-	muls.aAIS = 0;
-	// muls.areaAIS = 1.0;
-
-	// Tomography parameters:
-	muls.tomoTilt = 0;
-	muls.tomoStart = 0;
-	muls.tomoStep = 0;
-	muls.tomoCount = 0;  // indicate: NO Tomography simulation.
-
-
-	/* make multislice read the inout files and assign transr and transi: */
-	muls.trans = NULL;
-	muls.cz = NULL;  // (float_t *)malloc(muls.slices*sizeof(float_t));
-
-	muls.onlyFresnel = 0;
-	muls.showPhaseplate = 0;
-	muls.czOffset = 0;  /* defines the offset for the first slice in 
-						fractional coordinates        */
-	muls.normHolog = 0;
-	muls.gaussianProp = 0;
-
-	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
-	for (i=0;i<NPARAM;i++)
-		muls.sparam[i] = 0.0;
-	muls.kx = NULL;
-	muls.kx2= NULL;
-	muls.ky = NULL;
-	muls.ky2= NULL;
-
-	/****************************************************/
-	/* copied from slicecell.c                          */
-	muls.pendelloesung = NULL;
-	return muls;
-}
 // #undef NCINMAX 500
 // #undef NPARAM	64    /* number of parameters */
 
+/*
 int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,double *cz, 
 				 double ctiltx, double ctilty) {
 					 atom *atoms;
 					 int Natom;
 					 int j;
-					 MULS mu = initMu();
+					 boost::shared_ptr<MULS> mu = initMuls();
 
 					 mu.atomKinds = 0;
 					 mu.Znums = NULL;
@@ -1117,11 +1036,6 @@ int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,do
 					 mu.cubex = 0; mu.cubey = 0; mu.cubez = 0;
 
 					 atoms = readUnitCell(&Natom,"demo.cfg",&mu,1);
-					 /*  
-					 *Znums = (int *)fftwf_malloc(Natom*sizeof(int));
-					 *pos   = (double *)fftwf_malloc(Natom*3*sizeof(double));
-					 *dw    = (double *)fftwf_malloc(Natom*sizeof(double));
-					 */
 					 *Znums = (int *)malloc(Natom*sizeof(int));
 					 *pos   = (double *)malloc(Natom*3*sizeof(double));
 					 *dw    = (double *)malloc(Natom*sizeof(double));
@@ -1141,6 +1055,7 @@ int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,do
 					 free(atoms);
 					 return Natom;
 }
+*/
 
 /*******************************************************
 * This function reads in a .cssr or .pdb file and fills a 
@@ -1440,7 +1355,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		if (jz == atomKinds) {
 			atomKinds++;
 			if (atomKinds > muls->atomKinds) {
-				muls->Znums = (int *)realloc(muls->Znums,atomKinds*sizeof(int));
+				muls->Znums = QSiVec(atomKinds); // (int *)realloc(muls->Znums,atomKinds*sizeof(int));
 				muls->atomKinds = atomKinds;
 				// printf("%d kinds (%d)\n",atomKinds,atoms[i].Znum);
 			}  

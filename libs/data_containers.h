@@ -2,6 +2,7 @@
 #define DATA_CONTAINERS_H
 
 #include <vector>
+#include "defines.h"
 #include "stemtypes_fftw3.h"
 
 // a structure for a probe/parallel beam wavefunction.
@@ -43,6 +44,8 @@ public:
 
 class MULS {
 public:
+  MULS(int slices);
+
   int mode;                             /* determine the mode that this program runs in
 					 * can be STEM, TEM, CBED ... */
   int printLevel;                       /* Flag indicating how much output should appear
@@ -50,7 +53,7 @@ public:
   int saveLevel;
   int complete_pixels;  //the number of pixels completed so far
 
-  QSc3DMat trans;
+  std::vector<QScMat> trans;
 
   // Need to figure out good way of doing 3D things with Eigen
 #if FLOAT_PRECISION == 1

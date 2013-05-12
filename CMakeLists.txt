@@ -14,7 +14,15 @@ set (EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
 find_package(fftw3 REQUIRED)
-find_package(Eigen3 REQUIRED)
+
+if (UNIX)
+	find_package(Eigen3 REQUIRED)
+else(UNIX)
+	SET( EIGEN3_INCLUDE_DIR "$ENV{EIGEN3_INCLUDE_DIR}" )
+	IF( NOT EIGEN3_INCLUDE_DIR )
+	    MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the root directory of your Eigen3 installation.")
+	ENDIF()
+endif(UNIX)
 
 set (M_LIB "")
 

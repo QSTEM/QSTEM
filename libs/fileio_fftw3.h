@@ -13,8 +13,9 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls);
 // the unit cell is assumed to be cubic
 int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
 		       double a,double b,double c);
-int readCubicCFG(double **pos,double **dw, int **Znum, double *ax,double *by,double *cz,
-		 double ctiltx, double ctilty);
+// Commented 2013-05-11 MCS - unused ATM.
+//int readCubicCFG(double **pos,double **dw, int **Znum, double *ax,double *by,double *cz,
+		 //double ctiltx, double ctilty);
 
 void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls);
 

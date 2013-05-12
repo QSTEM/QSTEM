@@ -31,6 +31,7 @@
 // #include "floatdef.h"
 #include "fftw3.h"
 #include <Eigen/Dense>
+//#include "boost/multi_array.h"
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
@@ -54,16 +55,11 @@ using namespace Eigen;
 //  If any array accessing is done, we have to be very careful about that!
 
 // Forced float (32-bit) types (capital F or C)
-typedef Array< Array< float, Dynamic, Dynamic >, Dynamic, 1 > QSF3DMat;
-typedef Array< Array< std::complex<float_tt>, Dynamic, Dynamic >, Dynamic, 1 > QSC3DMat;
 typedef Matrix< float, Dynamic, Dynamic> QSFMat;
 typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QSCMat;
 typedef Matrix< float, Dynamic, 1> QSFVec; 
 
 // Variable float (32 or 64-bit) types (lowercase f or c)
-
-typedef Array< Array< float_tt, Dynamic, Dynamic >, Dynamic, 1 > QSf3DMat;
-typedef Array< Array< std::complex<float_tt>, Dynamic, Dynamic >, Dynamic, 1 > QSc3DMat;
 typedef Matrix< float_tt, Dynamic, Dynamic> QSfMat;
 typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QScMat;
 typedef Matrix< float_tt, Dynamic, 1> QSfVec; 
@@ -126,8 +122,8 @@ typedef struct atomBoxStruct {
   float_tt dx,dy,dz;
   double B;
   
-  QSc3DMat potential;
-  QSf3DMat rpotential;
+  std::vector<QScMat> potential;
+  std::vector<QSfMat> rpotential;
   
 #if FLOAT_PRECISION == 1
   // fftwf_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
