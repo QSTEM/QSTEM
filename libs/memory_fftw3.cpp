@@ -21,9 +21,14 @@
 
 /*************  1D arrays ****************/
 
+float1DArray::float1DArray(int size) : _float1DArray(boost::extents[size])
+{
+
+}
+
 float1DArray float1D(int size, std::string message)
 {
-	float1DArray arr(boost::extents[size]);
+	float1DArray arr(size);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
@@ -31,9 +36,14 @@ float1DArray float1D(int size, std::string message)
 	return arr;
 }
 
+double1DArray::double1DArray(int size) : _double1DArray(boost::extents[size])
+{
+
+}
+
 double1DArray double1D(int size, std::string message)
 {
-	double1DArray arr(boost::extents[size]);
+	double1DArray arr(size);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
@@ -53,9 +63,14 @@ int1DArray int1D(int size, std::string message)
 
 /*************   2D arrays  *************/
 
+float2DArray::float2DArray(int nx, int ny) : _float2DArray(boost::extents[nx][ny])
+{
+
+}
+
 float2DArray float2D(int nx, int ny, std::string message)
 {
-	float2DArray arr(boost::extents[nx][ny]);
+	float2DArray arr(nx,ny);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
@@ -63,14 +78,39 @@ float2DArray float2D(int nx, int ny, std::string message)
 	return arr;
 }
 
+void float2DArray::invert(float2DArray &output)
+{
+	output = float2DArray(1, 1);
+}
+
+void float2DArray::rotate(float2DArray &output, float_tt x, float_tt y, float_tt z)
+{
+
+}
+
 double2DArray double2D(int nx, int ny, std::string message)
 {
-	double2DArray arr(boost::extents[nx][ny]);
+	double2DArray arr(nx, ny);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
 	#endif
 	return arr;
+}
+
+double2DArray::double2DArray(int nx, int ny) : _double2DArray(boost::extents[nx][ny])
+{
+
+}
+
+void double2DArray::invert(double2DArray &output)
+{
+	output = double2DArray(1,1);
+}
+
+void double2DArray::rotate(double2DArray &output, float_tt x, float_tt y, float_tt z)
+{
+	
 }
 
 int2DArray int2D(int nx, int ny, std::string message)
@@ -85,7 +125,17 @@ int2DArray int2D(int nx, int ny, std::string message)
 
 complex2DArray complex2D(int nx, int ny, std::string message)
 {
-	complex2DArray arr(boost::extents[nx][ny]);
+	complex2DArray arr(boost::extents[nx][ny][2]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return arr;
+}
+
+complexDouble2DArray complexDouble2D(int nx, int ny, std::string message)
+{
+	complexDouble2DArray arr(boost::extents[nx][ny][2]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());
@@ -108,7 +158,17 @@ float3DArray float3D(int nx, int ny, int nz, std::string message)
 
 complex3DArray complex3D(int nx, int ny,int nz, std::string message)
 {
-	complex3DArray arr(boost::extents[nx][ny][nz]);
+	complex3DArray arr(boost::extents[nx][ny][nz][2]);
+	printf("allocated memory for %s\n",message.c_str());
+	#ifdef PRINT_MESSAGE
+		printf("allocated memory for %s\n",message.c_str());
+	#endif
+	return arr;
+}
+
+complexDouble3DArray complexDouble3D(int nx, int ny,int nz, std::string message)
+{
+	complexDouble3DArray arr(boost::extents[nx][ny][nz][2]);
 	printf("allocated memory for %s\n",message.c_str());
 	#ifdef PRINT_MESSAGE
 		printf("allocated memory for %s\n",message.c_str());

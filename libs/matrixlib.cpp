@@ -25,174 +25,6 @@ static float sqrarg = 0.0f;
 #define SIGN(a,b) ((b) >= 0 ? (a) : -(a))    // Magnitude of a times sign of b.
 #define SQR(a) (((sqrarg=(a)) == 0.0) ? 0.0 : sqrarg*sqrarg)
 
-void ludcmp(double **a, int n, int *indx, double *d) {
-  /* Given a matrix a[1..n][1..n], this routine replaces it by the
-     LU decomposition of a rowwise permutation of itself. 
-     a and n are input. a is output, arranged as in equation (2.3.14) above; 
-     indx[1..n] is an output vector that records the row permutation e ected
-     by the partial pivoting; 
-     d is output as   1 depending on whether the number of row interchanges 
-     was even or odd, respectively. This routine is used in combination with 
-     lubksb to solve linear equations or invert a matrix. 
-  */
-  int i,imax=0,j,k; 
-  double big,dum,sum,temp; 
-  double1DArray vv; 
-  /*
-    vv stores the implicit scaling of each row.
-  */ 
-  vv=double1D(n,"vv"); 
-  *d=1.0; //No row interchanges yet. 
-  for (i=0;i<n;i++) { 
-    // Loop over rows to get the implicit scaling information.
-    big=0.0; 
-    for (j=0;j<n;j++) 
-      if ((temp=fabs(a[i][j])) > big) 
-	big=temp; 
-    if (big == 0.0) { 
-      printf("Singular matrix in routine ludcmp\n"); 
-      exit(0);
-    }
-    //No nonzero largest element. 
-    vv[i]=1.0/big; // Save the scaling. 
-  } 
-  for (j=0;j<n;j++) { 
-    // This is the loop over columns of Crout's method. 
-    for (i=0;i<j;i++) {  //This is equation (2.3.12) except for i = j. 
-      sum=a[i][j]; 
-      for (k=0;k<i;k++) 
-	sum -= a[i][k]*a[k][j]; 
-      a[i][j]=sum; 
-    } 
-    big=0.0; 
-    //Initialize for the search for largest pivot element. 
-    for (i=j;i<n;i++) { 
-      //This is i = j of equation (2.3.12) and i = j +1: ::N of equation (2.3.13). 
-      sum=a[i][j]; 
-      for (k=0;k<j;k++)
-	sum -= a[i][k]*a[k][j]; 
-      a[i][j]=sum; 
-      if ( (dum=vv[i]*fabs(sum)) >= big) { 
-	//Is the  gure of merit for the pivot better than the best so far? 
-	big=dum; imax=i; 
-      } 
-    } 
-    if (j != imax) { 
-      //Do we need to interchange rows? 
-      for (k=0;k<n;k++) { 
-	//Yes, do so... 
-	dum=a[imax][k]; 
-	a[imax][k]=a[j][k]; 
-	a[j][k]=dum; 
-      } 
-      *d = -(*d); //...and change the parity of d. 
-      vv[imax]=vv[j]; 
-      // Also interchange the scale factor. 
-    } 
-    indx[j]=imax; 
-    if (a[j][j] == 0.0) 
-      a[j][j]=TINY; 
-    /*If the pivot element is zero the matrix is singular 
-      (at least to the precision of the algorithm). 
-      For some applications on singular matrices, it is 
-      desirable to substitute TINY for zero. 
-    */
-    if (j != n-1) { // Now,  nally, divide by the pivot element. 
-      dum=1.0/(a[j][j]); 
-      for (i=j+1;i<n;i++) a[i][j] *= dum; 
-    } 
-  } 
-  // Go back for the next column in the reduction. 
-}
-
-void lubksb(double **a, int n, int *indx, double b[]) { 
-  /*
-    Solves the set of n linear equations A   X = B. 
-    Herea[0..n-1][0..n-1] is input, not as the matrix A but rather 
-    as its LU decomposition, determined by the routine ludcmp. 
-    indx[0..n-1] is input as the permutation vector returned by ludcmp.
-    b[0..n-1] is input as the right-hand side vector B, and returns 
-    with the solution vector X. a, n, andindx are not modi ed by 
-    this routine and can be left in place for successive calls with 
-    di erent right-hand sides b. This routine takes into account 
-    the possibility that b will begin with many zero elements, 
-    so it is e cient for use in matrix inversion. 
-  */ 
-  int i,ii=-1,ip,j; 
-  double sum; 
-  for (i=0;i<n;i++) { 
-    /* When ii is set to a positive value, it will become the index 
-       of the  rst nonvanishing element of b. Wenow do the forward 
-       substitution, equation (2.3.6). The only new wrinkle is to 
-       unscramble the permutation as we go. 
-    */
-    ip=indx[i]; 
-    sum=b[ip]; 
-    b[ip]=b[i]; 
-    if (ii+1) 
-      for (j=ii;j<=i-1;j++) 
-	sum -= a[i][j]*b[j]; 
-    else 
-      if (sum) ii=i; 
-    /*
-      A nonzero element was encountered, so from now on we will have 
-      to do the sums in the loop above. 
-    */
-    b[i]=sum; 
-  } 
-  for (i=n-1;i>=0;i--) { //Now we do the backsubstitution, equation (2.3.7). 
-    sum=b[i]; 
-    for (j=i+1;j<n;j++) 
-      sum -= a[i][j]*b[j]; 
-    b[i]=sum/a[i][i]; // Store a component of the solution vector X. 
-  } 
-  //All done! 
-}
-
-
-
-void inverse() {
-  /*
-  // #define N
-  double **a,**y,d,*col; 
-  int i,j,*indx;
-  ludcmp(a,N,indx,&d); // Decompose the matrix just once. 
-  for(j=1;j<=N;j++) { 
-    // Find inverse by columns. 
-    memset(col,0,N*sizeof(double));
-    // for(i=1;i<=N;i++) col[i]=0.0; 
-    col[j]=1.0; 
-    lubksb(a,N,indx,col); 
-    for(i=1;i<=N;i++) y[i][j]=col[i]; 
-  }
-  */
-}
-
-
-
-/* This routine calculates inv(M)*M for any square N x M matrix (M >= N).
- * This function is useful for determining, whether a vector is represented by M or not,
- * even if M is not orthogonal. For any rowvector vec
- * vec == invMM*vec, if vec is represented by M, or vec!=invMM*vec if not.
- * the matrix M will be preserved
- * The invMM matrix will be of size M X M
- */
-double2DArray invMM(double2DArray Mmatrix, int N, int M) {
-  static int Mold = 0; // Nold = 0, 
-  static double2DArray invMMmatrix;
-  // int i;
-
-  if (N > M) return double2DArray();
-  
-  if (Mold < M) {
-    Mold = M;
-    invMMmatrix = double2D(M,M,"invMMmatrix");
-  }
-  
-  return invMMmatrix;
-}
-
-
 void svdcmp1(double2DArray a, int m, int n, double w[], double2DArray v) {
   /* Given a matrix a[1..m][1..n], this routine computes its singular value decomposition,
      A = U   W   V T . 
@@ -464,6 +296,8 @@ double findLambda(plane *p, float *point, int revFlag) {
     Minv = double2D(3,3,"Minv");
     diff = double1D(3,"diff");
 
+	// TODO: Eigen will be fantastic here.
+
 	/*
 	printf("hello x=(%g %g %g)\n",p->pointX,p->pointY,p->pointZ);
 	printf("hello p->norm=(%g %g %g), (%d %d %d)\n",p->normX,p->normY,p->normZ,
@@ -475,17 +309,18 @@ double findLambda(plane *p, float *point, int revFlag) {
 	M[0][6] = -((*p).normZ);
 	M[0][1] = p->vect1X; M[1][1] = p->vect1Y; M[2][1] = p->vect1Z;
 	M[0][2] = p->vect2X; M[1][2] = p->vect2Y; M[2][2] = p->vect2Z;
+
+	// Eigen
 	vectDiff_f(point,&(p->pointX),diff,revFlag);
 
-	inverse_3x3 (Minv,M);
-	// showMatrix(M,3,3,"M");
-	// showMatrix(Minv,3,3,"Minv");
-	// showMatrix(&diff,1,3,"diff");
-	// ludcmp(M,3,index,&d);
-	// lubksb(M,3,index,point);	
+	// Eigen
+	M.invert(Minv);
+	//inverse_3x3 (Minv,M);
 
+	// Eigen
 	lambda = dotProduct(Minv[0],diff);
 	// printf("lambda: %g\n",lambda);
+
 	return lambda;
 }
 
@@ -500,18 +335,22 @@ double findLambda(plane *p, float *point, int revFlag) {
  * The same vector can be specified as input, as well as output vector.
  */
 void rotateVect(double *vectIn,double *vectOut, double phi_x, double phi_y, double phi_z) {
-  static double **Mrot = NULL;
-  static double *vectOutTemp = NULL;
+	// Christoph statically allocated these to avoid reallocation for multiple rotations.  
+		// Is there a major performance difference without it?
+  //static double **Mrot = NULL;
+  double2DArray Mrot;
+  double1DArray vectOutTemp;
+  //static double *vectOutTemp = NULL;
   static double sphi_x=0, sphi_y=0, sphi_z=0;
   //  static double *vectOut = NULL;
   // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
-  if (Mrot == NULL) {
+  //if (Mrot == NULL) {
     Mrot = double2D(3,3,"Mrot");
-    memset(Mrot[0],0,9*sizeof(double));
+    //memset(Mrot[0],0,9*sizeof(double));
     Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
     vectOutTemp = double1D(3,"vectOutTemp");
-  }
+  //}
   if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
     Mrot[0][0] = cos(phi_z)*cos(phi_y);
     Mrot[0][1] = cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x);
@@ -532,7 +371,7 @@ void rotateVect(double *vectIn,double *vectOut, double phi_x, double phi_y, doub
   vectOutTemp[0] = Mrot[0][0]*vectIn[0]+Mrot[0][1]*vectIn[1]+Mrot[0][2]*vectIn[2];
   vectOutTemp[1] = Mrot[1][0]*vectIn[0]+Mrot[1][1]*vectIn[1]+Mrot[1][2]*vectIn[2];
   vectOutTemp[2] = Mrot[2][0]*vectIn[0]+Mrot[2][1]*vectIn[1]+Mrot[2][2]*vectIn[2];
-  memcpy(vectOut,vectOutTemp,3*sizeof(double));
+  memcpy(vectOut,vectOutTemp.data(),3*sizeof(double));
 
   return;
 }

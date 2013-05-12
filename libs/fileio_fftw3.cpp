@@ -514,8 +514,8 @@ int phononDisplacement(double1DArray u,MULS *muls,int id,int icx,int icy,
 				fread(kVecs.data()+ix,sizeof(float),3,fpPhonon);  // k-vector
 				for (iy=0;iy<3*Ns;iy++) 
 				{
-					fread(omega.data()+ix+iy,sizeof(float),1,fpPhonon);
-					fread(eigVecs[ix][iy],2*sizeof(float),3*Ns,fpPhonon);
+					fread(&omega[ix][iy],sizeof(float),1,fpPhonon);
+					fread(&eigVecs[ix][iy],2*sizeof(float),3*Ns,fpPhonon);
 				}	
 			}
 			/*
@@ -701,7 +701,7 @@ int readDATCellParams(MULS *muls, double2DArray Mm, char *fileName) {
 	muls->cBeta  = beta;
 	muls->cAlpha = gamma;
 	// construct the unit cell metric from the lattice parameters and angles:
-	makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
+	makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);
 	if (ncoord < 1) {
 		printf("Number of atoms in CFG file not specified!\n");
 		ncoord = 0;
@@ -1047,65 +1047,6 @@ int readNextCSSRAtom(atom *newAtom,int flag, char *fileName) {
 // #define NCINMAX 500
 // #define NPARAM	64    /* number of parameters */
 
-//MCS - why do we have this function and initMuls in stem3.cpp?
-MULS initMu() {
-	MULS muls;
-	int sCount,i,slices = 2;
-	char waveFile[32];
-	char *waveFileBase = "w";
-
-	muls.slices = slices;
-
-	/* general setup: */
-	muls.lpartl = 0;
-
-	// muls.wave = NULL;
-	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
-
-	for (sCount =0;sCount<slices;sCount++)
-		muls.cin2[sCount] = 'a'+sCount;
-	for (sCount = slices;sCount < NCINMAX;sCount++)
-		muls.cin2[sCount] = 0;
-	muls.nlayer = slices;
-	muls.saveFlag = 0;
-
-	muls.sigmaf = 0;
-	muls.dfdelt = 0;
-	muls.acmax = 0;
-	muls.acmin = 0;
-	muls.aobj = 0;
-	muls.Cs = 0;
-	muls.aAIS = 0;
-	// muls.areaAIS = 1.0;
-
-	// Tomography parameters:
-	muls.tomoTilt = 0;
-	muls.tomoStart = 0;
-	muls.tomoStep = 0;
-	muls.tomoCount = 0;  // indicate: NO Tomography simulation.
-
-
-	/* make multislice read the inout files and assign transr and transi: */
-	muls.trans = NULL;
-	muls.cz = NULL;  // (float_t *)malloc(muls.slices*sizeof(float_t));
-
-	muls.onlyFresnel = 0;
-	muls.showPhaseplate = 0;
-	muls.czOffset = 0;  /* defines the offset for the first slice in 
-						fractional coordinates        */
-	muls.normHolog = 0;
-	muls.gaussianProp = 0;
-
-	//muls.sparam = (float *)malloc(NPARAM*sizeof(float));
-	muls.sparam = float1D(NPARAM, "muls.sparam");
-	for (i=0;i<NPARAM;i++)
-		muls.sparam[i] = 0.0;
-
-	/****************************************************/
-	/* copied from slicecell.c                          */
-	muls.pendelloesung = NULL;
-	return muls;
-}
 // #undef NCINMAX 500
 // #undef NPARAM	64    /* number of parameters */
 
@@ -1329,7 +1270,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	/* figure out, whether we have  cssr, pdb, or cfg */
 	if (strstr(fileName,".cssr") == fileName+strlen(fileName)-5) {
 		format = FORMAT_CSSR;
-		ncoord = readCSSRCellParams(muls,Mm,fileName);
+		ncoord = readCSSRCellParams(muls,Mm.data(),fileName);
 	}
 	if (strstr(fileName,".pdb") == fileName+strlen(fileName)-4) {
 		format = FORMAT_PDB;
@@ -1566,7 +1507,8 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 			u[0] = Mm[0][0]*(icx-bcX)+Mm[1][0]*(icy-bcY)+Mm[2][0]*(icz-bcZ);
 			u[1] = Mm[0][1]*(icx-bcX)+Mm[1][1]*(icy-bcY)+Mm[2][1]*(icz-bcZ);
 			u[2] = Mm[0][2]*(icx-bcX)+Mm[1][2]*(icy-bcY)+Mm[2][2]*(icz-bcZ);
-			rotateVect(u,u,muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix
+			u.rotate(u, muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix
+			//rotateVect(u,u,muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix
 			// x = u[0]+boxCenterXrot; y = u[1]+boxCenterYrot; z = u[2]+boxCenterZrot;
 			x = u[0]+boxCenterX; y = u[1]+boxCenterY; z = u[2]+boxCenterZ;
 			if ((icx == 0) && (icy == 0) && (icz == 0)) {
@@ -1590,7 +1532,8 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 				u[0] = atoms[i].x-boxCenterX; 
 				u[1] = atoms[i].y-boxCenterY; 
 				u[2] = atoms[i].z-boxCenterZ; 
-				rotateVect(u,u,muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix
+				u.rotate(u,muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix)
+				//rotateVect(u,u,muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix
 				u[0] += boxCenterX;
 				u[1] += boxCenterY; 
 				u[2] += boxCenterZ; 
@@ -1724,16 +1667,19 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
 
 	memcpy(MmOrig.data(),Mm.data(),3*3*sizeof(double));
-	inverse_3x3(MmOrigInv,MmOrig);
+	MmOrig.invert(MmOrigInv);
+	//inverse_3x3(MmOrigInv,MmOrig);
 	/* remember that the angles are in rad: */
-	rotateMatrix(Mm,Mm,muls->ctiltx,muls->ctilty,muls->ctiltz);
+	Mm.rotate(Mm, muls->ctiltx,muls->ctilty,muls->ctiltz);
+	//rotateMatrix(Mm,Mm,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	/*
 	// This is wrong, because it implements Mrot*(Mm'):
 	rotateVect(axCell,axCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	rotateVect(byCell,byCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	rotateVect(czCell,czCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	*/
-	inverse_3x3(Mminv,Mm);  // computes Mminv from Mm!
+	Mm.invert(Mminv);
+	//inverse_3x3(Mminv,Mm);  // computes Mminv from Mm!
 	/* find out how far we will have to go in unit of unit cell vectors.
 	* when creating the supercell by checking the number of unit cell vectors 
 	* necessary to reach every corner of the supercell box.
