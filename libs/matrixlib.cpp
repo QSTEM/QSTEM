@@ -25,6 +25,8 @@ static float sqrarg = 0.0f;
 #define SIGN(a,b) ((b) >= 0 ? (a) : -(a))    // Magnitude of a times sign of b.
 #define SQR(a) (((sqrarg=(a)) == 0.0) ? 0.0 : sqrarg*sqrarg)
 
+
+
 void ludcmp(double **a, int n, int *indx, double *d) {
   /* Given a matrix a[1..n][1..n], this routine replaces it by the
      LU decomposition of a rowwise permutation of itself. 

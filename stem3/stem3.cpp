@@ -2704,10 +2704,6 @@ void doSTEM() {
 					if (pCount == picts-1)  /* if this is the last slice ... */
 					{
 						sprintf(wave->avgName,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
-	#ifndef WIN32
-						sprintf(tifName,"%s/diffAvg_%d_%d.tif",muls.folder,ix,iy);
-						sprintf(jpgName,"%s/diffAvg_%d_%d_%d.jpg",muls.folder,ix,iy,muls.avgCount);
-	#endif	    
 						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
 
 						if (muls.saveLevel > 0) 
@@ -2821,10 +2817,10 @@ void doSTEM() {
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-	free(chisq);
-	for (int th=0; th<omp_get_num_threads(); th++)
-	{
-		delete(waves[th]);
-	}
+	//free(chisq);
+	//for (int th=0; th<omp_get_num_threads(); th++)
+	//{
+	//	delete(waves[th]);
+	//}
 }
 

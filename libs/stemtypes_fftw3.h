@@ -2,6 +2,7 @@
 #define STEMTYPES_H
 
 #include "memory_fftw3.h"
+#include <vector>
 
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
@@ -29,6 +30,7 @@
 
 // #include "floatdef.h"
 #include "fftw3.h"
+#include <Eigen/Dense>
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
@@ -40,10 +42,33 @@
 #else  // FLOAT_PRECISION
 #define fftw_real double
 #ifndef float_tt
-#define float_tt  float
+#define float_tt  double
 #endif
-#define real      float
+#define real      double
 #endif  // FLOAT_PRECISION
+
+using namespace Eigen;
+
+// Only this section uses the Eigen namespace.
+// By default, Eigen handles memory in Column-major format (the opposite of C/C++)
+//  If any array accessing is done, we have to be very careful about that!
+
+// Forced float (32-bit) types (capital F or C)
+typedef Array< Array< float, Dynamic, Dynamic >, Dynamic, 1 > QSF3DMat;
+typedef Array< Array< std::complex<float_tt>, Dynamic, Dynamic >, Dynamic, 1 > QSC3DMat;
+typedef Matrix< float, Dynamic, Dynamic> QSFMat;
+typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QSCMat;
+typedef Matrix< float, Dynamic, 1> QSFVec; 
+
+// Variable float (32 or 64-bit) types (lowercase f or c)
+
+typedef Array< Array< float_tt, Dynamic, Dynamic >, Dynamic, 1 > QSf3DMat;
+typedef Array< Array< std::complex<float_tt>, Dynamic, Dynamic >, Dynamic, 1 > QSc3DMat;
+typedef Matrix< float_tt, Dynamic, Dynamic> QSfMat;
+typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QScMat;
+typedef Matrix< float_tt, Dynamic, 1> QSfVec; 
+typedef Matrix< int, Dynamic, 1> QSiVec;
+
 ////////////////////////////////////////////////////////////////
 
 typedef struct atomStruct {
@@ -72,14 +97,16 @@ typedef struct grainBoxStruct {
 				  * closed packed structure, which will fill all space, 
 				  * but will only be sparsely filled, and later relaxed.
 				  */ 
-  char *name;
+  std::string name;
+  // char *name;
   atom *unitCell; /* definition of unit cell */
   int natoms;     /* number of atoms in unit cell */
   double ax,by,cz; /* unit cell parameters */
   double alpha, beta, gamma; /* unit cell parameters */
   double tiltx,tilty,tiltz;
   double shiftx,shifty,shiftz;
-  plane *planes;   /* pointer to array of bounding planes */
+  std::vector<plane> planes;
+  // plane *planes;   /* pointer to array of bounding planes */
   double sphereRadius, sphereX,sphereY,sphereZ; /* defines a sphere instead of a grain with straight edges */
   int nplanes; /* number of planes in array planes */
 } grainBox;
@@ -88,7 +115,8 @@ typedef struct superCellBoxStruct {
   double cmx,cmy,cmz;  /* fractional center of mass coordinates */
   double ax,by,cz;
   int natoms;
-  atom *atoms; /* contains all the atoms within the super cell */
+  std::vector<atom> atoms;
+  // atom *atoms; /* contains all the atoms within the super cell */
 } superCellBox;
 
 typedef struct atomBoxStruct {
@@ -97,21 +125,28 @@ typedef struct atomBoxStruct {
   int nx,ny,nz;
   float_tt dx,dy,dz;
   double B;
+  
+  QSc3DMat potential;
+  QSf3DMat rpotential;
+  
 #if FLOAT_PRECISION == 1
-  fftwf_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
-  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
+  // fftwf_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
+  //  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
 #else
-  fftw_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
-  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
+  //  fftw_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
+  //  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
 #endif
+
 } atomBox;
 
 typedef struct detectorStruct {
   float_tt rInside,rOutside;
   float_tt k2Inside,k2Outside;
   char name[32];
-  float_tt **image;        // place for storing avg image = sum(data)/Navg
-  float_tt **image2;        // we will store sum(data.^2)/Navg 
+  QSfMat image;
+  QSfMat image2;
+  //  float_tt **image;        // place for storing avg image = sum(data)/Navg
+  //  float_tt **image2;        // we will store sum(data.^2)/Navg 
   float_tt error;  
   float_tt shiftX,shiftY;
   int Navg;

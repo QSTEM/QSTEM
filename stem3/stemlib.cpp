@@ -128,18 +128,18 @@ double scatPar[N_ELEM][N_SF] = {{0.0000,0.0500,0.1000,0.1500,0.2000,0.2500,0.300
 * x,y,z = real space position (in A)
 * B = Debye-Waller factor, B=8 pi^2 <u^2>
 ***************************************************************************/
-void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,double z,double B) {
-	static int boxNx,boxNy,boxNz;
-	static double dx,dy,dz,ddx,ddy,ddz;
-	static atomBox *aBox = NULL;
-	static int ix,iy,iz; // idz, intSteps;
+void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, double y, double z, double B) {
+	int boxNx,boxNy,boxNz;
+	double dx,dy,dz,ddx,ddy,ddz;
+	atomBox *aBox = NULL;
+	int ix,iy,iz; // idz, intSteps;
 	// static double x2,y2,z2,r2;
 	// static int avgSteps,maxSteps,stepCount,maxStepCount;
-	static double maxRadius2;
-	static char fileName[256],systStr[256];
-	static fftw_complex sum;
-	static int tZ, tnx, tny, tnz, tzOversample;  
-	static double tdx, tdy, tdz, tv0, tB;
+	double maxRadius2;
+        std::string fileName, systStr;
+        std::complex<float_tt> sum;
+	int tZ, tnx, tny, tnz, tzOversample;  
+	double tdx, tdy, tdz, tv0, tB;
 	FILE *fp;
 	int numRead = 0,dummy;
 
@@ -2878,7 +2878,7 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	float_tt **diffpatAvg = NULL;
 	int tCount = 0;
 
-	std::vector<std::vector<DETECTOR>> detectors;
+	std::vector<std::vector<DETECTOR> > detectors;
 
 	scale = muls->electronScale/((double)(muls->nx*muls->ny)*(muls->nx*muls->ny));
 	// scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));

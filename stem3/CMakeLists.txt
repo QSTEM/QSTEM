@@ -3,11 +3,12 @@ cmake_minimum_required(VERSION 2.8)
 project(stem3)		
 
 if(MINGW)
-	include_directories("${CMAKE_SOURCE_DIR}/libs" "${CMAKE_SOURCE_DIR}/pthreads_w32" "${FFTW3_INCLUDE_DIRS}")
+	include_directories("${CMAKE_SOURCE_DIR}/libs" "${CMAKE_SOURCE_DIR}/pthreads_w32" "${FFTW3_INCLUDE_DIRS}"
+          "${EIGEN3_INCLUDE_DIR}")
 	find_library(PTHREAD_LIB libpthread "${CMAKE_SOURCE_DIR}/pthreads_w32")
 	add_definitions(-DPTW32_STATIC_LIB)
 else(MINGW)
-	include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}")	
+	include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" "${EIGEN3_INCLUDE_DIR}")	
 endif(MINGW)
 
 FILE(GLOB QSTEM_LIB_HEADERS "${CMAKE_SOURCE_DIR}/libs/*.h")

@@ -50,14 +50,12 @@
 #define THZ_HBAR_KB   1.90963567802059     /* THz*hbar/kB */
 #define AMU_THZ2_A2_KB   1.20274224623720     /* AMU*THz^2*A^2/kB */
 
-char *elTable = {
-	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-	"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-	"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-	"I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-	"YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-	"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"
-};
+std::string elTable = "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
+                      "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
+                      "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
+                      "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
+                      "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
+                      "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr";
 
 #define MAX_MASS_INDEX 59
 int idArraySize=0;
@@ -77,31 +75,31 @@ double chargeTable[MAX_MASS_INDEX];
 
 
 int atomCompareZnum(const void *atPtr1,const void *atPtr2) {
-	int comp = 0;
-	atom *atom1, *atom2;
-
-	atom1 = (atom *)atPtr1;
-	atom2 = (atom *)atPtr2;
-	/* Use the fact that z is the first element in the atom struct */
-	comp = (atom1->Znum == atom2->Znum) ? 0 : ((atom1->Znum > atom2->Znum) ? -1 : 1); 
-	return comp;
+  int comp = 0;
+  atom *atom1, *atom2;
+  
+  atom1 = (atom *)atPtr1;
+  atom2 = (atom *)atPtr2;
+  /* Use the fact that z is the first element in the atom struct */
+  comp = (atom1->Znum == atom2->Znum) ? 0 : ((atom1->Znum > atom2->Znum) ? -1 : 1); 
+  return comp;
 }
 
 int atomCompareZYX(const void *atPtr1,const void *atPtr2) {
-	int comp = 0;
-	atom *atom1, *atom2;
-
-	atom1 = (atom *)atPtr1;
-	atom2 = (atom *)atPtr2;
-	/* Use the fact that z is the first element in the atom struct */
-	comp = (atom1->z == atom2->z) ? 0 : ((atom1->z > atom2->z) ? 1 : -1); 
-	if (comp == 0) {
-		comp = (atom1->y == atom2->y) ? 0 : ((atom1->y > atom2->y) ? 1 : -1); 
-		if (comp == 0) {
-			comp = (atom1->x == atom2->x) ? 0 : ((atom1->x > atom2->x) ? 1 : -1); 
-		}
-	}
-	return comp;
+  int comp = 0;
+  atom *atom1, *atom2;
+  
+  atom1 = (atom *)atPtr1;
+  atom2 = (atom *)atPtr2;
+  /* Use the fact that z is the first element in the atom struct */
+  comp = (atom1->z == atom2->z) ? 0 : ((atom1->z > atom2->z) ? 1 : -1); 
+  if (comp == 0) {
+    comp = (atom1->y == atom2->y) ? 0 : ((atom1->y > atom2->y) ? 1 : -1); 
+    if (comp == 0) {
+      comp = (atom1->x == atom2->x) ? 0 : ((atom1->x > atom2->x) ? 1 : -1); 
+    }
+  }
+  return comp;
 }
 
 
@@ -114,56 +112,47 @@ int atomCompareZYX(const void *atPtr1,const void *atPtr2) {
 ********************************************************/
 
 int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
-	FILE *fp;
-	int j,i;
-	static char *elTable = {
-		"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-		"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-		"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-		"I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-		"YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-		"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-		char elem[16];
-		double ax,by,cz;
-
-		if (natoms < 1) {
-			printf("Atom array empty - no file written\n");
-			return 1;
-		}
-
-		fp = fopen(fileName, "w" );
-		if( fp == NULL ) {
-			printf("Cannot open file %s\n",fileName);
-			return 0;
-		}
-
-		ax = muls->ax;
-		by=muls->by;
-		cz=muls->c;
-
-
-		fprintf(fp,"HEADER    libAtoms:Config_save_as_pdb; %d atoms\n",natoms);
-		fprintf(fp,"CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1\n",
-			muls->ax,muls->by,muls->c);
-		elem[2] = '\0';
-		for (j=0;j<natoms;j++) {
-			elem[0] = elTable[2*atoms[j].Znum-2];
-			elem[1] = elTable[2*atoms[j].Znum-1];
-			if (elem[1] == ' ') elem[1] = '\0';
-			fprintf(fp,"ATOM   %4d %s",j+1,elem);
-			for (i=strlen(elem);i<13;i++)
-				fprintf(fp," ");
-			fprintf(fp,"1   ");
-			fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x,atoms[j].y,atoms[j].z);
-			/*
-			fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x/muls->ax,
-			atoms[j].y/muls->by,atoms[j].z/muls->c);
-			*/
-		} 
-
-		fclose(fp);
-		return 1;
-
+  FILE *fp;
+  int j,i;
+  char elem[16];
+  double ax,by,cz;
+  
+  if (natoms < 1) {
+    printf("Atom array empty - no file written\n");
+    return 1;
+  }
+  
+  fp = fopen(fileName, "w" );
+  if( fp == NULL ) {
+    printf("Cannot open file %s\n",fileName);
+    return 0;
+  }
+  
+  ax = muls->ax;
+  by=muls->by;
+  cz=muls->c;
+  
+  fprintf(fp,"HEADER    libAtoms:Config_save_as_pdb; %d atoms\n",natoms);
+  fprintf(fp,"CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1\n",
+          muls->ax,muls->by,muls->c);
+  elem[2] = '\0';
+  for (j=0;j<natoms;j++) {
+    elem[0] = elTable[2*atoms[j].Znum-2];
+    elem[1] = elTable[2*atoms[j].Znum-1];
+    if (elem[1] == ' ') elem[1] = '\0';
+    fprintf(fp,"ATOM   %4d %s",j+1,elem);
+    for (i=strlen(elem);i<13;i++)
+      fprintf(fp," ");
+    fprintf(fp,"1   ");
+    fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x,atoms[j].y,atoms[j].z);
+    /*
+      fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x/muls->ax,
+      atoms[j].y/muls->by,atoms[j].z/muls->c);
+    */
+  } 
+  
+  fclose(fp);
+  return 1;
 }
 
 
@@ -171,8 +160,7 @@ int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
 // This function siomply removes those atoms from the list
 // whose x- y- or z-position is exactly 1.0:
 int removeRedundantAtoms(atom *atoms,int natoms) {
-
-	return 0;
+  return 0;
 }
 
 
@@ -182,144 +170,142 @@ int removeRedundantAtoms(atom *atoms,int natoms) {
 */
 
 int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
-	FILE *fp;
-	int j;
-	/*
-	static char *elTable = {
-	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-	"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-	"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-	"I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-	"YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-	"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-	*/
-	char elem[16];
-	double ax,by,cz;
+  FILE *fp;
+  int j;
+  /*
+    static char *elTable = {
+    "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
+    "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
+    "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
+    "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
+    "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
+    "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
+  */
+  char elem[16];
+  double ax,by,cz;
+  
+  if (natoms < 1) {
+    printf("Atom array empty - no file written\n");
+    return 1;
+  }
+  
+  fp = fopen(fileName, "w" );
+  if( fp == NULL ) {
+    printf("Cannot open file %s\n",fileName);
+    return 0;
+  }
+  
+  // ax = muls->ax > MIN_EDGE_LENGTH ? muls->ax : MIN_EDGE_LENGTH;
+  // by = muls->by > MIN_EDGE_LENGTH ? muls->by : MIN_EDGE_LENGTH;
+  // cz = muls->c  > MIN_EDGE_LENGTH ? muls->c  : MIN_EDGE_LENGTH;
+  ax = muls->ax;
+  by = muls->by;
+  cz = muls->c;
+  
+  fprintf(fp,"Number of particles = %d\n",natoms);
+  fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
+  fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
+  fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
+  fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
+  fprintf(fp,".NO_VELOCITY.\nentry_count = 6\n");
+  printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  
+  
+  elem[2] = '\0';
+  elem[0] = elTable[2*atoms[0].Znum-2];
+  elem[1] = elTable[2*atoms[0].Znum-1];
+  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  if (elem[1] == ' ') elem[1] = '\0';
+  fprintf(fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
+  fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].x/ax,atoms[0].y/by,atoms[0].z/cz,
+          atoms[0].dw,atoms[0].occ,atoms[0].q);
+  
 
-	if (natoms < 1) {
-		printf("Atom array empty - no file written\n");
-		return 1;
-	}
 
-	fp = fopen(fileName, "w" );
-	if( fp == NULL ) {
-		printf("Cannot open file %s\n",fileName);
-		return 0;
-	}
-
-	// ax = muls->ax > MIN_EDGE_LENGTH ? muls->ax : MIN_EDGE_LENGTH;
-	// by = muls->by > MIN_EDGE_LENGTH ? muls->by : MIN_EDGE_LENGTH;
-	// cz = muls->c  > MIN_EDGE_LENGTH ? muls->c  : MIN_EDGE_LENGTH;
-	ax = muls->ax;
-	by = muls->by;
-	cz = muls->c;
-
-	fprintf(fp,"Number of particles = %d\n",natoms);
-	fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
-	fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
-	fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
-	fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
-	fprintf(fp,".NO_VELOCITY.\nentry_count = 6\n");
-	printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
-
-
-	elem[2] = '\0';
-	elem[0] = elTable[2*atoms[0].Znum-2];
-	elem[1] = elTable[2*atoms[0].Znum-1];
-	// printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
-	if (elem[1] == ' ') elem[1] = '\0';
-	fprintf(fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
-	fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].x/ax,atoms[0].y/by,atoms[0].z/cz,
-		atoms[0].dw,atoms[0].occ,atoms[0].q);
-
-
-
-	for (j=1;j<natoms;j++) {
-		if (atoms[j].Znum != atoms[j-1].Znum) {
-			elem[0] = elTable[2*atoms[j].Znum-2];
-			elem[1] = elTable[2*atoms[j].Znum-1];
-			if (elem[1] == ' ') elem[1] = '\0';
-			fprintf(fp,"%g\n%s\n",2.0*atoms[j].Znum,elem);
-			// printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
-		}
-		fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].x/ax,atoms[j].y/by,atoms[j].z/cz,
-			atoms[j].dw,atoms[j].occ,atoms[j].q);
-		// if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
-	} 
-	fclose(fp);
-
-	return 1;
+  for (j=1;j<natoms;j++) {
+    if (atoms[j].Znum != atoms[j-1].Znum) {
+      elem[0] = elTable[2*atoms[j].Znum-2];
+      elem[1] = elTable[2*atoms[j].Znum-1];
+      if (elem[1] == ' ') elem[1] = '\0';
+      fprintf(fp,"%g\n%s\n",2.0*atoms[j].Znum,elem);
+      // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
+    }
+    fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].x/ax,atoms[j].y/by,atoms[j].z/cz,
+            atoms[j].dw,atoms[j].occ,atoms[j].q);
+    // if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
+  } 
+  fclose(fp);
+  
+  return 1;
 }
 
 
 // write CFG file using atomic positions stored in pos, Z's in Znum and DW-factors in dw
 // the unit cell is assumed to be cubic
 int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
-					   double a,double b,double c) {
-						   FILE *fp;
-						   int j;
-						   /*
-						   static char *elTable = {
-						   "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-						   "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-						   "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-						   "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-						   "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-						   "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-						   */
-						   char elem[16];
-						   double ax,by,cz;
-
-						   if (natoms < 1) {
-							   printf("Atom array empty - no file written\n");
-							   return 1;
-						   }
-
-						   fp = fopen(fileName, "w" );
-						   if( fp == NULL ) {
-							   printf("Cannot open file %s\n",fileName);
-							   return 0;
-						   }
-
-						   ax = a > MIN_EDGE_LENGTH ? a : MIN_EDGE_LENGTH;
-						   by = b > MIN_EDGE_LENGTH ? b : MIN_EDGE_LENGTH;
-						   cz = c > MIN_EDGE_LENGTH ? c : MIN_EDGE_LENGTH;
-
-						   fprintf(fp,"Number of particles = %d\n",natoms);
-						   fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
-						   fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
-						   fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
-						   fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
-						   fprintf(fp,".NO_VELOCITY.\nentry_count = 4\n");
-						   printf("ax: %g, by: %g, cz: %g n: %d\n",ax,by,c,natoms);
-
-
-						   elem[2] = '\0';
-						   elem[0] = elTable[2*Znum[0]-2];
-						   elem[1] = elTable[2*Znum[0]-1];
-						   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
-						   if (elem[1] == ' ') elem[1] = '\0';
-						   fprintf(fp,"%g\n%s\n",2.0*Znum[0],elem);
-						   fprintf(fp,"%g %g %g %g\n",pos[0]*a/ax,pos[1]*b/by,pos[2]*c/cz,dw[0]);
-
-
-
-						   for (j=1;j<natoms;j++) {
-							   if (Znum[j] != Znum[j-1]) {
-								   elem[0] = elTable[2*Znum[j]-2];
-								   elem[1] = elTable[2*Znum[j]-1];
-								   if (elem[1] == ' ') elem[1] = '\0';
-								   fprintf(fp,"%g\n%s\n",2.0*Znum[j],elem);
-								   // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
-							   }
-							   fprintf(fp,"%g %g %g %g\n",pos[3*j+0]*a/ax,pos[3*j+1]*b/by,pos[3*j+2]*c/cz,dw[j]);
-						   } 
-						   fclose(fp);
-
-						   return 1;
+                       double a,double b,double c) {
+  FILE *fp;
+  int j;
+  /*
+    static char *elTable = {
+    "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
+    "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
+    "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
+    "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
+    "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
+    "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
+  */
+  char elem[16];
+  double ax,by,cz;
+  
+  if (natoms < 1) {
+    printf("Atom array empty - no file written\n");
+    return 1;
+  }
+  
+  fp = fopen(fileName, "w" );
+  if( fp == NULL ) {
+    printf("Cannot open file %s\n",fileName);
+    return 0;
+  }
+  
+  ax = a > MIN_EDGE_LENGTH ? a : MIN_EDGE_LENGTH;
+  by = b > MIN_EDGE_LENGTH ? b : MIN_EDGE_LENGTH;
+  cz = c > MIN_EDGE_LENGTH ? c : MIN_EDGE_LENGTH;
+  
+  fprintf(fp,"Number of particles = %d\n",natoms);
+  fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
+  fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
+  fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
+  fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
+  fprintf(fp,".NO_VELOCITY.\nentry_count = 4\n");
+  printf("ax: %g, by: %g, cz: %g n: %d\n",ax,by,c,natoms);
+  
+  
+  elem[2] = '\0';
+  elem[0] = elTable[2*Znum[0]-2];
+  elem[1] = elTable[2*Znum[0]-1];
+  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  if (elem[1] == ' ') elem[1] = '\0';
+  fprintf(fp,"%g\n%s\n",2.0*Znum[0],elem);
+  fprintf(fp,"%g %g %g %g\n",pos[0]*a/ax,pos[1]*b/by,pos[2]*c/cz,dw[0]);
+  
+  
+  
+  for (j=1;j<natoms;j++) {
+    if (Znum[j] != Znum[j-1]) {
+      elem[0] = elTable[2*Znum[j]-2];
+      elem[1] = elTable[2*Znum[j]-1];
+      if (elem[1] == ' ') elem[1] = '\0';
+      fprintf(fp,"%g\n%s\n",2.0*Znum[j],elem);
+      // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
+    }
+    fprintf(fp,"%g %g %g %g\n",pos[3*j+0]*a/ax,pos[3*j+1]*b/by,pos[3*j+2]*c/cz,dw[j]);
+  } 
+  fclose(fp);
+  
+  return 1;
 }
-
-
 
 
 /*******************************************************************************
@@ -343,297 +329,319 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 //  j == atomCount
 int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
-	int icz,int atomCount,double dw,int maxAtom,int ZnumIndex) {
-	int ix,iy,idd; // iz;
-	static FILE *fpPhonon = NULL;
-	static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
-	static float *massPrim;   // masses for every atom in primitive basis
-	static float **omega;     // array of eigenvalues for every k-vector 
-	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
-	static float **kVecs;     // array for Nk 3-dim k-vectors
-	static double **q1=NULL, **q2=NULL;
-	int ik,lambda,icoord; // Ncells, nkomega;
-	double kR,kRi,kRr,wobble;
-	static double *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
-	// static double uxCollect=0,uyCollect=0,uzCollect=0;
-	static int *u2Count = NULL,*u2CountT,runCount = 1,u2Size = -1;
-	static long iseed=0;
-	static double **Mm=NULL,**MmInv=NULL;
-	// static double **MmOrig=NULL,**MmOrigInv=NULL;
-	static double *axCell,*byCell,*czCell,*uf,*b;
-	static double wobScale = 0,sq3,scale=0;
+                       int icz,int atomCount,double dw,int maxAtom,int ZnumIndex) {
+  int ix,iy,idd; // iz;
+  static FILE *fpPhonon = NULL;
+  static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
+  QSfVec massPrim;
+  //	static float *massPrim;   // masses for every atom in primitive basis
+  QSfMat omega;
+  //	static float **omega;     // array of eigenvalues for every k-vector 
+  QSf3DMat EigVecs;
+  //	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
+  QSfMat kVecs;
+  //	static float **kVecs;     // array for Nk 3-dim k-vectors
+  // TODO: do these need to be forced to double precision?
+  QSfMat q1, q2;
+  //	static double **q1=NULL, **q2=NULL;
+  int ik,lambda,icoord; // Ncells, nkomega;
+  double kR,kRi,kRr,wobble;
+  double ux=0, uy=0, uz=0;
+  QSfVec u2;
+  //	static double *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
+  // static double uxCollect=0,uyCollect=0,uzCollect=0;
+  QSiVec u2Count;
+  int runCount = 1,u2Size = -1;
+  long iseed=0;
+  QSfMat Mm(3,3), MmInv(3,3);
+  //	double **Mm=NULL,**MmInv=NULL;
+  // static double **MmOrig=NULL,**MmOrigInv=NULL;
+  QSfVec uf(3), b(3);
+  static double *axCell,*byCell,*czCell;//*uf,*b;
+  static double wobScale = 0,sq3,scale=0;
+  
+  if (muls->tds == 0) return 0;
 
-	if (muls->tds == 0) return 0;
+  // TODO: u2 and u2Count
+  
+  /***************************************************************************
+   * We will give a statistics report, everytime, when we find atomCount == 0
+   ***************************************************************************/
+  
+  if (atomCount == 0) {
+    for (ix=0;ix<muls->atomKinds;ix++) {
+      // u2Collect += u2[ix]/u2Count[ix];
+      // uxCollect += ux/maxAtom; uyCollect += uy/maxAtom; uzCollect += uz/maxAtom;
+      /*
+        printf("STATISTICS: sqrt(<u^2>): %g, CM: (%g %g %g) %d atoms, wob: %g\n"
+        "                         %g, CM: (%g %g %g) run %d\n",
+        sqrt(u2/u2Count),ux/u2Count,uy/u2Count,uz/u2Count,u2Count,scale*sqrt(dw*wobScale),
+        sqrt(u2Collect/runCount),uxCollect/runCount,uyCollect/runCount,uzCollect/runCount,
+        runCount);
+      */
+      // printf("Count: %d %g\n",u2Count[ix],u2[ix]);
+      u2[ix] /= u2Count[ix];
+      if (runCount > 0) 
+        muls->u2avg[ix] = sqrt(((runCount-1)*(muls->u2avg[ix]*muls->u2avg[ix])+u2[ix])/runCount);
+      else
+        muls->u2avg[ix] = sqrt(u2[ix]);
+      
+      muls->u2[ix]    = sqrt(u2[ix]);
+      
+      u2[ix]=0; u2Count[ix]=0;
+    }
+    runCount++;
+    ux=0; uy=0; uz=0; 
+  }
+  // MmOrig = double2D(3,3,"MmOrig");
+  // MmOrigInv = double2D(3,3,"MmOrigInv");
+  //    Mm = double2D(3,3,"Mm");
+  //    MmInv = double2D(3,3,"Mminv");
+  //    uf = double1D(3,"uf");
+  //    b = double1D(3,"uf");
+  
+  axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
+  // memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
+  // We need to copy the transpose of muls->Mm to Mm.
+  // we therefore cannot use the following command:
+  // memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
+  // or Mm = muls->Mm;
+  for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
+  // makeCellVectMuls(muls, axCell, byCell, czCell);
+  // memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
+  // TODO: do we still need MMInv?
+  inverse_3x3(MmInv[0],Mm[0]);
 
-	/***************************************************************************
-	* We will give a statistics report, everytime, when we find atomCount == 0
-	***************************************************************************/
-
-	if (atomCount == 0) {
-							   for (ix=0;ix<muls->atomKinds;ix++) {
-								   // u2Collect += u2[ix]/u2Count[ix];
-								   // uxCollect += ux/maxAtom; uyCollect += uy/maxAtom; uzCollect += uz/maxAtom;
-								   /*
-								   printf("STATISTICS: sqrt(<u^2>): %g, CM: (%g %g %g) %d atoms, wob: %g\n"
-								   "                         %g, CM: (%g %g %g) run %d\n",
-								   sqrt(u2/u2Count),ux/u2Count,uy/u2Count,uz/u2Count,u2Count,scale*sqrt(dw*wobScale),
-								   sqrt(u2Collect/runCount),uxCollect/runCount,uyCollect/runCount,uzCollect/runCount,
-								   runCount);
-								   */
-								   // printf("Count: %d %g\n",u2Count[ix],u2[ix]);
-								   u2[ix] /= u2Count[ix];
-								   if (runCount > 0) 
-									   muls->u2avg[ix] = sqrt(((runCount-1)*(muls->u2avg[ix]*muls->u2avg[ix])+u2[ix])/runCount);
-								   else
-									   muls->u2avg[ix] = sqrt(u2[ix]);
-
-								   muls->u2[ix]    = sqrt(u2[ix]);
-
-								   u2[ix]=0; u2Count[ix]=0;
-							   }
-							   runCount++;
-							   ux=0; uy=0; uz=0; 
-	}
-	if (Mm == NULL) {
-									   // MmOrig = double2D(3,3,"MmOrig");
-									   // MmOrigInv = double2D(3,3,"MmOrigInv");
-									   Mm = double2D(3,3,"Mm");
-									   MmInv = double2D(3,3,"Mminv");
-									   uf = double1D(3,"uf");
-		b = double1D(3,"uf");
-
-									   axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
-		// memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
-		// We need to copy the transpose of muls->Mm to Mm.
-		// we therefore cannot use the following command:
-		// memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
-		// or Mm = muls->Mm;
-		for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
-
-		
-									   // makeCellVectMuls(muls, axCell, byCell, czCell);
-									   // memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
-									   inverse_3x3(MmInv[0],Mm[0]);
-	}
-	if (ZnumIndex >= u2Size) {
-							   
-	   // printf("created phonon displacements %d!\n",ZnumIndex);								
-	   u2 = (double *)realloc(u2,(ZnumIndex+1)*sizeof(double));
-	   u2Count = (int *)realloc(u2Count,(ZnumIndex+1)*sizeof(int));
-							   
-		// printf("%d .... %d\n",ZnumIndex,u2Size);
-	   if (u2Size < 1) {
-		   for (ix=0;ix<=ZnumIndex;ix++) {
-			   u2[ix] = 0;
-			   u2Count[ix] = 0;
-		   }
-	   }
-	   else {
-		   for (ix=u2Size;ix<=ZnumIndex;ix++) {
-			   u2[ix] = 0;
-			   u2Count[ix] = 0;
-		   }
-	   }						  
-		// printf("%d ..... %d\n",ZnumIndex,u2Size);
-
-	   u2Size = ZnumIndex+1;
-	}  
-
-
-						   /***************************************************************************
-						   * Thermal Diffuse Scattering according to accurate phonon-dispersion or 
-						   * just Einstein model
-						   *
-						   * Information in the phonon file will be stored in binary form as follows:
-						   * Nk (number of k-points: 32-bit integer)
-						   * Ns (number of atomic species 32-bit integer)
-						   * M_1 M_2 ... M_Ns  (32-bit floats)
-						   * kx(1) ky(1) kz(1) (32-bit floats)
-						   * w_1(1) q_11 q_21 ... q_(3*Ns)1    (32-bit floats)
-						   * w_2(1) q_12 q_22 ... q_(3*Ns)2
-						   * :
-						   * w_(3*Ns)(1) q_1Ns q_2Ns ... q_(3*Ns)Ns
-						   * kx(2) ky(2) kz(2) 
-						   * :
-						   * kx(Nk) ky(Nk) kz(Nk)
-						   * :
-						   * 
-						   *
-						   * Note: only k-vectors in half of the Brioullin zone must be given, since 
-						   * w(k) = w(-k)  
-						   * also: 2D arrays will be read slowly varying index = first index (i*m+j)
-						   **************************************************************************/
-
-						   if (wobScale == 0) {
-							   wobScale = 1.0/(8*PID*PID);   
-		sq3 = 1.0/sqrt(3.0);  /* sq3 is an additional needed factor which stems from
-												   * int_-infty^infty exp(-x^2/2) x^2 dx = sqrt(pi)
-												   * introduced in order to match the wobble factor with <u^2>
-												   */
-							   scale = (float) sqrt(muls->tds_temp/300.0) ;
-							   iseed = -(long)(time(NULL));
-						   }
-
-
-						   if ((muls->Einstein == 0) && (fpPhonon == NULL)) {
-							   if ((fpPhonon = fopen(muls->phononFile,"r")) == NULL) {
-								   printf("Cannot find phonon mode file, will use random displacements!");
-								   muls->Einstein = 1;
-								   //muls->phononFile = NULL;
-							   }
-							   else {
-
-								   if (2*sizeof(float) != sizeof(fftwf_complex)) {
-									   printf("phononDisplacement: data type mismatch: fftw_complex != 2*float!\n");
-									   exit(0);
-								   }
-								   fread(&Nk,sizeof(int),1,fpPhonon);
-								   fread(&Ns,sizeof(int),1,fpPhonon);
-								   massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
-								   fread(massPrim,sizeof(float),Ns,fpPhonon);
-								   kVecs = float32_2D(Nk,3,"kVecs");
-								   omega = float32_2D(Nk,3*Ns,"omega");          /* array of eigenvalues for every k-vector 
-																				 * omega is given in THz, but the 2pi-factor
-																				 * is still there, i.e. f=omega/2pi
-																				 */
-								   eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
-								   for (ix=0;ix<Nk;ix++) {
-									   fread(kVecs[ix],sizeof(float),3,fpPhonon);  // k-vector
-									   for (iy=0;iy<3*Ns;iy++) {
-										   fread(omega[ix]+iy,sizeof(float),1,fpPhonon);
-										   fread(eigVecs[ix][iy],2*sizeof(float),3*Ns,fpPhonon);
-									   }	
-								   }
-								   /*
-								   printf("Masses: ");
-								   for (ix=0;ix<Ns;ix++) printf(" %g",massPrim[ix]);
-								   printf("\n");
-								   for (ix=0;ix<3;ix++) {
-								   printf("(%5f %5f %5f):  ",kVecs[ix][0],kVecs[ix][1],kVecs[ix][2]);
-								   for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++)
-								   printf("%6g ",omega[ix][iy+3*idd]);
-								   printf("\n");
-								   }
-								   */      
-								   /* convert omega into q scaling factors, since we need those, instead of true omega:    */
-								   /* The 1/sqrt(2) term is from the dimensionality ((q1,q2) -> d=2)of the random numbers */
-								   for (ix=0;ix<Nk;ix++) {
-									   for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++) {
-										   // quantize the energy distribution:
-										   // tanh and exp give different results will therefore use exp
-										   // nkomega = (int)(1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp));
-										   // wobble  =      (1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp)-0.5);
-										   // nkomega = (int)(1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*id]/muls->tds_temp)-1)+0.5);
-										   if (omega[ix][iy+3*idd] > 1e-4) {
-											   wobble = muls->tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*idd]/muls->tds_temp)-1)):0;
-											   // if (ix == 0) printf("%g: %d %g\n",omega[ix][iy+3*id],nkomega,wobble);
-											   wobble = sqrt((wobble+0.5)/(2*PID*Nk*2*massPrim[idd]*omega[ix][iy+3*idd]* THZ_AMU_HBAR));  
-										   }
-										   else wobble = 0;
-										   /* Ttotal += 0.25*massPrim[id]*((wobble*wobble)/(2*Ns))*
-										   omega[ix][iy+3*id]*omega[ix][iy+3*id]*AMU_THZ2_A2_KB;
-										   */
-										   omega[ix][iy+3*idd] = wobble;
-									   }  // idd
-									   // if (ix == 0) printf("\n");
-								   }
-								   // printf("Temperature: %g K\n",Ttotal);
-								   // printf("%d %d %d\n",(int)(0.4*(double)Nk/11.0),(int)(0.6*(double)Nk),Nk);
-								   q1 = double2D(3*Ns,Nk,"q1");
-								   q2 = double2D(3*Ns,Nk,"q2");
-
-							   }
-							   fclose(fpPhonon);    
-						   }  // end of if phononfile
-
-						   // 
-						   // in the previous bracket: the phonon file is only read once.
-						   /////////////////////////////////////////////////////////////////////////////////////
-						   if ((muls->Einstein == 0) && (atomCount == maxAtom-1)) {
-							   if (Nk > 800)
-								   printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
-							   for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
-								   q1[lambda][ik] = (omega[ik][lambda] * gasdev( &iseed ));
-								   q2[lambda][ik] = (omega[ik][lambda] * gasdev( &iseed ));
-							   }
-							   // printf("Q: %g %g %g\n",q1[0][0],q1[5][8],q1[0][3]);
-						   }
-   /********************************************************************************
-	* Do the Einstein model independent vibrations !!!
-	*******************************************************************************/
-	if (muls->Einstein) {	    
-	   /* convert the Debye-Waller factor to sqrt(<u^2>) */
-	   wobble = scale*sqrt(dw*wobScale);
-	   u[0] = (wobble*sq3 * gasdev( &iseed ));
-	   u[1] = (wobble*sq3 * gasdev( &iseed ));
-	   u[2] = (wobble*sq3 * gasdev( &iseed ));
-	   ///////////////////////////////////////////////////////////////////////
-	   // Book keeping:
-		u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
-		ux += u[0]; uy += u[1]; uz += u[2];
-		u2Count[ZnumIndex]++;
-
-
-	  /* Finally we must convert the displacement for this atom back into its fractional
-	   * coordinates so that we can add it to the current position in vector a
-	   */
-	   matrixProduct(&u,1,3,MmInv,3,3,&uf);
-// test:
-	   /*
-	   matrixProduct(&uf,1,3,Mm,3,3,&b);
-	   if (atomCount % 5 == 0) {
-			printf("Z = %d, DW = %g, u=[%g %g %g]\n       u'=[%g %g %g]\n",muls->Znums[ZnumIndex],dw,u[0],u[1],u[2],b[0],b[1],b[2]);
-			showMatrix(Mm,3,3,"Mm");
-			showMatrix(MmInv,3,3,"MmInv");
-	   }
-	   */
-// end test
-	   memcpy(u,uf,3*sizeof(double));
-	}
-	else {
-	   // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
-	   printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",ZnumIndex,Ns,Nk,id,Nk,3*Ns,3*Ns);
-	   /* loop over k and lambda:  */
-	   memset(u,0,3*sizeof(double));
-	   for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
-		   // if (kVecs[ik][2] == 0){
-		   kR = 2*PID*(icx*kVecs[ik][0]+icy*kVecs[ik][1]+icz*kVecs[ik][2]);
-		   //  kR = 2*PID*(blat[0][0]*kVecs[ik][0]+blat[0][1]*kVecs[ik][1]+blat[0][2]*kVecs[ik][2]);
-		   kRr = cos(kR); kRi = sin(kR);
-		   for (icoord=0;icoord<3;icoord++) {
-									   u[icoord] += q1[lambda][ik]*(eigVecs[ik][lambda][icoord+3*id][0]*kRr-
-										   eigVecs[ik][lambda][icoord+3*id][1]*kRi)-
-										   q2[lambda][ik]*(eigVecs[ik][lambda][icoord+3*id][0]*kRi+
-										   eigVecs[ik][lambda][icoord+3*id][1]*kRr);
-		   }
-		}
-		// printf("u: %g %g %g\n",u[0],u[1],u[2]);
-	   /* Convert the cartesian displacements back to reduced coordinates
-	   */ 
-	   ///////////////////////////////////////////////////////////////////////
-	   // Book keeping:
-		u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
-		ux += u[0]; uy += u[1]; uz += u[2];
-		u[0] /= muls->ax;
-		u[1] /= muls->by;
-		u[2] /= muls->c;
-		u2Count[ZnumIndex]++;
-
-   } /* end of if Einstein */
-
-	// printf("%d ... %d\n",ZnumIndex,u2Size);
-   // printf("atomCount: %d (%d) %d %d\n",atomCount,muls->Einstein,ZnumIndex,u2Size);
-
-
-	/*
-	// Used for Debugging the memory leak on Aug. 20, 2010:
-	if (_CrtCheckMemory() == 0) {
-	   printf("Found bad memory check in phononDisplacement! %d %d\n",ZnumIndex,muls->atomKinds);
-	}
-	*/
-
-
-	return 0;  
+  if (ZnumIndex >= u2Size) {
+    u2 = QSfVec(ZnumIndex+1);
+    u2Count = QSiVec(ZnumIndex+1);
+    // printf("created phonon displacements %d!\n",ZnumIndex);								
+    //    u2 = (double *)realloc(u2,(ZnumIndex+1)*sizeof(double));
+    //    u2Count = (int *)realloc(u2Count,(ZnumIndex+1)*sizeof(int));
+    
+    // printf("%d .... %d\n",ZnumIndex,u2Size);
+    if (u2Size < 1) {
+      for (ix=0;ix<=ZnumIndex;ix++) {
+        u2[ix] = 0;
+        u2Count[ix] = 0;
+      }
+    }
+    else {
+      for (ix=u2Size;ix<=ZnumIndex;ix++) {
+        u2[ix] = 0;
+        u2Count[ix] = 0;
+      }
+    }						  
+    // printf("%d ..... %d\n",ZnumIndex,u2Size);
+    
+    u2Size = ZnumIndex+1;
+  }  
+  
+  
+  /***************************************************************************
+   * Thermal Diffuse Scattering according to accurate phonon-dispersion or 
+   * just Einstein model
+   *
+   * Information in the phonon file will be stored in binary form as follows:
+   * Nk (number of k-points: 32-bit integer)
+   * Ns (number of atomic species 32-bit integer)
+   * M_1 M_2 ... M_Ns  (32-bit floats)
+   * kx(1) ky(1) kz(1) (32-bit floats)
+   * w_1(1) q_11 q_21 ... q_(3*Ns)1    (32-bit floats)
+   * w_2(1) q_12 q_22 ... q_(3*Ns)2
+   * :
+   * w_(3*Ns)(1) q_1Ns q_2Ns ... q_(3*Ns)Ns
+   * kx(2) ky(2) kz(2) 
+   * :
+   * kx(Nk) ky(Nk) kz(Nk)
+   * :
+   * 
+   *
+   * Note: only k-vectors in half of the Brioullin zone must be given, since 
+   * w(k) = w(-k)  
+   * also: 2D arrays will be read slowly varying index = first index (i*m+j)
+   **************************************************************************/
+  
+  if (wobScale == 0) {
+    wobScale = 1.0/(8*PID*PID);   
+    sq3 = 1.0/sqrt(3.0);  /* sq3 is an additional needed factor which stems from
+                           * int_-infty^infty exp(-x^2/2) x^2 dx = sqrt(pi)
+                           * introduced in order to match the wobble factor with <u^2>
+                           */
+    scale = (float) sqrt(muls->tds_temp/300.0) ;
+    iseed = -(long)(time(NULL));
+  }
+  
+  
+  if ((muls->Einstein == 0) && (fpPhonon == NULL)) {
+    if ((fpPhonon = fopen(muls->phononFile,"r")) == NULL) {
+      printf("Cannot find phonon mode file, will use random displacements!");
+      muls->Einstein = 1;
+      //muls->phononFile = NULL;
+    }
+    else {
+      
+      if (2*sizeof(float) != sizeof(fftwf_complex)) {
+        printf("phononDisplacement: data type mismatch: fftw_complex != 2*float!\n");
+        exit(0);
+      }
+      fread(&Nk,sizeof(int),1,fpPhonon);
+      fread(&Ns,sizeof(int),1,fpPhonon);
+      // TODO: ok if precision if 1, will break if precision is 2.
+      massPrim = QSFVec(Ns);
+      //      massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
+      fread(massPrim.data(),sizeof(float),Ns,fpPhonon);
+      kVecs = QSFMat(Nk, 3);
+      omega = QSFMat(Nk, 3*Ns);
+      //      kVecs = float32_2D(Nk,3,"kVecs");
+      //      omega = float32_2D(Nk,3*Ns,"omega");          
+      /* array of eigenvalues for every k-vector 
+       * omega is given in THz, but the 2pi-factor
+       * is still there, i.e. f=omega/2pi
+       */
+      eigVecs = QSC3DMat(Nk, 3*Ns, 3*Ns);
+      //      eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
+      
+      for (ix=0;ix<Nk;ix++) {
+        fread(kVecs.data()+ix,sizeof(float),3,fpPhonon);  // k-vector
+        for (iy=0;iy<3*Ns;iy++) {
+          fread(omega[ix]+iy,sizeof(float),1,fpPhonon);
+          fread(eigVecs[ix][iy],2*sizeof(float),3*Ns,fpPhonon);
+        }	
+      }
+      /*
+        printf("Masses: ");
+        for (ix=0;ix<Ns;ix++) printf(" %g",massPrim[ix]);
+        printf("\n");
+        for (ix=0;ix<3;ix++) {
+        printf("(%5f %5f %5f):  ",kVecs[ix][0],kVecs[ix][1],kVecs[ix][2]);
+        for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++)
+        printf("%6g ",omega[ix][iy+3*idd]);
+        printf("\n");
+        }
+      */      
+      /* convert omega into q scaling factors, since we need those, instead of true omega:    */
+      /* The 1/sqrt(2) term is from the dimensionality ((q1,q2) -> d=2)of the random numbers */
+      for (ix=0;ix<Nk;ix++) {
+        for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++) {
+            // quantize the energy distribution:
+            // tanh and exp give different results will therefore use exp
+            // nkomega = (int)(1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp));
+            // wobble  =      (1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp)-0.5);
+            // nkomega = (int)(1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*id]/muls->tds_temp)-1)+0.5);
+            if (omega[ix][iy+3*idd] > 1e-4) {
+              wobble = muls->tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*idd]/muls->tds_temp)-1)):0;
+              // if (ix == 0) printf("%g: %d %g\n",omega[ix][iy+3*id],nkomega,wobble);
+              wobble = sqrt((wobble+0.5)/(2*PID*Nk*2*massPrim[idd]*omega[ix][iy+3*idd]* THZ_AMU_HBAR));  
+            }
+            else wobble = 0;
+            /* Ttotal += 0.25*massPrim[id]*((wobble*wobble)/(2*Ns))*
+               omega[ix][iy+3*id]*omega[ix][iy+3*id]*AMU_THZ2_A2_KB;
+            */
+            omega[ix][iy+3*idd] = wobble;
+          }  // idd
+        // if (ix == 0) printf("\n");
+      }
+      // printf("Temperature: %g K\n",Ttotal);
+      // printf("%d %d %d\n",(int)(0.4*(double)Nk/11.0),(int)(0.6*(double)Nk),Nk);
+      q1 = QSfMat(3*Ns, Nk);
+      q2 = QSfMat(3*Ns, Nk);
+      //      q1 = double2D(3*Ns,Nk,"q1");
+      //      q2 = double2D(3*Ns,Nk,"q2");
+      
+    }
+    fclose(fpPhonon);    
+  }  // end of if phononfile
+  
+  // 
+  // in the previous bracket: the phonon file is only read once.
+  /////////////////////////////////////////////////////////////////////////////////////
+  if ((muls->Einstein == 0) && (atomCount == maxAtom-1)) {
+    if (Nk > 800)
+      printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
+    for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
+        // TODO: optimize loop out
+        q1[lambda][ik] = (omega[ik][lambda] * gasdev( &iseed ));
+        q2[lambda][ik] = (omega[ik][lambda] * gasdev( &iseed ));
+      }
+    // printf("Q: %g %g %g\n",q1[0][0],q1[5][8],q1[0][3]);
+  }
+  /********************************************************************************
+   * Do the Einstein model independent vibrations !!!
+   *******************************************************************************/
+  if (muls->Einstein) {	    
+    /* convert the Debye-Waller factor to sqrt(<u^2>) */
+    wobble = scale*sqrt(dw*wobScale);
+    u[0] = (wobble*sq3 * gasdev( &iseed ));
+    u[1] = (wobble*sq3 * gasdev( &iseed ));
+    u[2] = (wobble*sq3 * gasdev( &iseed ));
+    ///////////////////////////////////////////////////////////////////////
+    // Book keeping:
+    u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
+    ux += u[0]; uy += u[1]; uz += u[2];
+    u2Count[ZnumIndex]++;
+    
+    
+    /* Finally we must convert the displacement for this atom back into its fractional
+     * coordinates so that we can add it to the current position in vector a
+     */
+    // TODO: optimize
+    matrixProduct(&u,1,3,MmInv,3,3,&uf);
+    // test:
+    /*
+      matrixProduct(&uf,1,3,Mm,3,3,&b);
+      if (atomCount % 5 == 0) {
+      printf("Z = %d, DW = %g, u=[%g %g %g]\n       u'=[%g %g %g]\n",muls->Znums[ZnumIndex],dw,u[0],u[1],u[2],b[0],b[1],b[2]);
+      showMatrix(Mm,3,3,"Mm");
+      showMatrix(MmInv,3,3,"MmInv");
+      }
+    */
+    // end test
+    // Optimize?  How well does Eigen handle copies?
+    memcpy(u,uf,3*sizeof(double));
+  }
+  else {
+    // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
+    printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",ZnumIndex,Ns,Nk,id,Nk,3*Ns,3*Ns);
+    /* loop over k and lambda:  */
+    memset(u,0,3*sizeof(double));
+    for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
+        // if (kVecs[ik][2] == 0){
+        kR = 2*PID*(icx*kVecs[ik][0]+icy*kVecs[ik][1]+icz*kVecs[ik][2]);
+        //  kR = 2*PID*(blat[0][0]*kVecs[ik][0]+blat[0][1]*kVecs[ik][1]+blat[0][2]*kVecs[ik][2]);
+        kRr = cos(kR); kRi = sin(kR);
+        for (icoord=0;icoord<3;icoord++) {
+          u[icoord] += q1[lambda][ik]*(eigVecs[ik][lambda][icoord+3*id][0]*kRr-
+                                       eigVecs[ik][lambda][icoord+3*id][1]*kRi)-
+            q2[lambda][ik]*(eigVecs[ik][lambda][icoord+3*id][0]*kRi+
+                            eigVecs[ik][lambda][icoord+3*id][1]*kRr);
+        }
+      }
+    // printf("u: %g %g %g\n",u[0],u[1],u[2]);
+    /* Convert the cartesian displacements back to reduced coordinates
+     */ 
+    ///////////////////////////////////////////////////////////////////////
+    // Book keeping:
+    u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
+    ux += u[0]; uy += u[1]; uz += u[2];
+    u[0] /= muls->ax;
+    u[1] /= muls->by;
+    u[2] /= muls->c;
+    u2Count[ZnumIndex]++;
+    
+  } /* end of if Einstein */
+  
+  // printf("%d ... %d\n",ZnumIndex,u2Size);
+  // printf("atomCount: %d (%d) %d %d\n",atomCount,muls->Einstein,ZnumIndex,u2Size);
+  
+  
+  /*
+  // Used for Debugging the memory leak on Aug. 20, 2010:
+  if (_CrtCheckMemory() == 0) {
+  printf("Found bad memory check in phononDisplacement! %d %d\n",ZnumIndex,muls->atomKinds);
+  }
+  */
+  return 0;  
 }
 
 
@@ -642,52 +650,52 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
 int readDATCellParams(MULS *muls, double **Mm, char *fileName) {
-	int ncoord,i;
-	char buf[256];
-	double a,b,c,alpha=90.0,beta=90.0,gamma=90.0;
-
-	// printf("Paramter File pointer (1): %d\n",(int)getFp());
-	parFpPush(); /* push the current parameter file file pointer 
-				 * on the stack to make this function totaly 
-				 * transparent 
-				 */
-	if (!parOpen(fileName)) {
-		printf("Could not open CFG input file %s\n",fileName);
-		parFpPull();  /* restore old parameter file pointer */
-		return 0;
-	}
-	// printf("Paramter File pointer (2): %d\n",(int)getFp());
-
-	resetParamFile();  
-	setComment('#');  
-	if (readparam("Number of atoms =",buf,1)) sscanf(buf,"%d",&ncoord);
-
-	if (readparam("a =",buf,1)) sscanf(buf,"%lf",&a);
-	if (readparam("b =",buf,1)) sscanf(buf,"%lf",&b);
-	if (readparam("c =",buf,1)) sscanf(buf,"%lf",&c);
-
-	if (readparam("alpha =",buf,1)) sscanf(buf,"%lf",&alpha);
-	if (readparam("beta =",buf,1)) sscanf(buf,"%lf",&beta);
-	if (readparam("gamma =",buf,1)) sscanf(buf,"%lf",&gamma);
-
-	setComment('%');
-	parClose();   
-	parFpPull();  /* restore old parameter file pointer */
-
-
-	muls->ax = a;
-	muls->by = b;
-	muls->c  = c;
-	muls->cGamma = alpha;
-	muls->cBeta  = beta;
-	muls->cAlpha = gamma;
-	// construct the unit cell metric from the lattice parameters and angles:
-	makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
-	if (ncoord < 1) {
-		printf("Number of atoms in CFG file not specified!\n");
-		ncoord = 0;
-	}
-	return ncoord;
+  int ncoord,i;
+  char buf[256];
+  double a,b,c,alpha=90.0,beta=90.0,gamma=90.0;
+  
+  // printf("Paramter File pointer (1): %d\n",(int)getFp());
+  parFpPush(); /* push the current parameter file file pointer 
+                * on the stack to make this function totaly 
+                * transparent 
+                */
+  if (!parOpen(fileName)) {
+    printf("Could not open CFG input file %s\n",fileName);
+    parFpPull();  /* restore old parameter file pointer */
+    return 0;
+  }
+  // printf("Paramter File pointer (2): %d\n",(int)getFp());
+  
+  resetParamFile();  
+  setComment('#');  
+  if (readparam("Number of atoms =",buf,1)) sscanf(buf,"%d",&ncoord);
+  
+  if (readparam("a =",buf,1)) sscanf(buf,"%lf",&a);
+  if (readparam("b =",buf,1)) sscanf(buf,"%lf",&b);
+  if (readparam("c =",buf,1)) sscanf(buf,"%lf",&c);
+  
+  if (readparam("alpha =",buf,1)) sscanf(buf,"%lf",&alpha);
+  if (readparam("beta =",buf,1)) sscanf(buf,"%lf",&beta);
+  if (readparam("gamma =",buf,1)) sscanf(buf,"%lf",&gamma);
+  
+  setComment('%');
+  parClose();   
+  parFpPull();  /* restore old parameter file pointer */
+  
+  
+  muls->ax = a;
+  muls->by = b;
+  muls->c  = c;
+  muls->cGamma = alpha;
+  muls->cBeta  = beta;
+  muls->cAlpha = gamma;
+  // construct the unit cell metric from the lattice parameters and angles:
+  makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
+  if (ncoord < 1) {
+    printf("Number of atoms in CFG file not specified!\n");
+    ncoord = 0;
+  }
+  return ncoord;
 }
 
 
@@ -697,63 +705,63 @@ int readDATCellParams(MULS *muls, double **Mm, char *fileName) {
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
 int readCFGCellParams(MULS *muls, double **Mm, char *fileName) {
-	int ncoord,i;
-	char buf[256];
-	double lengthScale;
-
-	// printf("Paramter File pointer (1): %d\n",(int)getFp());
-	parFpPush(); /* push the current parameter file file pointer 
-				 * on the stack to make this function totaly 
-				 * transparent 
-				 */
-	if (!parOpen(fileName)) {
-		printf("Could not open CFG input file %s\n",fileName);
-		parFpPull();  /* restore old parameter file pointer */
-		return 0;
-	}
+  int ncoord,i;
+  char buf[256];
+  double lengthScale;
+  
+  // printf("Paramter File pointer (1): %d\n",(int)getFp());
+  parFpPush(); /* push the current parameter file file pointer 
+                * on the stack to make this function totaly 
+                * transparent 
+                */
+  if (!parOpen(fileName)) {
+    printf("Could not open CFG input file %s\n",fileName);
+    parFpPull();  /* restore old parameter file pointer */
+    return 0;
+  }
 	// printf("Paramter File pointer (2): %d\n",(int)getFp());
-
-	resetParamFile();  
-	setComment('#');  
-	if (readparam("Number of particles =",buf,1)) sscanf(buf,"%d",&ncoord);
-	if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
-
-	if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+0);
-	if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+1);
-	if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+2);
-
-	if (readparam("H0(2,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+3);
-	if (readparam("H0(2,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+4);
-	if (readparam("H0(2,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+5);
-
-	if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+6);
-	if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+7);
-	if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+8);
-	/*
-	if (readparam(".NO_VELOCITY.",buf,1)) noVelocityFlag = 1; 
-	if (readparam("entry_count =",buf,1)) sscanf(buf,"%lf",&entryCount);
-	if (!noVelocityFlag) entryCount+=3;
-	*/
-	setComment('%');
-	parClose();   
-	parFpPull();  /* restore old parameter file pointer */
-
-	for (i=0;i<9;i++) Mm[0][i] *= lengthScale;
-
-	muls->ax = sqrt(Mm[0][0]*Mm[0][0]+Mm[0][1]*Mm[0][1]+Mm[0][2]*Mm[0][2]);
-	muls->by = sqrt(Mm[1][0]*Mm[1][0]+Mm[1][1]*Mm[1][1]+Mm[1][2]*Mm[1][2]);
-	muls->c  = sqrt(Mm[2][0]*Mm[2][0]+Mm[2][1]*Mm[2][1]+Mm[2][2]*Mm[2][2]);
-	muls->cGamma = atan2(Mm[1][1],Mm[1][0]);
-	muls->cBeta = acos(Mm[2][0]/muls->c);
-	muls->cAlpha = acos(Mm[2][1]*sin(muls->cGamma)/muls->c+cos(muls->cBeta)*cos(muls->cGamma));
-	muls->cGamma /= (float)PI180;
-	muls->cBeta  /= (float)PI180;
-	muls->cAlpha /= (float)PI180;
-	if (ncoord < 1) {
-		printf("Number of atoms in CFG file not specified!\n");
-		ncoord = 0;
-	}
-	return ncoord;
+  
+  resetParamFile();  
+  setComment('#');  
+  if (readparam("Number of particles =",buf,1)) sscanf(buf,"%d",&ncoord);
+  if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
+  
+  if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+0);
+  if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+1);
+  if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+2);
+  
+  if (readparam("H0(2,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+3);
+  if (readparam("H0(2,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+4);
+  if (readparam("H0(2,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+5);
+  
+  if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+6);
+  if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+7);
+  if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+8);
+  /*
+    if (readparam(".NO_VELOCITY.",buf,1)) noVelocityFlag = 1; 
+    if (readparam("entry_count =",buf,1)) sscanf(buf,"%lf",&entryCount);
+    if (!noVelocityFlag) entryCount+=3;
+  */
+  setComment('%');
+  parClose();   
+  parFpPull();  /* restore old parameter file pointer */
+  
+  for (i=0;i<9;i++) Mm[0][i] *= lengthScale;
+  
+  muls->ax = sqrt(Mm[0][0]*Mm[0][0]+Mm[0][1]*Mm[0][1]+Mm[0][2]*Mm[0][2]);
+  muls->by = sqrt(Mm[1][0]*Mm[1][0]+Mm[1][1]*Mm[1][1]+Mm[1][2]*Mm[1][2]);
+  muls->c  = sqrt(Mm[2][0]*Mm[2][0]+Mm[2][1]*Mm[2][1]+Mm[2][2]*Mm[2][2]);
+  muls->cGamma = atan2(Mm[1][1],Mm[1][0]);
+  muls->cBeta = acos(Mm[2][0]/muls->c);
+  muls->cAlpha = acos(Mm[2][1]*sin(muls->cGamma)/muls->c+cos(muls->cBeta)*cos(muls->cGamma));
+  muls->cGamma /= (float)PI180;
+  muls->cBeta  /= (float)PI180;
+  muls->cAlpha /= (float)PI180;
+  if (ncoord < 1) {
+    printf("Number of atoms in CFG file not specified!\n");
+    ncoord = 0;
+  }
+  return ncoord;
 }
 
 /***********************************************************************
@@ -761,35 +769,35 @@ int readCFGCellParams(MULS *muls, double **Mm, char *fileName) {
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
 int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
-	FILE *fp;
-	char s1[32],s2[32],s3[32],buf[NCMAX];
-	int spaceGrp = 1,ncoord;
-
-	fp = fopen(fileName, "r" );
-	if( fp == NULL ) {
-		printf("Cannot open file %s\n",fileName);
-		return 0;
-	}
-	/* read the cell parameters from first and secons line */
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-	sscanf( buf, " %s %s %s",s1,s2,s3);
-	muls->ax = atof(s1); muls->by = atof(s2); muls->c = atof(s3);
-
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-	sscanf( buf, " %s %s %s",s1,s2,s3);
-	muls->cAlpha = atof(s1); muls->cBeta  = atof(s2); muls->cGamma = atof(s3);
-	makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
-
-	/* check the space group: */
-	spaceGrp = atoi(strstr(buf,"SPGR =")+strlen("SPGR ="));
-	if (spaceGrp != 1) {
-		printf("cannot interpret space group %d\n",spaceGrp);
-		exit(0);
-	}
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-	ncoord = atoi(buf);
-	fclose(fp);
-	return ncoord;
+  FILE *fp;
+  char s1[32],s2[32],s3[32],buf[NCMAX];
+  int spaceGrp = 1,ncoord;
+  
+  fp = fopen(fileName, "r" );
+  if( fp == NULL ) {
+    printf("Cannot open file %s\n",fileName);
+    return 0;
+  }
+  /* read the cell parameters from first and secons line */
+  ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+  sscanf( buf, " %s %s %s",s1,s2,s3);
+  muls->ax = atof(s1); muls->by = atof(s2); muls->c = atof(s3);
+  
+  ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+  sscanf( buf, " %s %s %s",s1,s2,s3);
+  muls->cAlpha = atof(s1); muls->cBeta  = atof(s2); muls->cGamma = atof(s3);
+  makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
+  
+  /* check the space group: */
+  spaceGrp = atoi(strstr(buf,"SPGR =")+strlen("SPGR ="));
+  if (spaceGrp != 1) {
+    printf("cannot interpret space group %d\n",spaceGrp);
+    exit(0);
+  }
+  ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+  ncoord = atoi(buf);
+  fclose(fp);
+  return ncoord;
 }
 
 /*******************************************************************************
@@ -801,78 +809,76 @@ int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
 *******************************************************************************/
 
 int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
-	int printFlag = 0;
-	static FILE *fp=NULL;
-	static int noVelocityFlag = 1,entryCount = 3,element = 1;
-	static char buf[NCMAX];
-	static double *atomData = NULL;
-	char *str,elementStr[3];
-	int j;
-
-	if (flag < 0) {
-		if (fp != NULL) {
-			parClose();   
-			parFpPull();  /* restore old parameter file pointer */      
-			fp = NULL;
-			setComment('%');
+  int printFlag = 0;
+  static FILE *fp=NULL;
+  static int noVelocityFlag = 1,entryCount = 3,element = 1;
+  static char buf[NCMAX];
+  static double *atomData = NULL;
+  char *str,elementStr[3];
+  int j;
+  
+  if (flag < 0) {
+    if (fp != NULL) {
+      parClose();   
+      parFpPull();  /* restore old parameter file pointer */      
+      fp = NULL;
+      setComment('%');
+    }
+    return -1;
+  }
+  
+  if (fp == NULL) {
+    parFpPush();  /* save old parameter file pointer */      
+    if (!parOpen(fileName)) {
+      printf("Could not open DAT input file %s\n",fileName);
+      parFpPull();  /* restore old parameter file pointer */
+      return -1;
+    }
+    resetParamFile();  
+    // advance file pointer to last (known) header line
+    readparam("gamma =",buf,1);
+    fp = getFp();  /* get the file pointer from the parameter file routines */
+    atomData = (double *)malloc(entryCount*sizeof(double));
+  }
+  
+  element = 0;
+  do {
+    if (fgets(buf,NCMAX,fp) == NULL) {
+      if (printFlag) printf("Found end of file!\n");
+      return -1;
 		}
-		return -1;
-	}
-
-	if (fp == NULL) {
-		parFpPush();  /* save old parameter file pointer */      
-		if (!parOpen(fileName)) {
-			printf("Could not open DAT input file %s\n",fileName);
-			parFpPull();  /* restore old parameter file pointer */
-			return -1;
-		}
-		resetParamFile();  
-		// advance file pointer to last (known) header line
-		readparam("gamma =",buf,1);
-		fp = getFp();  /* get the file pointer from the parameter file routines */
-		atomData = (double *)malloc(entryCount*sizeof(double));
-	}
-
-	element = 0;
-	do {
-		if (fgets(buf,NCMAX,fp) == NULL) {
-			if (printFlag) printf("Found end of file!\n");
-			return -1;
-		}
-		/* check, if this is a new element name */	
-		// str = strnext(buf," \t");
-		if (buf != NULL) {
-			memcpy(elementStr,buf,2);
-			element = getZNumber(elementStr);
-		}
-	} while (element == 0);
-	if (printFlag) printf("Found Z=%d\n",element);
-	if (element > 0) {
-		str = buf+2;
-		// skip leading spaces:
-		while (strchr(" \t",*str) != NULL) str++; 
-		for (j=0;j<entryCount;j++) {
-			if (str==NULL) {
-				printf("readNextCFGatom: Error: incomplete data line: >%s<\n",buf);
-				return -1;
-			}
-			atomData[j] = atof(str); str=strnext(str," \t");
-		}		
-	}
-
-	newAtom->Znum = element;
-	newAtom->x    = atomData[0];
-	newAtom->y    = atomData[1];
-	newAtom->z    = atomData[2];
-	newAtom->dw   = 0.45*28.0/(double)(2.0*element);	
-	newAtom->occ  = 1.0;
-	newAtom->q    = 0.0;
-	printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	  
-
-	return 0;
+    /* check, if this is a new element name */	
+    // str = strnext(buf," \t");
+    if (buf != NULL) {
+      memcpy(elementStr,buf,2);
+      element = getZNumber(elementStr);
+    }
+  } while (element == 0);
+  if (printFlag) printf("Found Z=%d\n",element);
+  if (element > 0) {
+    str = buf+2;
+    // skip leading spaces:
+    while (strchr(" \t",*str) != NULL) str++; 
+    for (j=0;j<entryCount;j++) {
+      if (str==NULL) {
+        printf("readNextCFGatom: Error: incomplete data line: >%s<\n",buf);
+        return -1;
+      }
+      atomData[j] = atof(str); str=strnext(str," \t");
+    }		
+  }
+  
+  newAtom->Znum = element;
+  newAtom->x    = atomData[0];
+  newAtom->y    = atomData[1];
+  newAtom->z    = atomData[2];
+  newAtom->dw   = 0.45*28.0/(double)(2.0*element);	
+  newAtom->occ  = 1.0;
+  newAtom->q    = 0.0;
+  printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	  
+  
+  return 0;
 }
-
-
 
 
 /*******************************************************************************

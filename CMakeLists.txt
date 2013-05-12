@@ -14,6 +14,7 @@ set (EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
 find_package(fftw3 REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 set (M_LIB "")
 

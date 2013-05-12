@@ -3,14 +3,9 @@
 
 #include <vector>
 #include "stemtypes_fftw3.h"
-#include <Eigen/Dense>
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
-
-typedef Eigen::Matrix<float_tt, Dynamic, Dynamic> QSMat;
-typedef Eigen::Matrix<float_tt, Dynamic, 1> QSfVec;
-typedef Eigen::Matrix<int, Dynamic, 1> QSiVec;
 
 class WAVEFUNC 
 {
@@ -21,11 +16,12 @@ public:
         std::string fileStart;
         std::string fileout;
         std::string avgName;
-        QSMat diffpat;
-        QSMat avgArray;
-        QSMat wave;
+        QSfMat diffpat;
+        QSfMat avgArray;
 	float_tt thickness;
 	float_tt intIntensity;
+
+        QScMat wave;
         
 
 #if FLOAT_PRECISION == 1
@@ -54,17 +50,20 @@ public:
   int saveLevel;
   int complete_pixels;  //the number of pixels completed so far
 
+  QSc3DMat trans;
+
   // Need to figure out good way of doing 3D things with Eigen
 #if FLOAT_PRECISION == 1
   fftwf_plan fftPlanPotInv,fftPlanPotForw;
-  fftwf_complex ***trans;
+  
+  //  fftwf_complex ***trans;
 #else
   fftw_plan fftPlanPotInv,fftPlanPotForw;
-  fftw_complex ***trans;
+  //  fftw_complex ***trans;
 #endif
 
   //real **diffpat;
-  QSMat diffpat;
+  QSfMat diffpat;
   real czOffset;
   real xOffset;
   real yOffset;
@@ -104,12 +103,12 @@ public:
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   int slices;                           /* number of different slices */
   int centerSlices;                     /* flag indicating how to cut the sample */
-  QSMat pendelloesung;
+  QSfMat pendelloesung;
   //float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt ax,by,c;	                /* lattice parameters */
   float_tt cAlpha,cBeta,cGamma;
   // TODO: should be double? or OK to be dynamic?
-  QSMat Mm;
+  QSfMat Mm;
     //double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
   int nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
   int natom;				/* number of atoms in "atoms" */
@@ -221,12 +220,12 @@ public:
   QSiVec Znums;
   //int *Znums;
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
-  QSMat rPotential;
+  QSfMat rPotential;
   //double **rPotential;   /* array containing real space potential LUT for each atom kind present */
   //double *sfkArray;
   QSfVec sfkArray;
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
-  QSMat sfTable;
+  QSfMat sfTable;
   //double **sfTable;
   int sfNk;              /* number of k-points in sfTable and sfkArray */
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
@@ -261,7 +260,7 @@ public:
   int save_output_flag;
   
     // TODO: Does this need to be double, or can it be float (as might be done dynamically?
-  QSMat dE_EArray;
+  QSfMat dE_EArray;
   //double *dE_EArray;
 
   // Tomography parameters:

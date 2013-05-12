@@ -3,9 +3,10 @@ cmake_minimum_required(VERSION 2.8)
 project(qstem_libs)
 
 if(MINGW)
-	include_directories("${CMAKE_SOURCE_DIR}/libs" "${CMAKE_SOURCE_DIR}/pthreads_w32" "${FFTW3_INCLUDE_DIRS}")
+	include_directories("${CMAKE_SOURCE_DIR}/libs" "${CMAKE_SOURCE_DIR}/pthreads_w32" "${FFTW3_INCLUDE_DIRS}"
+          "${EIGEN3_INCLUDE_DIR}")
 else(MINGW)
-	include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}")	
+	include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" "${EIGEN3_INCLUDE_DIR}")	
 endif(MINGW)
 
 FILE(GLOB STEM3_LIBS_C_FILES "${CMAKE_SOURCE_DIR}/libs/*.cpp")

@@ -11,28 +11,29 @@ thickness(0.0),
 nx(0),
 ny(0)
 {
-	char waveFile[256];
-	const char *waveFileBase = "mulswav";
-	nx = x;
-	ny = y;
-	diffpat = float2D(nx,ny,"diffpat");
-	avgArray = float2D(nx,ny,"avgArray");
 
+  std::string waveFile;
+  std::string waveFileBase = "mulswav";
+  nx = x;
+  ny = y;
+  diffpat = QSfMat::Zero(nx, ny);
+  avgArray = QSfMat::Zero(nx, ny);
+  wave = QScMat::Zero(nx, ny);
+  
+  /*
 #if FLOAT_PRECISION == 1
-	wave = complex2Df(nx, ny, "wave");
 	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
 	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
-	wave = complex2D(nx, ny, "wave");
 	fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD,
 		fftMeasureFlag);
 	fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
 		fftMeasureFlag);
 #endif
-
-	sprintf(waveFile,"%s.img",waveFileBase);
-	strcpy(fileout,waveFile);
-	sprintf(fileStart,"mulswav.img");
+  */
+        waveFile = waveFileBase+".img";
+        fileout = waveFile;
+        fileStart = "mulswav.img";
 }
 
 WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
@@ -42,26 +43,26 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 	detPosX = other.detPosX;
 	detPosY = other.detPosY;
 
-	strcpy(fileStart, other.fileStart);
-	strcpy(fileout, other.fileout);
-	strcpy(avgName, other.avgName);
+        fileStart = other.fileStart;
+        fileout = other.fileout;
+        avgName = other.avgName;
 
 	nx = other.nx;
 	ny = other.ny;
 
-	diffpat = float2D(nx,ny,"diffpat");
-	avgArray = float2D(nx,ny,"avgArray");
+	diffpat = QSfMat::Zero(nx, ny);
+	avgArray = QSfMat::Zero(nx, ny);
+
+        wave = QScMat::Zero(nx,ny);
 
 #if FLOAT_PRECISION == 1
-	wave = complex2Df(nx, ny, "wave");
-	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
-	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
+        //	fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
+        //	fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
-	wave = complex2D(nx, ny, "wave");
-	fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD,
-		fftMeasureFlag);
-	fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
-		fftMeasureFlag);
+        //	fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD,
+        //		fftMeasureFlag);
+        //	fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
+        //		fftMeasureFlag);
 #endif
 }
 
