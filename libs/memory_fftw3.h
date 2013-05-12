@@ -73,6 +73,8 @@ typedef boost::multi_array<int, 1, fftw_allocator<int> > int1DArray;
 // we subclass the floating point classes to add on rotation and inversion methods
 typedef boost::multi_array<float_tt, 2, fftw_allocator<float_tt> > _float2DArray;
 typedef boost::multi_array<double, 2, fftw_allocator<double> > _double2DArray;
+typedef _float2DArray::array_view<1>::type float1DView;
+typedef _double2DArray::array_view<1>::type double1DView;
 
 typedef boost::multi_array<int, 2, fftw_allocator<int> > int2DArray;
 
@@ -80,14 +82,20 @@ typedef boost::multi_array<int, 2, fftw_allocator<int> > int2DArray;
 //    Those arrays confuse boost::multi_array.  This provides equivalent functionality.
 typedef boost::multi_array<float_tt, 3, fftw_allocator<float_tt> > complex2DArray;
 typedef boost::multi_array<double, 3, fftw_allocator<double> > complexDouble2DArray;
+typedef complex2DArray::array_view<2>::type complex1DView;
+typedef complexDouble2DArray::array_view<2>::type complexDouble1DView;
 
 // 3D arrays aligned for SIMD instructions
 typedef boost::multi_array<float_tt, 3, fftw_allocator<float_tt> > float3DArray;
 typedef boost::multi_array<double, 3, fftw_allocator<double> > double3DArray;
+typedef float3DArray::array_view<2>::type float2DView;
+typedef double3DArray::array_view<2>::type complexDouble2DView;
 // the extra dimension here is because FFTW treats complex numbers as 2-element arrays.
 //    Those arrays confuse boost::multi_array.  This provides equivalent functionality.
 typedef boost::multi_array<float_tt, 4, fftw_allocator<float_tt> > complex3DArray;
 typedef boost::multi_array<double, 4, fftw_allocator<double> > complexDouble3DArray;
+typedef complex3DArray::array_view<3>::type complex2DView;
+typedef complexDouble3DArray::array_view<3>::type complexeDouble2DView;
 
 class float1DArray : public _float1DArray
 {

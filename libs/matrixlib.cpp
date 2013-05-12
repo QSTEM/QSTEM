@@ -380,7 +380,7 @@ void rotateMatrix(double *matrixIn,double2DArray matrixOut, double phi_x, double
 {
 	int i,j,k;
 	static double2DArray Mrot;
-	static double1DArray matrixOutTemp;
+	static double2DArray matrixOutTemp;
 	static double sphi_x=0, sphi_y=0, sphi_z=0;
 	// static double *vectOut = NULL;
 	// printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
@@ -409,6 +409,7 @@ void rotateMatrix(double *matrixIn,double2DArray matrixOut, double phi_x, double
 		sphi_z = phi_z;
 	}
 	memset(matrixOutTemp.data(),0,9*sizeof(double));
+	// TODO: replace this with a simple matrix multiply using Eigen.
 	for (i=0;i<3;i++) for (j=0;j<3;j++) for (k=0;k<3;k++) 
 	{
 		matrixOutTemp[i*3+j] += Mrot[i][k]*matrixIn[k*3+j];

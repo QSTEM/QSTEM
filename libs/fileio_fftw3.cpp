@@ -362,7 +362,7 @@ int phononDisplacement(double1DArray u,MULS *muls,int id,int icx,int icy,
 	static long iseed=0;
 	double2DArray Mm, MmInv;
 	// static double **MmOrig=NULL,**MmOrigInv=NULL;
-	double1DArray axCell,byCell,czCell,b;
+	double2DArray::reference axCell,byCell,czCell,b;
 	static double wobScale = 0,sq3,scale=0;
 
 	if (muls->tds == 0) return 0;
@@ -501,7 +501,9 @@ int phononDisplacement(double1DArray u,MULS *muls,int id,int icx,int icy,
 			}
 			fread(&Nk,sizeof(int),1,fpPhonon);
 			fread(&Ns,sizeof(int),1,fpPhonon);
-			massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
+			massPrim = float1D(Ns, "massPrim");
+			//massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
+			// TODO: this will break if precision is set to 2.  Force to float?
 			fread(massPrim.data(),sizeof(float),Ns,fpPhonon);
 			kVecs = float2D(Nk,3,"kVecs");
 			omega = float2D(Nk,3*Ns,"omega");          /* array of eigenvalues for every k-vector 
@@ -1593,7 +1595,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancies) {
 	int atomKinds = 0;
 	int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
-	double1DArray axCell, byCell, czCell;
+	double2DArray::reference axCell, byCell, czCell;
 	double2DArray Mm, Mminv, MpRed, MpRedInv;
 	double2DArray MbPrim, MbPrimInv, MmOrig, MmOrigInv;
 	double2DArray a, aOrig, b, bfloor, blat;
