@@ -37,8 +37,8 @@ void writeRealImage(fftw_real **pix, int nx, int ny, float_t dx,
 		   float_t dy, float_t t,char *fileName);
 */
 
-void readRealImage(fftw_real **pix, int nx, int ny,real *dx, 
-		   real *dy, real *t, char *fileName);
+void readRealImage(fftw_real **pix, int nx, int ny,float_tt *dx, 
+		   float_tt *dy, float_tt *t, char *fileName);
 
 // old image I/O functions:
 // void readRealImage_old(fftw_real **pix, int nx, int ny,float_t *t, char *fileName);

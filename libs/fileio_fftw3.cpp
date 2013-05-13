@@ -7,6 +7,10 @@
 #include <time.h>
 #include <ctype.h>
 
+#include <vector>
+#include <string>
+#include <algorithm>
+
 // #include "../lib/floatdef.h"
 #include "stemtypes_fftw3.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
@@ -24,13 +28,6 @@
 #include <crtdbg.h>
 #endif
 #endif
-
-std::string elTable = "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-                      "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-                      "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-                      "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-                      "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-                      "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr";
 
 #define MAX_MASS_INDEX 59
 int idArraySize=0;
@@ -86,10 +83,11 @@ int atomCompareZYX(const void *atPtr1,const void *atPtr2) {
 * The return value is 1 for success, or 0 for failure.
 ********************************************************/
 
-int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
+int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
+  std::vector<std::string> elTable = getElTable();
   FILE *fp;
-  int j,i;
-  char elem[16];
+  size_t j,i;
+  std::string elem;
   double ax,by,cz;
   
   if (natoms < 1) {
@@ -110,13 +108,11 @@ int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
   fprintf(fp,"HEADER    libAtoms:Config_save_as_pdb; %d atoms\n",natoms);
   fprintf(fp,"CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1\n",
           muls->ax,muls->by,muls->c);
-  elem[2] = '\0';
+
   for (j=0;j<natoms;j++) {
-    elem[0] = elTable[2*atoms[j].Znum-2];
-    elem[1] = elTable[2*atoms[j].Znum-1];
-    if (elem[1] == ' ') elem[1] = '\0';
+    elem = elTable[atoms[j].Znum];
     fprintf(fp,"ATOM   %4d %s",j+1,elem);
-    for (i=strlen(elem);i<13;i++)
+    for (i=strlen(elem.c_str());i<13;i++)
       fprintf(fp," ");
     fprintf(fp,"1   ");
     fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x,atoms[j].y,atoms[j].z);
@@ -134,7 +130,7 @@ int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
 ////////////////////////////////////////////////////
 // This function siomply removes those atoms from the list
 // whose x- y- or z-position is exactly 1.0:
-int removeRedundantAtoms(atom *atoms,int natoms) {
+int removeRedundantAtoms(std::vector<atom> atoms,int natoms) {
   return 0;
 }
 
@@ -144,19 +140,12 @@ int removeRedundantAtoms(atom *atoms,int natoms) {
 * AtomEye.
 */
 
-int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
+int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
+  std::vector<std::string> elTable = getElTable();
   FILE *fp;
   int j;
-  /*
-    static char *elTable = {
-    "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-    "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-    "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-    "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-    "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-    "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-  */
-  char elem[16];
+
+  std::string elem;
   double ax,by,cz;
   
   if (natoms < 1) {
@@ -186,12 +175,9 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
   printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
   
   
-  elem[2] = '\0';
-  elem[0] = elTable[2*atoms[0].Znum-2];
-  elem[1] = elTable[2*atoms[0].Znum-1];
+  elem = elTable[atoms[0].Znum];
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
-  if (elem[1] == ' ') elem[1] = '\0';
-  fprintf(fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
+  fprintf(fp,"%g\n%s\n",atoms[0].Znum,elem);
   fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].x/ax,atoms[0].y/by,atoms[0].z/cz,
           atoms[0].dw,atoms[0].occ,atoms[0].q);
   
@@ -199,10 +185,8 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 
   for (j=1;j<natoms;j++) {
     if (atoms[j].Znum != atoms[j-1].Znum) {
-      elem[0] = elTable[2*atoms[j].Znum-2];
-      elem[1] = elTable[2*atoms[j].Znum-1];
-      if (elem[1] == ' ') elem[1] = '\0';
-      fprintf(fp,"%g\n%s\n",2.0*atoms[j].Znum,elem);
+      elem = elTable[atoms[j].Znum];
+      fprintf(fp,"%g\n%s\n",atoms[j].Znum,elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
     fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].x/ax,atoms[j].y/by,atoms[j].z/cz,
@@ -219,18 +203,10 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 // the unit cell is assumed to be cubic
 int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
                        double a,double b,double c) {
+  std::vector<std::string> elTable = getElTable();
   FILE *fp;
   int j;
-  /*
-    static char *elTable = {
-    "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-    "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-    "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-    "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-    "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-    "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-  */
-  char elem[16];
+  std::string elem;
   double ax,by,cz;
   
   if (natoms < 1) {
@@ -257,22 +233,15 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
   printf("ax: %g, by: %g, cz: %g n: %d\n",ax,by,c,natoms);
   
   
-  elem[2] = '\0';
-  elem[0] = elTable[2*Znum[0]-2];
-  elem[1] = elTable[2*Znum[0]-1];
+  elem = elTable[Znum[0]];
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
-  if (elem[1] == ' ') elem[1] = '\0';
-  fprintf(fp,"%g\n%s\n",2.0*Znum[0],elem);
+  fprintf(fp,"%g\n%s\n",Znum[0],elem);
   fprintf(fp,"%g %g %g %g\n",pos[0]*a/ax,pos[1]*b/by,pos[2]*c/cz,dw[0]);
-  
-  
   
   for (j=1;j<natoms;j++) {
     if (Znum[j] != Znum[j-1]) {
-      elem[0] = elTable[2*Znum[j]-2];
-      elem[1] = elTable[2*Znum[j]-1];
-      if (elem[1] == ' ') elem[1] = '\0';
-      fprintf(fp,"%g\n%s\n",2.0*Znum[j],elem);
+      elem = elTable[Znum[j]];
+      fprintf(fp,"%g\n%s\n",Znum[j],elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
     fprintf(fp,"%g %g %g %g\n",pos[3*j+0]*a/ax,pos[3*j+1]*b/by,pos[3*j+2]*c/cz,dw[j]);
@@ -303,8 +272,8 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 ********************************************************************************/ 
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 //  j == atomCount
-int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
-                       int icz,int atomCount,double dw,int maxAtom,int ZnumIndex) {
+int phononDisplacement(QSfVec u, MULS *muls, int id, int icx, int icy,
+                       int icz, int atomCount, float_tt dw, int maxAtom, int ZnumIndex) {
   int ix,iy,idd; // iz;
   static FILE *fpPhonon = NULL;
   static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
@@ -312,7 +281,8 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   //	static float *massPrim;   // masses for every atom in primitive basis
   QSfMat omega;
   //	static float **omega;     // array of eigenvalues for every k-vector 
-  std::vector <QSfMat> EigVecs;
+  //std::vector <QSfMat> EigVecs;
+  std::vector<QSCMat> eigVecs;
   //	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
   QSfMat kVecs;
   //	static float **kVecs;     // array for Nk 3-dim k-vectors
@@ -320,8 +290,8 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   QSfMat q1, q2;
   //	static double **q1=NULL, **q2=NULL;
   int ik,lambda,icoord; // Ncells, nkomega;
-  double kR,kRi,kRr,wobble;
-  double ux=0, uy=0, uz=0;
+  float_tt kR,kRi,kRr,wobble;
+  float_tt ux=0, uy=0, uz=0;
   QSfVec u2;
   //	static double *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
   // static double uxCollect=0,uyCollect=0,uzCollect=0;
@@ -334,7 +304,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   QSfVec uf(3), b(3);
   // axCell and the rest are unused - were used at one point in makeCellVectMuls.
   //static double *axCell,*byCell,*czCell;//*uf,*b;
-  static double wobScale = 0,sq3,scale=0;
+  static float_tt wobScale = 0,sq3,scale=0;
   
   if (muls->tds == 0) return 0;
 
@@ -382,11 +352,14 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   // we therefore cannot use the following command:
   // memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
   // or Mm = muls->Mm;
-  for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
+  Mm = muls->Mm.transpose();
+  //for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm(iy,ix)=muls->Mm(ix,iy);
   // makeCellVectMuls(muls, axCell, byCell, czCell);
   // memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
   // TODO: do we still need MMInv?
-  inverse_3x3(MmInv[0],Mm[0]);
+
+  MmInv = Mm.inverse();
+  //inverse_3x3(MmInv[0],Mm[0]);
 
   if (ZnumIndex >= u2Size) {
     u2 = QSfVec(ZnumIndex+1);
@@ -439,12 +412,12 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
    **************************************************************************/
   
   if (wobScale == 0) {
-    wobScale = 1.0/(8*PID*PID);   
-    sq3 = 1.0/sqrt(3.0);  /* sq3 is an additional needed factor which stems from
+    wobScale = static_cast<float_tt> (1.0/(8*PID*PID));   
+    sq3 = static_cast<float_tt> (1.0/sqrt(3.0));  /* sq3 is an additional needed factor which stems from
                            * int_-infty^infty exp(-x^2/2) x^2 dx = sqrt(pi)
                            * introduced in order to match the wobble factor with <u^2>
                            */
-    scale = (float) sqrt(muls->tds_temp/300.0) ;
+    scale = static_cast<float_tt> (sqrt(muls->tds_temp/300.0)) ;
     iseed = -(long)(time(NULL));
   }
   
@@ -475,18 +448,20 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
        * omega is given in THz, but the 2pi-factor
        * is still there, i.e. f=omega/2pi
        */
-      std::vector<QSCMat> eigVecs = std::vector<QSCMat>(Nk);
+      eigVecs = std::vector<QScMat>(Nk);
 	  for (int i=0; i<Nk; i++)
 	  {
-		  eigVecs[i] = QSCMat(3*Ns, 3*Ns)
+		  eigVecs[i] = QScMat(3*Ns, 3*Ns);
 	  }
       //      eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
       
       for (ix=0;ix<Nk;ix++) {
         fread(kVecs.data()+ix,sizeof(float),3,fpPhonon);  // k-vector
         for (iy=0;iy<3*Ns;iy++) {
-          fread(omega[ix][iy],sizeof(float),1,fpPhonon);
-          fread(eigVecs[ix][iy],2*sizeof(float),3*Ns,fpPhonon);
+			fread(&omega(iy,ix),sizeof(float),1,fpPhonon);
+          //fread(omega(iy,ix),sizeof(float),1,fpPhonon);
+          //fread(eigVecs(iy,ix),2*sizeof(float),3*Ns,fpPhonon);
+			fread(&eigVecs[ik](iy, ix),2*sizeof(float),3*Ns,fpPhonon);
         }	
       }
       /*
@@ -494,9 +469,9 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
         for (ix=0;ix<Ns;ix++) printf(" %g",massPrim[ix]);
         printf("\n");
         for (ix=0;ix<3;ix++) {
-        printf("(%5f %5f %5f):  ",kVecs[ix][0],kVecs[ix][1],kVecs[ix][2]);
+        printf("(%5f %5f %5f):  ",kVecs(0,ix),kVecs(1,ix),kVecs(2,ix));
         for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++)
-        printf("%6g ",omega[ix][iy+3*idd]);
+        printf("%6g ",omega(iy+3*idd,ix));
         printf("\n");
         }
       */      
@@ -506,19 +481,24 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
         for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++) {
             // quantize the energy distribution:
             // tanh and exp give different results will therefore use exp
-            // nkomega = (int)(1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp));
-            // wobble  =      (1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp)-0.5);
-            // nkomega = (int)(1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*id]/muls->tds_temp)-1)+0.5);
-            if (omega[ix][iy+3*idd] > 1e-4) {
-              wobble = muls->tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*idd]/muls->tds_temp)-1)):0;
-              // if (ix == 0) printf("%g: %d %g\n",omega[ix][iy+3*id],nkomega,wobble);
-              wobble = sqrt((wobble+0.5)/(2*PID*Nk*2*massPrim[idd]*omega[ix][iy+3*idd]* THZ_AMU_HBAR));  
+            // nkomega = (int)(1.0/tanh(THZ_HBAR_2KB*omega(iy+3*id,ix)/muls->tds_temp));
+            // wobble  =      (1.0/tanh(THZ_HBAR_2KB*omega(iy+3*id,ix)/muls->tds_temp)-0.5);
+            // nkomega = (int)(1.0/(exp(THZ_HBAR_KB*omega(iy+3*id,ix)/muls->tds_temp)-1)+0.5);
+			if (omega(iy+3*idd,ix) > 1e-4) {
+            //if (omega(iy+3*idd,ix) > 1e-4) {
+              wobble = static_cast<float_tt> (muls->tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega(iy+3*idd,ix)/muls->tds_temp)-1)):0);
+			  //wobble = muls->tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega(iy+3*idd,ix)/muls->tds_temp)-1)):0;
+              // if (ix == 0) printf("%g: %d %g\n",omega(iy+3*id,ix),nkomega,wobble);
+              wobble = static_cast<float_tt> (sqrt((wobble+0.5)/(2*PID*Nk*2*massPrim[idd]*omega(iy+3*idd,ix)* THZ_AMU_HBAR)));  
+			  //wobble = sqrt((wobble+0.5)/(2*PID*Nk*2*massPrim[idd]*omega(iy+3*idd,ix)* THZ_AMU_HBAR));  
             }
             else wobble = 0;
             /* Ttotal += 0.25*massPrim[id]*((wobble*wobble)/(2*Ns))*
-               omega[ix][iy+3*id]*omega[ix][iy+3*id]*AMU_THZ2_A2_KB;
+               omega(iy+3*id,ix)*omega(iy+3*id,ix)*AMU_THZ2_A2_KB;
             */
-            omega[ix][iy+3*idd] = wobble;
+			//
+			omega(iy+3*idd,ix) = wobble;
+            //omega(iy+3*idd,ix) = wobble;
           }  // idd
         // if (ix == 0) printf("\n");
       }
@@ -539,13 +519,16 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
   if ((muls->Einstein == 0) && (atomCount == maxAtom-1)) {
     if (Nk > 800)
       printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
+	// TODO: optimize loop out with Eigen - it is a transpose along with multiplication by scalar.
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
-        // TODO: optimize loop out
-        q1[lambda][ik] = (omega[ik][lambda] * gasdev( &iseed ));
-        q2[lambda][ik] = (omega[ik][lambda] * gasdev( &iseed ));
+		q1(ik, lambda) = (omega(lambda,ik) * gasdev( &iseed ));
+        //q1(ik,lambda) = (omega(lambda,ik) * gasdev( &iseed ));
+		// set q2 equal below.
+        //q2(ik,lambda) = (omega(lambda,ik) * gasdev( &iseed ));
       }
-    // printf("Q: %g %g %g\n",q1[0][0],q1[5][8],q1[0][3]);
+    // printf("Q: %g %g %g\n",q1(0,0),q1(8,5),q1(3,0));
   }
+  q2=q1;
   /********************************************************************************
    * Do the Einstein model independent vibrations !!!
    *******************************************************************************/
@@ -566,7 +549,8 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
      * coordinates so that we can add it to the current position in vector a
      */
     // TODO: optimize
-    matrixProduct(&u,1,3,MmInv,3,3,&uf);
+	uf = u*MmInv;
+    //matrixProduct(&u,1,3,MmInv,3,3,&uf);
     // test:
     /*
       matrixProduct(&uf,1,3,Mm,3,3,&b);
@@ -578,23 +562,32 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
     */
     // end test
     // Optimize?  How well does Eigen handle copies?
-    memcpy(u,uf,3*sizeof(double));
+    //memcpy(u,uf,3*sizeof(double));
+	u = uf;
   }
   else {
     // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
     printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",ZnumIndex,Ns,Nk,id,Nk,3*Ns,3*Ns);
     /* loop over k and lambda:  */
-    memset(u,0,3*sizeof(double));
+    //memset(u,0,3*sizeof(double));
+	u.setZero();
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
-        // if (kVecs[ik][2] == 0){
-        kR = 2*PID*(icx*kVecs[ik][0]+icy*kVecs[ik][1]+icz*kVecs[ik][2]);
-        //  kR = 2*PID*(blat[0][0]*kVecs[ik][0]+blat[0][1]*kVecs[ik][1]+blat[0][2]*kVecs[ik][2]);
+        // if (kVecs(2,ik) == 0){
+        //kR = 2*PID*(icx*kVecs(0,ik)+icy*kVecs(1,ik)+icz*kVecs(2,ik));
+		// Eigen translation:
+		kR = static_cast<float_tt>(2*PID*(icx*kVecs(0,ik)+icy*kVecs(1,ik)+icz*kVecs(2,ik)));
+        //  kR = 2*PID*(blat(0,0)*kVecs(0,ik)+blat(1,0)*kVecs(1,ik)+blat(2,0)*kVecs(2,ik));
         kRr = cos(kR); kRi = sin(kR);
         for (icoord=0;icoord<3;icoord++) {
-          u[icoord] += q1[lambda][ik]*(eigVecs[ik][lambda][icoord+3*id][0]*kRr-
-                                       eigVecs[ik][lambda][icoord+3*id][1]*kRi)-
-            q2[lambda][ik]*(eigVecs[ik][lambda][icoord+3*id][0]*kRi+
-                            eigVecs[ik][lambda][icoord+3*id][1]*kRr);
+			// Eigen translation:
+			u[icoord] += q1(ik, lambda)*(eigVecs[ik](icoord+3*id,lambda).real()*kRr-
+                                       eigVecs[ik](icoord+3*id,lambda).imag()*kRi)-
+					   q2(ik, lambda)*(eigVecs[ik](icoord+3*id,lambda).real()*kRi+
+								       eigVecs[ik](icoord+3*id,lambda).imag()*kRr);
+          //u[icoord] += q1(ik,lambda)*(eigVecs(lambda,ik)[icoord+3*id].real()*kRr-
+                                       //eigVecs(lambda,ik)[icoord+3*id].imag()*kRi)-
+					   //q2(ik,lambda)*(eigVecs(lambda,ik)[icoord+3*id].real()*kRi+
+								       //eigVecs(lambda,ik)[icoord+3*id].imag()*kRr);
         }
       }
     // printf("u: %g %g %g\n",u[0],u[1],u[2]);
@@ -629,17 +622,17 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readDATCellParams(MULS *muls, double **Mm, char *fileName) {
-  int ncoord,i;
+int readDATCellParams(MULS *muls, QSfMat Mm, std::string fileName) {
+  int ncoord;
   char buf[256];
-  double a,b,c,alpha=90.0,beta=90.0,gamma=90.0;
+  float_tt a,b,c,alpha=90.0,beta=90.0,gamma=90.0;
   
   // printf("Paramter File pointer (1): %d\n",(int)getFp());
   parFpPush(); /* push the current parameter file file pointer 
                 * on the stack to make this function totaly 
                 * transparent 
                 */
-  if (!parOpen(fileName)) {
+  if (!parOpen(fileName.c_str())) {
     printf("Could not open CFG input file %s\n",fileName);
     parFpPull();  /* restore old parameter file pointer */
     return 0;
@@ -670,7 +663,7 @@ int readDATCellParams(MULS *muls, double **Mm, char *fileName) {
   muls->cBeta  = beta;
   muls->cAlpha = gamma;
   // construct the unit cell metric from the lattice parameters and angles:
-  makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
+  makeCellVectMuls(muls, Mm.data(), Mm.data()+1, Mm.data()+2);   
   if (ncoord < 1) {
     printf("Number of atoms in CFG file not specified!\n");
     ncoord = 0;
@@ -684,17 +677,17 @@ int readDATCellParams(MULS *muls, double **Mm, char *fileName) {
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readCFGCellParams(MULS *muls, double **Mm, char *fileName) {
-  int ncoord,i;
+int readCFGCellParams(MULS *muls, QSfMat Mm, std::string fileName) {
+  int ncoord;
   char buf[256];
-  double lengthScale;
+  float_tt lengthScale;
   
   // printf("Paramter File pointer (1): %d\n",(int)getFp());
   parFpPush(); /* push the current parameter file file pointer 
                 * on the stack to make this function totaly 
                 * transparent 
                 */
-  if (!parOpen(fileName)) {
+  if (!parOpen(fileName.c_str())) {
     printf("Could not open CFG input file %s\n",fileName);
     parFpPull();  /* restore old parameter file pointer */
     return 0;
@@ -726,14 +719,21 @@ int readCFGCellParams(MULS *muls, double **Mm, char *fileName) {
   parClose();   
   parFpPull();  /* restore old parameter file pointer */
   
-  for (i=0;i<9;i++) Mm[0][i] *= lengthScale;
+  // 
+  Mm*=lengthScale;
+  //for (i=0;i<9;i++) Mm(i,0) *= lengthScale;
   
-  muls->ax = sqrt(Mm[0][0]*Mm[0][0]+Mm[0][1]*Mm[0][1]+Mm[0][2]*Mm[0][2]);
-  muls->by = sqrt(Mm[1][0]*Mm[1][0]+Mm[1][1]*Mm[1][1]+Mm[1][2]*Mm[1][2]);
-  muls->c  = sqrt(Mm[2][0]*Mm[2][0]+Mm[2][1]*Mm[2][1]+Mm[2][2]*Mm[2][2]);
-  muls->cGamma = atan2(Mm[1][1],Mm[1][0]);
-  muls->cBeta = acos(Mm[2][0]/muls->c);
-  muls->cAlpha = acos(Mm[2][1]*sin(muls->cGamma)/muls->c+cos(muls->cBeta)*cos(muls->cGamma));
+  // todo: these are simple cartesian distances - should be easy to optimize.
+  muls->ax = sqrt(Mm(0,0)*Mm(0,0)+Mm(1,0)*Mm(1,0)+Mm(2,0)*Mm(2,0));
+  muls->by = sqrt(Mm(0,1)*Mm(0,1)+Mm(1,1)*Mm(1,1)+Mm(2,1)*Mm(2,1));
+  muls->c  = sqrt(Mm(0,2)*Mm(0,2)+Mm(1,2)*Mm(1,2)+Mm(2,2)*Mm(2,2));
+
+  muls->cGamma = atan2(Mm(1,1),Mm(0,1));
+  //muls->cGamma = atan2(Mm(1,1),Mm(0,1));
+  muls->cBeta = acos(Mm(0,2)/muls->c);
+  //muls->cBeta = acos(Mm(0,2)/muls->c);
+  muls->cAlpha = acos(Mm(1,2)*sin(muls->cGamma)/muls->c+cos(muls->cBeta)*cos(muls->cGamma));
+  //muls->cAlpha = acos(Mm(1,2)*sin(muls->cGamma)/muls->c+cos(muls->cBeta)*cos(muls->cGamma));
   muls->cGamma /= (float)PI180;
   muls->cBeta  /= (float)PI180;
   muls->cAlpha /= (float)PI180;
@@ -748,12 +748,12 @@ int readCFGCellParams(MULS *muls, double **Mm, char *fileName) {
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
+int readCSSRCellParams(MULS *muls, QSfMat Mm, std::string fileName) {
   FILE *fp;
   char s1[32],s2[32],s3[32],buf[NCMAX];
   int spaceGrp = 1,ncoord;
   
-  fp = fopen(fileName, "r" );
+  fp = fopen(fileName.c_str(), "r" );
   if( fp == NULL ) {
     printf("Cannot open file %s\n",fileName);
     return 0;
@@ -761,12 +761,17 @@ int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
   /* read the cell parameters from first and secons line */
   ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
   sscanf( buf, " %s %s %s",s1,s2,s3);
-  muls->ax = atof(s1); muls->by = atof(s2); muls->c = atof(s3);
+  muls->ax = static_cast<float_tt>(atof(s1)); 
+  muls->by = static_cast<float_tt>(atof(s2)); 
+  muls->c = static_cast<float_tt>(atof(s3));
   
   ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
   sscanf( buf, " %s %s %s",s1,s2,s3);
-  muls->cAlpha = atof(s1); muls->cBeta  = atof(s2); muls->cGamma = atof(s3);
-  makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
+  muls->cAlpha = static_cast<float_tt>(atof(s1)); 
+  muls->cBeta  = static_cast<float_tt>(atof(s2)); 
+  muls->cGamma = static_cast<float_tt>(atof(s3));
+  // What Eigen is providing here is the value 
+  makeCellVectMuls(muls, Mm.data(), Mm.data()+1, Mm.data()+2);   
   
   /* check the space group: */
   spaceGrp = atoi(strstr(buf,"SPGR =")+strlen("SPGR ="));
@@ -788,12 +793,12 @@ int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
 * This function will return -1, if the end of file is reached prematurely, 0 otherwise.
 *******************************************************************************/
 
-int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
+int readNextDATAtom(atom &newAtom, int flag, std::string fileName) {
   int printFlag = 0;
   static FILE *fp=NULL;
-  static int noVelocityFlag = 1,entryCount = 3,element = 1;
-  static char buf[NCMAX];
-  static double *atomData = NULL;
+  int noVelocityFlag = 1,entryCount = 3,element = 1;
+  char buf[NCMAX];
+  float_tt *atomData = NULL;
   char *str,elementStr[3];
   int j;
   
@@ -809,7 +814,7 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
   
   if (fp == NULL) {
     parFpPush();  /* save old parameter file pointer */      
-    if (!parOpen(fileName)) {
+    if (!parOpen(fileName.c_str())) {
       printf("Could not open DAT input file %s\n",fileName);
       parFpPull();  /* restore old parameter file pointer */
       return -1;
@@ -818,7 +823,7 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
     // advance file pointer to last (known) header line
     readparam("gamma =",buf,1);
     fp = getFp();  /* get the file pointer from the parameter file routines */
-    atomData = (double *)malloc(entryCount*sizeof(double));
+    atomData = (float_tt *)malloc(entryCount*sizeof(float_tt));
   }
   
   element = 0;
@@ -848,14 +853,14 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
     }		
   }
   
-  newAtom->Znum = element;
-  newAtom->x    = atomData[0];
-  newAtom->y    = atomData[1];
-  newAtom->z    = atomData[2];
-  newAtom->dw   = 0.45*28.0/(double)(2.0*element);	
-  newAtom->occ  = 1.0;
-  newAtom->q    = 0.0;
-  printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	  
+  newAtom.Znum = element;
+  newAtom.x    = static_cast<float_tt>(atomData[0]);
+  newAtom.y    = static_cast<float_tt>(atomData[1]);
+  newAtom.z    = static_cast<float_tt>(atomData[2]);
+  newAtom.dw   = static_cast<float_tt>(0.45*28.0/(double)(2.0*element));	
+  newAtom.occ  = static_cast<float_tt>(1.0);
+  newAtom.q    = static_cast<float_tt>(0.0);
+  printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.x,newAtom.y,newAtom.z,newAtom.occ,newAtom.q);	  
   
   return 0;
 }
@@ -869,15 +874,14 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
 * This function will return -1, if the end of file is reached prematurely, 0 otherwise.
 *******************************************************************************/
 
-int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
+int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 	static FILE *fp=NULL;
 	static int noVelocityFlag = 1,entryCount = 3,element = 1;
-	static char buf[NCMAX];
-	static double *atomData = NULL;
-	static double mass = 28;
+	char buf[NCMAX];
+	float_tt *atomData = NULL;
+	float_tt mass = 28;
 	char *str = NULL;
 	int j;
-
 
 	if (flag < 0) {
 		if (fp != NULL) {
@@ -891,7 +895,7 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 
 	if (fp == NULL) {
 		parFpPush();  /* save old parameter file pointer */      
-		if (!parOpen(fileName)) {
+		if (!parOpen(fileName.c_str())) {
 			printf("Could not open CFG input file %s\n",fileName);
 			parFpPull();  /* restore old parameter file pointer */
 			return -1;
@@ -902,7 +906,7 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 		if (readparam("entry_count =",buf,1)) sscanf(buf,"%d",&entryCount);
 		if (!noVelocityFlag) entryCount+=3;
 		fp = getFp();  /* get the file pointer from the parameter file routines */
-		atomData = (double *)malloc((entryCount+1)*sizeof(double));
+		atomData = (float_tt *)malloc((entryCount+1)*sizeof(float_tt));
 	}
 
 	if (fgets(buf,NCMAX,fp) == NULL) return -1;
@@ -928,26 +932,25 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 	}
 
 
-	newAtom->Znum = element;
-	newAtom->x    = atomData[0];
-	newAtom->y    = atomData[1];
-	newAtom->z    = atomData[2];
+	newAtom.Znum = element;
+	newAtom.x    = atomData[0];
+	newAtom.y    = atomData[1];
+	newAtom.z    = atomData[2];
 	// newAtom->dw   = 0.45*28.0/((double)(2*element));	
 	// printf("Element: %d, mass=%g\n",element,mass);
-	newAtom->dw   = 0.45*28.0/mass;	
-	newAtom->occ  = 1.0;
-	newAtom->q    = 0.0;
+	newAtom.dw   = 0.45*28.0/mass;	
+	newAtom.occ  = 1.0;
+	newAtom.q    = 0.0;
 	// read the DW-factor
 	if (entryCount > 3+3*(1-noVelocityFlag)) 
-		newAtom->dw = atomData[3+3*(1-noVelocityFlag)];
+		newAtom.dw = atomData[3+3*(1-noVelocityFlag)];
 	// read the atom's occupancy:
 	if (entryCount > 4+3*(1-noVelocityFlag)) 
-		newAtom->occ = atomData[4+3*(1-noVelocityFlag)];
+		newAtom.occ = atomData[4+3*(1-noVelocityFlag)];
 	// read the atom's charge:
 	if (entryCount > 5+3*(1-noVelocityFlag)) 
-		newAtom->q = atomData[5+3*(1-noVelocityFlag)];
+		newAtom.q = atomData[5+3*(1-noVelocityFlag)];
 	// printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	
-
 
 	return 0;
 }
@@ -959,12 +962,12 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 * file.
 * A ReadLine error will occur, if the end of file is reached prematurely.
 *******************************************************************************/
-int readNextCSSRAtom(atom *newAtom,int flag, char *fileName) {
+int readNextCSSRAtom(atom &newAtom, int flag, std::string fileName) {
 	static FILE *fp=NULL;
-	static char buf[NCMAX];
+	char buf[NCMAX];
 	int count;
-	static char element[32],s1[32],s2[32],s3[32];
-	double dw;
+	char element[32],s1[32],s2[32],s3[32];
+	float_tt dw;
 
 	if (flag < 0) {
 		if (fp != NULL) fclose(fp);
@@ -973,7 +976,7 @@ int readNextCSSRAtom(atom *newAtom,int flag, char *fileName) {
 	}
 
 	if (fp == NULL) {
-		fp = fopen(fileName, "r" );
+		fp = fopen(fileName.c_str(), "r" );
 		if( fp == NULL ) {
 			printf("Cannot open file %s\n",fileName);
 			exit( 0 );
@@ -992,12 +995,12 @@ int readNextCSSRAtom(atom *newAtom,int flag, char *fileName) {
 		&count,element,s1,s2,s3,&count,&count,
 		&count,&count,&count,&count,&count,&count,&dw);
 
-	newAtom->x = atof(s1);
-	newAtom->y = atof(s2);
-	newAtom->z = atof(s3);
-	newAtom->occ = 1.0;
-	newAtom->Znum = getZNumber(element); 
-	newAtom->dw = dw;
+	newAtom.x = atof(s1);
+	newAtom.y = atof(s2);
+	newAtom.z = atof(s3);
+	newAtom.occ = 1.0;
+	newAtom.Znum = getZNumber(element); 
+	newAtom.dw = dw;
 
 	/*
 	switch (newAtom->Znum) {
@@ -1081,19 +1084,19 @@ int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,do
 // ncoord is the number of atom positions that has already been read.
 // memory for the whole atom-array of size natom has already been allocated
 // but the sites beyond natom are still empty.
-void replicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVacancies) {
+void replicateUnitCell(int ncoord,int *natom,MULS *muls,std::vector<atom> atoms,int handleVacancies) {
 	int i,j,i2,jChoice,ncx,ncy,ncz,icx,icy,icz,jz,jCell,jequal,jVac;
 	int 	atomKinds = 0;
 	double totOcc;
 	double choice,lastOcc;
-	double *u;
+	QSfVec u(3);
+	//double *u;
 	// seed for random number generation
 	static long idum = -1;
 
 	ncx = muls->nCellX;
 	ncy = muls->nCellY;
 	ncz = muls->nCellZ;
-	u = (double *)malloc(3*sizeof(double));
 
 	atomKinds = muls->atomKinds;
 	//////////////////////////////////////////////////////////////////////////////
@@ -1123,7 +1126,8 @@ void replicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVa
 		}
 
 		////////////////
-		memset(u,0,3*sizeof(double));
+		u.setZero();
+		//memset(u,0,3*sizeof(double));
 		/* replicate unit cell ncx,y,z times: */
 		/* We have to start with the last atoms first, because once we added the displacements 
 		* to the original unit cell (icx=icy=icz=0), we cannot use those positions			
@@ -1206,7 +1210,8 @@ void replicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVa
 //
 // This function reads the atomic positions from fileName and also adds 
 // Thermal displacements to their positions, if muls.tds is turned on.
-atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
+std::vector<atom> readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
+	char error_string[100];
 	int printFlag = 1;
 	// char buf[NCMAX], *str,element[16];
 	// FILE *fp;
@@ -1215,38 +1220,28 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	// float_t dw,occ,dx,dy,dz,r;
 	int i,i2,j,format=FORMAT_UNKNOWN,ix,iy,iz,atomKinds=0;
 	// char s1[16],s2[16],s3[16];
-	double boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
-	double boxCenterX,boxCenterY,boxCenterZ,boxCenterXrot,boxCenterYrot,boxCenterZrot,bcX,bcY,bcZ;
-	double x,y,z,totOcc;
-	double choice,lastOcc;
-	double *u = NULL;
-	double **Mm = NULL;
-	static atom *atoms = NULL;
+	float_tt boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
+	float_tt boxCenterX,boxCenterY,boxCenterZ,boxCenterXrot,boxCenterYrot,boxCenterZrot,bcX,bcY,bcZ;
+	float_tt x,y,z,totOcc;
+	float_tt choice,lastOcc;
+	//double *u = NULL;
+	QSfVec u(3);
+	QSfMat Mm(3,3);
+	//double **Mm = NULL;
+	std::vector<atom> atoms;
+	//static atom *atoms = NULL;
 	static int ncoord_old = 0;
-
 	printFlag = muls->printLevel;
 
-	if (Mm == NULL) {
-		Mm = double2D(3,3,"Mm");
-		memset(Mm[0],0,9*sizeof(double));
-		muls->Mm = Mm;
-		u = (double *)malloc(3*sizeof(double));
-	}
+	Mm.setZero();
+	//memset(Mm[0],0,9*sizeof(double));
+	muls->Mm = Mm;
+	//u = (double *)malloc(3*sizeof(double));
 
 	/* figure out, whether we have  cssr, pdb, or cfg */
 	if (strstr(fileName,".cssr") == fileName+strlen(fileName)-5) {
 		format = FORMAT_CSSR;
 		ncoord = readCSSRCellParams(muls,Mm,fileName);
-	}
-	if (strstr(fileName,".pdb") == fileName+strlen(fileName)-4) {
-		format = FORMAT_PDB;
-		printf("Cannot read Protein Data Bank format yet - sorry!\n");
-		return NULL;
-	}
-	if (strstr(fileName,".xyz") == fileName+strlen(fileName)-4) {
-		format = FORMAT_XYZ;
-		printf("Cannot read XYZ format yet - sorry!\n");
-		return NULL;
 	}
 	if (strstr(fileName,".cfg") == fileName+strlen(fileName)-4) {
 		format = FORMAT_CFG;
@@ -1259,15 +1254,15 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		// return readCFGUnitCell(natom,fileName,muls);
 	}
 	if (format == FORMAT_UNKNOWN) {
-		printf("Cannot read anything else than .cssr, .cfg, or .pdb files (%s)!\n",fileName);
-		return NULL;
+		sprintf(error_string, "readUnitCell: Cannot read anything else than .cssr, .cfg, or .dat files (%s)!\n", fileName);
+		throw std::exception(error_string);
+		
 	}
 
 	if (ncoord == 0) {
-		printf("Error reading configuration file %s - ncoord =0\n",fileName);
-		return NULL;
+		sprintf(error_string, "readUnitCell: Error reading configuration file %s - ncoord =0\n", fileName);
+		throw std::exception(error_string);
 	}
-
 
 	ncx = muls->nCellX;
 	ncy = muls->nCellY;
@@ -1293,13 +1288,15 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	muls->nCellX,muls->nCellY,muls->nCellZ);
 	*/
 	if (ncoord_old != ncoord) {
-		if (atoms != NULL) free(atoms);
-		atoms = (atom *)malloc(ncoord*sizeof(atom)*ncx*ncy*ncz);
+		// clear the vector of atoms
+		atoms.clear();
+		//if (atoms != NULL) free(atoms);
+		atoms = std::vector<atom>(ncoord*ncx*ncy*ncz);
+		//atoms = (atom *)malloc(ncoord*sizeof(atom)*ncx*ncy*ncz);
 		ncoord_old = ncoord;
 	}
-	if (atoms == NULL) {
-		printf("Could not allocate memory for atoms!\n");
-		return NULL;
+	if (atoms.size()==0) {
+		throw std::exception("readUnitCell: Could not allocate memory for atoms!\n");
 	}
 	*natom = ncoord*ncx*ncy*ncz;
 
@@ -1315,28 +1312,24 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	* Read actual Data
 	***********************************************************/
 	for(jz=0,i=ncoord-1; i>=0; i--) {
-
-
-
 		switch (format) {
 		case FORMAT_CFG: 
-		if (readNextCFGAtom(atoms+i,0,fileName) < 0) {
-			printf("number of atoms does not agree with atoms in file!\n");
-			return NULL;
+		if (readNextCFGAtom(atoms[i],0,fileName) < 0) {
+			throw std::exception("readUnitCell: number of atoms does not agree with atoms in file!\n");
 		}
 		break;
 		case FORMAT_DAT: 
 
-		if (readNextDATAtom(atoms+i,0,fileName) < 0) {
-			printf("number of atoms does not agree with atoms in file!\n");
-			return NULL;
+		if (readNextDATAtom(atoms[i],0,fileName) < 0) {
+			throw std::exception("readUnitCell: number of atoms does not agree with atoms in file!\n");
+			
 		}
 		break;
 
 		case FORMAT_CSSR:
-		readNextCSSRAtom(atoms+i,0,fileName);
+		readNextCSSRAtom(atoms[i],0,fileName);
 		break;
-		default: return NULL;
+		default: throw std::exception("Unrecognized file format passed to readUnitCell function");
 		}
 
 		if((atoms[i].Znum < 1 ) || (atoms[i].Znum > NZMAX)) {
@@ -1344,9 +1337,9 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 			printf("%2d: %d (%g,%g,%g)\n",j,atoms[j].Znum,atoms[j].x,
 			atoms[j].y,atoms[j].z);
 			*/
-			printf("Error: bad atomic number %d in file %s (atom %d [%d: %g %g %g])\n",
+			sprintf(error_string, "Error: bad atomic number %d in file %s (atom %d [%d: %g %g %g])\n",
 				atoms[i].Znum,fileName,i,atoms[i].Znum,atoms[i].x,atoms[i].y,atoms[i].z);
-			return NULL;
+			throw std::exception(error_string);
 		}
 
 		// Keep a record of the kinds of atoms we are reading
@@ -1365,34 +1358,30 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 
 	} // for 1=ncoord-1:-1:0  - we've just read all the atoms.
 	if (muls->tds) {
-		if (muls->u2 == NULL) {
-			// printf("AtomKinds: %d\n",muls->atomKinds);
-			muls->u2 = (double *)malloc(atomKinds*sizeof(double));
-			memset(muls->u2,0,atomKinds*sizeof(double));
-		}
-		if (muls->u2avg == NULL) {
-			muls->u2avg = (double *)malloc(muls->atomKinds*sizeof(double));
-			memset(muls->u2avg,0,muls->atomKinds*sizeof(double));
-		}
+		muls->u2 = QSfVec(atomKinds);
+		muls->u2.setZero();
+		muls->u2avg = QSfVec(atomKinds);
+		muls->u2avg.setZero();
 	}
 
 		////////////////////////////////////////////////////////////////
 	// Close the file for further reading, and restore file pointer 
 	switch (format) {
 		case FORMAT_CFG: 
-			readNextCFGAtom(NULL,-1,NULL);
+			readNextCFGAtom(atoms[0],-1,"");
 			break;
 		case FORMAT_DAT: 
-			readNextDATAtom(NULL,-1,NULL);
+			readNextDATAtom(atoms[0],-1,"");
 			break;
 		case FORMAT_CSSR:
-			readNextCSSRAtom(NULL,-1,NULL);
+			readNextCSSRAtom(atoms[0],-1,"");
 			break;
 	}
 
 	// First, we will sort the atoms by position:
 	if (handleVacancies) {
-		qsort((void *)atoms,ncoord,sizeof(atom),atomCompareZYX);
+		std::sort (atoms.begin(), atoms.end(), atomCompareZYX);
+		//qsort((void *)atoms,ncoord,sizeof(atom),);
 	}
 
 
@@ -1416,19 +1405,19 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		* need to decide if this is workable
 		**************************************************************/
 		*natom = ncoord*ncx*ncy*ncz;
-		if (1) { // ((Mm[0][0]*Mm[1][1]*Mm[2][2] == 0) || (Mm[0][1]!=0)|| (Mm[0][2]!=0)|| (Mm[1][0]!=0)|| (Mm[1][2]!=0)|| (Mm[2][0]!=0)|| (Mm[2][1]!=0)) {
+		if (1) { // ((Mm(0,0)*Mm(1,1)*Mm(2,2) == 0) || (Mm(1,0)!=0)|| (Mm(2,0)!=0)|| (Mm(0,1)!=0)|| (Mm(2,1)!=0)|| (Mm(0,2)!=0)|| (Mm(1,2)!=0)) {
 				// printf("Lattice is not orthogonal, or rotated\n");
 				for(i=0;i<*natom;i++) {
 					/*
-					x = Mm[0][0]*atoms[i].x+Mm[0][1]*atoms[i].y+Mm[0][2]*atoms[i].z;
-					y = Mm[1][0]*atoms[i].x+Mm[1][1]*atoms[i].y+Mm[1][2]*atoms[i].z;
-					z = Mm[2][0]*atoms[i].x+Mm[2][1]*atoms[i].y+Mm[2][2]*atoms[i].z;
+					x = Mm(0,0)*atoms[i].x+Mm(1,0)*atoms[i].y+Mm(2,0)*atoms[i].z;
+					y = Mm(0,1)*atoms[i].x+Mm(1,1)*atoms[i].y+Mm(2,1)*atoms[i].z;
+					z = Mm(0,2)*atoms[i].x+Mm(1,2)*atoms[i].y+Mm(2,2)*atoms[i].z;
 					*/
 
 					// This converts also to cartesian coordinates
-					x = Mm[0][0]*atoms[i].x+Mm[1][0]*atoms[i].y+Mm[2][0]*atoms[i].z;
-					y = Mm[0][1]*atoms[i].x+Mm[1][1]*atoms[i].y+Mm[2][1]*atoms[i].z;
-					z = Mm[0][2]*atoms[i].x+Mm[1][2]*atoms[i].y+Mm[2][2]*atoms[i].z;
+					x = Mm(0,0)*atoms[i].x+Mm(0,1)*atoms[i].y+Mm(0,2)*atoms[i].z;
+					y = Mm(1,0)*atoms[i].x+Mm(1,1)*atoms[i].y+Mm(1,2)*atoms[i].z;
+					z = Mm(2,0)*atoms[i].x+Mm(2,1)*atoms[i].y+Mm(2,2)*atoms[i].z;
 
 					atoms[i].x = x;
 					atoms[i].y = y;
@@ -1458,9 +1447,9 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		bcX = ncx/2.0;
 		bcY = ncy/2.0;
 		bcZ = ncz/2.0;
-		u[0] = Mm[0][0]*bcX+Mm[1][0]*bcY+Mm[2][0]*bcZ;
-		u[1] = Mm[0][1]*bcX+Mm[1][1]*bcY+Mm[2][1]*bcZ;
-		u[2] = Mm[0][2]*bcX+Mm[1][2]*bcY+Mm[2][2]*bcZ;
+		u[0] = Mm(0,0)*bcX+Mm(0,1)*bcY+Mm(0,2)*bcZ;
+		u[1] = Mm(1,0)*bcX+Mm(1,1)*bcY+Mm(1,2)*bcZ;
+		u[2] = Mm(2,0)*bcX+Mm(2,1)*bcY+Mm(2,2)*bcZ;
 		boxCenterX = u[0];
 		boxCenterY = u[1];
 		boxCenterZ = u[2];
@@ -1470,9 +1459,9 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		
 		// Determine the size of the (rotated) super cell
 		for (icx=0;icx<=ncx;icx+=ncx) for (icy=0;icy<=ncy;icy+=ncy) for (icz=0;icz<=ncz;icz+=ncz) {
-			u[0] = Mm[0][0]*(icx-bcX)+Mm[1][0]*(icy-bcY)+Mm[2][0]*(icz-bcZ);
-			u[1] = Mm[0][1]*(icx-bcX)+Mm[1][1]*(icy-bcY)+Mm[2][1]*(icz-bcZ);
-			u[2] = Mm[0][2]*(icx-bcX)+Mm[1][2]*(icy-bcY)+Mm[2][2]*(icz-bcZ);
+			u[0] = Mm(0,0)*(icx-bcX)+Mm(0,1)*(icy-bcY)+Mm(0,2)*(icz-bcZ);
+			u[1] = Mm(1,0)*(icx-bcX)+Mm(1,1)*(icy-bcY)+Mm(1,2)*(icz-bcZ);
+			u[2] = Mm(2,0)*(icx-bcX)+Mm(2,1)*(icy-bcY)+Mm(2,2)*(icz-bcZ);
 			rotateVect(u,u,muls->ctiltx,muls->ctilty,muls->ctiltz);  // simply applies rotation matrix
 			// x = u[0]+boxCenterXrot; y = u[1]+boxCenterYrot; z = u[2]+boxCenterZrot;
 			x = u[0]+boxCenterX; y = u[1]+boxCenterY; z = u[2]+boxCenterZ;
@@ -1554,18 +1543,19 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 
 
 
-atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancies) {
+std::vector<atom> tiltBoxed(int ncoord,int *natom, MULS *muls, std::vector<atom> atoms, int handleVacancies) {
 	int atomKinds = 0;
-	int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
-	static double *axCell,*byCell,*czCell=NULL;
-	static double **Mm = NULL, **Mminv = NULL, **MpRed = NULL, **MpRedInv = NULL;
-	static double **MbPrim = NULL, **MbPrimInv = NULL, **MmOrig = NULL,**MmOrigInv=NULL;
-	static double **a = NULL,**aOrig = NULL,**b= NULL,**bfloor=NULL,**blat=NULL;
-	static double *uf;
+	int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0, atomSize;
+	static QSfVec axCell, byCell, czCell;
+	//static double *axCell,*byCell,*czCell=NULL;
+	static QSfMat Mm(3,3), Mminv(3,3), MpRed(3,3), MpRedInv(3,3);
+	static QSfMat MbPrim(3,3), MbPrimInv(3,3), MmOrig(3,3), MmOrigInv(3,3);
+	static QSfVec a(3), aOrig(3), b(3), bfloor(3), blat(3);
 	static int oldAtomSize = 0;
 	double x,y,z,dx,dy,dz; 
 	double totOcc,lastOcc,choice;
-	atom *unitAtoms,newAtom;
+	std::vector<atom> unitAtoms;
+	atom newAtom;
 	int nxmin,nxmax,nymin,nymax,nzmin,nzmax,jz;
 	// static FILE *fpPhonon = NULL;
 	// FILE *fpu2;
@@ -1583,7 +1573,8 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	//static double u2=0;
 	//static int u2Count = 0;
 	// static long iseed=0;
-	static double *u;
+	// column vectors
+	static QSfVec u(3), uf(3);
 	static long idum = -1;
 
 
@@ -1598,29 +1589,9 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	muls->cubez*muls->cubez);
 	*/
 
-	if (Mm == NULL) {
-		MmOrig		= double2D(3,3,"MmOrig");
-		MmOrigInv	= double2D(3,3,"MmOrigInv");
-		MbPrim		= double2D(3,3,"MbPrim");	// double version of primitive lattice basis 
-		MbPrimInv	= double2D(3,3,"MbPrim"); // double version of inverse primitive lattice basis 
-		MpRed		= double2D(3,3,"MpRed");    /* conversion lattice to obtain red. prim. coords 
-												* from reduced cubic rect.
-												*/
-		MpRedInv	= double2D(3,3,"MpRedInv");    /* conversion lattice to obtain red. cub. coords 
-												   * from reduced primitive lattice coords
-												   */
-		Mm			= double2D(3,3,"Mm");
-		Mminv		= double2D(3,3,"Mminv");
-		axCell = Mm[0]; byCell = Mm[1]; czCell = Mm[2];
-		a			= double2D(1,3,"a");
-		aOrig		= double2D(1,3,"aOrig");
-		b			= double2D(1,3,"b");
-		bfloor		= double2D(1,3,"bfloor");
-		blat		= double2D(1,3,"blat");
-		uf			= (double *)malloc(3*sizeof(double));
-		u			= (double *)malloc(3*sizeof(double));
-	}
-
+	axCell = Mm.block(0,0,1,3); 
+	byCell = Mm.block(0,1,1,3); 
+	czCell = Mm.block(0,2,1,3);
 
 	dx = 0; dy = 0; dz = 0;
 	dx = muls->xOffset;
@@ -1632,54 +1603,66 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	// We need to copy the transpose of muls->Mm to Mm.
 	// we therefore cannot use the following command:
 	// memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
-	for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
+	Mm.transposeInPlace();
+	//for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm(iy,ix)=muls->Mm(ix,iy);
 
-	memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
-	inverse_3x3(MmOrigInv[0],MmOrig[0]);
+	MmOrig = Mm.transpose();
+	MmOrigInv = MmOrig.inverse();
 	/* remember that the angles are in rad: */
-	rotateMatrix(Mm[0],Mm[0],muls->ctiltx,muls->ctilty,muls->ctiltz);
+	rotateMatrix(Mm,Mm,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	/*
 	// This is wrong, because it implements Mrot*(Mm'):
 	rotateVect(axCell,axCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	rotateVect(byCell,byCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	rotateVect(czCell,czCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
 	*/
-	inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
+	Mminv = Mm.inverse();
+	//inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
 	/* find out how far we will have to go in unit of unit cell vectors.
 	* when creating the supercell by checking the number of unit cell vectors 
 	* necessary to reach every corner of the supercell box.
 	*/
 	// showMatrix(MmOrig,3,3,"Morig");
 	// printf("%d %d\n",(int)Mm, (int)MmOrig);
-	memset(a[0],0,3*sizeof(double));
+	a.setZero();
+	//memset(a[0],0,3*sizeof(double));
 	// matrixProduct(a,1,3,Mminv,3,3,b);
-	matrixProduct(Mminv,3,3,a,3,1,b);
+	//matrixProduct(Mminv,3,3,a,3,1,b);
+	b = Mminv*a;
 	// showMatrix(Mm,3,3,"M");
 	// showMatrix(Mminv,3,3,"M");
-	nxmin = nxmax = (int)floor(b[0][0]-dx); 
-	nymin = nymax = (int)floor(b[0][1]-dy); 
-	nzmin = nzmax = (int)floor(b[0][2]-dz);
+	nxmin = nxmax = (int)floor(b(0,0)-dx); 
+	nymin = nymax = (int)floor(b(1,0)-dy); 
+	nzmin = nzmax = (int)floor(b(2,0)-dz);
 	for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
-		a[0][0]=ix*muls->cubex; a[0][1]=iy*muls->cubey; a[0][2]=iz*muls->cubez;
+		a(0,0)=ix*muls->cubex; a(1,0)=iy*muls->cubey; a(2,0)=iz*muls->cubez;
 
 		// matrixProduct(a,1,3,Mminv,3,3,b);
-		matrixProduct(Mminv,3,3,a,3,1,b);
+		//matrixProduct(Mminv,3,3,a,3,1,b);
+		b = Mminv*a;
 
 		// showMatrix(b,1,3,"b");
-		if (nxmin > (int)floor(b[0][0]-dx)) nxmin=(int)floor(b[0][0]-dx);
-		if (nxmax < (int)ceil( b[0][0]-dx)) nxmax=(int)ceil( b[0][0]-dx);
-		if (nymin > (int)floor(b[0][1]-dy)) nymin=(int)floor(b[0][1]-dy);
-		if (nymax < (int)ceil( b[0][1]-dy)) nymax=(int)ceil( b[0][1]-dy);
-		if (nzmin > (int)floor(b[0][2]-dz)) nzmin=(int)floor(b[0][2]-dz);
-		if (nzmax < (int)ceil( b[0][2]-dz)) nzmax=(int)ceil( b[0][2]-dz);	  
+		if (nxmin > (int)floor(b(0,0)-dx)) nxmin=(int)floor(b(0,0)-dx);
+		if (nxmax < (int)ceil( b(0,0)-dx)) nxmax=(int)ceil( b(0,0)-dx);
+		if (nymin > (int)floor(b(1,0)-dy)) nymin=(int)floor(b(1,0)-dy);
+		if (nymax < (int)ceil( b(1,0)-dy)) nymax=(int)ceil( b(1,0)-dy);
+		if (nzmin > (int)floor(b(2,0)-dz)) nzmin=(int)floor(b(2,0)-dz);
+		if (nzmax < (int)ceil( b(2,0)-dz)) nzmax=(int)ceil( b(2,0)-dz);	  
 	}
 
 	// nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;
-	unitAtoms = (atom *)malloc(ncoord*sizeof(atom));
-	memcpy(unitAtoms,atoms,ncoord*sizeof(atom));
+	unitAtoms = std::vector<atom>(ncoord);
+	//unitAtoms = (atom *)malloc(ncoord*sizeof(atom));
+
+	// TODO: are we not copying the entire atoms vector (is ncoord the same
+	//    as atoms.size()?)
+	// std::vector<atom>
+	//memcpy(unitAtoms,atoms,ncoord*sizeof(atom));
+
 	atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
 	if (atomSize != oldAtomSize) {
-		atoms = (atom *)realloc(atoms,atomSize*sizeof(atom));
+		atoms = std::vector<atom>(atomSize);
+		//atoms = (atom *)realloc(atoms,atomSize*sizeof(atom));
 		oldAtomSize = atomSize;
 	}
 	// showMatrix(Mm,3,3,"Mm");
@@ -1689,11 +1672,11 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 
 	atomCount = 0;  
 	jVac = 0;
-	memset(u,0,3*sizeof(double));
 	for (iatom=0;iatom<ncoord;) {
 		// printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
 		//   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
-		memcpy(&newAtom,unitAtoms+iatom,sizeof(atom));
+		//memcpy(newAtom,unitAtoms[iatom],sizeof(atom));
+		newAtom = unitAtoms[iatom];
 		for (jz=0;jz<muls->atomKinds;jz++)	if (muls->Znums[jz] == newAtom.Znum) break;
 		// allocate more memory, if there is a new element
 		/*
@@ -1732,7 +1715,7 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 			for (iy=nymin;iy<=nymax;iy++) {
 				for (iz=nzmin;iz<=nzmax;iz++) {
 					// atom position in cubic reduced coordinates: 
-					aOrig[0][0] = ix+newAtom.x; aOrig[0][1] = iy+newAtom.y; aOrig[0][2] = iz+newAtom.z;
+					aOrig(0,0) = ix+newAtom.x; aOrig(1,0) = iy+newAtom.y; aOrig(2,0) = iz+newAtom.z;
 
 					// Now is the time to remove atoms that are on the same position or could be vacancies:
 					// if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
@@ -1779,10 +1762,10 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 						// phononDisplacement(u,muls,iatom,ix,iy,iz,1,newAtom.dw,10,newAtom.Znum);
 						if (muls->tds) {
 							phononDisplacement(u,muls,jChoice,ix,iy,iz,1,unitAtoms[jChoice].dw,atomSize,jz);
-							a[0][0] = aOrig[0][0]+u[0]; a[0][1] = aOrig[0][1]+u[1]; a[0][2] = aOrig[0][2]+u[2];
+							a(0,0) = aOrig(0,0)+u[0]; a(1,0) = aOrig(1,0)+u[1]; a(2,0) = aOrig(2,0)+u[2];
 						}
 						else {
-							a[0][0] = aOrig[0][0]; a[0][1] = aOrig[0][1]; a[0][2] = aOrig[0][2];
+							a(0,0) = aOrig(0,0); a(1,0) = aOrig(1,0); a(2,0) = aOrig(2,0);
 						}
 					}
 					else {
@@ -1790,21 +1773,23 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 						exit(0);
 					}
 					// matrixProduct(aOrig,1,3,Mm,3,3,b);
-					matrixProduct(Mm,3,3,aOrig,3,1,b);
+					b = Mm*aOrig;
+					//matrixProduct(Mm,3,3,aOrig,3,1,b);
 
 					// if (atomCount < 2) {showMatrix(a,1,3,"a");showMatrix(b,1,3,"b");}
 					// b now contains atom positions in cartesian coordinates */
-					x  = b[0][0]+dx; 
-					y  = b[0][1]+dy; 
-					z  = b[0][2]+dz; 
+					x  = b(0,0)+dx; 
+					y  = b(1,0)+dy; 
+					z  = b(2,0)+dz; 
 					if ((x >= 0) && (x <= muls->cubex) &&
 						(y >= 0) && (y <= muls->cubey) &&
 						(z >= 0) && (z <= muls->cubez)) {
 							// matrixProduct(a,1,3,Mm,3,3,b);
-							matrixProduct(Mm,3,3,a,3,1,b);
-							atoms[atomCount].x		= b[0][0]+dx; 
-							atoms[atomCount].y		= b[0][1]+dy; 
-							atoms[atomCount].z		= b[0][2]+dz; 
+							b=Mm*a;
+							//matrixProduct(Mm,3,3,a,3,1,b);
+							atoms[atomCount].x		= b(0,0)+dx; 
+							atoms[atomCount].y		= b(1,0)+dy; 
+							atoms[atomCount].z		= b(2,0)+dz; 
 							atoms[atomCount].dw		= unitAtoms[jChoice].dw;
 							atoms[atomCount].occ	= unitAtoms[jChoice].occ;
 							atoms[atomCount].q		= unitAtoms[jChoice].q;
@@ -1831,338 +1816,9 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	phononDisplacement(u,muls,iatom,ix,iy,iz,0,newAtom.dw,*natom,jz);
 
 
-	free(unitAtoms);
+	//free(unitAtoms);
 	return atoms;
 }  // end of 'tiltBoxed(...)'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*******************************************************
-* This function reads in a .cssr or .pdb file and fills a 
-* atom struct array with the files data
-* .cssr: Cerius data format, also supported by Cerius2
-* .pdb:  Protein Data Bank format, supported by AtomEye
-* atomic positions will be in FRACTIONAL coordinates!!!
-******************************************************/
-
-atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
-	char buf[NCMAX], *str,element[16];
-	FILE *fp;
-	real alpha,beta,gamma;
-	int ncoord,ncx,ncy,ncz,icx,icy,icz;
-	real dw,occ,dx,dy,dz,r;
-	int spaceGrp,i,count,j,type;
-	static atom *atoms = NULL;
-	char s1[32],s2[32],s3[32],dummy[32];
-	static int ncoord_old = 0;
-	int format = FORMAT_UNKNOWN;
-
-	/* figure out, whether we have xyz, or cssr */
-	if (strstr(fileName,".cssr") == fileName+strlen(fileName)-5)
-		format = FORMAT_CSSR;
-	if (strstr(fileName,".pdb") == fileName+strlen(fileName)-4)
-		format = FORMAT_PDB;
-	if (format == FORMAT_UNKNOWN) {
-		printf("Cannot read anything else than .cssr or .pdb files (%s)!\n",
-			fileName);
-		exit(0);
-	}
-
-	printf("Format of input file: %d (%s)\n",format,format==FORMAT_CSSR ? "cssr" : "pdb");
-
-	ncx = muls->nCellX;
-	ncy = muls->nCellY;
-	ncz = muls->nCellZ;
-	/******************************************************************/
-	fp = fopen(fileName, "r" );
-	if( fp == NULL ) {
-		printf("Cannot open file %s\n",fileName);
-		exit( 0 );
-	}
-	if (format == FORMAT_CSSR) {
-
-		/* skip first line in first pass */
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-
-		/************************************************************
-		* check angles, of cssr file (must be 90 degrees)
-		*************************************************************/
-		str = strchr(buf,'9');
-		alpha = (real)atof(str++);
-		beta = (real)atof(strchr(str++,'9'));
-		gamma = (real)atof(strchr(str,'9'));
-		muls->cAlpha = alpha;
-		muls->cBeta  = beta;
-		muls->cGamma = gamma;
-		/*
-		if ((alpha != 90.0) || (beta != 90.0) || (gamma!= 90.0)) {
-		printf("angles are not 90 degrees! (%g, %g, %g) \n",
-		alpha,beta,gamma);
-		exit(0);
-		}
-		*/
-		/* check the space group: */
-		spaceGrp = atoi(strstr(buf,"SPGR =")+strlen("SPGR ="));
-		if (spaceGrp != 1) {
-			printf("cannot interpret space group %d\n",spaceGrp);
-			exit(0);
-		}
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ncoord = atoi(buf);
-	}
-	else if (format == FORMAT_PDB) {
-		/*****************************************************************
-		* File Format of pdb files:
-		* HEADER    libAtoms:Config_save_as_pdb; 388 atoms
-		* CRYST1   15.638   15.638   42.547  90.00  90.00  90.00 P 1           1
-		* ATOM      1  C           1      11.729   7.819   0.000
-		* ATOM      2  C           1      11.483   9.183  42.182
-		*****************************************************************
-		* We will look for the first string that is a non-zero number in 
-		* the first line and make it the number of atoms.
-		* The second line will determine a,b,c,alpha,beta,gamma
-		****************************************************************/
-
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		str = buf;
-		ncoord = 0;
-		do {
-			ncoord = atoi(str);
-			if (ncoord > 0) break;
-		}
-		while(((str=strtok(str," \t")) != NULL) && (ncoord == 0));
-		if (ncoord == 0) {
-			printf("Could not determine number of atmoms - quit\n");
-			exit(0);
-		}
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-
-		/************************************************************
-		* check angles, of pdb file (must be 90 degrees)
-		* This cannot work yet - please check !!!
-		*************************************************************/
-		str = buf;
-		muls->ax = (real)atof(str);
-		muls->by = (real)atof(str = strtok(buf," \t"));
-		muls->c  = (real)atof(str = strtok(buf," \t"));
-		alpha = (real)atof(str = strtok(buf," \t"));
-		beta = (real)atof(str = strtok(buf," \t"));
-		gamma = (real)atof(str = strtok(buf," \t"));
-		muls->cAlpha = alpha;
-		muls->cBeta  = beta;
-		muls->cGamma = gamma;
-		/*
-		if ((alpha != 90.0) || (beta != 90.0) || (gamma!= 90.0)) {
-		printf("angles are not 90 degrees! (%g, %g, %g) \n",
-		alpha,beta,gamma);
-		exit(0);
-		}
-		*/
-	}
-	else {
-		printf("Wrong file format!\n");
-		exit(0);
-	}
-
-	/************************************************************
-	* now that we know how many coordinates there are
-	* allocate the arrays 
-	************************************************************/
-	if (muls->nCellX == 0) {
-		printf("Number of unit cell repetitions in X is 0, adjusted to 1/n");
-		muls->nCellX = 1;
-	}
-	if (muls->nCellY == 0) {
-		printf("Number of unit cell repetitions in Y is 0, adjusted to 1/n");
-		muls->nCellY = 1;
-	}
-	if (muls->nCellZ == 0) {
-		printf("Number of unit cell repetitions in Z is 0, adjusted to 1/n");
-		muls->nCellZ = 1;
-	}
-
-	if (ncoord_old != ncoord) {
-		if (atoms != NULL)
-			free(atoms);
-		atoms = (atom *)malloc(ncoord*sizeof(atom)*ncx*ncy*ncz);
-		ncoord_old = ncoord;
-	}
-	if (atoms == NULL) {
-		printf("Could not allocate memory for atoms!\n");
-		exit(0);
-	}
-	if (format == FORMAT_CSSR) {
-		fclose( fp );
-		fp = fopen(fileName, "r" );
-		if( fp == NULL ) {
-			printf("Cannot open file %s\n",fileName);
-			exit( 0 );
-		}
-
-		/***********************************************************
-		* Read Header for .cssr and .pdb
-		***********************************************************/
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		/* printf(buf); */
-		sscanf( buf, " %s %s %s",s1,s2,s3);
-		/* printf("\n%s\n",s2); */
-		muls->ax = atof(s1);
-		muls->by = atof(s2);
-		muls->c = atof(s3);
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp,buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-	} /* end of if FORMAT_CSSR */
-	printf("Lattice parameters: ax=%g(%dx%g) by=%g(%dx%g) cz=%g(%dx%g)\n",
-		muls->ax*ncx,ncx,muls->ax,muls->by*ncy,ncy,muls->by,
-		muls->c*ncz,ncz,muls->c);
-
-	/***********************************************************
-	* Read actual Data
-	***********************************************************/
-	for( i=0; i<ncoord; i++) {
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord()" );
-		/* for Si */
-		/*    dw = 0.444; */
-		occ = 1.0F;
-		if (format == FORMAT_CSSR) {
-			sscanf(buf,"%d %s %s %s %s %d %d %d %d %d %d %d %d %g",
-				&count,element,s1,s2,s3,&count,&count,
-				&count,&count,&count,&count,&count,&count,&dw);
-		}
-		else if (format==FORMAT_PDB) {
-			/* ATOM      1  C 1      11.729   7.819   0.000 */
-			sscanf(buf,"%s %d %s %d %s %s %s",dummy,&count,element,&type,s1,s2,s3);
-		}
-		atoms[i].x = atof(s1);
-		atoms[i].y = atof(s2);
-		atoms[i].z = atof(s3);
-		atoms[i].occ = occ;
-		atoms[i].q = 0;
-		atoms[i].Znum = getZNumber(element); 
-		switch (atoms[i].Znum) {
-	case 14:  atoms[i].dw = 0.45f;
-		break;
-	case 29:  atoms[i].dw = 0.21f;
-		break;
-	default: atoms[i].dw = 0.21f;
-		}
-		/* get wobble factor from debye waller factor 
-		(*wobble)[i] = sqrt(*(*wobble+i)/(8*PI*PI));
-		*/    
-		if((atoms[i].Znum < 1 ) || (atoms[i].Znum > NZMAX)) {
-			printf("Error: bad atomic number %d in file %s\n",
-				atoms[i].Znum,fileName);
-			exit(0);
-		}
-		if (format == FORMAT_CSSR) {
-			/* replicate unit cell ncx,y,z times: */
-			for (icx=0;icx<ncx;icx++) {
-				for (icy=0;icy<ncy;icy++) {
-					for (icz=0;icz<ncz;icz++) {
-						j = (icz+icy*ncz+icx*ncy*ncz)*ncoord+i;
-						atoms[j].x   = atoms[i].x+icx;
-						atoms[j].y   = atoms[i].y+icy;
-						atoms[j].z   = atoms[i].z+icz;
-						atoms[j].dw  = atoms[i].dw;
-						atoms[j].occ = atoms[i].occ;
-						atoms[j].q   = atoms[i].q;
-						atoms[j].Znum = atoms[i].Znum; 	  
-					}
-				}
-			}
-		}
-		else {
-			/* replicate unit cell ncx,y,z times: */
-			for (icx=0;icx<ncx;icx++) {
-				for (icy=0;icy<ncy;icy++) {
-					for (icz=0;icz<ncz;icz++) {
-						j = (icz+icy*ncz+icx*ncy*ncz)*ncoord+i;
-						atoms[j].x = atoms[i].x+icx*muls->ax;
-						atoms[j].y = atoms[i].y+icy*muls->by;
-						atoms[j].z = atoms[i].z+icz*muls->c;
-						atoms[j].dw = atoms[i].dw;
-						atoms[j].occ = atoms[i].occ;
-						atoms[j].q   = atoms[i].q;
-						atoms[j].Znum = atoms[i].Znum; 	  
-					}
-				}
-			}
-		}
-	}
-	fclose( fp );
-
-	*natom = ncoord*ncx*ncy*ncz;
-
-	/**************************************************************
-	* Converting to cartesian coordinates
-	if (format == FORMAT_CSSR) {
-	for(i=0;i<*natom;i++) {
-	atoms[i].x *= muls->ax; 
-	atoms[i].y *= muls->by; 
-	atoms[i].z *= muls->c;
-	}	
-	}	 
-	*************************************************************/
-	muls->ax *= ncx;
-	muls->by *= ncy;
-	muls->c  *= ncz;
-
-	/***************************************************************
-	* Now let us tilt around the center of the full crystal
-	*/
-
-	if ((muls->ctiltx != 0) || (muls->ctilty)!=0) {
-		for(i=0;i<*natom;i++) {
-			/* apply tilt around x-axis: */
-			if (muls->ctiltx != 0) {
-				dy =(atoms[i].y-muls->by/2.0);
-				dz = (atoms[i].z-muls->c/2.0);
-				r = sqrt(dz*dz+dy*dy);
-				alpha = atan2(dz,dy)+muls->ctiltx;
-				atoms[i].y = muls->by/2.0+r*cos(alpha); 
-				atoms[i].z = muls->c/2.0+r*sin(alpha); 
-			}
-			if (muls->ctilty != 0) {
-				dx =(atoms[i].x-muls->ax/2.0);
-				dz = (atoms[i].z-muls->c/2.0);
-				r = sqrt(dz*dz+dx*dx);
-				alpha = atan2(dz,dx)+muls->ctilty;
-				atoms[i].x = muls->ax/2.0+r*cos(alpha); 
-				atoms[i].z = muls->c/2.0+r*sin(alpha); 
-			}
-		}
-	}
-
-
-
-	/*  natom = ReadXYZcoord(filein,1,1,1,
-	&ax, &by, &cz, &Znum, &x, &y, &z, &occ, &wobble,
-	description, NCMAX );
-	*/
-
-
-
-	printf("%d atoms read from file <%s>, %d atoms in model (Tilt: x: %g mrad, y: %g mrad).\n",
-		ncoord,fileName,*natom,muls->ctiltx,muls->ctilty);
-	return atoms;
-}
 
 /*--------------------- ReadLine() -----------------------*/
 /*
@@ -2178,7 +1834,7 @@ cMax = length of data buffer cRead
 cRead = char[] buffer to read into
 mesg = error message to print if not successful
 */
-int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
+size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
 {
 	if( fgets( cRead, cMax, fpRead) == NULL ) {
 		return 0;
@@ -2190,35 +1846,20 @@ int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
 
 }  /* end ReadLine */
 
-
-
-int getZNumber(char *element) {
-	char *elem;
-#ifndef WIN32
-	char widows = '\n';
-	widows = (char)((int)widows + 3);
-
-	// fprintf(stderr,"getZnumber : element = *%s* \n",element); 
-	element[2] = '\0'; 
-	if ((atoi(element+1) != 0) || (element[1] == '\n')|| (element[1] == '\0') || element[1] == widows){
-		element[1] = ' ';
-		// fprintf(stderr,"getZnumber : element = *%s*  conversion \n",element); 
-	} 
-#else
-	element[2] = '\0';
-	if ((atoi(element+1) != 0) || (element[1] == '\n')|| (element[1] == '\0'))
-		element[1] = ' ';
-#endif
-	if ((elem = strstr(elTable,element)) == NULL)
+int getZNumber(std::string element) {
+	std::vector<std::string> elTable = getElTable();
+	std::vector<std::string>::iterator it;
+   it = std::find(elTable.begin(), elTable.end(), element);
+   if( it==elTable.end() )
 		return 0;	
 	else
-		return (int)(elem-elTable)/2+1;
-
+		return distance(elTable.begin(),it);
 }
 
 #define CHARGE 0.0
 
 void writeFrameWork(FILE *fp,superCellBox superCell) {
+	std::vector<std::string> elTable = getElTable();
 	int i,id = 0,newId = 1;
 	double charge=0.0;
 
@@ -2273,10 +1914,10 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 	  default: charge = 0.0; 
 			}
 
-			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %c%c\n",id+1,superCell.atoms[i].x,
+			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %s\n",id+1,superCell.atoms[i].x,
 				superCell.atoms[i].y,superCell.atoms[i].z,
 				massArray[superCell.atoms[i].Znum-1],charge,
-				elTable[2*superCell.atoms[i].Znum-2],elTable[2*superCell.atoms[i].Znum-1]);
+				elTable[superCell.atoms[i].Znum]);
 		}
 		else
 			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f\n",id+1,superCell.atoms[i].x,
@@ -2293,6 +1934,7 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 * atoms nstart and ending just before atom nstop.   
 */
 void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
+	std::vector<std::string> elTable = getElTable();
 	int i,j,id;
 	int *idCountArray = NULL;
 	double charge,b,x,y,z;
@@ -2468,12 +2110,12 @@ float ran(long *idum) {
 * thereafter, do not alter idum between successive deviates in a sequence. 
 * RNMX should approximate the largest  floating value that is less than 1.
 */
-double ran1(long *idum) { 
+float_tt ran1(long *idum) { 
 	int j; 
 	long k; 
 	static long iy=0; 
 	static long iv[NTAB]; 
-	double temp; 
+	float_tt temp; 
 	if (*idum <= 0 || !iy) { // Initialize. 
 		if (-(*idum) < 1) *idum=1; // Be sure to prevent  idum = 0. 
 		else *idum = -(*idum); 
@@ -2491,7 +2133,7 @@ double ran1(long *idum) {
 	j=iy/NDIV; // Will be in the range 0..NTAB-1. 
 	iy=iv[j];  // Output previously stored value and re ll the shu e table. 
 	iv[j] = *idum; 
-	if ((temp=AM*iy) > RNMX) return RNMX; // Because users don t expect endpoint values. 
+	if ((temp=AM*iy) > RNMX) return static_cast<float_tt>(RNMX); // Because users don't expect endpoint values. 
 	else return temp; 
 }
 
@@ -2499,15 +2141,16 @@ double ran1(long *idum) {
 /*****************************************************************
 * Gaussian distribution with unit variance
 * idum must be initailized to a negative integer 
+//  TODO: we can use some other random number generation library.  Boost?
 ****************************************************************/
-double gasdev(long *idum) 
+float_tt gasdev(long *idum) 
 /* Returns a normally distributed deviate with zero mean and unit variance, 
 * using ran1(idum) as the source of uniform deviates. */
 { 
 	// float ran1(long *idum); 
 	static int iset=0; 
 	static float gset; 
-	double fac,rsq,v1,v2; 
+	float_tt fac,rsq,v1,v2; 
 	if (*idum < 0) {
 		iset=0; // Reinitialize. 
 		//    printf("reinit gasdev\n");

@@ -67,9 +67,9 @@ public:
 
   //real **diffpat;
   QSfMat diffpat;
-  real czOffset;
-  real xOffset;
-  real yOffset;
+  float_tt czOffset;
+  float_tt xOffset;
+  float_tt yOffset;
   std::string cin2;
   std::string fileBase;
   std::vector<std::string> filein;

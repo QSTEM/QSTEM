@@ -50,12 +50,4 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,
 			   double z,double B);
 void writeBeams(MULS *muls, WAVEFUNC *wave,int ilayer, int absolute_slice);
 
-/***********************************************************************************
- * old image read/write functions, may soon be outdated
- */
-void readRealImage_old(fftw_real **pix, int nx, int ny, real *t, char *fileName);
-void readImage_old(fftw_complex **pix, int nx, int ny, real *t, char *fileName);
-void writeRealImage_old(fftw_real **pix, int nx, int ny, real t,char *fileName);
-void writeImage_old(fftw_complex **pix, int nx, int ny, real t,char *fileName);
-
 #endif /* STEMLIB_H */

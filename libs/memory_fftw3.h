@@ -20,7 +20,7 @@
 	this save checking for a NULL return etc every time 
 	
 */
-float_tt *float1D( int n, const char *message );
+//float_tt *float1D( int n, const char *message );
 
 /*---------------------------- double1D() -------------------------------*/
 /*
@@ -31,7 +31,7 @@ float_tt *float1D( int n, const char *message );
 	this save checking for a NULL return etc every time 
 	
 */
-double* double1D( int n, const char *message );
+//double* double1D( int n, const char *message );
 
 
 /*---------------------------- short2D() -------------------------------*/
@@ -42,7 +42,7 @@ double* double1D( int n, const char *message );
 	message = char[] with error message
 	
 */
-short **short2D( int nx, int ny, const char *message );
+//short **short2D( int nx, int ny, const char *message );
 
 /*---------------------------- long2D() -------------------------------*/
 /*
@@ -52,8 +52,8 @@ short **short2D( int nx, int ny, const char *message );
 	message = char[] with error message
 	
 */
-long **long2D( int nx, int ny, const char *message );
-int **int2D( int nx, int ny, const char *message );
+//long **long2D( int nx, int ny, const char *message );
+//int **int2D( int nx, int ny, const char *message );
 
 /*---------------------------- float2D() -------------------------------*/
 /*
@@ -61,9 +61,9 @@ int **int2D( int nx, int ny, const char *message );
 	make space for m[0...(nx-1)][0..(ny-1)]
 
 */
-float_tt **float2D( int nx, int ny, const char *message );
-float **float32_2D( int nx, int ny, const char *message );
-float ***float32_3D( int nx, int ny,int nz, const char *message );
+//float_tt **float2D( int nx, int ny, const char *message );
+//float **float32_2D( int nx, int ny, const char *message );
+//float ***float32_3D( int nx, int ny,int nz, const char *message );
 
 /*---------------------------- double2D() -------------------------------*/
 /*
@@ -71,15 +71,15 @@ float ***float32_3D( int nx, int ny,int nz, const char *message );
 	make space for m[0...(nx-1)][0..(ny-1)]
 
 */
-float_tt ***float3D( int nx, int ny,int nz, const char *message );
-double **double2D( int nx, int ny, const char *message );
+//float_tt ***float3D( int nx, int ny,int nz, const char *message );
+//double **double2D( int nx, int ny, const char *message );
 
-fftw_complex  **complex2D(int nx, int ny, const char *message);
-fftwf_complex **complex2Df(int nx, int ny, const char *message);  // single precision
-fftw_complex  ***complex3D(int nx, int ny,int nz, const char *message);
-fftwf_complex ***complex3Df(int nx, int ny,int nz, const char *message); // single precision
+//fftw_complex  **complex2D(int nx, int ny, const char *message);
+//fftwf_complex **complex2Df(int nx, int ny, const char *message);  // single precision
+//fftw_complex  ***complex3D(int nx, int ny,int nz, const char *message);
+//fftwf_complex ***complex3Df(int nx, int ny,int nz, const char *message); // single precision
 
-void **any2D( int nx, int ny,int size, const char *message );
-void ***any3D( int nx, int ny,int nz,int size, const char *message );
+//void **any2D( int nx, int ny,int size, const char *message );
+//void ***any3D( int nx, int ny,int nz,int size, const char *message );
 
 #endif

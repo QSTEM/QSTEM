@@ -97,7 +97,7 @@ gaussianProp(0)
 
 	/* make multislice read the inout files and assign transr and transi: */
 	//muls.trans = NULL;
-	//muls.cz = NULL;  // (real *)malloc(muls.slices*sizeof(real));
+	//muls.cz = NULL;  // (float_tt *)malloc(muls.slices*sizeof(float_tt));
 
 	sparam = QSfVec::Zero(NPARAM);
 

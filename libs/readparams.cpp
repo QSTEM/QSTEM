@@ -28,7 +28,7 @@ char commentChar=COMMENT;
  * 0 for failure
  * If a file is already open, close it first
  *******************************************************/
-int parOpen(char *fileName) {
+int parOpen(const char *fileName) {
   int i;
 
   if (fpStack == NULL) {

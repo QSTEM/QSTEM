@@ -45,7 +45,7 @@ atom *readCFGUnitCell(int *natom,char *fileName,MULS *muls);
 
 double v3DatomLUT(int iz,double r,int tdsFlag,int scatFlag);
 double vzatomLUT( int Z, double r ,int tdsFlag,int scatFlag);
-double v3DzatomLUT(int Znum, real r2D, real z);  // real
+double v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // float_tt
 
 double wavelength( double kev );
 double v3Datom(int Z, double r,int tdsFlag,int scatFlag);
@@ -54,7 +54,7 @@ double vzatom( int Z, double radius,int tdsFlag,int scatFlag);
 double gasdev(long *idum);
 double rangauss( unsigned long *iseed );
 int ReadfeTable(int scatFlag );
-int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
+size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
 int getZNumber(char *element);
 double sigma( double kev );
 void splinh( double x[], double y[],

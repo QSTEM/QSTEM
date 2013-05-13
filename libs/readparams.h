@@ -15,7 +15,7 @@
  * 0 for failure
  * If a file is already open, close it first
  *******************************************************/
-int parOpen(char *fileName);
+int parOpen(const char *fileName);
 
 /********************************************************
  * Close the parameter file, if it is open

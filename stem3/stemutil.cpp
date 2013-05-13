@@ -91,7 +91,7 @@ double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
   iz = Z-1;
 
   if(splinr == NULL) {
-    splinr = double1D(NRMAX,"splinr");
+    splinr = QSfVec(NRMAX);
     splinv = (double **)malloc(NZMAX*sizeof(double*));
     splinb = (double **)malloc(NZMAX*sizeof(double*));
     splinc = (double **)malloc(NZMAX*sizeof(double*));
@@ -119,10 +119,10 @@ double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
     /*
     printf("generating 3D spline %d \n",Z);
     */
-    splinv[iz] = double1D( NRMAX, "splinv" );
-    splinb[iz] = double1D( NRMAX, "splinb" );
-    splinc[iz] = double1D( NRMAX, "splinc" );
-    splind[iz] = double1D( NRMAX, "splind" );
+    splinv[iz] = QSfVec(NRMAX);
+    splinb[iz] = QSfVec(NRMAX);
+    splinc[iz] = QSfVec(NRMAX);
+    splind[iz] = QSfVec(NRMAX);
     
     for( i=0; i<NRMAX; i++)
       splinv[iz][i] = v3Datom(Z,splinr[i],tdsFlag,scatFlag);
@@ -161,33 +161,25 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
 {
   int i,iz;
   double dlnr,result;
-  static double *splinr = NULL;
-  static double **splinv = NULL;
-  static double **splinb,**splinc,**splind;
-  static int *nspline = NULL;
+  QSfVec splinr(NRMAX);
+  QSfMat splinv, splinb, splinc, splind; 
+  QSiVec nspline(NZMAX);
   
   iz = Z-1;
-
-  if(splinr == NULL) {
-    splinr = double1D(NRMAX,"splinr");
-    splinv = (double **)malloc(NZMAX*sizeof(double*));
-    splinb = (double **)malloc(NZMAX*sizeof(double*));
-    splinc = (double **)malloc(NZMAX*sizeof(double*));
-    splind = (double **)malloc(NZMAX*sizeof(double*));
-    nspline = (int *)malloc( NZMAX*sizeof(int));
-    for( i=0; i<NZMAX; i++) 
-      nspline[i] = 0;
-
-    /*  generate a set of logarithmic r values */
-    dlnr = log(RMAX/RMIN)/(NRMAX-1);
-    for( i=0; i<NRMAX; i++)
-      splinr[i] = RMIN * exp( i * dlnr );
-    printf( "fit from r= %gA to r= %gA\n", splinr[0], splinr[NRMAX-1] );
     
-    nspline = (int *)malloc( NZMAX*sizeof(int));
-    for( i=0; i<NZMAX; i++) 
-      nspline[i] = 0;
-  }
+  //nspline = (int *)malloc( NZMAX*sizeof(int));
+  for( i=0; i<NZMAX; i++) 
+    nspline[i] = 0;
+
+  /*  generate a set of logarithmic r values */
+  dlnr = log(RMAX/RMIN)/(NRMAX-1);
+  for( i=0; i<NRMAX; i++)
+    splinr[i] = RMIN * exp( i * dlnr );
+  printf( "fit from r= %gA to r= %gA\n", splinr[0], splinr[NRMAX-1] );
+    
+  nspline = (int *)malloc( NZMAX*sizeof(int));
+  for( i=0; i<NZMAX; i++) 
+    nspline[i] = 0;
   
   /* if this atomic number has not been called before
      generate the spline coefficients */
@@ -195,10 +187,6 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
     /*
     printf("generating spline %d\n",Z);
     */
-    splinv[iz] = double1D( NRMAX, "splinv" );
-    splinb[iz] = double1D( NRMAX, "splinb" );
-    splinc[iz] = double1D( NRMAX, "splinc" );
-    splind[iz] = double1D( NRMAX, "splind" );
     
     for( i=0; i<NRMAX; i++)
       splinv[iz][i] = vzatom(Z,splinr[i],tdsFlag,scatFlag);
@@ -218,109 +206,6 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
   
   return result;
 }  /* end vzatomLUT() */
-
-
-
-
-/* This function saves the STEM images for all detectors in float tiff files
- * the name will have the sample thickness appended to it.
- */
-/*
-void saveSTEMimages(MULS *muls) {
-  int i,ix,iy,nx,ny,npix;
-  real rmin,rmax,x;
-  float param[NPARAM];
-  char fileName[32],datetime[32];
-  static float **image=NULL;
-  static int nx_old=0,ny_old=0;
-  double t;
-
-  nx = (*muls).scanXN;
-  ny = (*muls).scanYN;
-
-  if ((nx !=nx_old) || (ny!=ny_old) || (image == NULL)) {
-    if (image != NULL) {
-      free(image[0]);
-      free(image);
-    }
-    image = (float **)malloc(nx*sizeof(float *));
-    image[0] = (float *)malloc(nx*ny*sizeof(float));
-    for (ix=0;ix<nx;ix++) image[ix] = &(image[0][ix*ny]);
-    nx_old = nx;
-    ny_old = ny;
-  }
-
-  //  printf("will save STEM images for %d detectors\n",(*muls).detectorNum);
-  for (i=0;i<(*muls).detectorNum;i++) {
-    sprintf(fileName,"./%s/%s_%d.tif",(*muls).folder,(*muls).detectors[i].name,
-	    (int)((*muls).thickness+0.5));
-    
-    /**********************************************************
-     * if this is not the first averaging run, we want to read
-     * the average of previous runs first and include this one
-     **********************************************************
-    if ((*muls).avgCount > 0) {
-      // printf("will open %s now (avgCount=%d)\n",fileName,(*muls).avgCount);
-      if( topenFloat(fileName) != 1 ) {
-	printf("Cannot open floating point image %s (change to .img format)\n",fileName);	
-	for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) image[ix][iy] = 0.0;
-      }
-      else {
-	if(treadFloatPix(image, (long)nx,(long)ny, 
-			  &npix, datetime,param) != 1) {    
-	  printf("Cannot read input file %s\n",fileName);
-	  for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) image[ix][iy] = 0.0;
-	}
-	//printf("will be closing now\n");
-	tclose();
-	// printf("did close\n");
-      }
-    } // end of if muls.avgCount > 0.. 
-    else
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) image[ix][iy] = 0.0;
-      
-    (*muls).detectors[i].error = 0.0;
-    for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-      t = ((double)((*muls).avgCount)*image[ix][iy] + 
-	       (double)((*muls).detectors[i].image[ix][iy])) /
-	((double)((*muls).avgCount+1.0));
-      (*muls).detectors[i].error += (image[ix][iy]-t)*(image[ix][iy]-t);
-      image[ix][iy] = t;
-    }
-    (*muls).detectors[i].error = sqrt((*muls).detectors[i].error/(nx*ny));
-
-    rmin = image[0][0];
-    rmax = rmin;
-    for( ix=0; ix<nx; ix++)  for( iy=0; iy<ny; iy++) {
-      x =  image[ix][iy];
-      if( x < rmin ) rmin = x;
-      if( x > rmax ) rmax = x;
-    }
-    
-    param[pRMAX]  = rmax;
-    param[pIMAX]  = 0.0f;
-    param[pRMIN]  = rmin;
-    param[pIMIN]  = 0.0f;
-    param[pXCTILT] = (*muls).ctiltx;
-    param[pYCTILT] = (*muls).ctiltx;
-    param[pENERGY] = (*muls).v0;
-    param[pDX] = ((*muls).scanXStop-(*muls).scanXStart)/(real)nx;
-    param[pDY] = ((*muls).scanYStop-(*muls).scanYStart)/(real)ny;
-    param[pWAVEL] = (real)wavelength((*muls).v0);
-    param[pNSLICES] = (real)((*muls).nslic0);
-    param[pDEFOCUS] = (*muls).df0;
-    param[pOAPERT] = 0.0;
-    param[pCS] = (*muls).Cs;
-    param[pCAPERT] = (*muls).alpha;
-    param[pDDF] = 0.0;
-    param[pC]= (*muls).thickness;
-
-    // printf("will create file %s now,nx:%d, ny:%d\n",fileName,nx,ny);
-    tcreateFloatPixFile(fileName,image, (long)nx,(long)ny, 1,param );
-    // printf("Wrote %s (%g ... %g)\n",fileName,rmin,rmax);
-  }
-}
-*/
 
 /*-------------------- bessi0() ---------------*/
 /*
@@ -1409,31 +1294,25 @@ double sfLUT(double s,int atKind, MULS *muls)
 {
    int i;
    double sf;
-   static double *splinx=NULL;
-   static double **spliny=NULL;
-   static double **splinb=NULL;
-   static double **splinc=NULL;
-   static double **splind=NULL;
    static int sfSize = 0;
    static int atKinds = 0;
-   static double maxK = 0;
-
-   if(splinx == NULL) {
-     // splinx = s;
-     // spliny = sfC;
-     sfSize = muls->sfNk;
-     splinx = muls->sfkArray;
-     spliny = muls->sfTable;
-     atKinds = muls->atomKinds;
-     splinb = double2D(atKinds,sfSize, "splinb" );
-     splinc = double2D(atKinds,sfSize, "splinc" );
-     splind = double2D(atKinds,sfSize, "splind" );
-     maxK = splinx[sfSize-1];
-
-     for (i=0;i<atKinds;i++)
-       splinh(splinx,spliny[i],splinb[i],splinc[i],splind[i],sfSize);
-   }
+   sfSize = muls->sfNk;
+   QSfVec splinx;
+   atKinds = muls->atomKinds;
+   // TODO: may need to swap dimensions here.
+   QSfMat spliny(atKinds,sfSize);
+   QSfMat splinb(atKinds,sfSize); 
+   QSfMat splinc(atKinds,sfSize);
+   QSfMat splind(atKinds,sfSize);
    
+   static double maxK = 0;
+   
+   splinx = muls->sfkArray;
+   spliny = muls->sfTable;
+   maxK = splinx[sfSize-1];
+
+   for (i=0;i<atKinds;i++)
+     splinh(splinx,spliny[i],splinb[i],splinc[i],splind[i],sfSize);
    
    /* now that everything is set up find the
       scattering factor by interpolation in the table 
@@ -1507,7 +1386,7 @@ int atomCompare(const void *atom1,const void *atom2) {
 	  (((*(atom *)atom1).z > (*(atom *)atom2).z) ? 1 : -1));
   */
   /* Use the fact that z is the first element in the atom struct */
-  return ((*(real *)atom1 == *(real *)atom2) ? 0 : 
-	  ((*(real *)atom1 > *(real *)atom2) ? 1 : -1)); 
+  return ((*(float_tt *)atom1 == *(float_tt *)atom2) ? 0 : 
+	  ((*(float_tt *)atom1 > *(float_tt *)atom2) ? 1 : -1)); 
 }
 

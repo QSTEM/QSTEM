@@ -73,9 +73,9 @@ MULS muls;
 int fftMeasureFlag = FFTW_ESTIMATE;
 extern char *elTable;
 
-void makeAnotation(real **pict,int nx,int ny,char *text);
+void makeAnotation(float_tt **pict,int nx,int ny,char *text);
 void initMuls();
-void writeIntPix(char *outFile,real **pict,int nx,int ny);
+void writeIntPix(char *outFile,float_tt **pict,int nx,int ny);
 void runMuls(int lstart);
 void saveLineScan(int run);
 void readBeams(FILE *fp);
@@ -224,7 +224,7 @@ void initMuls() {
 
 	/* make multislice read the inout files and assign transr and transi: */
 	muls.trans = NULL;
-	muls.cz = NULL;  // (real *)malloc(muls.slices*sizeof(real));
+	muls.cz = NULL;  // (float_tt *)malloc(muls.slices*sizeof(float_tt));
 
 	muls.onlyFresnel = 0;
 	muls.showPhaseplate = 0;
@@ -248,8 +248,8 @@ void initMuls() {
 }
 
 /*
-void writeIntPix(char *outFile,real **pict,int nx,int ny) {
-real rmin,rmax;
+void writeIntPix(char *outFile,float_tt **pict,int nx,int ny) {
+float_tt rmin,rmax;
 int i,j, result;
 long **pix;
 
@@ -1729,10 +1729,10 @@ void doCBED() {
 	double timer,timerTot;
 	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
-	real t;
-	static real **avgArray=NULL,**diffArray=NULL;
+	float_tt t;
+	static float_tt **avgArray=NULL,**diffArray=NULL;
 	static double *chisq = NULL;
-	static real **avgPendelloesung = NULL;
+	static float_tt **avgPendelloesung = NULL;
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
@@ -1943,7 +1943,7 @@ void doCBED() {
 			/* for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++)
 			avgArray[ix][iy] = diffArray[ix][iy]; */
 			memcpy((void *)avgArray[0],(void *)diffArray[0],
-				(size_t)(muls.nx*muls.ny*sizeof(real)));
+				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
@@ -1961,8 +1961,8 @@ void doCBED() {
 			/*      readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((real)(muls.avgCount+1));
+				t = ((float_tt)muls.avgCount*avgArray[ix][iy]+
+					diffArray[ix][iy])/((float_tt)(muls.avgCount+1));
 				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
 				avgArray[ix][iy] = t;
 
@@ -1987,7 +1987,7 @@ void doCBED() {
 				header->params[1] = 1.0/wavelength(muls.v0);
 				setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
 			}
-			writeRealImage((void **)avgArray,header,avgName,sizeof(real));
+			writeRealImage((void **)avgArray,header,avgName,sizeof(float_tt));
 
 			/* report the result on the web page */
 			// printf("Will write report now\n");
@@ -2025,8 +2025,8 @@ void doCBED() {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
 						avgPendelloesung[ix][iy] = 
-							((real)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(real)(muls.avgCount+1);
+							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
+							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
 					}
 				}
 			}
@@ -2083,10 +2083,10 @@ void doTEM() {
 	double timer,timerTot;
 	double x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
-	real t;
-	static real **avgArray=NULL,**diffArray=NULL;
+	float_tt t;
+	static float_tt **avgArray=NULL,**diffArray=NULL;
 	static double *chisq = NULL;
-	static real **avgPendelloesung = NULL;
+	static float_tt **avgPendelloesung = NULL;
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
@@ -2303,7 +2303,7 @@ void doTEM() {
 			/***********************************************************
 			* Save the diffraction pattern
 			**********************************************************/	
-			memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(real)));
+			memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
@@ -2351,7 +2351,7 @@ void doTEM() {
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
 			sprintf(avgName,"%s/image.img",muls.folder);
-			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
+			writeRealImage((void **)diffArray,header,avgName,sizeof(float_tt));
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2360,8 +2360,8 @@ void doTEM() {
 			/* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((real)(muls.avgCount+1));
+				t = ((float_tt)muls.avgCount*avgArray[ix][iy]+
+					diffArray[ix][iy])/((float_tt)(muls.avgCount+1));
 				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
 				avgArray[ix][iy] = t;
 			}
@@ -2373,7 +2373,7 @@ void doTEM() {
 				muls.resolutionX,muls.resolutionY,
 				0,NULL,"diffraction pattern");
 			header->t = wave->thickness;
-			writeRealImage((void **)avgArray,header,avgName,sizeof(real));
+			writeRealImage((void **)avgArray,header,avgName,sizeof(float_tt));
 
 
 			/* report the result on the web page */
@@ -2402,8 +2402,8 @@ void doTEM() {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
 						avgPendelloesung[ix][iy] = 
-							((real)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(real)(muls.avgCount+1);
+							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
+							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
 					}
 				}
 			}
@@ -2427,13 +2427,13 @@ void doTEM() {
 			sprintf(avgName,"%s/image.img",muls.folder); 
 			header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*diffArray[ix][iy]+
-					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(real)(muls.avgCount+1);
+				t = ((float_tt)muls.avgCount*diffArray[ix][iy]+
+					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(muls.avgCount+1);
 				diffArray[ix][iy] = t;
 			}
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
-			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
+			writeRealImage((void **)diffArray,header,avgName,sizeof(float_tt));
 			// End of Image writing (if avgCount > 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2494,8 +2494,8 @@ void doSTEM() {
 	double timer, total_time=0;
 	char buf[BUF_LEN],avgName[256],systStr[256];
 	char jpgName[256], tifName[256];
-	real xpos,ypos,t;
-	static real **avgArray=NULL;
+	float_tt xpos,ypos,t;
+	static float_tt **avgArray=NULL;
 	double *chisq,collectedIntensity;
 	static imageStruct *header = NULL;
 	static imageStruct *header_read = NULL;
@@ -2719,7 +2719,7 @@ void doSTEM() {
 									}
 								}
 								/* memcopy((void *)avgArray[0],(void *)muls.diffpat[0],
-								(size_t)(muls.nx*muls.ny*sizeof(real)));
+								(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 								*/
 								// printf("Copied to avgArray %d %d\n",muls.nx, muls.ny);	
 							}
@@ -2728,8 +2728,8 @@ void doSTEM() {
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
 								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
-									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
-										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
+									t = ((float_tt)muls.avgCount * wave->avgArray[ixa][iya] +
+										wave->diffpat[ixa][iya]) / ((float_tt)(muls.avgCount + 1));
 									#pragma omp atomic
 									chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
 										(wave->avgArray[ixa][iya]-t);
@@ -2746,7 +2746,7 @@ void doSTEM() {
 										0,NULL,"diffraction pattern");
 								// printf("Created header\n");
 							header->t = wave->thickness;
-							writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
+							writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(float_tt));
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;

@@ -228,7 +228,8 @@ int removeVacancies(atom *atoms,int natoms) {
 
 	// printf("Time: %d\n",time(NULL));
 	natomsFinal = natoms;
-	qsort((void *)atoms,natoms,sizeof(atom),atomCompareZYX);
+	std::sort (atoms.begin(), atoms.end(), atomCompareZYX);
+	//qsort((void *)atoms,natoms,sizeof(atom),atomCompareZYX);
 
 	for(jz = 0,i=0;i<natoms;i++) {
 		if (atoms[i].Znum > 0) {
@@ -276,7 +277,8 @@ int removeVacancies(atom *atoms,int natoms) {
 	// printf("%d atoms left\n",natomsFinal);
 	// We now need to move all the atoms with zero Znum to the very end.
 	if (jz > 0) {
-		qsort((void *)atoms,natoms,sizeof(atom),atomCompareZnum);
+		std::sort (atoms.begin(), atoms.end(), atomCompareZnum);
+		//qsort((void *)atoms,natoms,sizeof(atom),atomCompareZnum);
 		// for (i=0;i<natomsFinal;i++) printf("%3d: %d (%.1f %.1f %.1f): occ=%.1f\n",i,atoms[i].Znum,atoms[i].x,atoms[i].y,atoms[i].z,atoms[i].occ);
 	}
 	return natomsFinal;
