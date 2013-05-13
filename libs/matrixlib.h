@@ -11,7 +11,7 @@ double pythag(double a, double b);
 
 /* vector functions:
  */
-double findLambda(plane *p, float *point, int revFlag);
+double findLambda(plane &p, float *point, int revFlag);
 void showMatrix(double **M,int Nx, int Ny,char *name);
 void vectDiff_f(float *a, double *b, double *c,int revFlag);
 float_tt vectLength(QSfVec &vect);

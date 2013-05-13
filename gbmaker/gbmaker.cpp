@@ -347,7 +347,7 @@ int readParams(char *datFileName) {
 	/* We will look for the following tokens:
 	* tilt: tiltx,tilty,tiltz;
 	* translation: shiftx shifty shiftz
-	* plane: vectX vectY vectZ pointX pointY pointZ
+	* plane: vectX vectY vectZ point[0] point[1] point[2]
 	*/
 	while (readNextParam(title,parStr)) {
 		// printf("%s\n",parStr);
@@ -540,18 +540,18 @@ int readParams(char *datFileName) {
 					return 0;
 				}
 				sscanf(parStr,"%lf %lf %lf %lf %lf %lf %lf %lf %lf",
-					&(grains[gCount].planes[grains[gCount].nplanes-1].pointX), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].pointY), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].pointZ),
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect1X), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect1Y), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect1Z), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2X), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2Y), 
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2Z));
-				crossProduct(&(grains[gCount].planes[grains[gCount].nplanes-1].vect1X),
-					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2X),
-					&(grains[gCount].planes[grains[gCount].nplanes-1].normX));
+					&(grains[gCount].planes[grains[gCount].nplanes-1].point[0]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].point[1]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].point[2]),
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect1[0]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect1[1]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect1[2]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2[0]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2[1]), 
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2[2]));
+				crossProduct(&(grains[gCount].planes[grains[gCount].nplanes-1].vect1[0]),
+					&(grains[gCount].planes[grains[gCount].nplanes-1].vect2[0]),
+					&(grains[gCount].planes[grains[gCount].nplanes-1].norm[0]));
 			} /* end of if plane ... */
 			else if (strncmp(title,"atom:",5) == 0) {
 				grains[gCount].natoms++;
@@ -603,14 +603,14 @@ void showData() {
 		printf("planes:\n");
 		for (p=0;p<grains[g].nplanes;p++) 
 			printf("vect1=(%g %g %g) vect2=(%g %g %g) point=(%g %g %g) normal=(%g %g %g)\n",
-			grains[g].planes[p].vect1X,grains[g].planes[p].vect1Y,
-			grains[g].planes[p].vect1Z,
-			grains[g].planes[p].vect2X,grains[g].planes[p].vect2Y,
-			grains[g].planes[p].vect2Z,
-			grains[g].planes[p].pointX,grains[g].planes[p].pointY,
-			grains[g].planes[p].pointZ,
-			grains[g].planes[p].normX,grains[g].planes[p].normY,
-			grains[g].planes[p].normZ);
+			grains[g].planes[p].vect1[0],grains[g].planes[p].vect1[1],
+			grains[g].planes[p].vect1[2],
+			grains[g].planes[p].vect2[0],grains[g].planes[p].vect2[1],
+			grains[g].planes[p].vect2[2],
+			grains[g].planes[p].point[0],grains[g].planes[p].point[1],
+			grains[g].planes[p].point[2],
+			grains[g].planes[p].norm[0],grains[g].planes[p].norm[1],
+			grains[g].planes[p].norm[2]);
 	} // for g=0 ...
 }
 
@@ -756,7 +756,8 @@ void makeSuperCell() {
 							/* atom position in reduced coordinates: */
 							// a[0][0] = ix+newAtom.x; a[0][1] = iy+newAtom.y; a[0][2] = iz+newAtom.z;		 
 							a[0][0] = newAtom.x+ix; a[0][1] = newAtom.y+iy; a[0][2] = newAtom.z+iz;
-							matrixProduct(a,1,3,Mm,3,3,b);
+							b=a*Mm;
+							//matrixProduct(a,1,3,Mm,3,3,b);
 
 							/*	  
 							b[0][0] = a[0][0]*Mm[0][0]+a[0][1]*Mm[0][1]+a[0][2]*Mm[0][2];
@@ -798,7 +799,7 @@ void makeSuperCell() {
 											superCell.atoms[atomCount].x,superCell.atoms[atomCount].y,
 											superCell.atoms[atomCount].z);
 											*/
-											d = findLambda(grains[g].planes+p,&(superCell.atoms[atomCount].z),-1);
+											d = findLambda(grains[g].planes[p],&(superCell.atoms[atomCount].z),-1);
 
 											/*
 											printf("%3d lambda: %g (%g %g %g), (%g %g %g), %d\n",atomCount,d,
@@ -842,7 +843,9 @@ void makeSuperCell() {
 void makeAmorphous() {
 	int g,p,iatom,ix,iy,iz,ic,atomCount = 0,amorphSites,amorphAtoms;
 	static double *axCell,*byCell,*czCell=NULL;
-	static double **Mm = NULL;
+
+	QSfMat Mm(3,3);
+
 	double rCellx,rCelly,rCellz;
 	double d,r;
 	atom *amorphCell;
@@ -896,7 +899,7 @@ void makeAmorphous() {
 								(amorphCell[atomCount].z >= 0) && 
 								(amorphCell[atomCount].z < superCell.cz)) {
 									for (p=0;p<grains[g].nplanes;p++) {
-										d = findLambda(grains[g].planes+p,&(amorphCell[atomCount].z),-1);
+										d = findLambda(grains[g].planes[p],&(amorphCell[atomCount].z),-1);
 										if (d < 0)
 											break;
 									}
@@ -1021,7 +1024,7 @@ void makeSpecial(int distPlotFlag) {
 				pos[1] = superCell.by*ran(&seed);
 				pos[0] = superCell.cz*ran(&seed);
 				for (p=0;p<grains[g].nplanes;p++) {
-					d = findLambda(grains[g].planes+p,pos,-1);
+					d = findLambda(grains[g].planes[p],pos,-1);
 					if (d < 0) break;
 				}
 				// if all the previous tests have been successful, this atom is IN 
@@ -1058,9 +1061,8 @@ void makeSpecial(int distPlotFlag) {
 
 			superCell.atoms = (atom *)realloc(superCell.atoms,(amorphAtoms+superCell.natoms+1)*
 				sizeof(atom));
-			if (superCell.atoms == NULL) {
-				printf("makeAmorphous: Could not allocate memory for additional atoms!\n");
-				exit(0);
+			if (superCell.atoms.empty()) {
+				throw std::exception("makeAmorphous: Could not allocate memory for additional atoms!\n");
 			}
 			atomCount = superCell.natoms;  // start adding amorphous atoms, where we left off.
 
@@ -1128,7 +1130,7 @@ void makeSpecial(int distPlotFlag) {
 						superCell.atoms[atomCount].z    = z;
 
 						for (p=0;p<grains[g].nplanes;p++) {
-							d = findLambda(grains[g].planes+p,&(superCell.atoms[atomCount].z),-1);
+							d = findLambda(grains[g].planes[p],&(superCell.atoms[atomCount].z),-1);
 							if (d < 0) break;
 						}
 						// if all the previous tests have been successful, this atom is IN 

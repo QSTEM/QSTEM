@@ -119,10 +119,6 @@ double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
     /*
     printf("generating 3D spline %d \n",Z);
     */
-    splinv[iz] = QSfVec(NRMAX);
-    splinb[iz] = QSfVec(NRMAX);
-    splinc[iz] = QSfVec(NRMAX);
-    splind[iz] = QSfVec(NRMAX);
     
     for( i=0; i<NRMAX; i++)
       splinv[iz][i] = v3Datom(Z,splinr[i],tdsFlag,scatFlag);
@@ -177,7 +173,6 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
     splinr[i] = RMIN * exp( i * dlnr );
   printf( "fit from r= %gA to r= %gA\n", splinr[0], splinr[NRMAX-1] );
     
-  nspline = (int *)malloc( NZMAX*sizeof(int));
   for( i=0; i<NZMAX; i++) 
     nspline[i] = 0;
   
@@ -482,7 +477,8 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
-       f2par = double2D( NZMAX+1,2*(nl+nl), "f2par" );
+	   f2par = QSfMat(NZMAX+1,2*(nl+nl));
+       //f2par = double2D( NZMAX+1,2*(nl+nl), "f2par" );
        for (i=0;i<NZMAX;i++) {
 	 for (j=0;j<2*nl;j+=2) {
 	   f2par[i][j]      = fparams[i+1][j];                /* p1_i = a_i */

@@ -51,7 +51,7 @@ double wavelength( double kev );
 double v3Datom(int Z, double r,int tdsFlag,int scatFlag);
 double vzatom( int Z, double radius,int tdsFlag,int scatFlag);
 
-double gasdev(long *idum);
+float_tt gasdev(long *idum);
 double rangauss( unsigned long *iseed );
 int ReadfeTable(int scatFlag );
 size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );

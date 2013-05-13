@@ -229,7 +229,7 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 				sprintf(systStr,"scatpot %s %d %g %d %d %d %g %g %g %d %g",
 					fileName,Znum,B,boxNx,boxNy,boxNz,ddx,ddy,ddz,OVERSAMPLINGZ,(*muls).v0);
 				system(systStr);
-				if ((fp=fopen(fileName,"r")) == NULL) {
+				if ((fp=fopen(fileName.c_str(),"r")) == NULL) {
 					if (muls->printLevel >0)
 						printf("cannot calculate projected potential using scatpot - exit!\n");
 					exit(0);
@@ -246,12 +246,10 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 		}
 		else {
 #if FLOAT_PRECISION == 1
-			aBox[Znum].potential = complex3Df(boxNz,boxNx,boxNy,"atomBox");
-			numRead = fread(aBox[Znum].potential[0][0],sizeof(fftwf_complex),
+			numRead = fread(aBox[Znum].potential(0,0),sizeof(fftwf_complex),
 				(size_t)(boxNx*boxNy*boxNz),fp);	
 #else
-			aBox[Znum].potential = complex3D(boxNz,boxNx,boxNy,"atomBox");
-			numRead = fread(aBox[Znum].potential[0][0],sizeof(fftw_complex),
+			numRead = fread(aBox[Znum].potential(0,0),sizeof(fftw_complex),
 				(size_t)(boxNx*boxNy*boxNz),fp);	
 #endif
 		}
@@ -300,7 +298,7 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 
 
 	if ((*muls).potential3D) {
-		if (aBox[Znum].B > 0) {
+		if (aBox[Znum].B_ > 0) {
 			sum[0] = (1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz][ix][iy][0]+
 				dx*aBox[Znum].potential[iz][ix+1][iy][0])+
 				dy*((1.0-dx)*aBox[Znum].potential[iz][ix][iy+1][0]+
@@ -341,10 +339,10 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 				dx*aBox[Znum].potential[0][ix+1][iy+1][1]);
 		}
 		else {
-			sum[0] = (1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[0][ix][iy]+
-				dx*aBox[Znum].rpotential[0][ix+1][iy])+
-				dy*((1.0-dx)*aBox[Znum].rpotential[0][ix][iy+1]+
-				dx*aBox[Znum].rpotential[0][ix+1][iy+1]);
+			sum[0] = (1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[0](iy,ix)+
+				dx*aBox[Znum].rpotential[0](iy, ix+1)+
+				dy*((1.0-dx)*aBox[Znum].rpotential[0](iy+1, ix)+
+				dx*aBox[Znum].rpotential[0](iy+1, ix+1));
 		}
 	}
 	(*vlu)[0] = sum[0];
@@ -407,6 +405,8 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		printf("Severe error: trans-array not allocated - exit!\n");
 		exit(0);
 	}
+
+
 
 	if (oldTrans0 == NULL) {
 #if FLOAT_PRECISION == 1
@@ -569,7 +569,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	}
 	*/
 	// TODO: move this to the initmuls or muls instantiation.
-	(*muls).cz = QSfVec(nlayer);
+	muls->cz = QSfVec(nlayer);
 	// sliceFp = fopen(sliceFile,"r");
 	sliceFp = NULL;
 	slicePos = QSfVec(nlayer);
@@ -613,10 +613,10 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			// printf("%d: read potential with Nx=%d, Ny=%d\n",i,header->nx,header->ny);
 			if ((nx != header->nx) || (ny != header->ny))
 				printf("potential array size mismatch: (%d,%d) != (%d,%d)\n",
-				header->nx,header->ny,nx,ny);
+					header->nx,header->ny,nx,ny);
 			for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-				(*muls).trans[j][ix][iy][0] = tempPot[ix][iy];
-				(*muls).trans[j][ix][iy][1] = 0.0;
+				muls->trans[j](iy, ix).real() = tempPot[ix][iy];
+				muls->trans[j](iy, ix).imag() = 0.0;
 			}
 		}
 		return;
