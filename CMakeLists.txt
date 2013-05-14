@@ -49,6 +49,8 @@ endif(OPENMP)
 
 # We parallelize ourselves - make sure Eigen doesn't!
 add_definitions(-DEIGEN_DONT_PARALLELIZE )
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+add_definitions(-DEIGEN_FFTW_DEFAULT)
 
 # adds the libraries
 add_subdirectory(libs)

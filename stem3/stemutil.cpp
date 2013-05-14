@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #endif
 
+#include "defines.h"
 #include "stemlib.h"
 #include "stemutil.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
@@ -31,30 +32,6 @@
 #endif
 #endif
 
-
-#define K_B 1.38062e-23      /* Boltzman constant */
-#define PID 3.14159265358979 /* pi */
-#define SQRT_PI 1.77245385090552 /* sqrt(pi) */
-#define HPLANCK 6.6262e-34   /* planck's constant */
-#define AMU 1.66053e-27      /* atomic mass unit */
-#define THZ_AMU_PI_HBAR 0.05012012918415 /*  A°^2*THz*amu/(pi*hbar) */
-#define THZ_AMU_HBAR 0.15745702964189    /*   A°^2*THz*amu/(hbar)   */
-// 4.46677327584453 /* 1e10/sqrt(THz*amu/(pi*hbar)) */ 
-#define THZ_HBAR_2KB  3.81927135604119     /* THz*hbar/(2*kB) */
-#define THZ_HBAR_KB   1.90963567802059     /* THz*hbar/kB */
-#define AMU_THZ2_A2_KB   1.20274224623720     /* AMU*THz^2*A^2/kB */
-
-#define NCINMAX  500	/* max number of characers in stacking spec */
-#define NRMAX	50	/* number of values in look-up-table in vzatomLUT */
-#define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
-#define RMAX	5
-
-#define NPDTMAX 8       /* number of parameters for doyle turner sfacts */
-#define NPMAX	12	/* number of parameters for each Z */
-#define NZMIN	1	/* min Z in featom.tab */
-#define NZMAX	98      /* max Z (in featom.dat ZMAX=103) */
-#define	NCMAX	132	/* characters per line to read */
-#define NPARAM	64	/* number of parameters in tiff files */
 int feTableRead=0;	/* flag to remember if the param file has been read */
 double **fparams=NULL;	/* to get fe(k) parameters */
 const int nl=3, ng=3;	/* number of Lorenzians and Gaussians */

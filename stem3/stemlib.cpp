@@ -23,41 +23,6 @@
 #endif
 #endif
 
-#define OVERSAMP_X 2
-#define OVERSAMP_Z 18
-
-#define NSMAX 1000	/* max number of slices */
-#define NLMAX	52	/* maximum number of layers */
-#define NCINMAX  500	/* max number of characers in stacking spec */
-#define NCMAX 256	/* max characters in file names */
-#define NPARAM	64	/* number of parameters */
-#define NZMIN	1	/* min Z in featom.tab */
-#define NZMAX	103	/* max Z in featom.tab */
-#define EXTRA_LAYERS 3  /* number of extra layers for potential overlap */
-
-#define SUB_SLICES  5    /* number of sub slices per slice (for integration) */
-#define POTENTIAL_3D
-#define INTEGRAL_TOL 1e-5
-#define MAX_INTEGRAL_STEPS 15
-#define MIN_INTEGRAL_STEPS 2
-#define OVERSAMPLING 3
-#define OVERSAMPLINGZ (3*OVERSAMPLING)
-/*#define USE_VATOM_LUT */ /* set if you want to use vzatomLUT/v3DatomLUT */
-/*#define USE_VZATOM_IN_CENTER */
-/////////////////////////////////////////////////
-// for debugging:
-#define SHOW_SINGLE_POTENTIAL 0
-/////////////////////////////////////////////////
-
-
-
-#define BUF_LEN 256
-#define PI 3.14159265358979
-#define USE_REZ_SFACTS    1  // used in getAtomPotential3D and getAtomPotentialOffset3D 
-#define Z_INTERPOLATION   0  // used in make3DSlices (central function for producing atom potential slices)
-#define USE_Q_POT_OFFSETS 1  // used in make3DSlices (central function for producing atom potential slices)
-
-
 const char cname[] = "abcdefghijklmnopqrstuvwxyz"
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const double pid=PI;
@@ -385,8 +350,8 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	float *potPtr=NULL, *ptr;
 	static int divCount = 0;
 	static float_tt **tempPot = NULL;
-	std::vector<QScMat> oldTrans;
-	std::vector<QScMat> oldTrans0;
+	QSVecOfcMat oldTrans;
+	QSVecOfcMat oldTrans0;
 	static imageStruct *header = NULL;
 	std::complex<float_tt> dPot;
 #if Z_INTERPOLATION

@@ -253,14 +253,14 @@ float_tt rmin,rmax;
 int i,j, result;
 long **pix;
 
-rmin  = pict[0][0];
+rmin  = pict(0,0);
 rmax  = rmin;
 
 for( i=0; i<nx; i++)
 for(j=0; j<ny; j++)
 {
-if(pict[i][j] < rmin ) rmin = pict[i][j];
-if(pict[i][j] > rmax ) rmax = pict[i][j];
+if(pict(j,i) < rmin ) rmin = pict(j,i);
+if(pict(j,i) > rmax ) rmax = pict(j,i);
 }
 printf("min: %g  max: %g\n",rmin,rmax);
 
@@ -268,7 +268,7 @@ pix = long2D(ny,nx,"pix array");
 
 for (i=0;i<ny;i++) {
 for(j=0;j<nx;j++) {
-pix[i][j] =(long)((pow(2,NBITS)-1.0)*((pict[j][i]-rmin)/(rmax-rmin)));
+pix(j,i) =(long)((pow(2,NBITS)-1.0)*((pict(i,j)-rmin)/(rmax-rmin)));
 }
 }
 result = tcreatePixFile(outFile,pix,nx,ny,
@@ -622,7 +622,7 @@ void readSFactLUT() {
 		}
 		// printf("%s\n",elem);
 		readArray(elem,sfTable[j],Nk);
-		sfTable[j][Nk] = 0.0;
+		sfTable(Nk,j) = 0.0;
 	}
 
 	if (0) {
@@ -630,7 +630,7 @@ void readSFactLUT() {
 		for (i=0;i<=Nk;i++) printf("%.3f ",kArray[i]);
 		for (j=0;j<muls.atomKinds;j++) {
 			printf("\n%2d: ",muls.Znums[j]);
-			for (i=0;i<=Nk;i++) printf("%.3f ",sfTable[j][i]);
+			for (i=0;i<=Nk;i++) printf("%.3f ",sfTable(i,j));
 		}
 		printf("\n");
 	}
@@ -1351,8 +1351,8 @@ void readFile() {
 
 				//for (ix=0;ix<muls.scanXN;ix++) for (iy=0;iy < muls.scanYN; iy++)
 				//{
-					//det.image[ix][iy] = 0.0;
-					//det.image2[ix][iy] = 0.0;
+					//det.image(iy,ix) = 0.0;
+					//det.image2(iy,ix) = 0.0;
 				//}
 
 				/* determine v0 specific k^2 values corresponding to the angles */
@@ -1560,7 +1560,7 @@ void readFile() {
 		printf("Memory for transmission function (%d x %d x %d) allocated and plans initiated\n",muls.slices,muls.potNx,muls.potNy);
 
 
-	// printf("%d %d %d %d\n",muls.nx,muls.ny,sizeof(fftw_complex),(int)(&muls.wave[2][2])-(int)(&muls.wave[2][1]));
+	// printf("%d %d %d %d\n",muls.nx,muls.ny,sizeof(fftw_complex),(int)(&muls.wave(2,2))-(int)(&muls.wave(1,2)));
 
 
 } /* end of readFile() */
@@ -1941,7 +1941,7 @@ void doCBED() {
 
 		if (muls.avgCount == 0) {
 			/* for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++)
-			avgArray[ix][iy] = diffArray[ix][iy]; */
+			avgArray(iy,ix) = diffArray(iy,ix); */
 			memcpy((void *)avgArray[0],(void *)diffArray[0],
 				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
@@ -1952,7 +1952,7 @@ void doCBED() {
 			if (muls.lbeams) {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
+						avgPendelloesung(iy,ix) = muls.pendelloesung(iy,ix);
 					}
 				}
 			}
@@ -1961,10 +1961,10 @@ void doCBED() {
 			/*      readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((float_tt)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((float_tt)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
-				avgArray[ix][iy] = t;
+				t = ((float_tt)muls.avgCount*avgArray(iy,ix)+
+					diffArray(iy,ix))/((float_tt)(muls.avgCount+1));
+				chisq[muls.avgCount-1] += (avgArray(iy,ix)-t)*(avgArray(iy,ix)-t);
+				avgArray(iy,ix) = t;
 
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
@@ -2024,9 +2024,9 @@ void doCBED() {
 			if (muls.lbeams) {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = 
-							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
+						avgPendelloesung(iy,ix) = 
+							((float_tt)muls.avgCount*avgPendelloesung(iy,ix)+
+							muls.pendelloesung(iy,ix))/(float_tt)(muls.avgCount+1);
 					}
 				}
 			}
@@ -2036,7 +2036,7 @@ void doCBED() {
 			/**************************************************************
 			* The diffraction spot intensities of the selected 
 			* diffraction spots are now stored in the 2 dimensional array
-			* muls.pendelloesung[beam][slice].
+			* muls.pendelloesung(slice,beam).
 			* We can write the array to a file and display it, just for 
 			* demonstration purposes
 			*************************************************************/
@@ -2048,7 +2048,7 @@ void doCBED() {
 					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
-						fprintf(fp,"\t%g",avgPendelloesung[ix][iy]);
+						fprintf(fp,"\t%g",avgPendelloesung(iy,ix));
 					}
 					/* close the line, and start a new one for the next set of
 					* intensities
@@ -2133,7 +2133,7 @@ void doTEM() {
 		// produce an incident plane wave:
 		if ((muls.btiltx == 0) && (muls.btilty == 0)) {
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				wave->wave[ix][iy][0] = 1;	wave->wave[ix][iy][1] = 0;
+				wave->wave(iy,ix)[0] = 1;	wave->wave(iy,ix)[1] = 0;
 			}
 		}
 		else {
@@ -2144,8 +2144,8 @@ void doTEM() {
 				x = muls.resolutionX*(ix-muls.nx/2);
 				for (iy=0;iy<muls.ny;iy++) {
 					y = muls.resolutionY*(ix-muls.nx/2);
-					wave->wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
-					wave->wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
+					wave->wave(iy,ix)[0] = (float)cos(ktx*x+kty*y);	
+					wave->wave(iy,ix)[1] = (float)sin(ktx*x+kty*y);
 				}
 			}
 		}
@@ -2238,8 +2238,8 @@ void doTEM() {
 							x = muls.resolutionX*(ix-muls.nx/2);
 							for (iy=0;iy<muls.ny;iy++) {
 								y = muls.resolutionY*(ix-muls.nx/2);
-								wave->wave[ix][iy][0] *= cos(ktx*x+kty*y);	
-								wave->wave[ix][iy][1] *= sin(ktx*x+kty*y);
+								wave->wave(iy,ix)[0] *= cos(ktx*x+kty*y);	
+								wave->wave(iy,ix)[1] *= sin(ktx*x+kty*y);
 							}
 						}
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
@@ -2321,7 +2321,7 @@ void doTEM() {
 			if (muls.lbeams) {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
+						avgPendelloesung(iy,ix) = muls.pendelloesung(iy,ix);
 					}
 				}
 			}
@@ -2336,13 +2336,13 @@ void doTEM() {
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
-				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
+				imageWave(iy,ix)[0] = wave->wave(iy,ix)[0];
+				imageWave(iy,ix)[1] = wave->wave(iy,ix)[1];
 			}
 			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 			// get the amplitude squared:
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				diffArray[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
+				diffArray(iy,ix) = imageWave(iy,ix)[0]*imageWave(iy,ix)[0]+imageWave(iy,ix)[1]*imageWave(iy,ix)[1];
 			}
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
@@ -2360,10 +2360,10 @@ void doTEM() {
 			/* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((float_tt)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((float_tt)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
-				avgArray[ix][iy] = t;
+				t = ((float_tt)muls.avgCount*avgArray(iy,ix)+
+					diffArray(iy,ix))/((float_tt)(muls.avgCount+1));
+				chisq[muls.avgCount-1] += (avgArray(iy,ix)-t)*(avgArray(iy,ix)-t);
+				avgArray(iy,ix) = t;
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
@@ -2401,9 +2401,9 @@ void doTEM() {
 			if (muls.lbeams) {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = 
-							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
+						avgPendelloesung(iy,ix) = 
+							((float_tt)muls.avgCount*avgPendelloesung(iy,ix)+
+							muls.pendelloesung(iy,ix))/(float_tt)(muls.avgCount+1);
 					}
 				}
 			}
@@ -2418,8 +2418,8 @@ void doTEM() {
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
-				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
+				imageWave(iy,ix)[0] = wave->wave(iy,ix)[0];
+				imageWave(iy,ix)[1] = wave->wave(iy,ix)[1];
 			}
 			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 
@@ -2427,9 +2427,9 @@ void doTEM() {
 			sprintf(avgName,"%s/image.img",muls.folder); 
 			header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((float_tt)muls.avgCount*diffArray[ix][iy]+
-					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(muls.avgCount+1);
-				diffArray[ix][iy] = t;
+				t = ((float_tt)muls.avgCount*diffArray(iy,ix)+
+					imageWave(iy,ix)[0]*imageWave(iy,ix)[0]+imageWave(iy,ix)[1]*imageWave(iy,ix)[1])/(float_tt)(muls.avgCount+1);
+				diffArray(iy,ix) = t;
 			}
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
@@ -2446,7 +2446,7 @@ void doTEM() {
 			/**************************************************************
 			* The diffraction spot intensities of the selected 
 			* diffraction spots are now stored in the 2 dimensional array
-			* muls.pendelloesung[beam][slice].
+			* muls.pendelloesung(slice,beam).
 			* We can write the array to a file and display it, just for 
 			* demonstration purposes
 			*************************************************************/
@@ -2459,7 +2459,7 @@ void doTEM() {
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
 						// store the AMPLITUDE:
-						fprintf(fp,"\t%g",sqrt(avgPendelloesung[ix][iy]/(muls.nx*muls.ny)));
+						fprintf(fp,"\t%g",sqrt(avgPendelloesung(iy,ix)/(muls.nx*muls.ny)));
 					}
 					/* close the line, and start a new one for the next set of
 					* intensities
@@ -2715,7 +2715,7 @@ void doSTEM() {
 								{
 									for (iya=0;iya<muls.ny;iya++)
 									{
-										wave->avgArray[ixa][iya]=wave->diffpat[ixa][iya];
+										wave->avgArray(iya,ixa)=wave->diffpat(iya,ixa);
 									}
 								}
 								/* memcopy((void *)avgArray[0],(void *)muls.diffpat[0],
@@ -2728,12 +2728,12 @@ void doSTEM() {
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
 								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
-									t = ((float_tt)muls.avgCount * wave->avgArray[ixa][iya] +
-										wave->diffpat[ixa][iya]) / ((float_tt)(muls.avgCount + 1));
+									t = ((float_tt)muls.avgCount * wave->avgArray(iya,ixa) +
+										wave->diffpat(iya,ixa)) / ((float_tt)(muls.avgCount + 1));
 									#pragma omp atomic
-									chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
-										(wave->avgArray[ixa][iya]-t);
-									wave->avgArray[ixa][iya] = t;
+									chisq[muls.avgCount-1] += (wave->avgArray(iya,ixa)-t)*
+										(wave->avgArray(iya,ixa)-t);
+									wave->avgArray(iya,ixa) = t;
 								}
 							}
 							/* Write the array to a file, resize and crop it, 

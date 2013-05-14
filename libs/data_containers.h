@@ -57,7 +57,7 @@ public:
   int saveLevel;
   int complete_pixels;  //the number of pixels completed so far
 
-  std::vector<QScMat> trans;
+  QSVecOfcMat trans;
 
   // Need to figure out good way of doing 3D things with Eigen
 #if FLOAT_PRECISION == 1

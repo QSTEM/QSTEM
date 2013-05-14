@@ -31,6 +31,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <Eigen/StdVector>
 
 // #include "floatdef.h"
 #include "fftw3.h"
@@ -72,6 +73,9 @@ typedef Matrix< int, Dynamic, Dynamic> QSiMat;
 typedef Matrix< float_tt, Dynamic, 1> QSfVec;
 typedef Matrix< float_tt, 3, 1> QSf3Vec;
 typedef Matrix< int, Dynamic, 1> QSiVec;
+
+typedef std::vector<QScMat, Eigen::aligned_allocator<QScMat>> QSVecOfcMat;
+typedef std::vector<QSfMat, Eigen::aligned_allocator<QSfMat>> QSVecOffMat;
 
 ////////////////////////////////////////////////////////////////
 
@@ -127,8 +131,8 @@ typedef struct atomBoxStruct {
   float_tt dx,dy,dz;
   double B_;
   
-  std::vector<QScMat> potential;
-  std::vector<QSfMat> rpotential;
+  QSVecOfcMat potential;
+  QSVecOffMat rpotential;
 } atomBox;
 
 typedef struct detectorStruct {

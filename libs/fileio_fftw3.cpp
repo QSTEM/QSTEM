@@ -11,6 +11,7 @@
 #include <string>
 #include <algorithm>
 
+#include "defines.h"
 // #include "../lib/floatdef.h"
 #include "stemtypes_fftw3.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
@@ -272,7 +273,7 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 ********************************************************************************/ 
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,natom,jz);
 //  j == atomCount
-int phononDisplacement(QSfVec u, MULS &muls, int id, int icx, int icy,
+int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
                        int icz, int atomCount, float_tt dw, int maxAtom, int ZnumIndex) {
   int ix,iy,idd; // iz;
   static FILE *fpPhonon = NULL;
@@ -282,7 +283,7 @@ int phononDisplacement(QSfVec u, MULS &muls, int id, int icx, int icy,
   QSfMat omega;
   //	static float **omega;     // array of eigenvalues for every k-vector 
   //std::vector <QSfMat> EigVecs;
-  std::vector<QScMat> eigVecs;
+  QSVecOfcMat eigVecs;
   //	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
   QSfMat kVecs;
   //	static float **kVecs;     // array for Nk 3-dim k-vectors
@@ -442,7 +443,7 @@ int phononDisplacement(QSfVec u, MULS &muls, int id, int icx, int icy,
        * omega is given in THz, but the 2pi-factor
        * is still there, i.e. f=omega/2pi
        */
-      eigVecs = std::vector<QScMat>(Nk);
+      eigVecs = QSVecOfcMat(Nk);
 	  for (int i=0; i<Nk; i++)
 	  {
 		  // TODO: comment to test
@@ -547,7 +548,7 @@ int phononDisplacement(QSfVec u, MULS &muls, int id, int icx, int icy,
      * coordinates so that we can add it to the current position in vector a
      */
     // TODO: optimize
-	uf = u*MmInv;
+	uf = MmInv*u;
     //matrixProduct(&u,1,3,MmInv,3,3,&uf);
     // test:
     /*
@@ -595,6 +596,7 @@ int phononDisplacement(QSfVec u, MULS &muls, int id, int icx, int icy,
     // Book keeping:
     u2[ZnumIndex] += u(0)*u(0)+u(1)*u(1)+u(2)*u(2);
     ux += u(0); uy += u(1); uz += u(2);
+	// TODO: define ax, by, c in muls as QSf3Vec
     u(0) /= muls.ax;
     u(1) /= muls.by;
     u(2) /= muls.c;
@@ -675,7 +677,7 @@ int readDATCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readCFGCellParams(MULS &muls, QSfMat Mm, std::string fileName) {
+int readCFGCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
   int ncoord;
   char buf[256];
   float_tt lengthScale;
@@ -697,17 +699,22 @@ int readCFGCellParams(MULS &muls, QSfMat Mm, std::string fileName) {
   if (readparam("Number of particles =",buf,1)) sscanf(buf,"%d",&ncoord);
   if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
   
-  if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+0);
-  if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+1);
-  if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+2);
+  if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm.data()+0);
+  if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm.data()+1);
+  if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm.data()+2);
   
-  if (readparam("H0(2,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+3);
-  if (readparam("H0(2,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+4);
-  if (readparam("H0(2,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+5);
+  if (readparam("H0(2,1) =",buf,1)) sscanf(buf,"%lf",Mm.data()+3);
+  if (readparam("H0(2,2) =",buf,1)) sscanf(buf,"%lf",Mm.data()+4);
+  if (readparam("H0(2,3) =",buf,1)) sscanf(buf,"%lf",Mm.data()+5);
   
-  if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+6);
-  if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+7);
-  if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+8);
+  if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%lf",Mm.data()+6);
+  if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%lf",Mm.data()+7);
+  if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%lf",Mm.data()+8);
+
+  // Eigen is column-major, but our parameter reading in was just done as row-major.
+  //  transpose to swap.
+  // TODO: verify.
+  Mm.transposeInPlace();
   /*
     if (readparam(".NO_VELOCITY.",buf,1)) noVelocityFlag = 1; 
     if (readparam("entry_count =",buf,1)) sscanf(buf,"%lf",&entryCount);

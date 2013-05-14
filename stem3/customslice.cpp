@@ -27,11 +27,11 @@
 
 #define SQR(x) ((x)*(x))
 
-const double pi     = 3.14159265358979;
-const double twopi  = 6.28318530717959;
-const double fourpi = 12.56637061435917;
+const float_tt pi     = 3.14159265358979;
+const float_tt twopi  = 6.28318530717959;
+const float_tt fourpi = 12.56637061435917;
 
-void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls);
+void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx, MULS *muls);
 
 
 void make3DSlicesFT(MULS *muls) {
@@ -39,12 +39,12 @@ void make3DSlicesFT(MULS *muls) {
   /************************************************************************
    * temporary variables needed always:
    */
-  double scale,ffr,ffi,arg,r;  // ffr,i = form factor
-  double s,x,y,z,rxy2,zStart;
+  float_tt scale,ffr,ffi,arg,r;  // ffr,i = form factor
+  float_tt s,x,y,z,rxy2,zStart;
   int ix,iy,iz,j,i; // count = 0; // j,Ninteg;
   int atKind;                   // specifies kind of atom in list
-  double timer0,timer,t;
-  atom *atoms;
+  float_tt timer0,timer,t;
+  std::vector<atom> atoms;
   int perX = 0, perY = 0, perZ = 0; // set 1 for periodic, 0 for non-periodic
   int pX,pY,pZ;                  // used for looping through neighboring cells
 
@@ -53,18 +53,18 @@ void make3DSlicesFT(MULS *muls) {
    * static variables which are used every time:
    */
   // static float ***potential = NULL;         // array holding real space potential
-  static int Nxp,Nyp,Nzp;                   // size of potential array
-  static int Nx=FTBOX_NX, Nz=FTBOX_NX, Nxm,Nzm; // size and center of single atom potential box
-  static int Nxl,Nzl;                       // size of lookup array
-  static float axp, byp,czp,dXp,dYp,dZp;    // model dimensions and resolution
-  static double ***potLUT = NULL;           // potential lookup table for all atoms used
-  static int xOversample,zOversample;       // oversampling rate for x- and z-direction
-  static double *rcutoff = NULL;            // radius after which set potential to 0 (one for each atom)
-  static int divCount = 0;
-  static char buf[128];
-  static double dX,dZ;                      // real space resol. of FT box
-  static imageStruct *header = NULL;
-  static char fileName[64];
+  int Nxp,Nyp,Nzp;                   // size of potential array
+  int Nx=FTBOX_NX, Nz=FTBOX_NX, Nxm,Nzm; // size and center of single atom potential box
+  int Nxl,Nzl;                       // size of lookup array
+  float_tt axp, byp,czp,dXp,dYp,dZp;    // model dimensions and resolution
+  double ***potLUT = NULL;           // potential lookup table for all atoms used
+  float_tt xOversample,zOversample;       // oversampling rate for x- and z-direction
+  QSfVec rcutoff;            // radius after which set potential to 0 (one for each atom)
+  int divCount = 0;
+  char buf[128];
+  float_tt dX,dZ;                      // real space resol. of FT box
+  imageStruct *header = NULL;
+  char fileName[64];
 
 
   /******************************************
@@ -72,11 +72,11 @@ void make3DSlicesFT(MULS *muls) {
    */
   fftw_plan plan;                   // fftw array
   int fftMeasureFlag = FFTW_ESTIMATE; // fftw plan needed for FFT
-  fftw_complex **pot = NULL;          // single atom potential box
-  float ax,cz;                        // real space size of FT box
-  double dsX,dsZ;                     // rec. space size of FT box
-  double sx,sz,sx2,sz2,sz2r;
-  double sx2max,sz2max;
+  QScMat pot;          // single atom potential box
+  float_tt ax,cz;                        // real space size of FT box
+  float_tt dsX,dsZ;                     // rec. space size of FT box
+  float_tt sx,sz,sx2,sz2,sz2r;
+  float_tt sx2max,sz2max;
 
 
 
@@ -98,9 +98,9 @@ void make3DSlicesFT(MULS *muls) {
     czp = muls->c/muls->cellDiv;
     axp = muls->potSizeX; byp = muls->potSizeY;
     // Now we need to adjust ax, Nx, cz, and Nz to work with the model parameters
-    dXp = axp/(double)Nxp;
-    dYp = byp/(double)Nyp;
-    dZp = czp/(double)Nzp;
+    dXp = axp/Nxp;
+    dYp = byp/Nyp;
+    dZp = czp/Nzp;
     
     // find the spacing with which we will create the projected 
     // potential lookup table.
@@ -125,10 +125,13 @@ void make3DSlicesFT(MULS *muls) {
 	   Nx,Nz,zOversample,xOversample,ax,cz,dX,dZ);
     
     // create an array, so that index=iz*Nx*Ny+iy*Nx+ix = [iz][iy][ix]
-    pot = complex2D(Nz,Nx,"pot");
-    potLUT = (double ***)malloc(muls->atomKinds*sizeof(double **));
-    rcutoff = double1D(muls->atomKinds,"rcutoff");
-    memset(rcutoff,0,muls->atomKinds*sizeof(double));
+    pot = QScMat(Nz, Nx);
+	// TODO: is this right?
+    potLUT = QSVecOffMat(muls->atomKinds);
+		//(double ***)malloc(muls->atomKinds*sizeof(double **));
+    rcutoff = QSfVec(muls->atomKinds);
+	rcutoff.setZero();
+    //memset(rcutoff,0,muls->atomKinds*sizeof(double));
     Nxm = Nx/2;   // Nym = Ny/2;
     dsX = 1.0/ax; // dsY = 1.0/by; 
     dsZ = 1.0/cz;
@@ -170,7 +173,8 @@ void make3DSlicesFT(MULS *muls) {
       }
 
       // new fftw3 code:
-      plan = fftw_plan_dft_2d(Nz,Nx,pot[0],pot[0],FFTW_BACKWARD,fftMeasureFlag);
+	  // TODO: 
+      plan = fftw_plan_dft_2d(Nz,Nx,(fftw_complex)pot.data(),(fftw_complex)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
       fftw_execute(plan);
       fftw_destroy_plan(plan);
       // old fftw2 code:
@@ -229,10 +233,7 @@ void make3DSlicesFT(MULS *muls) {
   /*******************************************************
    * initializing  cz, and trans
    *************************************************************/
-  if(muls->trans==NULL) {
-    printf("make3DSlicesFT: Error, trans not allocated!\n");
-    exit(0);
-  }
+
   memset(muls->trans[0][0],0,Nzp*Nxp*Nyp*sizeof(fftw_complex));
   if (muls->cz == NULL) muls->cz = float1D(Nzp,"cz");
   for (i=0;i<Nzp;i++) muls->cz[i] = muls->sliceThickness;  					

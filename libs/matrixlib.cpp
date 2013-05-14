@@ -65,14 +65,14 @@ void showMatrix(QSfMat m, std::string name) {
  * forward(1) (x,y,z), or reversed(-1) (z,y,x) order.
  * This is important for using the reversed order in the atom struct.
  */
-double findLambda(plane *p, QSf3Vec point, int revFlag) {
+float_tt findLambda(plane *p, QSf3Vec point, int revFlag) {
   QSf3Mat M, Minv;
   // TODO: we need to define M's size!!
   QSf3Vec diff;
-  //static double **M=NULL;
-  //static double **Minv=NULL;
-  //static double *diff=NULL;
-  double lambda; /* dummy variable */
+  //static float_tt **M=NULL;
+  //static float_tt **Minv=NULL;
+  //static float_tt *diff=NULL;
+  float_tt lambda; /* dummy variable */
 
   /*
   printf("hello x=(%g %g %g)\n",p->pointX,p->pointY,p->pointZ);
@@ -81,17 +81,18 @@ double findLambda(plane *p, QSf3Vec point, int revFlag) {
   */
 
   /*
-  M(0,0) = -((*p).normX); 
-  M(3,0) = -((*p).normY); 
-  M(6,0) = -((*p).normZ);
-  M(1,0) = p->vect1X; M(1,1) = p->vect1Y; M(1,2) = p->vect1Z;
-  M(2,0) = p->vect2X; M(2,1) = p->vect2Y; M(2,2) = p->vect2Z;
+  M[0][0] = -((*p).normX); 
+  M[0][3] = -((*p).normY); 
+  M[0][6] = -((*p).normZ);
+  M[0][1] = p->vect1X; M[1][1] = p->vect1Y; M[2][1] = p->vect1Z;
+  M[0][2] = p->vect2X; M[1][2] = p->vect2Y; M[2][2] = p->vect2Z;
   vectDiff_f(point,&(p->pointX),diff,revFlag);
   */
-  
-  M(0,0) = -(p->norm[0]); M(0,1) = -(p->norm[1]); M(0,2) = -(p->norm[2]);
-  M(1,0) = p->vect1[0]; M(1,1) = p->vect1[1]; M(1,2) = p->vect1[2];
-  M(2,0) = p->vect2[0]; M(2,1) = p->vect2[1]; M(2,2) = p->vect2[2];
+
+  M.col(0) = -(p->norm);
+  M.col(1) = (p->vect1);
+  M.col(2) = (p->vect2);
+
   vectDiff_f(point,p->point,diff,revFlag);
 
   Minv = M.inverse();
@@ -99,11 +100,9 @@ double findLambda(plane *p, QSf3Vec point, int revFlag) {
   // showMatrix(M,3,3,"M");
   // showMatrix(Minv,3,3,"Minv");
   // showMatrix(&diff,1,3,"diff");
-  // ludcmp(M,3,index,&d);
-  // lubksb(M,3,index,point);
 
-  lambda = Minv.dot(diff);
   //  lambda = dotProduct(Minv[0],diff);
+  lambda = Minv.row(0).dot(diff);
 
   // printf("lambda: %g\n",lambda);
   return lambda;
@@ -121,8 +120,8 @@ double findLambda(plane *p, QSf3Vec point, int revFlag) {
  * The same vector can be specified as input, as well as output vector.
  */
 void rotateVect(QSf3Vec vectIn, QSf3Vec vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
-  double sphi_x=0, sphi_y=0, sphi_z=0;
-  //  static double *vectOut = NULL;
+  float_tt sphi_x=0, sphi_y=0, sphi_z=0;
+  //  static float_tt *vectOut = NULL;
   // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
   QSf3Mat Mrot;
@@ -147,44 +146,44 @@ void rotateVect(QSf3Vec vectIn, QSf3Vec vectOut, float_tt phi_x, float_tt phi_y,
     sphi_y = phi_y;
     sphi_z = phi_z;
   }
-  vectOutTemp = vectIn*Mrot;
+  vectOutTemp = Mrot*vectIn;
   //vectOutTemp[0] = Mrot(0,0)*vectIn[0]+Mrot(1,0)*vectIn[1]+Mrot(2,0)*vectIn[2];
   //vectOutTemp[1] = Mrot(0,1)*vectIn[0]+Mrot(1,1)*vectIn[1]+Mrot(2,1)*vectIn[2];
   //vectOutTemp[2] = Mrot(0,2)*vectIn[0]+Mrot(1,2)*vectIn[1]+Mrot(2,2)*vectIn[2];
   vectOut = vectOutTemp;
-  //memcpy(vectOut,vectOutTemp,3*sizeof(double));
+  //memcpy(vectOut,vectOutTemp,3*sizeof(float_tt));
 
   return;
 }
 
-void rotateMatrix(QSfMat &matrixIn, QSfMat &matrixOut, double phi_x, double phi_y, double phi_z) {
-QSf3Mat Mrot;
-// This was static - so it may have saved some calculation.  Consider doing it back that way...
-double sphi_x=0, sphi_y=0, sphi_z=0;
-// static double *vectOut = NULL;
-// printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
+void rotateMatrix(QSf3Mat &matrixIn, QSf3Mat &matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
+	QSf3Mat Mrot;
+	// This was static - so it may have saved some calculation.  Consider doing it back that way...
+	float_tt sphi_x=0, sphi_y=0, sphi_z=0;
+	// static float_tt *vectOut = NULL;
+	// printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
-Mrot.setZero();
-Mrot(0,0) = 1;Mrot(1,1) = 1;Mrot(2,2) = 1;
+	Mrot.setZero();
+	Mrot(0,0) = 1;Mrot(1,1) = 1;Mrot(2,2) = 1;
 
-if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
-	Mrot(0,0) = static_cast<float_tt>(cos(phi_z)*cos(phi_y));
-	Mrot(1,0) = static_cast<float_tt>(cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x));
-	Mrot(2,0) = static_cast<float_tt>(cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x));
+	if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
+		Mrot(0,0) = static_cast<float_tt>(cos(phi_z)*cos(phi_y));
+		Mrot(1,0) = static_cast<float_tt>(cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x));
+		Mrot(2,0) = static_cast<float_tt>(cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x));
 
-	Mrot(0,1) = static_cast<float_tt>(sin(phi_z)*cos(phi_y));
-	Mrot(1,1) = static_cast<float_tt>(sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x));
-	Mrot(2,1) = static_cast<float_tt>(sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x));
+		Mrot(0,1) = static_cast<float_tt>(sin(phi_z)*cos(phi_y));
+		Mrot(1,1) = static_cast<float_tt>(sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x));
+		Mrot(2,1) = static_cast<float_tt>(sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x));
 
-	Mrot(0,2) = static_cast<float_tt>(-sin(phi_y));
-	Mrot(1,2) = static_cast<float_tt>(cos(phi_y)*sin(phi_x));
-	Mrot(2,2) = static_cast<float_tt>(cos(phi_y)*cos(phi_x));
+		Mrot(0,2) = static_cast<float_tt>(-sin(phi_y));
+		Mrot(1,2) = static_cast<float_tt>(cos(phi_y)*sin(phi_x));
+		Mrot(2,2) = static_cast<float_tt>(cos(phi_y)*cos(phi_x));
 
-	sphi_x = phi_x;
-	sphi_y = phi_y;
-	sphi_z = phi_z;
-}
-matrixOut = matrixIn*Mrot;
+		sphi_x = phi_x;
+		sphi_y = phi_y;
+		sphi_z = phi_z;
+	}
+	matrixOut = Mrot*matrixIn;
 return;
 }
 
@@ -262,7 +261,7 @@ void makeCellVectMuls(MULS &muls, QSf3Mat &Mm) {
   }
 }
 
-double vectLength(double *vect) {
+float_tt vectLength(float_tt *vect) {
   return sqrt(vect[0]*vect[0]+vect[1]*vect[1]+vect[2]*vect[2]);
 }
 

@@ -4,9 +4,6 @@
 #include "stemtypes_fftw3.h"
 #include "data_containers.h"
 
-#define PI 3.1415926535898
-#define PI180 1.7453292519943e-2
-
 double pythag(double a, double b);
 
 /* vector functions:
