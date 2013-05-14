@@ -40,8 +40,8 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 
 void *memcopy(void *dest, const void *src, size_t n);
 // void saveSTEMimages(MULS *muls);
-// atom *readUnitCell(int *natom,char *fileName,MULS *muls,int handleVacancies);
-atom *readCFGUnitCell(int *natom,char *fileName,MULS *muls);
+// atom *readUnitCell(int &natom,char *fileName,MULS *muls,int handleVacancies);
+atom *readCFGUnitCell(int &natom,char *fileName,MULS *muls);
 
 double v3DatomLUT(int iz,double r,int tdsFlag,int scatFlag);
 double vzatomLUT( int Z, double r ,int tdsFlag,int scatFlag);

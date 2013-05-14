@@ -72,34 +72,18 @@ void WAVEFUNC::ZeroWave(void)
 
 }
 
-MULS::MULS (int slices) : 
-atomRadius(5.0), /* radius in A for making the potential boxes */
-nlayer(slices),
-saveFlag(0),
-sigmaf(0), dfdelt(0), acmax(0), acmin(0), aobj(0), Cs(0), aAIS(0),
-// Tomography stuff - tomoCount = 0 indicates no Tomo simulation.
-tomoTilt(0), tomoStart(0), tomoStep(0), tomoCount(0),
-onlyFresnel(0),
-czOffset(0), /* defines the offset for the first slice in 
-						fractional coordinates        */
-normHolog(0),
-gaussianProp(0)
+MULS::MULS () 
 {
-	int sCount;
-	/* general setup: */
-	// cin2 should be a vector of strings - with each element being "a" followed by the slice index.  
-	//     Is a a character (integer), and this is some kind of offset based on that?
-	for (sCount =0;sCount<slices;sCount++)
-		cin2[sCount] = 'a'+sCount;
-	for (sCount = slices;sCount < NCINMAX;sCount++)
-		cin2[sCount] = 0;
+	initMuls();
+};
+
+MULS::MULS (int slices)  
+{
 	// muls.areaAIS = 1.0;
 
 	/* make multislice read the inout files and assign transr and transi: */
 	//muls.trans = NULL;
 	//muls.cz = NULL;  // (float_tt *)malloc(muls.slices*sizeof(float_tt));
-
-	sparam = QSfVec::Zero(NPARAM);
 
 	//muls.kx = NULL;
 	//muls.kx2= NULL;
@@ -109,4 +93,34 @@ gaussianProp(0)
 	/****************************************************/
 	/* copied from slicecell.c                          */
 	//muls.pendelloesung = NULL;
+}
+
+void MULS::initMuls(int slices)
+{
+	initMuls();
+	int sCount;
+	/* general setup: */
+	// cin2 should be a vector of strings - with each element being "a" followed by the slice index.  
+	//     Is a a character (integer), and this is some kind of offset based on that?
+	for (sCount =0;sCount<slices;sCount++)
+		cin2[sCount] = 'a'+sCount;
+	for (sCount = slices;sCount < NCINMAX;sCount++)
+		cin2[sCount] = 0;
+
+}
+
+void MULS::initMuls()
+{
+	atomRadius= 5.0; /* radius in A for making the potential boxes */
+	saveFlag=0;
+	sigmaf=0; dfdelt=0; acmax=0; acmin=0; aobj=0; Cs=0; aAIS=0;
+	// Tomography stuff - tomoCount = 0 indicates no Tomo simulation.
+	tomoTilt=0; tomoStart=0; tomoStep=0; tomoCount=0;
+	onlyFresnel=0;
+	czOffset=0; /* defines the offset for the first slice in 
+						fractional coordinates        */
+	normHolog=0;
+	gaussianProp=0;
+
+	sparam = QSfVec::Zero(NPARAM);
 }

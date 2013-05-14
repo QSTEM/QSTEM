@@ -28,16 +28,16 @@ static float sqrarg = 0.0f;
 #define SIGN(a,b) ((b) >= 0 ? (a) : -(a))    // Magnitude of a times sign of b.
 #define SQR(a) (((sqrarg=(a)) == 0.0) ? 0.0 : sqrarg*sqrarg)
 
-double pythag(double a, double b) {
+float_tt pythag(float_tt a, float_tt b) {
   /* Computes (a 2 + b 2 ) 1=2 without destructive under ow or over ow.
    */ 
-  double absa,absb; 
+  float_tt absa,absb; 
   absa=fabs(a); 
   absb=fabs(b); 
   if (absa > absb) 
-    return absa*sqrt(1.0+SQR(absb/absa)); 
+    return static_cast<float_tt>(absa*sqrt(1.0+SQR(absb/absa))); 
   else 
-    return (absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))); 
+    return static_cast<float_tt>(absb == 0.0 ? 0.0 : absb*sqrt(1.0+SQR(absa/absb))); 
 }
 
 /* vector difference c = a - b 
@@ -45,12 +45,12 @@ double pythag(double a, double b) {
  * in reversed order, i.e. a[0]=z, a[1]=y, a[2]=x.
  */
 
-void vectDiff_f(QSfVec &a, QSfVec &b, QSfVec &c, int revFlag) {
+void vectDiff_f(QSf3Vec &a, QSf3Vec &b, QSf3Vec &c, int revFlag) {
   if (revFlag > 0) {
 	c = a.array()-b.array();
   }
   else {
-	c = a.reverse.array()-b.array();
+	c = a.reverse().array()-b.array();
   }
 }
 
@@ -65,9 +65,10 @@ void showMatrix(QSfMat m, std::string name) {
  * forward(1) (x,y,z), or reversed(-1) (z,y,x) order.
  * This is important for using the reversed order in the atom struct.
  */
-double findLambda(plane *p, QSfVec point, int revFlag) {
-  QSfMat M, Minv;
-  QSfVec diff(3);
+double findLambda(plane *p, QSf3Vec point, int revFlag) {
+  QSf3Mat M, Minv;
+  // TODO: we need to define M's size!!
+  QSf3Vec diff;
   //static double **M=NULL;
   //static double **Minv=NULL;
   //static double *diff=NULL;
@@ -88,9 +89,7 @@ double findLambda(plane *p, QSfVec point, int revFlag) {
   vectDiff_f(point,&(p->pointX),diff,revFlag);
   */
   
-  M(0,0) = -(p->norm[0]); 
-  M(3,0) = -(p->norm[1]); 
-  M(6,0) = -(p->norm[2]);
+  M(0,0) = -(p->norm[0]); M(0,1) = -(p->norm[1]); M(0,2) = -(p->norm[2]);
   M(1,0) = p->vect1[0]; M(1,1) = p->vect1[1]; M(1,2) = p->vect1[2];
   M(2,0) = p->vect2[0]; M(2,1) = p->vect2[1]; M(2,2) = p->vect2[2];
   vectDiff_f(point,p->point,diff,revFlag);
@@ -121,15 +120,15 @@ double findLambda(plane *p, QSfVec point, int revFlag) {
  * in case the angles don't change.
  * The same vector can be specified as input, as well as output vector.
  */
-void rotateVect(QSfVec vectIn, QSfVec vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
+void rotateVect(QSf3Vec vectIn, QSf3Vec vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
   double sphi_x=0, sphi_y=0, sphi_z=0;
   //  static double *vectOut = NULL;
   // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
-  QSfMat Mrot = QSfMat(3,3);
+  QSf3Mat Mrot;
   Mrot.setZero();
   Mrot(0,0) = 1; Mrot(1,1) = 1; Mrot(2,2) = 1;
-  QSfVec vectOutTemp = QSfVec(3);
+  QSf3Vec vectOutTemp;
 
   if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
     Mrot(0,0) = cos(phi_z)*cos(phi_y);
@@ -159,8 +158,7 @@ void rotateVect(QSfVec vectIn, QSfVec vectOut, float_tt phi_x, float_tt phi_y, f
 }
 
 void rotateMatrix(QSfMat &matrixIn, QSfMat &matrixOut, double phi_x, double phi_y, double phi_z) {
-int i,j,k;
-static QSfMat Mrot(3,3);
+QSf3Mat Mrot;
 // This was static - so it may have saved some calculation.  Consider doing it back that way...
 double sphi_x=0, sphi_y=0, sphi_z=0;
 // static double *vectOut = NULL;
@@ -170,17 +168,17 @@ Mrot.setZero();
 Mrot(0,0) = 1;Mrot(1,1) = 1;Mrot(2,2) = 1;
 
 if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
-	Mrot(0,0) = cos(phi_z)*cos(phi_y);
-	Mrot(1,0) = cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x);
-	Mrot(2,0) = cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x);
+	Mrot(0,0) = static_cast<float_tt>(cos(phi_z)*cos(phi_y));
+	Mrot(1,0) = static_cast<float_tt>(cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x));
+	Mrot(2,0) = static_cast<float_tt>(cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x));
 
-	Mrot(0,1) = sin(phi_z)*cos(phi_y);
-	Mrot(1,1) = sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x);
-	Mrot(2,1) = sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x);
+	Mrot(0,1) = static_cast<float_tt>(sin(phi_z)*cos(phi_y));
+	Mrot(1,1) = static_cast<float_tt>(sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x));
+	Mrot(2,1) = static_cast<float_tt>(sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x));
 
-	Mrot(0,2) = -sin(phi_y);
-	Mrot(1,2) = cos(phi_y)*sin(phi_x);
-	Mrot(2,2) = cos(phi_y)*cos(phi_x);
+	Mrot(0,2) = static_cast<float_tt>(-sin(phi_y));
+	Mrot(1,2) = static_cast<float_tt>(cos(phi_y)*sin(phi_x));
+	Mrot(2,2) = static_cast<float_tt>(cos(phi_y)*cos(phi_x));
 
 	sphi_x = phi_x;
 	sphi_y = phi_y;
@@ -203,62 +201,64 @@ return;
  * gamma = angle between by and ax.
  */
 // #define SQR(x) ((x)*(x))
-void makeCellVect(grainBox *grain, double *vax, double *vby, double *vcz) {
-  
-  if ((grain->alpha == 90) && (grain->beta == 90) && (grain->gamma == 90)) {
+void makeCellVect(grainBox &grain, QSf3Mat &Mm) 
+{
+  if ((grain.alpha == 90) && (grain.beta == 90) && (grain.gamma == 90)) {
     printf("Orthogonal unit cell\n");
-    vax[0] = grain->ax; vax[1] = 0; vax[2] = 0;  
-    vby[0] = 0; vby[1] = grain->by;  vby[2] = 0;
-    vcz[0] = 0; vcz[1] = 0; vcz[2] = grain->cz; 
+    Mm(0,0) = grain.ax; Mm(1,0) = 0; Mm(2,0) = 0;  
+    Mm(0,1) = 0; Mm(1,1) = grain.by;  Mm(2,1) = 0;
+    Mm(0,2) = 0; Mm(1,2) = 0; Mm(2,2) = grain.cz; 
   }
  
   else {
 
-    vax[0] = grain->ax; vax[1] = 0; vax[2] = 0;
+    Mm(0,0) = grain.ax; Mm(1,0) = 0; Mm(2,0) = 0;
     
-    vby[0] = grain->by*cos(grain->gamma*PI180); 
-    vby[1] = grain->by*sin(grain->gamma*PI180);
-    vby[2] = 0;
+    Mm(0,1) = static_cast<float_tt>(grain.by*cos(grain.gamma*PI180)); 
+    Mm(1,1) = static_cast<float_tt>(grain.by*sin(grain.gamma*PI180));
+    Mm(2,1) = 0;
     
-    vcz[0] = grain->cz*cos(grain->beta*PI180);
-    vcz[1] = grain->cz*(cos(grain->alpha*PI180)-cos(grain->beta*PI180)*
-			cos(grain->gamma*PI180))/sin(grain->gamma*PI180);
-    if ((fabs(grain->alpha-90.0) < 1e-4) && (fabs(grain->beta-90.0) < 1e-4))
-      vcz[2] = grain->cz;
+    Mm(0,2) = static_cast<float_tt>(grain.cz*cos(grain.beta*PI180));
+    Mm(1,2) = static_cast<float_tt>(grain.cz*(cos(grain.alpha*PI180)-cos(grain.beta*PI180)*
+			cos(grain.gamma*PI180))/sin(grain.gamma*PI180));
+    if ((fabs(grain.alpha-90.0) < 1e-4) && (fabs(grain.beta-90.0) < 1e-4))
+      Mm(2,2) = grain.cz;
     else  {// the general function still seems to have a bug in it.
-      // printf("alpha: %g, beta: %g\n",grain->alpha-90.0,grain->beta-90.0);
-      vcz[2] = grain->cz*(sqrt(1-SQR(cos(grain->alpha*PI180))-SQR(cos(grain->beta*PI180))
-			       +2*cos(grain->alpha*PI180)*cos(grain->beta*PI180)*
-			       cos(grain->gamma*PI180))/sin(grain->gamma*PI180));
+      // printf("alpha: %g, beta: %g\n",grain.alpha-90.0,grain.beta-90.0);
+      Mm(2,2) = static_cast<float_tt>(grain.cz*(sqrt(1-SQR(cos(grain.alpha*PI180))-SQR(cos(grain.beta*PI180))
+			       +2*cos(grain.alpha*PI180)*cos(grain.beta*PI180)*
+			       cos(grain.gamma*PI180))/sin(grain.gamma*PI180)));
     }
   }
 }
 /* just like the function above, but with angles from the MULS struct */
 
-void makeCellVectMuls(MULS *muls, double *vax, double *vby, double *vcz) {
+void makeCellVectMuls(MULS &muls, QSf3Mat &Mm) {
   
-  if ((muls->cAlpha == 90) && (muls->cBeta == 90) && (muls->cGamma == 90)) {
+  if ((muls.cAlpha == 90) && (muls.cBeta == 90) && (muls.cGamma == 90)) {
     printf("Orthogonal unit cell\n");
-    vax[0] = muls->ax; vax[1] = 0; vax[2] = 0;  
-    vby[0] = 0; vby[1] = muls->by;  vby[2] = 0;
-    vcz[0] = 0; vcz[1] = 0; vcz[2] = muls->c; 
+	Mm(0,0) = muls.ax; Mm(1,0) = 0; Mm(2,0) = 0;  // ax[0], ax[1], ax[2]
+    Mm(0,1) = 0; Mm(1,1) = muls.by;  Mm(2,1) = 0; // by[0], by[1], by[2]
+    Mm(0,2) = 0; Mm(1,2) = 0; Mm(2,2) = muls.c;  // cz[0], cz[1], cz[2]
   }
  
   else {
 
-    vax[0] = muls->ax; vax[1] = 0; vax[2] = 0;
+	   
+    Mm(0,0) = muls.ax; Mm(1,0) = 0; Mm(2,0) = 0;
     
-    vby[0] = muls->by*cos(muls->cGamma*PI180); 
-    vby[1] = muls->by*cos(muls->cGamma*PI180);
-    vby[2] = 0;
+    Mm(0,1) = static_cast<float_tt>(muls.by*cos(muls.cGamma*PI180)); 
+    Mm(1,1) = static_cast<float_tt>(muls.by*sin(muls.cGamma*PI180));
+    Mm(2,1) = 0;
     
-    vcz[0] = muls->c*cos(muls->cBeta*PI180);
-    vcz[1] = muls->c*(cos(muls->cAlpha*PI180)-cos(muls->cBeta*PI180)*
-		      cos(muls->cGamma*PI180))/sin(muls->cGamma*PI180);
-    vcz[2] = muls->c*(sqrt(1-cos(muls->cAlpha*PI180)*cos(muls->cAlpha*PI180)
-			     -cos(muls->cBeta*PI180)*cos(muls->cBeta*PI180)
-			     +2*cos(muls->cAlpha*PI180)*cos(muls->cBeta*PI180)*
-			   cos(muls->cGamma*PI180))/sin(muls->cGamma*PI180));
+	Mm(0,2) = static_cast<float_tt>(muls.c*cos(muls.cBeta*PI180));
+    Mm(1,2) = static_cast<float_tt>(muls.c*(cos(muls.cAlpha*PI180)-cos(muls.cBeta*PI180)*
+			cos(muls.cGamma*PI180))/sin(muls.cGamma*PI180));
+
+    Mm(2,2) = static_cast<float_tt>(muls.c*(sqrt(1-cos(muls.cAlpha*PI180)*cos(muls.cAlpha*PI180)
+			     -cos(muls.cBeta*PI180)*cos(muls.cBeta*PI180)
+			     +2*cos(muls.cAlpha*PI180)*cos(muls.cBeta*PI180)*
+			   cos(muls.cGamma*PI180))/sin(muls.cGamma*PI180)));
   }
 }
 

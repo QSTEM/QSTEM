@@ -363,7 +363,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	// FILE *fpu2;
 	char filename[512];
 	int natom,iatom,iz;  /* number of atoms */
-	atom *atoms;
+	std::vector<atom> atoms;
 	float_tt dx,dy,dz;
 	float_tt c,atomX,atomY,atomZ;
 	int i=0,j,nx,ny,ix,iy,iax,iay,iaz,sliceStep;
@@ -373,32 +373,27 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	int iOffsLimHi,iOffsLimLo,iOffsStep;
 
 	float_tt *slicePos;
-	double z,x,y,r,ddx,ddy,ddr,dr,r2sqr,x2,y2,potVal,dOffsZ;
+	float_tt z,x,y,r,ddx,ddy,ddr,dr,r2sqr,x2,y2,potVal,dOffsZ;
 	// char *sliceFile = "slices.dat";
 	char buf[BUF_LEN];
 	FILE *sliceFp;
 	float_tt minX,maxX,minY,maxY,minZ,maxZ;
-	double atomRadius2;
+	float_tt atomRadius2;
 	time_t time0,time1;
 	float s11,s12,s21,s22;
 	fftwf_complex	*atPotPtr;
 	float *potPtr=NULL, *ptr;
 	static int divCount = 0;
 	static float_tt **tempPot = NULL;
-#if FLOAT_PRECISION == 1
-	static fftwf_complex ***oldTrans = NULL;
-	static fftwf_complex ***oldTrans0 = NULL;
-#else
-	static fftw_complex ***oldTrans = NULL;
-	static fftw_complex ***oldTrans0 = NULL;
-#endif
+	std::vector<QScMat> oldTrans;
+	std::vector<QScMat> oldTrans0;
 	static imageStruct *header = NULL;
-	fftw_complex dPot;
+	std::complex<float_tt> dPot;
 #if Z_INTERPOLATION
-	double ddz;
+	float_tt ddz;
 #endif
 #if USE_Q_POT_OFFSETS
-	fftwf_complex	*atPotOffsPtr;
+	std::complex<float_tt>	*atPotOffsPtr;
 #endif
 
 	if (muls->trans == NULL) {
@@ -1280,7 +1275,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			memset(header->comment,0,header->commentSize);
 			sprintf(header->comment,"Projected Potential (slice %d)",iz);		 
 			header->complexFlag = 1;
-			writeImage((void **)muls->trans[iz],header,filename); 	 
+			writeImage((void **)muls->trans[iz].data(),header,filename); 	 
 		} // loop through all slices
 	} /* end of if savePotential ... */
 	if (muls->saveTotalPotential) {

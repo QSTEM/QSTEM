@@ -116,7 +116,7 @@ void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSiz
  ***********************************************************/
 imageStruct *readImage(void ***pix,int nx,int ny,char *fileName) {
   FILE *fp;
-  int nRead=0;
+  size_t nRead=0;
   int trial=0,maxTrial=3,freadError=0;
   static imageStruct *header = NULL;
 
@@ -323,7 +323,7 @@ void writeRealImage_old(fftw_real **pix, int nx, int ny,float t,char *fileName) 
 
 void readImage_old(fftw_complex **pix, int nx, int ny,float *t, char *fileName) {
   FILE *fp;
-  int nRead=0;
+  size_t nRead=0;
   int size[2];
   int trial=0,maxTrial=3,freadError=0;
 
@@ -362,7 +362,7 @@ void readImage_old(fftw_complex **pix, int nx, int ny,float *t, char *fileName) 
 
 void readRealImage_old(fftw_real **pix, int nx, int ny,float *t, char *fileName) {
   FILE *fp;
-  int nRead,ix,iy;
+  size_t nRead,ix,iy;
   int size[2];
 
   if ((fp = fopen(fileName,"r"))==NULL) {

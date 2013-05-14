@@ -47,6 +47,9 @@ endif(OPENMP)
 #set(CMAKE_C_FLAGS_RELEASE "-O3 -static -Wall -march=native")
 #set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static -Wall -march=native")
 
+# We parallelize ourselves - make sure Eigen doesn't!
+add_definitions(-DEIGEN_DONT_PARALLELIZE )
+
 # adds the libraries
 add_subdirectory(libs)
 add_subdirectory(stem3)

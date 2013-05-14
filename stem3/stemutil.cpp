@@ -83,35 +83,27 @@ double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
 { 
   int i,iz;
   double dlnr;
-  static double *splinr = NULL;
-  static double **splinv = NULL;
-  static double **splinb,**splinc,**splind;
-  static int *nspline = NULL;
+  QSfVec splinr(NRMAX);
+  QSfMat splinv, splinb, splinc, splind;
+  QSiVec nspline(NZMAX);
+  nspline.setZero();
   
   iz = Z-1;
 
-  if(splinr == NULL) {
-    splinr = QSfVec(NRMAX);
-    splinv = (double **)malloc(NZMAX*sizeof(double*));
-    splinb = (double **)malloc(NZMAX*sizeof(double*));
-    splinc = (double **)malloc(NZMAX*sizeof(double*));
-    splind = (double **)malloc(NZMAX*sizeof(double*));
-    nspline = (int *)malloc( NZMAX*sizeof(int));
-    for( i=0; i<NZMAX; i++) 
-      nspline[i] = 0;
-
+  // TODO: what is the actual size of these arrays?  They seem to be 2d,
+  //   but the allocation doesn't make it clear.
+  splinv = (double **)malloc(NZMAX*sizeof(double*));
+  splinb = (double **)malloc(NZMAX*sizeof(double*));
+  splinc = (double **)malloc(NZMAX*sizeof(double*));
+  splind = (double **)malloc(NZMAX*sizeof(double*));
+  
     /*  generate a set of logarithmic r values */
     dlnr = log(RMAX/RMIN)/(NRMAX-1);
     for( i=0; i<NRMAX; i++)
-      splinr[i] = RMIN * exp( i * dlnr );
+      splinr[i] = static_cast<float_tt>(RMIN * exp( i * dlnr ));
     /*
       printf( "fit from r= %g to r= %g\n", splinr[0], splinr[NRMAX-1] );
     */
-    
-    nspline = (int *)malloc( NZMAX*sizeof(int));
-    for( i=0; i<NZMAX; i++) 
-      nspline[i] = 0;
-  }
   
   /* if this atomic number has not been called before
      generate the spline coefficients */
@@ -379,7 +371,8 @@ double vzatom( int Z, double radius,int tdsFlag,int scatFlag)
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
-       f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
+		f2par = QSfMat(NZMAX+1,NPDTMAX);
+       //f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
        for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
 	 
 	 if (tdsFlag)
@@ -454,7 +447,8 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
    int i,j,iz;
    double sum1,t;
    double sum2,r2;
-   static double **f2par = NULL;
+   //static double **f2par = NULL;
+   QSfMat f2par(NZMAX+1,NPDTMAX);
 
    /* Gaussian constants */
    const double pi=3.141592654;
@@ -529,24 +523,26 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
       * V(r) = 8*pi^5/2*a0*e*sum{a_i*((b_i+B)/4)^-3/2*exp(-pi^2*r^2*4/(b_i+B))}
       *
       *******************************************************************/
-     if (f2par == NULL) {
+     if (f2par == NULL) 
+	 {
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
-       f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
-       for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
-	 if (tdsFlag)
-	   t=fparams[i][j+1]/4.0;   /* t = (b_i)/4 */
-	 else
-	   t = (fparams[i][j+1]+fparams[i][NPDTMAX])/4.0; /* t = (b_i+B)/4 */
+		f2par = double2D( , "f2par" );
+		for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) 
+		{
+			if (tdsFlag)
+				t=fparams[i][j+1]/4.0;   /* t = (b_i)/4 */
+			else
+				t = (fparams[i][j+1]+fparams[i][NPDTMAX])/4.0; /* t = (b_i+B)/4 */
 	 
-	 f2par[i][j] = pc1*pc2*fparams[i][j]/sqrt(t*t*t);
-	 f2par[i][j+1] = -pi*pi/t;
-	 /*
-	   if (i==17)
-	   printf("%g %g, t=%g, pi=%g, B=%g\n",f2par[i][j],f2par[i][j+1],t,pi,fparams[i][NPDTMAX]);
-	 */
-       }
+			f2par[i][j] = pc1*pc2*fparams[i][j]/sqrt(t*t*t);
+			f2par[i][j+1] = -pi*pi/t;
+			/*
+			if (i==17)
+			printf("%g %g, t=%g, pi=%g, B=%g\n",f2par[i][j],f2par[i][j+1],t,pi,fparams[i][NPDTMAX]);
+			*/
+		}
      }
      
      sum1 = 0;
@@ -690,7 +686,8 @@ int ReadfeTable(int scatFlag)
    if (scatFlag == WEICK_KOHL) {
      printf("Reading Weickenmeier & Kohl parameters from %s\n",fileName);
      na = 2*( nl + ng );	/* number of params to fit */
-     fparams = double2D( NZMAX+1, na+1, "fparams" );
+	 fparams = QSfMat(NZMAX+1, na+1);
+     //fparams = double2D( NZMAX+1, na+1, "fparams" );
      n = 0;
      
      for( zi=NZMIN; zi<=NZMAX; zi++) {
@@ -729,7 +726,7 @@ int ReadfeTable(int scatFlag)
    }
    else {  /* DOYLE_TURNER */
      printf("Reading Doyle & Turner parameters from %s\n",fileName);
-     fparams = double2D( NZMAX+1, NPDTMAX+1, "fparams" );
+     fparams = QSfMat( NZMAX+1, NPDTMAX+1);
      n = 0;
      for( zi=NZMIN; zi<=NZMAX; zi++) {
        /* define some (random) debye waller factors */
@@ -1188,6 +1185,7 @@ double fe3D(int Z, double q2,int tdsFlag,double scale,int scatFlag)
   int i,j; // iz;
   double sum=0.0; // t;
   static double **f2par = NULL;
+  QSfMat f2par;
 
    /* Gaussian constants */
    const double pi=3.141592654;
@@ -1259,7 +1257,8 @@ double fe3D(int Z, double q2,int tdsFlag,double scale,int scatFlag)
        else
 	 printf("Will not use DW-factors\n");
        
-       f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
+       //f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
+	   f2par = QSfMat(NZMAX+1,NPDTMAX);
        for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
 	 if (tdsFlag)  /* t = -(b_i)/(16*pi^2) */
 	   f2par[i][j+1] =-fparams[i][j+1]/(16.0*pi*pi);  

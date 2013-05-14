@@ -44,7 +44,11 @@ public:
 
 class MULS {
 public:
+  MULS();
   MULS(int slices);
+
+  void initMuls();
+  void initMuls(int slices);
 
   int mode;                             /* determine the mode that this program runs in
 					 * can be STEM, TEM, CBED ... */
@@ -220,7 +224,7 @@ public:
   std::string phononFile;
   // char phononFile[512];    /* file name for detailed phonon modes */
   int atomKinds;
-  QSiVec Znums;
+  std::vector<int> Znums;
   //int *Znums;
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
   QSfMat rPotential;

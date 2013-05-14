@@ -60,14 +60,17 @@ using namespace Eigen;
 // (\w+)\[([\w\d\+\-\*]+)\]\[([\w\d\+\-\*]+)\] -> \1\(\3,\2\)
 
 // Forced float (32-bit) types (capital F or C)
-typedef Matrix< float, Dynamic, Dynamic> QSFMat;
-typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QSCMat;
-typedef Matrix< float, Dynamic, 1> QSFVec; 
+//typedef Matrix< float, Dynamic, Dynamic> QSFMat;
+//typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QSCMat;
+//typedef Matrix< float, Dynamic, 1> QSFVec; 
 
 // Variable float (32 or 64-bit) types (lowercase f or c)
 typedef Matrix< float_tt, Dynamic, Dynamic> QSfMat;
+typedef Matrix< float_tt, 3, 3> QSf3Mat;
 typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QScMat;
-typedef Matrix< float_tt, Dynamic, 1> QSfVec; 
+typedef Matrix< int, Dynamic, Dynamic> QSiMat;
+typedef Matrix< float_tt, Dynamic, 1> QSfVec;
+typedef Matrix< float_tt, 3, 1> QSf3Vec;
 typedef Matrix< int, Dynamic, 1> QSiVec;
 
 ////////////////////////////////////////////////////////////////
@@ -85,7 +88,7 @@ typedef struct atomStruct {
  * a point (point) and 2 vectors (vect1, vect2)
  */
 typedef struct planeStruct {
-  QSfVec norm, vect1, vect2, point;
+  QSf3Vec norm, vect1, vect2, point;
 } plane;
 
 typedef struct grainBoxStruct {
@@ -97,21 +100,21 @@ typedef struct grainBoxStruct {
 				  */ 
   std::string name;
   // char *name;
-  atom *unitCell; /* definition of unit cell */
+  std::vector<atom> unitCell; /* definition of unit cell */
   int natoms;     /* number of atoms in unit cell */
-  double ax,by,cz; /* unit cell parameters */
-  double alpha, beta, gamma; /* unit cell parameters */
-  double tiltx,tilty,tiltz;
-  double shiftx,shifty,shiftz;
+  float_tt ax,by,cz; /* unit cell parameters */
+  float_tt alpha, beta, gamma; /* unit cell parameters */
+  float_tt tiltx,tilty,tiltz;
+  float_tt shiftx,shifty,shiftz;
   std::vector<plane> planes;
   // plane *planes;   /* pointer to array of bounding planes */
-  double sphereRadius, sphereX,sphereY,sphereZ; /* defines a sphere instead of a grain with straight edges */
+  float_tt sphereRadius, sphereX,sphereY,sphereZ; /* defines a sphere instead of a grain with straight edges */
   int nplanes; /* number of planes in array planes */
 } grainBox;
 
 typedef struct superCellBoxStruct {
-  double cmx,cmy,cmz;  /* fractional center of mass coordinates */
-  double ax,by,cz;
+  float_tt cmx,cmy,cmz;  /* fractional center of mass coordinates */
+  float_tt ax,by,cz;
   int natoms;
   std::vector<atom> atoms;
   // atom *atoms; /* contains all the atoms within the super cell */
@@ -126,15 +129,6 @@ typedef struct atomBoxStruct {
   
   std::vector<QScMat> potential;
   std::vector<QSfMat> rpotential;
-  
-#if FLOAT_PRECISION == 1
-  // fftwf_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
-  //  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
-#else
-  //  fftw_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
-  //  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
-#endif
-
 } atomBox;
 
 typedef struct detectorStruct {

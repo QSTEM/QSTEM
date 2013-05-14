@@ -12,15 +12,12 @@ double pythag(double a, double b);
 /* vector functions:
  */
 double findLambda(plane &p, float *point, int revFlag);
-void showMatrix(double **M,int Nx, int Ny,char *name);
-void vectDiff_f(float *a, double *b, double *c,int revFlag);
+void showMatrix(QSfMat &m, std::string name);
+void vectDiff_f(QSfVec &a, QSfVec &b, QSfVec &c,int revFlag);
 float_tt vectLength(QSfVec &vect);
-void makeCellVect(grainBox *grain, float_tt *vax, float_tt *vby, float_tt *vcz);
-void makeCellVectMuls(MULS *muls, float_tt *vax, float_tt *vby, float_tt *vcz);
-void rotateVect(QSfVec &vectIn, QSfVec &vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
-void rotateMatrix(QSfMat &matrixIn, QSfMat matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
-
-/* |vect| */
-double vectLength(double *vect);
+void makeCellVect(grainBox &grain, QSf3Mat &Mm);
+void makeCellVectMuls(MULS &muls, QSf3Mat &Mm);
+void rotateVect(QSf3Vec &vectIn, QSf3Vec &vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
+void rotateMatrix(QSf3Mat &matrixIn, QSf3Mat &matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
 
 #endif
