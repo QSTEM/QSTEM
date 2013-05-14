@@ -5,30 +5,6 @@
 #include <vector>
 #include <string>
 
-////////////////////////////////////////////////////////////////////////
-// define whether to use single or double precision
-///////////////////////////////////////////////////////////////////////
-#define FLOAT_PRECISION 1
-
-
-#define BW (2.0F/3.0F)	/* bandwidth limit */
-#define DOYLE_TURNER 0
-#define WEICK_KOHL 1
-#define CUSTOM 2
-#define STEM    1
-#define CBED    2
-#define TEM     3
-#define REFINE  4
-#define MSCBED  5
-#define TOMO    6
-
-////////////////////////////////////////////////////////////////////////
-// Define physical constants
-////////////////////////////////////////////////////////////////////////
-#define ELECTRON_CHARGE (1.6021773e-19)
-#define PICO_AMPERE (1e-12/ELECTRON_CHARGE)
-#define MILLISEC_PICOAMP (1e-3*PICO_AMPERE)
-
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
@@ -97,7 +73,7 @@ typedef struct planeStruct {
 
 typedef struct grainBoxStruct {
   int amorphFlag;
-  double density,rmin, rFactor;  /* density, atomic distance, reduced atomic distance
+  float_tt density,rmin, rFactor;  /* density, atomic distance, reduced atomic distance
 				  * for amorphous material.  Red. r is for making a hex.
 				  * closed packed structure, which will fill all space, 
 				  * but will only be sparsely filled, and later relaxed.
@@ -129,7 +105,7 @@ typedef struct atomBoxStruct {
 		 particular problem */
   int nx,ny,nz;
   float_tt dx,dy,dz;
-  double B_;
+  float_tt B_;
   
   QSVecOfcMat potential;
   QSVecOffMat rpotential;
@@ -145,119 +121,6 @@ typedef struct detectorStruct {
   float_tt shiftX,shiftY;
   int Navg;
 } DETECTOR;
-
-
-using namespace std;
-vector<string> getElTable()
-{
-	vector<string> elTable(104);
-	elTable.push_back("H");
-	elTable.push_back("He");
-	elTable.push_back("Li");
-	elTable.push_back("Be");
-	elTable.push_back("B");
-	elTable.push_back("N");
-	elTable.push_back("C");
-	elTable.push_back("O");
-	elTable.push_back("F");
-	elTable.push_back("Ne");
-	elTable.push_back("Na");
-	elTable.push_back("Mg");
-	elTable.push_back("Al");
-	elTable.push_back("Si");
-	elTable.push_back("P");
-	elTable.push_back("S");
-	elTable.push_back("Cl");
-	elTable.push_back("Ar");
-	elTable.push_back("K");
-	elTable.push_back("Ar");
-	elTable.push_back("K");
-	elTable.push_back("Ca");
-	elTable.push_back("Sc");
-	elTable.push_back("Ti");
-	elTable.push_back("V");
-	elTable.push_back("Cr");
-	elTable.push_back("Mn");
-	elTable.push_back("Fe");
-	elTable.push_back("Co");
-	elTable.push_back("Ni");
-	elTable.push_back("Cu");
-	elTable.push_back("Zn");
-	elTable.push_back("Ga");
-	elTable.push_back("Ge");
-	elTable.push_back("As");
-	elTable.push_back("Se");
-	elTable.push_back("Br");
-	elTable.push_back("Kr");
-	elTable.push_back("Rb");
-	elTable.push_back("Sr");
-	elTable.push_back("Y");
-	elTable.push_back("Zr");
-	elTable.push_back("Nb");
-	elTable.push_back("Mo");
-	elTable.push_back("Tc");
-	elTable.push_back("Ru");
-	elTable.push_back("Rh");
-	elTable.push_back("Pd");
-	elTable.push_back("Ag");
-	elTable.push_back("Cd");
-	elTable.push_back("In");
-	elTable.push_back("Sn");
-	elTable.push_back("Sb");
-	elTable.push_back("Te");
-	elTable.push_back("I");
-	elTable.push_back("Xe");
-	elTable.push_back("Cs");
-	elTable.push_back("Ba");
-	elTable.push_back("La");
-	elTable.push_back("Ce");
-	elTable.push_back("Pr");
-	elTable.push_back("Nd");
-	elTable.push_back("Pm");
-	elTable.push_back("Sm");
-	elTable.push_back("Eu");
-	elTable.push_back("Gd");
-	elTable.push_back("Tb");
-	elTable.push_back("Dy");
-	elTable.push_back("Ho");
-	elTable.push_back("Er");
-	elTable.push_back("Tm");
-	elTable.push_back("Yb");
-	elTable.push_back("Lu");
-	elTable.push_back("Hf");
-	elTable.push_back("Ta");
-	elTable.push_back("W");
-	elTable.push_back("Re");
-	elTable.push_back("Os");
-	elTable.push_back("Ir");
-	elTable.push_back("Pt");
-	elTable.push_back("Au");
-	elTable.push_back("Hg");
-	elTable.push_back("Tl");
-	elTable.push_back("Pb");
-	elTable.push_back("Bi");
-	elTable.push_back("Po");
-	elTable.push_back("At");
-	elTable.push_back("Rn");
-	elTable.push_back("Fr");
-	elTable.push_back("Ra");
-	elTable.push_back("Ac");
-	elTable.push_back("Th");
-	elTable.push_back("Pa");
-	elTable.push_back("U");
-	elTable.push_back("Np");
-	elTable.push_back("Pu");
-	elTable.push_back("Am");
-	elTable.push_back("Cm");
-	elTable.push_back("Bk");
-	elTable.push_back("Cf");
-	elTable.push_back("Es");
-	elTable.push_back("Fm");
-	elTable.push_back("Md");
-	elTable.push_back("No");
-	elTable.push_back("Lr");
-	return elTable;
-}
 
 #endif // STEMTYPES_H
 

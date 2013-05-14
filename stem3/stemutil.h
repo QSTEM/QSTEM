@@ -33,46 +33,43 @@
 typedef struct timeval timev;
 typedef struct timezone timez;
 
-
-int writeCFG(atom *atoms,int natoms,char *fileName, MULS *muls);
-int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
-		       int icz,int atomCount,double dw,int maxAtom, int Znum);
+int phononDisplacement(float_tt *u,MULS *muls,int id,int icx,int icy,
+		       int icz,int atomCount,float_tt dw,int maxAtom, int Znum);
 
 void *memcopy(void *dest, const void *src, size_t n);
 // void saveSTEMimages(MULS *muls);
 // atom *readUnitCell(int &natom,char *fileName,MULS *muls,int handleVacancies);
 atom *readCFGUnitCell(int &natom,char *fileName,MULS *muls);
 
-double v3DatomLUT(int iz,double r,int tdsFlag,int scatFlag);
-double vzatomLUT( int Z, double r ,int tdsFlag,int scatFlag);
-double v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // float_tt
+float_tt v3DatomLUT(int iz,float_tt r,int tdsFlag,int scatFlag);
+float_tt vzatomLUT( int Z, float_tt r ,int tdsFlag,int scatFlag);
+float_tt v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // float_tt
 
-double wavelength( double kev );
-double v3Datom(int Z, double r,int tdsFlag,int scatFlag);
-double vzatom( int Z, double radius,int tdsFlag,int scatFlag);
+float_tt wavelength( float_tt kev );
+float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag);
+float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag);
 
 float_tt gasdev(long *idum);
-double rangauss( unsigned long *iseed );
+float_tt rangauss( unsigned long *iseed );
 int ReadfeTable(int scatFlag );
 size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
-int getZNumber(char *element);
-double sigma( double kev );
-void splinh( double x[], double y[],
-	     double b[], double c[], double d[], int n);
-double seval( double *x, double *y, double *b, double *c,
-	     double *d, int n, double x0 );
-double ranflat( unsigned long *iseed );
+float_tt sigma( float_tt kev );
+void splinh( float_tt x[], float_tt y[],
+	     float_tt b[], float_tt c[], float_tt d[], int n);
+float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+	     float_tt *d, int n, float_tt x0 );
+float_tt ranflat( unsigned long *iseed );
 int parlay( const char c[], int islice[], int nsmax, int lmax,
 	    int *nslice, int fperr );
 /* long powerof2( long n ); */
-double fe3D(int Z, double q2,int tdsFlag, double scale,int scatFlag);
-double sfLUT(double s,int atKind, MULS *muls);
-double bicubic(double **ff,int Nz, int Nx,double z,double x);
+float_tt fe3D(int Z, float_tt q2,int tdsFlag, float_tt scale,int scatFlag);
+float_tt sfLUT(float_tt s,int atKind, MULS *muls);
+float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x);
 int atomCompare(const void *atom1,const void *atom2);
 
 
-double getTime();
-double cputim();
+float_tt getTime();
+float_tt cputim();
 
 
 

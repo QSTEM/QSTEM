@@ -116,7 +116,7 @@ public:
   float_tt cAlpha,cBeta,cGamma;
   // TODO: should be double? or OK to be dynamic?
   QSfMat Mm;
-    //double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
+    //float_tt **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
   int nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
   int natom;				/* number of atoms in "atoms" */
   std::vector<atom> atoms;
@@ -228,16 +228,16 @@ public:
   //int *Znums;
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
   QSfMat rPotential;
-  //double **rPotential;   /* array containing real space potential LUT for each atom kind present */
-  //double *sfkArray;
+  //float_tt **rPotential;   /* array containing real space potential LUT for each atom kind present */
+  //float_tt *sfkArray;
   QSfVec sfkArray;
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
   QSfMat sfTable;
-  //double **sfTable;
+  //float_tt **sfTable;
   int sfNk;              /* number of k-points in sfTable and sfkArray */
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
   QSfVec u2, u2avg;
-  //double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
+  //float_tt *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
   float_tt tds_temp;
   int savePotential;
   int saveTotalPotential;
@@ -245,7 +245,7 @@ public:
   float_tt scanXStart,scanXStop,scanYStart,scanYStop;
   int scanXN,scanYN;
   float_tt intIntensity;
-  double imageGamma;
+  float_tt imageGamma;
   char folder[1024];
   int avgRuns;
   int potential3D;
@@ -253,7 +253,7 @@ public:
   int Scherzer;
   // TODO: Does this need to be double, or can it be float (as might be done dynamically?
   QSfVec chisq;
-  //  double *chisq;
+  //  float_tt *chisq;
   int webUpdate;
   int cellDiv;
   int equalDivs;           // this flag indicates whether we can reuse already pre-calculated potential data
@@ -268,16 +268,25 @@ public:
   
     // TODO: Does this need to be double, or can it be float (as might be done dynamically?
   QSfMat dE_EArray;
-  //double *dE_EArray;
+  //float_tt *dE_EArray;
 
   // Tomography parameters:
-  double tomoTilt;  // current tilt in tomography series
-  double tomoStart; // in rad
-  double tomoStep;  // in rad
+  float_tt tomoTilt;  // current tilt in tomography series
+  float_tt tomoStart; // in rad
+  float_tt tomoStep;  // in rad
   int    tomoCount;  // number of diffraction patterns.
-  double zoomFactor; // increases the size of the super-box in x,y, in order to
+  float_tt zoomFactor; // increases the size of the super-box in x,y, in order to
                      // make full use of atoms present, creates vacuum edge around sample.
 
 }; 
+
+// Singleton class for the periodic table
+class ElTable
+{
+	static std::vector<std::string> elements;
+	ElTable();
+public:
+	static std::vector<std::string> Get(){return elements;}
+};
 
 #endif

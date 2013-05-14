@@ -114,11 +114,12 @@ void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSiz
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.
  ***********************************************************/
-imageStruct *readImage(void ***pix,int nx,int ny,char *fileName) {
+imageStruct *readImage(QSfMat pix,int nx,int ny,char *fileName) {
   FILE *fp;
   size_t nRead=0;
   int trial=0,maxTrial=3,freadError=0;
   static imageStruct *header = NULL;
+  char error_string[300];
 
   if (header == NULL) header = makeNewHeader(1,1);
  
@@ -132,24 +133,20 @@ imageStruct *readImage(void ***pix,int nx,int ny,char *fileName) {
       getImageHeader(header,fp);
 
 
-      if ((nx != header->nx)||(ny != header->ny) || (*pix == NULL)) {
-		/* printf("readImage: image size mismatch nx = %d (%d), ny = %d (%d)\n",
-	       header->nx,nx,header->ny,ny);
-		*/
-		if (*pix != NULL) free(pix[0][0]);
-		nx = header->nx;
-		ny = header->ny;
-		*pix = any2D(nx,ny,header->dataSize,"pix"); 
+      if ((nx != header->nx)||(ny != header->ny)) {
+		sprintf(error_string, "readImage: image size mismatch nx = %d (%d), ny = %d (%d)\n", header->nx,nx,header->ny,ny);
+		throw std::exception(error_string);
       }
-      nRead = fread((void *)pix[0][0],header->dataSize,(size_t)(nx*ny),fp);
+      nRead = fread((void *)pix.data(),sizeof(float_tt),(size_t)(nx*ny),fp);
       if (nRead != nx*ny) {
 		freadError = 1;
-		printf("Error while reading data from file %s:"
-	       " %d (of %d) elements read\n",
-	       fileName,nRead,(nx)*(ny));
-		printf("EOF: %d, Ferror: %d, dataSize: %d\n",feof(fp),ferror(fp),header->dataSize);
+		sprintf(error_string, "Error while reading data from file %s:"
+	       " %d (of %d) elements read\n"
+		   "EOF: %d, Ferror: %d, dataSize: %d\n",
+		   fileName,nRead,(nx)*(ny),feof(fp),ferror(fp),header->dataSize);
 		fclose(fp);
 		fp = NULL;
+		throw std::exception(error_string);
       }
     }
     /* we will try three times to read this file. */

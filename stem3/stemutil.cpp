@@ -33,7 +33,7 @@
 #endif
 
 int feTableRead=0;	/* flag to remember if the param file has been read */
-double **fparams=NULL;	/* to get fe(k) parameters */
+float_tt **fparams=NULL;	/* to get fe(k) parameters */
 const int nl=3, ng=3;	/* number of Lorenzians and Gaussians */
 
 
@@ -52,14 +52,14 @@ void *memcopy(void *dest, const void *src, size_t n)
 }
 
 /*****************************************************************
- * v3DatomLUT(int Z, double r)
+ * v3DatomLUT(int Z, float_tt r)
  * returns 3D potential (not projected) at radius r 
  * (using Lookup table)
  ****************************************************************/ 
-double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
+float_tt v3DatomLUT(int Z,float_tt r,int tdsFlag,int scatFlag)
 { 
   int i,iz;
-  double dlnr;
+  float_tt dlnr;
   QSfVec splinr(NRMAX);
   QSfMat splinv, splinb, splinc, splind;
   QSiVec nspline(NZMAX);
@@ -69,10 +69,10 @@ double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
 
   // TODO: what is the actual size of these arrays?  They seem to be 2d,
   //   but the allocation doesn't make it clear.
-  splinv = (double **)malloc(NZMAX*sizeof(double*));
-  splinb = (double **)malloc(NZMAX*sizeof(double*));
-  splinc = (double **)malloc(NZMAX*sizeof(double*));
-  splind = (double **)malloc(NZMAX*sizeof(double*));
+  splinv = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
+  splinb = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
+  splinc = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
+  splind = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
   
     /*  generate a set of logarithmic r values */
     dlnr = log(RMAX/RMIN)/(NRMAX-1);
@@ -122,10 +122,10 @@ double v3DatomLUT(int Z,double r,int tdsFlag,int scatFlag)
 	r = radius in Angstroms
 */
 
-double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
+float_tt vzatomLUT(int Z, float_tt r,int tdsFlag,int scatFlag)
 {
   int i,iz;
-  double dlnr,result;
+  float_tt dlnr,result;
   QSfVec splinr(NRMAX);
   QSfMat splinv, splinb, splinc, splind; 
   QSiVec nspline(NZMAX);
@@ -176,19 +176,19 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
     modified Bessel function I0(x)
     see Abramowitz and Stegun page 379
 
-    x = (double) real arguments
+    x = (float_tt) real arguments
 
     12-feb-1997 E. Kirkland
  */
- double bessi0( double x )
+ float_tt bessi0( float_tt x )
  {
  	int i;
- 	double ax, sum, t;
+ 	float_tt ax, sum, t;
  	
- 	double i0a[] = { 1.0, 3.5156229, 3.0899424, 1.2067492,
+ 	float_tt i0a[] = { 1.0, 3.5156229, 3.0899424, 1.2067492,
 		0.2659732, 0.0360768, 0.0045813 };
 
- 	double i0b[] = { 0.39894228, 0.01328592, 0.00225319,
+ 	float_tt i0b[] = { 0.39894228, 0.01328592, 0.00225319,
  		-0.00157565, 0.00916281, -0.02057706, 0.02635537,
  		-0.01647633, 0.00392377};
 
@@ -216,22 +216,22 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
     Note: K0(0) is not define and this function
         returns 1E20
  
-    x = (double) real arguments
+    x = (float_tt) real arguments
     
     this routine calls bessi0() = Bessel function I0(x)
     
     12-feb-1997 E. Kirkland
  */
- double bessk0( double x )
+ float_tt bessk0( float_tt x )
  {
- 	double bessi0(double);
+ 	float_tt bessi0(float_tt);
  
  	int i;
- 	double ax, x2, sum;
- 	double k0a[] = { -0.57721566, 0.42278420, 0.23069756,
+ 	float_tt ax, x2, sum;
+ 	float_tt k0a[] = { -0.57721566, 0.42278420, 0.23069756,
  		 0.03488590, 0.00262698, 0.00010750, 0.00000740};
  	        
- 	double k0b[] = { 1.25331414, -0.07832358, 0.02189568,
+ 	float_tt k0b[] = { 1.25331414, -0.07832358, 0.02189568,
  		 -0.01062446, 0.00587872, -0.00251540, 0.00053208};
 
 	ax = fabs( x );
@@ -272,7 +272,7 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
 
 int feTableRead=0; = flag to remember if the param file has been read 
 int nl=3, ng=3; = number of Lorenzians and Gaussians 
-double fparams[][] = fe parameters
+float_tt fparams[][] = fe parameters
 
   al and ag calculated using physical constants from:
 	H. L. Anderson, editor "A Physicist's Desk Reference",
@@ -286,18 +286,18 @@ double fparams[][] = fe parameters
   (r^2 = x^2+y^2)
 */
 
-double vzatom( int Z, double radius,int tdsFlag,int scatFlag)
+float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag)
 {
    int i,j;
-   double r,sum,t;
-   double suml,sumg,x;
-   static double **f2par = NULL;
-   const double pc1 = 150.4121417;
+   float_tt r,sum,t;
+   float_tt suml,sumg,x;
+   static float_tt **f2par = NULL;
+   const float_tt pc1 = 150.4121417;
    
 
    /* Lorenzian, Gaussian constants */
-   const double al=300.8242834, ag=150.4121417;
-   const double pi=3.141592654;
+   const float_tt al=300.8242834, ag=150.4121417;
+   const float_tt pi=3.141592654;
 
    if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
 
@@ -349,7 +349,7 @@ double vzatom( int Z, double radius,int tdsFlag,int scatFlag)
 	  parameters to new ones:
        */
 		f2par = QSfMat(NZMAX+1,NPDTMAX);
-       //f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
+       //f2par = float_tt2D( NZMAX+1,NPDTMAX, "f2par" );
        for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
 	 
 	 if (tdsFlag)
@@ -393,7 +393,7 @@ double vzatom( int Z, double radius,int tdsFlag,int scatFlag)
 	#define NZMAX	103	= max Z in featom.tab
 	
 	int nl=3, ng=3; = number of Lorenzians and Gaussians 
-	double fparams[][] = fe parameters
+	float_tt fparams[][] = fe parameters
 	
 	ag calculated using physical constants from:
 	H. L. Anderson, editor "A Physicist's Desk Reference",
@@ -419,18 +419,18 @@ v3(x,y,z)= 2*pi^2*a0*e*sum{a_i/r*exp(-2*pi*r*sqrt(b_i))+
 
 */
 
-double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
+float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
 {
    int i,j,iz;
-   double sum1,t;
-   double sum2,r2;
-   //static double **f2par = NULL;
+   float_tt sum1,t;
+   float_tt sum2,r2;
+   //static float_tt **f2par = NULL;
    QSfMat f2par(NZMAX+1,NPDTMAX);
 
    /* Gaussian constants */
-   const double pi=3.141592654;
-   const double pc1 = 150.4121417;
-   const double pc2 = sqrt(pi);
+   const float_tt pi=3.141592654;
+   const float_tt pc1 = 150.4121417;
+   const float_tt pc2 = sqrt(pi);
 
 
    if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
@@ -449,7 +449,7 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
 	  parameters to new ones:
        */
 	   f2par = QSfMat(NZMAX+1,2*(nl+nl));
-       //f2par = double2D( NZMAX+1,2*(nl+nl), "f2par" );
+       //f2par = float_tt2D( NZMAX+1,2*(nl+nl), "f2par" );
        for (i=0;i<NZMAX;i++) {
 	 for (j=0;j<2*nl;j+=2) {
 	   f2par[i][j]      = fparams[i+1][j];                /* p1_i = a_i */
@@ -505,7 +505,7 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
-		f2par = double2D( , "f2par" );
+		f2par = float_tt2D( , "f2par" );
 		for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) 
 		{
 			if (tdsFlag)
@@ -546,11 +546,11 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
 
 */
 
-double wavelength( double kev )
+float_tt wavelength( float_tt kev )
 {
-  double w;
-  const double emass=510.99906; /* electron rest mass in keV */
-  const double hc=12.3984244; /* Planck's const x speed of light*/
+  float_tt w;
+  const float_tt emass=510.99906; /* electron rest mass in keV */
+  const float_tt hc=12.3984244; /* Planck's const x speed of light*/
   
   /* electron wavelength in Angstroms */
   w = hc/sqrt( kev * ( 2*emass + kev ) );
@@ -560,16 +560,16 @@ double wavelength( double kev )
 }  /* end wavelength() */
 
 
-double getTime() {
+float_tt getTime() {
 #ifdef WIN32
-	return (double)time(NULL);
+	return (float_tt)time(NULL);
 #else
   timev tv;
   timez tz;
 
   gettimeofday(&tv, &tz); 
   // printf("Time: %ldsec, %ld usec\n",tv.tv_sec,tv.tv_usec);
-  return (double)tv.tv_sec+0.000001*(double)tv.tv_usec;
+  return (float_tt)tv.tv_sec+0.000001*(float_tt)tv.tv_usec;
 #endif
 }
 
@@ -579,9 +579,9 @@ double getTime() {
   retrieve current CPU time in seconds
 */
 
-double cputim()
+float_tt cputim()
 {
-  return ( ( (double)clock() ) / ( (double)CLOCKS_PER_SEC) );
+  return ( ( (float_tt)clock() ) / ( (float_tt)CLOCKS_PER_SEC) );
   
 }  /* end cputim() */
 
@@ -598,11 +598,11 @@ double cputim()
   
   added log(0) test 10-jan-1998 E. Kirkland
 */
-double rangauss( unsigned long *iseed )
+float_tt rangauss( unsigned long *iseed )
 {
-  double ranflat( unsigned long* );
-  double x1, x2, y;
-  static double tpi=2.0*3.141592654;
+  float_tt ranflat( unsigned long* );
+  float_tt x1, x2, y;
+  static float_tt tpi=2.0*3.141592654;
   
   /* be careful to avoid taking log(0) */
   do{
@@ -634,7 +634,7 @@ double rangauss( unsigned long *iseed )
 
 int feTableRead=0; = flag to remember if the param file has been read 
 int nl=3, ng=3; = number of Lorenzians and Gaussians 
-double fparams[][] = fe parameters
+float_tt fparams[][] = fe parameters
 
 ********************************************************************/
 int ReadfeTable(int scatFlag)
@@ -642,7 +642,7 @@ int ReadfeTable(int scatFlag)
    static char cline[NCMAX],dummy[32];
    static char fileName[32] = "sfact_peng.dat"; 
    int na,i,j;
-   double w;
+   float_tt w;
    char *cstatus;
    int n, zi, z;
    FILE *fp;
@@ -664,7 +664,7 @@ int ReadfeTable(int scatFlag)
      printf("Reading Weickenmeier & Kohl parameters from %s\n",fileName);
      na = 2*( nl + ng );	/* number of params to fit */
 	 fparams = QSfMat(NZMAX+1, na+1);
-     //fparams = double2D( NZMAX+1, na+1, "fparams" );
+     //fparams = float_tt2D( NZMAX+1, na+1, "fparams" );
      n = 0;
      
      for( zi=NZMIN; zi<=NZMAX; zi++) {
@@ -760,11 +760,11 @@ int ReadfeTable(int scatFlag)
 
 */
 
-double sigma( double kev )
+float_tt sigma( float_tt kev )
 {
-  double s, pi, wavl, x;
-  const double emass=510.99906; /* electron rest mass in keV */
-  double wavelength( double kev );  /*  get electron wavelength */
+  float_tt s, pi, wavl, x;
+  const float_tt emass=510.99906; /* electron rest mass in keV */
+  float_tt wavelength( float_tt kev );  /*  get electron wavelength */
   
   x = ( emass + kev ) / ( 2.0*emass + kev);  
   wavl = wavelength( kev );
@@ -808,13 +808,13 @@ double sigma( double kev )
 	interval. NOTE that the last set of coefficients,
 	b[n-1], c[n-1], d[n-1] are meaningless.
 */
-void splinh( double x[], double y[],
-	     double b[], double c[], double d[], int n)
+void splinh( float_tt x[], float_tt y[],
+	     float_tt b[], float_tt c[], float_tt d[], int n)
 {
 #define SMALL 1.0e-25
 
   int i, nm1, nm4;
-  double m1, m2, m3, m4, m5, t1, t2, m54, m43, m32, m21, x43;
+  float_tt m1, m2, m3, m4, m5, t1, t2, m54, m43, m32, m21, x43;
   
   if( n < 4) return;
   
@@ -902,11 +902,11 @@ void splinh( double x[], double y[],
 	interval. NOTE that the last set of coefficients,
 	b[n-1], c[n-1], d[n-1] are meaningless.
 */
-double seval( double *x, double *y, double *b, double *c,
-	     double *d, int n, double x0 )
+float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+	     float_tt *d, int n, float_tt x0 )
 {
   int i, j, k;
-  double z, seval1;
+  float_tt z, seval1;
   
   /*  exit if x0 is outside the spline range */
   if( x0 <= x[0] ) i = 0;
@@ -935,13 +935,13 @@ double seval( double *x, double *y, double *b, double *c,
   the 'Magic Numbers' are from 
   Numerical Recipes 2nd edit pg. 285
 */
-double ranflat( unsigned long *iseed )
+float_tt ranflat( unsigned long *iseed )
 {
   static unsigned long a=1366, c=150889L, m=714025L;
   
   *iseed = ( a * (*iseed) + c ) % m;
   
-  return( ((double) *iseed)/m);
+  return( ((float_tt) *iseed)/m);
   
 }  /* end ranflat() */
 
@@ -1157,17 +1157,17 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
 	
 *******************************************************************/
 
-double fe3D(int Z, double q2,int tdsFlag,double scale,int scatFlag)
+float_tt fe3D(int Z, float_tt q2,int tdsFlag,float_tt scale,int scatFlag)
 {
   int i,j; // iz;
-  double sum=0.0; // t;
-  static double **f2par = NULL;
+  float_tt sum=0.0; // t;
+  static float_tt **f2par = NULL;
   QSfMat f2par;
 
    /* Gaussian constants */
-   const double pi=3.141592654;
-   const double a0 = .529;  /* A */
-   const double echarge = 14.39;  /* units: V*A */
+   const float_tt pi=3.141592654;
+   const float_tt a0 = .529;  /* A */
+   const float_tt echarge = 14.39;  /* units: V*A */
 
    if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
 
@@ -1234,7 +1234,7 @@ double fe3D(int Z, double q2,int tdsFlag,double scale,int scatFlag)
        else
 	 printf("Will not use DW-factors\n");
        
-       //f2par = double2D( NZMAX+1,NPDTMAX, "f2par" );
+       //f2par = float_tt2D( NZMAX+1,NPDTMAX, "f2par" );
 	   f2par = QSfMat(NZMAX+1,NPDTMAX);
        for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
 	 if (tdsFlag)  /* t = -(b_i)/(16*pi^2) */
@@ -1262,10 +1262,10 @@ double fe3D(int Z, double q2,int tdsFlag,double scale,int scatFlag)
 }  /* end fe3D() */
 
 
-double sfLUT(double s,int atKind, MULS *muls)
+float_tt sfLUT(float_tt s,int atKind, MULS *muls)
 {
    int i;
-   double sf;
+   float_tt sf;
    static int sfSize = 0;
    static int atKinds = 0;
    sfSize = muls->sfNk;
@@ -1277,7 +1277,7 @@ double sfLUT(double s,int atKind, MULS *muls)
    QSfMat splinc(atKinds,sfSize);
    QSfMat splind(atKinds,sfSize);
    
-   static double maxK = 0;
+   static float_tt maxK = 0;
    
    splinx = muls->sfkArray;
    spliny = muls->sfTable;
@@ -1306,9 +1306,9 @@ double sfLUT(double s,int atKind, MULS *muls)
  * t = x-coordinate
  */ 
 #define FX (ptr[xi-1]*x0 + ptr[xi]*x1 + ptr[xi+1]*x2 + ptr[xi+2]*x)
-double bicubic(double **ff,int Nz, int Nx,double z,double x) {
-  static double x0,x1,x2,f;
-  static double *ptr;
+float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
+  static float_tt x0,x1,x2,f;
+  static float_tt *ptr;
   static int xi,zi;
 
   // Now interpolate using computationally efficient algorithm.
@@ -1318,8 +1318,8 @@ double bicubic(double **ff,int Nz, int Nx,double z,double x) {
  
   xi = (int)x;
   zi = (int)z;
-  x   = x-(double)xi;
-  z   = z-(double)zi;
+  x   = x-(float_tt)xi;
+  z   = z-(float_tt)zi;
   
   
   x0  = ((2.0-x)*x-1.0)*x;

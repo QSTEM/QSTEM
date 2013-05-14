@@ -119,7 +119,7 @@ float_tt findLambda(plane *p, QSf3Vec point, int revFlag) {
  * in case the angles don't change.
  * The same vector can be specified as input, as well as output vector.
  */
-void rotateVect(QSf3Vec vectIn, QSf3Vec vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
+void rotateVect(QSf3Vec &vectIn, QSf3Vec &vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
   float_tt sphi_x=0, sphi_y=0, sphi_z=0;
   //  static float_tt *vectOut = NULL;
   // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);

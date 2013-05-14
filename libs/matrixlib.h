@@ -4,11 +4,11 @@
 #include "stemtypes_fftw3.h"
 #include "data_containers.h"
 
-double pythag(double a, double b);
+float_tt pythag(float_tt a, float_tt b);
 
 /* vector functions:
  */
-double findLambda(plane &p, float *point, int revFlag);
+float_tt findLambda(plane &p, float *point, int revFlag);
 void showMatrix(QSfMat &m, std::string name);
 void vectDiff_f(QSfVec &a, QSfVec &b, QSfVec &c,int revFlag);
 float_tt vectLength(QSfVec &vect);

@@ -57,7 +57,7 @@ void make3DSlicesFT(MULS *muls) {
   int Nx=FTBOX_NX, Nz=FTBOX_NX, Nxm,Nzm; // size and center of single atom potential box
   int Nxl,Nzl;                       // size of lookup array
   float_tt axp, byp,czp,dXp,dYp,dZp;    // model dimensions and resolution
-  double ***potLUT = NULL;           // potential lookup table for all atoms used
+  float_tt ***potLUT = NULL;           // potential lookup table for all atoms used
   float_tt xOversample,zOversample;       // oversampling rate for x- and z-direction
   QSfVec rcutoff;            // radius after which set potential to 0 (one for each atom)
   int divCount = 0;
@@ -109,15 +109,15 @@ void make3DSlicesFT(MULS *muls) {
     ax = FTBOX_AX;  cz = FTBOX_CZ;
     dZ = dZp;
     zOversample = 1;
-    while (dZ > 0.4) zOversample += 2, dZ = dZp/(double)(zOversample);
-    Nz = (int)(cz/dZ+0.5);    if (Nz/2 < 0.5*(double)Nz) Nz++;
-    cz =  (double)Nz*dZ;
+    while (dZ > 0.4) zOversample += 2, dZ = dZp/(float_tt)(zOversample);
+    Nz = (int)(cz/dZ+0.5);    if (Nz/2 < 0.5*(float_tt)Nz) Nz++;
+    cz =  (float_tt)Nz*dZ;
     
     dX = (dXp < dYp ? dXp : dYp);
     xOversample = 1;
-    while (dX > 0.1) dX = dXp/(double)(++xOversample);    
-    Nx = (int)(ax/dX); if (Nx/2 < 0.5*(double)Nx) Nx++;
-    ax = (double)Nx*dX;
+    while (dX > 0.1) dX = dXp/(float_tt)(++xOversample);    
+    Nx = (int)(ax/dX); if (Nx/2 < 0.5*(float_tt)Nx) Nx++;
+    ax = (float_tt)Nx*dX;
     // sAtom.x = 0.5*ax;  sAtom.y = 0.5*ax;  sAtom.z = 0.5*cz;
         
     printf("box: (%g, %g, %g), sampled: (%g, %g, %g)\n",axp,byp,czp,dXp,dYp,dZp);
@@ -128,10 +128,10 @@ void make3DSlicesFT(MULS *muls) {
     pot = QScMat(Nz, Nx);
 	// TODO: is this right?
     potLUT = QSVecOffMat(muls->atomKinds);
-		//(double ***)malloc(muls->atomKinds*sizeof(double **));
+		//(float_tt ***)malloc(muls->atomKinds*sizeof(float_tt **));
     rcutoff = QSfVec(muls->atomKinds);
 	rcutoff.setZero();
-    //memset(rcutoff,0,muls->atomKinds*sizeof(double));
+    //memset(rcutoff,0,muls->atomKinds*sizeof(float_tt));
     Nxm = Nx/2;   // Nym = Ny/2;
     dsX = 1.0/ax; // dsY = 1.0/by; 
     dsZ = 1.0/cz;
@@ -185,8 +185,8 @@ void make3DSlicesFT(MULS *muls) {
       /* see L.M. Peng, Micron 30, p. 625 (1999) for details on the scale factor
        * so that pot is the true electrostatic potential. 
        */
-      // scale = 47.87658/(sqrt((double)(Nx*Ny))*(double)Nz);
-      scale = 2*47.87658/(sqrt((double)(Nx*Nz)*ax*cz));
+      // scale = 47.87658/(sqrt((float_tt)(Nx*Ny))*(float_tt)Nz);
+      scale = 2*47.87658/(sqrt((float_tt)(Nx*Nz)*ax*cz));
       rcutoff[atKind] = 50;  // 50 A cutoff radius, initially
       for (iz=0;iz<Nz;iz++) {
 	for (ix=0;ix<Nx;ix++) {
@@ -250,7 +250,7 @@ void make3DSlicesFT(MULS *muls) {
       writeCFG(atoms,muls->natom,buf,muls);	
     }
   }
-  zStart = (*muls).czOffset+(double)divCount*czp/((double)(*muls).cellDiv);
+  zStart = (*muls).czOffset+(float_tt)divCount*czp/((float_tt)(*muls).cellDiv);
   divCount = (divCount + 1) % (*muls).cellDiv;
   
   if (Nzp > 1) {
@@ -278,16 +278,16 @@ void make3DSlicesFT(MULS *muls) {
       if (j % 40 == 0) 
 	if (getTime()-timer >= 10) {
 	  timer += 10.0;
-	  printf("%2d%% (%d sec)\n",(int)(100.0*(double)(j)/((double)muls->natom)),
+	  printf("%2d%% (%d sec)\n",(int)(100.0*(float_tt)(j)/((float_tt)muls->natom)),
 		 (int)(getTime()-timer0));
 	}
       */      
       
       if (j % 100 == 0) {
 	if ((t=getTime() - timer) >= 10) {
-	  t = t*(double)muls->natom/(double)j;
+	  t = t*(float_tt)muls->natom/(float_tt)j;
 	  timer  += t;
-	  printf("Potential integration: %d%% done, %d min, %d sec left\n",(int)(100.0*(double)(j)/((double)muls->natom)),
+	  printf("Potential integration: %d%% done, %d min, %d sec left\n",(int)(100.0*(float_tt)(j)/((float_tt)muls->natom)),
 	       (int)(t/60.0),(int)((int)(t) % 60));
 	}
       }
@@ -315,11 +315,11 @@ void make3DSlicesFT(MULS *muls) {
 /*********************************************************************
  * plotVzr(pot,Nx,Nz);
  ********************************************************************/
-void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls) {
+void plotVzr(fftw_complex **pot,int Nx,int Nz,float_tt dx,MULS *muls) {
   FILE *fp;
   int ix,iz;
   char str[128];
-  double p;
+  float_tt p;
 
   sprintf(str,"%s/vz.dat",muls->folder);
   fp =fopen(str,"w");
@@ -351,16 +351,16 @@ void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls) {
  * zz(:,ncols+2) = 3*zz(:,ncols+1)-3*zz(:,ncols)+zz(:,ncols-1);
  * nrows = nrows+2; ncols = ncols+2;
  ******************************************************************/
-double **reduceAndExpand(fftw_complex **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx) {
-  double **ff;
+float_tt **reduceAndExpand(fftw_complex **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx) {
+  float_tt **ff;
   int ix,iz,j,nx,nz,Ninteg,Nxm,Nzm;
 
   Nxm = Nx/2;
   Nzm = Nz/2;
   nx = Nxm;
   nz = (Nz == 1 ? 1 : Nzm+2);
-  ff = double2D(nz,nx,"ff");
-  memset(ff[0],0,nz*nx*sizeof(double));
+  ff = float_tt2D(nz,nx,"ff");
+  memset(ff[0],0,nz*nx*sizeof(float_tt));
   *fNx = nx;
   *fNz = nz;
 

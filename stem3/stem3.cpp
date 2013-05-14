@@ -101,7 +101,7 @@ void usage() {
 
 int main(int argc, char *argv[]) {
 	int i; 
-	double timerTot;
+	float_tt timerTot;
 	char fileName[256]; 
 	char cinTemp[BUF_LEN];
 #ifdef WIN32
@@ -296,11 +296,11 @@ int DirExists(char *filename) {
 *
 ***********************************************************************/
 void displayProgress(int flag) {
-	// static double timer;
-	static double timeAvg = 0;
-	static double intensityAvg = 0;
+	// static float_tt timer;
+	static float_tt timeAvg = 0;
+	static float_tt intensityAvg = 0;
 	static time_t time0,time1;
-	double curTime;
+	float_tt curTime;
 	int jz;
 
 	if (flag < 0) {
@@ -351,12 +351,12 @@ void displayProgress(int flag) {
 void displayParams() {
 	FILE *fpDir;
 	char systStr[64];
-	double k2max,temp;
+	float_tt k2max,temp;
 	int i,j;
 	static char Date[16],Time[16];
 	time_t caltime;
 	struct tm *mytime;
-	const double pi=3.1415926535897;
+	const float_tt pi=3.1415926535897;
 
 	if (muls.printLevel < 1) {
 		if ((fpDir = fopen(muls.folder,"r"))) {
@@ -566,7 +566,7 @@ void displayParams() {
 }
 
 
-void readArray(char *title,double *array,int N) {
+void readArray(char *title,float_tt *array,int N) {
 	int i;
 	char buf[512],*str;
 
@@ -592,8 +592,8 @@ void readArray(char *title,double *array,int N) {
 **********************************************************************/
 void readSFactLUT() {
 	int Nk,i,j;
-	double **sfTable=NULL;
-	double *kArray = NULL;
+	float_tt **sfTable=NULL;
+	float_tt *kArray = NULL;
 	char buf[256], elem[8];
 
 	if (readparam("Nk:",buf,1))
@@ -604,8 +604,8 @@ void readSFactLUT() {
 	}
 
 	// allocate memory for sfTable and kArray:
-	sfTable = double2D(muls.atomKinds,Nk+1,"sfTable");
-	kArray  = double1D(Nk+1,"kArray");
+	sfTable = float_tt2D(muls.atomKinds,Nk+1,"sfTable");
+	kArray  = float_tt1D(Nk+1,"kArray");
 
 	// read the k-values:
 	readArray("k:",kArray,Nk);
@@ -656,8 +656,8 @@ void readFile() {
 	int potDimensions[2];
 	long ltime;
 	unsigned long iseed;
-	double dE_E0,x,y,dx,dy;
-	const double pi=3.1415926535897;
+	float_tt dE_E0,x,y,dx,dy;
+	const float_tt pi=3.1415926535897;
 
 
 	ltime = (long) time(NULL);
@@ -967,9 +967,9 @@ void readFile() {
 	* Fit the resolution to the wave function array, if not specified different
 	*/
 	if (muls.resolutionX == 0.0)
-		muls.resolutionX = muls.ax / (double)muls.nx;
+		muls.resolutionX = muls.ax / (float_tt)muls.nx;
 	if (muls.resolutionY == 0.0)
-		muls.resolutionY = muls.by / (double)muls.ny;
+		muls.resolutionY = muls.by / (float_tt)muls.ny;
 
 
 
@@ -1112,7 +1112,7 @@ void readFile() {
 	dE_E0 = sqrt(muls.dE_E*muls.dE_E+
 		muls.dI_I*muls.dI_I+
 		muls.dV_V*muls.dV_V);
-	muls.dE_EArray = (double *)malloc((muls.avgRuns+1)*sizeof(double));
+	muls.dE_EArray = (float_tt *)malloc((muls.avgRuns+1)*sizeof(float_tt));
 	muls.dE_EArray[0] = 0.0;
 	/***********************************************************
 	* Statistical gaussian energy spread
@@ -1131,10 +1131,10 @@ void readFile() {
 	*/
 	if (muls.printLevel > 0) printf("avgRuns: %d\n",muls.avgRuns);
 	// serious bug in Visual C - dy comes out enormous.
-	//dy = sqrt((double)pi)/((double)2.0*(double)(muls.avgRuns));
+	//dy = sqrt((float_tt)pi)/((float_tt)2.0*(float_tt)(muls.avgRuns));
 	// using precalculated sqrt(pi):
-	dy = 1.772453850905/((double)2.0*(double)(muls.avgRuns));
-	dx = pi/((double)(muls.avgRuns+1)*20);
+	dy = 1.772453850905/((float_tt)2.0*(float_tt)(muls.avgRuns));
+	dx = pi/((float_tt)(muls.avgRuns+1)*20);
 	for (ix=1,x=0,y=0;ix<muls.avgRuns;x+=dx) {
 		y += exp(-x*x)*dx;
 		if (y>=ix*dy) {
@@ -1318,7 +1318,7 @@ void readFile() {
 
 	if (muls.mode == STEM) 
 	{
-		int tCount = (int)(ceil((double)((muls.slices * muls.cellDiv) / muls.outputInterval)));
+		int tCount = (int)(ceil((float_tt)((muls.slices * muls.cellDiv) / muls.outputInterval)));
 
 		/* first determine number of detectors */
 		while (readparam("detector:",buf,0)) muls.detectorNum++;  
@@ -1345,8 +1345,8 @@ void readFile() {
 				det.image = float2D(muls.scanXN,muls.scanYN,"ADFimag");
 				det.image2 = float2D(muls.scanXN,muls.scanYN,"ADFimag");
 #else
-				det.image = double2D(muls.scanXN,muls.scanYN,"ADFimag");	
-				det.image2 = double2D(muls.scanXN,muls.scanYN,"ADFimag");	
+				det.image = float_tt2D(muls.scanXN,muls.scanYN,"ADFimag");	
+				det.image2 = float_tt2D(muls.scanXN,muls.scanYN,"ADFimag");	
 #endif
 
 				//for (ix=0;ix<muls.scanXN;ix++) for (iy=0;iy < muls.scanYN; iy++)
@@ -1397,7 +1397,7 @@ void readFile() {
 		if (readparam("zoom factor:",buf,1))  
 			sscanf(buf,"%lf",&(muls.zoomFactor));
 		if ((muls.tomoStep == 0) && (muls.tomoStep > 1))
-			muls.tomoStep = -2.0*muls.tomoStart/(double)(muls.tomoCount - 1);
+			muls.tomoStep = -2.0*muls.tomoStart/(float_tt)(muls.tomoCount - 1);
 	}
 	/***********************************************************************/
 
@@ -1578,11 +1578,11 @@ void readFile() {
 * Important parameters: tomoStart, tomoStep, tomoCount, zoomFactor
 ***********************************************************************/
 void doTOMO() {
-	double boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
-	double mAx,mBy,mCz;
+	float_tt boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
+	float_tt mAx,mBy,mCz;
 	int ix,iy,iz,iTheta,i;
-	double u[3],**Mm = NULL;
-	double theta = 0;
+	float_tt u[3],**Mm = NULL;
+	float_tt theta = 0;
 	atom *atoms = NULL;
 	char cfgFile[64],stemFile[128],scriptFile[64],diffAnimFile[64];
 	FILE *fpScript,*fpDiffAnim;
@@ -1726,12 +1726,12 @@ void doMSCBED() {
 void doCBED() {
 	int ix,iy,i,pCount,result;
 	FILE *avgFp,*fp,*fpPos=0;
-	double timer,timerTot;
-	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
+	float_tt timer,timerTot;
+	float_tt probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
 	float_tt t;
 	static float_tt **avgArray=NULL,**diffArray=NULL;
-	static double *chisq = NULL;
+	static float_tt *chisq = NULL;
 	static float_tt **avgPendelloesung = NULL;
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
@@ -1742,7 +1742,7 @@ void doCBED() {
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
 	muls.chisq = chisq;
 
 	if (muls.lbeams) {
@@ -1967,7 +1967,7 @@ void doCBED() {
 				avgArray(iy,ix) = t;
 
 			}
-			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(float_tt)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			if (header == NULL) 
@@ -1979,7 +1979,7 @@ void doCBED() {
 				header->dx = 1.0/(muls.nx*muls.resolutionX);
 				header->dy = 1.0/(muls.ny*muls.resolutionY);
 				if (header->paramSize < 1) {
-					header->params = (double*)malloc(2*sizeof(double));
+					header->params = (float_tt*)malloc(2*sizeof(float_tt));
 					header->paramSize = 2;
 				}
 
@@ -2077,15 +2077,15 @@ void doCBED() {
 ***********************************************************************/
 
 void doTEM() {
-	const double pi=3.1415926535897;
+	const float_tt pi=3.1415926535897;
 	int ix,iy,i,pCount,result;
 	FILE *avgFp,*fp; // *fpPos=0;
-	double timer,timerTot;
-	double x,y,ktx,kty;
+	float_tt timer,timerTot;
+	float_tt x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
 	float_tt t;
 	static float_tt **avgArray=NULL,**diffArray=NULL;
-	static double *chisq = NULL;
+	static float_tt *chisq = NULL;
 	static float_tt **avgPendelloesung = NULL;
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
@@ -2097,7 +2097,7 @@ void doTEM() {
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
 	muls.chisq = chisq;
 	// muls.trans = 0;
 
@@ -2260,7 +2260,7 @@ void doTEM() {
 					header->complexFlag = 1;
 					header->paramSize = 9;
 					if (header->params == NULL)
-						header->params = (double *)malloc(header->paramSize*sizeof(double));
+						header->params = (float_tt *)malloc(header->paramSize*sizeof(float_tt));
 					header->params[0] = muls.v0;  				// high voltage
 					header->params[1] = muls.Cs;				// spherical aberration
 					header->params[2] = muls.df0;				// defocus
@@ -2365,7 +2365,7 @@ void doTEM() {
 				chisq[muls.avgCount-1] += (avgArray(iy,ix)-t)*(avgArray(iy,ix)-t);
 				avgArray(iy,ix) = t;
 			}
-			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(float_tt)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			if (header == NULL) 
@@ -2491,12 +2491,12 @@ void doTEM() {
 
 void doSTEM() {
 	int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
-	double timer, total_time=0;
+	float_tt timer, total_time=0;
 	char buf[BUF_LEN],avgName[256],systStr[256];
 	char jpgName[256], tifName[256];
 	float_tt xpos,ypos,t;
 	static float_tt **avgArray=NULL;
-	double *chisq,collectedIntensity;
+	float_tt *chisq,collectedIntensity;
 	static imageStruct *header = NULL;
 	static imageStruct *header_read = NULL;
 	float cztot;
@@ -2512,9 +2512,9 @@ void doSTEM() {
 		waves.push_back(new WAVEFUNC(muls.nx,muls.ny));
 	}
 
-	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
 	// zero-out the chisq array
-	memset(chisq, 0, muls.avgRuns*sizeof(double));
+	memset(chisq, 0, muls.avgRuns*sizeof(float_tt));
 	muls.chisq = chisq;
 	totalRuns = muls.avgRuns;
 	timer = cputim();
@@ -2812,7 +2812,7 @@ void doSTEM() {
 #endif
 		/*************************************************************/
 
-		chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+		chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(float_tt)(muls.nx*muls.ny);
 		muls.intIntensity = collectedIntensity/(muls.scanXN*muls.scanYN);
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */

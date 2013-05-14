@@ -12,14 +12,11 @@
 #include <algorithm>
 
 #include "defines.h"
-// #include "../lib/floatdef.h"
 #include "stemtypes_fftw3.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
-// #include "tiffsubs.h"
 #include "matrixlib.h"
 #include "readparams.h"
 #include "fileio_fftw3.h"
-// #include "stemlib.h"
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
@@ -34,46 +31,37 @@
 int idArraySize=0;
 int *idArray = NULL;
 int idArrayPtr = 0;
-double massArray[MAX_MASS_INDEX]={1.008,                                         4.0026,
-6.939,9.012,      10.81,12.01,14.01,16.00,19.00,20.18,
-23.00,24.31,      26.98,28.09,30.97,32.06,35.45,39.95,
-39.10,40.08,
-44.96,47.90,50.94,52.00,54.94,55.85,58.93,58.71,63.55,65.38,
-69.72,72.59,74.92,78.96,79.90,83.80,
-85.47,87.62,88.91,91.22,92.91,95.94,98.91,10.07,102.9,106.4,107.9,112.4,
-114.8,118.7,121.8,127.6,126.9,131.3,
-132.9054,137.33,138.9055,178.49,180.9479};
+float_tt massArray[MAX_MASS_INDEX]={1.008f,                                         4.0026f,
+6.939f,9.012f,      10.81f,12.01f,14.01f,16.00f,19.00f,20.18f,
+23.00f,24.31f,      26.98f,28.09f,30.97f,32.06f,35.45f,39.95f,
+39.10f,40.08f,
+44.96f,47.90f,50.94f,52.00f,54.94f,55.85f,58.93f,58.71f,63.55f,65.38f,
+69.72f,72.59f,74.92f,78.96f,79.90f,83.80f,
+85.47f,87.62f,88.91f,91.22f,92.91f,95.94f,98.91f,10.07f,102.9f,106.4f,107.9f,112.4f,
+114.8f,118.7f,121.8f,127.6f,126.9f,131.3f,
+132.9054f,137.33f,138.9055f,178.49f,180.9479f};
 /* so far this list goes up to Xe (from Gerthsen) .. Ta (webelememts) */
-double chargeTable[MAX_MASS_INDEX];
+float_tt chargeTable[MAX_MASS_INDEX];
 
 
-int atomCompareZnum(const void *atPtr1,const void *atPtr2) {
-  int comp = 0;
-  atom *atom1, *atom2;
-  
-  atom1 = (atom *)atPtr1;
-  atom2 = (atom *)atPtr2;
-  /* Use the fact that z is the first element in the atom struct */
-  comp = (atom1->Znum == atom2->Znum) ? 0 : ((atom1->Znum > atom2->Znum) ? -1 : 1); 
-  return comp;
-}
+struct atomCompareZnum {
+	bool operator ()( atom const &atom1,atom const &atom2 ) const {
+		return atom1.Znum<atom2.Znum;
+	}
+};
 
-int atomCompareZYX(const void *atPtr1,const void *atPtr2) {
-  int comp = 0;
-  atom *atom1, *atom2;
-  
-  atom1 = (atom *)atPtr1;
-  atom2 = (atom *)atPtr2;
-  /* Use the fact that z is the first element in the atom struct */
-  comp = (atom1->z == atom2->z) ? 0 : ((atom1->z > atom2->z) ? 1 : -1); 
-  if (comp == 0) {
-    comp = (atom1->y == atom2->y) ? 0 : ((atom1->y > atom2->y) ? 1 : -1); 
-    if (comp == 0) {
-      comp = (atom1->x == atom2->x) ? 0 : ((atom1->x > atom2->x) ? 1 : -1); 
-    }
-  }
-  return comp;
-}
+struct atomCompareZYX {
+bool operator ()( atom const &atom1, const atom &atom2 ) const {
+		if (atom1.z>atom2.z) return true;
+		else if (atom1.z<atom2.z) return false;
+		if (atom1.y > atom2.y) return true;
+		else if (atom1.y < atom2.y) return false;
+		if (atom1.z > atom2.z) return true;
+		else if (atom1.z < atom2.z) return false;
+		return false;
+	}
+};
+
 
 
 /********************************************************
@@ -85,11 +73,11 @@ int atomCompareZYX(const void *atPtr1,const void *atPtr2) {
 ********************************************************/
 
 int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
-  std::vector<std::string> elTable = getElTable();
+	std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   size_t j,i;
   std::string elem;
-  double ax,by,cz;
+  float_tt ax,by,cz;
   
   if (natoms < 1) {
     printf("Atom array empty - no file written\n");
@@ -142,12 +130,12 @@ int removeRedundantAtoms(std::vector<atom> atoms,int natoms) {
 */
 
 int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
-  std::vector<std::string> elTable = getElTable();
+  std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   int j;
 
   std::string elem;
-  double ax,by,cz;
+  float_tt ax,by,cz;
   
   if (natoms < 1) {
     printf("Atom array empty - no file written\n");
@@ -202,13 +190,13 @@ int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
 
 // write CFG file using atomic positions stored in pos, Z's in Znum and DW-factors in dw
 // the unit cell is assumed to be cubic
-int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
-                       double a,double b,double c) {
-  std::vector<std::string> elTable = getElTable();
+int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fileName,
+                       float_tt a,float_tt b,float_tt c) {
+  std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   int j;
   std::string elem;
-  double ax,by,cz;
+  float_tt ax,by,cz;
   
   if (natoms < 1) {
     printf("Atom array empty - no file written\n");
@@ -221,9 +209,9 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
     return 0;
   }
   
-  ax = a > MIN_EDGE_LENGTH ? a : MIN_EDGE_LENGTH;
-  by = b > MIN_EDGE_LENGTH ? b : MIN_EDGE_LENGTH;
-  cz = c > MIN_EDGE_LENGTH ? c : MIN_EDGE_LENGTH;
+  ax = static_cast<float_tt>(a > MIN_EDGE_LENGTH ? a : MIN_EDGE_LENGTH);
+  by = static_cast<float_tt>(b > MIN_EDGE_LENGTH ? b : MIN_EDGE_LENGTH);
+  cz = static_cast<float_tt>(c > MIN_EDGE_LENGTH ? c : MIN_EDGE_LENGTH);
   
   fprintf(fp,"Number of particles = %d\n",natoms);
   fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
@@ -287,14 +275,14 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
   //	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
   QSfMat kVecs;
   //	static float **kVecs;     // array for Nk 3-dim k-vectors
-  // TODO: do these need to be forced to double precision?
+  // TODO: do these need to be forced to float_tt precision?
   QSfMat q1, q2;
-  //	static double **q1=NULL, **q2=NULL;
+  //	static float_tt **q1=NULL, **q2=NULL;
   int ik,lambda,icoord; // Ncells, nkomega;
   float_tt kR,kRi,kRr,wobble;
   float_tt ux=0, uy=0, uz=0;
   QSfVec u2;
-  //	static double *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
+  //	static float_tt *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
   // static double uxCollect=0,uyCollect=0,uzCollect=0;
   std::vector<int> u2Count;
   int runCount = 1,u2Size = -1;
@@ -341,15 +329,15 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     ux=0; uy=0; uz=0; 
   }
   
-  // memcpy(Mm[0],muls.Mm[0],3*3*sizeof(double));
+  // memcpy(Mm[0],muls.Mm[0],3*3*sizeof(float_tt));
   // We need to copy the transpose of muls.Mm to Mm.
   // we therefore cannot use the following command:
-  // memcpy(Mm[0],muls.Mm[0],3*3*sizeof(double));
+  // memcpy(Mm[0],muls.Mm[0],3*3*sizeof(float_tt));
   // or Mm = muls.Mm;
   Mm = muls.Mm.transpose();
   //for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm(iy,ix)=muls.Mm(ix,iy);
   // makeCellVectMuls(muls, axCell, byCell, czCell);
-  // memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
+  // memcpy(MmOrig[0],Mm[0],3*3*sizeof(float_tt));
   // TODO: do we still need MMInv?
 
   MmInv = Mm.inverse();
@@ -360,7 +348,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     u2 = QSfVec(ZnumIndex+1);
     u2Count = std::vector<int>(ZnumIndex+1);
     // printf("created phonon displacements %d!\n",ZnumIndex);								
-    //    u2 = (double *)realloc(u2,(ZnumIndex+1)*sizeof(double));
+    //    u2 = (float_tt *)realloc(u2,(ZnumIndex+1)*sizeof(float_tt));
     //    u2Count = (int *)realloc(u2Count,(ZnumIndex+1)*sizeof(int));
     
     // printf("%d .... %d\n",ZnumIndex,u2Size);
@@ -434,6 +422,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
       // TODO: ok if precision if 1, will break if precision is 2.
       massPrim = QSfVec(Ns);
       //      massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
+	  // TODO: verify file read
       fread(massPrim.data(),sizeof(float),Ns,fpPhonon);
       kVecs = QSfMat(Nk, 3);
       omega = QSfMat(Nk, 3*Ns);
@@ -452,6 +441,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
       //      eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
       
       for (ix=0;ix<Nk;ix++) {
+	    // TODO: verify that .data() is acting like a pointer
         fread(kVecs.data()+ix,sizeof(float),3,fpPhonon);  // k-vector
         for (iy=0;iy<3*Ns;iy++) {
 			fread(omega.data()+iy+3*ix,sizeof(float),1,fpPhonon);
@@ -502,11 +492,11 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
         // if (ix == 0) printf("\n");
       }
       // printf("Temperature: %g K\n",Ttotal);
-      // printf("%d %d %d\n",(int)(0.4*(double)Nk/11.0),(int)(0.6*(double)Nk),Nk);
+      // printf("%d %d %d\n",(int)(0.4*(float_tt)Nk/11.0),(int)(0.6*(float_tt)Nk),Nk);
       q1 = QSfMat(3*Ns, Nk);
       q2 = QSfMat(3*Ns, Nk);
-      //      q1 = double2D(3*Ns,Nk,"q1");
-      //      q2 = double2D(3*Ns,Nk,"q2");
+      //      q1 = float_tt2D(3*Ns,Nk,"q1");
+      //      q2 = float_tt2D(3*Ns,Nk,"q2");
       
     }
     fclose(fpPhonon);    
@@ -548,6 +538,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
      * coordinates so that we can add it to the current position in vector a
      */
     // TODO: optimize
+	//  20130514 correct Eigen format, I think.
 	uf = MmInv*u;
     //matrixProduct(&u,1,3,MmInv,3,3,&uf);
     // test:
@@ -561,14 +552,14 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     */
     // end test
     // Optimize?  How well does Eigen handle copies?
-    //memcpy(u,uf,3*sizeof(double));
+    //memcpy(u,uf,3*sizeof(float_tt));
 	u = uf;
   }
   else {
     // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
     printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",ZnumIndex,Ns,Nk,id,Nk,3*Ns,3*Ns);
     /* loop over k and lambda:  */
-    //memset(u,0,3*sizeof(double));
+    //memset(u,0,3*sizeof(float_tt));
 	u.setZero();
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
         // if (kVecs(2,ik) == 0){
@@ -677,7 +668,7 @@ int readDATCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readCFGCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
+int readCFGCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   int ncoord;
   char buf[256];
   float_tt lengthScale;
@@ -699,6 +690,7 @@ int readCFGCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
   if (readparam("Number of particles =",buf,1)) sscanf(buf,"%d",&ncoord);
   if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
   
+  // TODO: verify that .data is behaving as a ptr
   if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm.data()+0);
   if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm.data()+1);
   if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm.data()+2);
@@ -753,7 +745,7 @@ int readCFGCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readCSSRCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
+int readCSSRCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   FILE *fp;
   char s1[32],s2[32],s3[32],buf[NCMAX];
   int spaceGrp = 1,ncoord;
@@ -841,7 +833,7 @@ int readNextDATAtom(atom &newAtom, int flag, std::string fileName) {
     // str = strnext(buf," \t");
     if (buf != NULL) {
       memcpy(elementStr,buf,2);
-      element = getZNumber(elementStr);
+	  element = getZNumber(std::string(elementStr));
     }
   } while (element == 0);
   if (printFlag) printf("Found Z=%d\n",element);
@@ -862,7 +854,7 @@ int readNextDATAtom(atom &newAtom, int flag, std::string fileName) {
   newAtom.x    = static_cast<float_tt>(atomData[0]);
   newAtom.y    = static_cast<float_tt>(atomData[1]);
   newAtom.z    = static_cast<float_tt>(atomData[2]);
-  newAtom.dw   = static_cast<float_tt>(0.45*28.0/(double)(2.0*element));	
+  newAtom.dw   = static_cast<float_tt>(0.45*28.0/(float_tt)(2.0*element));	
   newAtom.occ  = static_cast<float_tt>(1.0);
   newAtom.q    = static_cast<float_tt>(0.0);
   printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.x,newAtom.y,newAtom.z,newAtom.occ,newAtom.q);	  
@@ -921,7 +913,7 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 		mass = static_cast<float_tt>(atof(buf));
 		// printf("nV: %d, eC: %d (%g)\n",noVelocityFlag, entryCount,atof(buf));
 		if (fgets(buf,NCMAX,fp) == NULL) return -1;    
-		element = getZNumber(buf); 
+		element = getZNumber(std::string(buf));
 		// printf("*** found element %d (%s %d) ***\n",element,buf,strlen(buf));
 		if (fgets(buf,NCMAX,fp) == NULL) return -1;
 	}
@@ -941,7 +933,7 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 	newAtom.x    = atomData[0];
 	newAtom.y    = atomData[1];
 	newAtom.z    = atomData[2];
-	// newAtom->dw   = 0.45*28.0/((double)(2*element));	
+	// newAtom->dw   = 0.45*28.0/((float_tt)(2*element));	
 	// printf("Element: %d, mass=%g\n",element,mass);
 	newAtom.dw   = static_cast<float_tt>(0.45*28.0/mass);	
 	newAtom.occ  = 1.0f;
@@ -1026,8 +1018,8 @@ int readNextCSSRAtom(atom &newAtom, int flag, std::string fileName) {
 // #undef NPARAM	64    /* number of parameters */
 
 /*
-int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,double *cz, 
-				 double ctiltx, double ctilty) {
+int readCubicCFG(float_tt **pos,float_tt **dw, int **Znums, float_tt *ax,float_tt *by,float_tt *cz, 
+				 float_tt ctiltx, float_tt ctilty) {
 					 atom *atoms;
 					 int Natom;
 					 int j;
@@ -1045,8 +1037,8 @@ int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,do
 
 					 atoms = readUnitCell(&Natom,"demo.cfg",&mu,1);
 					 *Znums = (int *)malloc(Natom*sizeof(int));
-					 *pos   = (double *)malloc(Natom*3*sizeof(double));
-					 *dw    = (double *)malloc(Natom*sizeof(double));
+					 *pos   = (float_tt *)malloc(Natom*3*sizeof(float_tt));
+					 *dw    = (float_tt *)malloc(Natom*sizeof(float_tt));
 					 *ax = mu.ax;
 					 *by = mu.by;
 					 *cz = mu.c;
@@ -1093,10 +1085,10 @@ int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,do
 void replicateUnitCell(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms,int handleVacancies) {
 	int i,j,i2,jChoice,ncx,ncy,ncz,icx,icy,icz,jz,jCell,jequal,jVac;
 	int 	atomKinds = 0;
-	double totOcc;
-	double choice,lastOcc;
+	float_tt totOcc;
+	float_tt choice,lastOcc;
 	QSf3Vec u;
-	//double *u;
+	//float_tt *u;
 	// seed for random number generation
 	static long idum = -1;
 
@@ -1133,7 +1125,7 @@ void replicateUnitCell(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms
 
 		////////////////
 		u.setZero();
-		//memset(u,0,3*sizeof(double));
+		//memset(u,0,3*sizeof(float_tt));
 		/* replicate unit cell ncx,y,z times: */
 		/* We have to start with the last atoms first, because once we added the displacements 
 		* to the original unit cell (icx=icy=icz=0), we cannot use those positions			
@@ -1217,7 +1209,7 @@ void replicateUnitCell(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms
 // This function reads the atomic positions from fileName and also adds 
 // Thermal displacements to their positions, if muls.tds is turned on.
 // TODO: why is natom a ptr?
-std::vector<atom> readUnitCell(int &natom, char *fileName, MULS &muls, int handleVacancies) {
+std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int handleVacancies) {
 	char error_string[100];
 	int printFlag = 1;
 	// char buf[NCMAX], *str,element[16];
@@ -1230,31 +1222,40 @@ std::vector<atom> readUnitCell(int &natom, char *fileName, MULS &muls, int handl
 	float_tt boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
 	float_tt boxCenterX,boxCenterY,boxCenterZ,bcX,bcY,bcZ;
 	float_tt x,y,z;
-	//double *u = NULL;
+	//float_tt *u = NULL;
 	QSf3Vec u;
 	QSf3Mat Mm;
-	//double **Mm = NULL;
+	//float_tt **Mm = NULL;
 	std::vector<atom> atoms;
 	//static atom *atoms = NULL;
 	static int ncoord_old = 0;
 	printFlag = muls.printLevel;
 
 	Mm.setZero();
-	//memset(Mm[0],0,9*sizeof(double));
+	//memset(Mm[0],0,9*sizeof(float_tt));
 	muls.Mm = Mm;
-	//u = (double *)malloc(3*sizeof(double));
+	//u = (float_tt *)malloc(3*sizeof(float_tt));
+
+	std::string::size_type idx;
+	idx = fileName.rfind('.');
+	std::string extension="";
+
+	if(idx != std::string::npos)
+	{
+		extension = fileName.substr(idx+1);
+	}
 
 	/* figure out, whether we have  cssr, pdb, or cfg */
-	if (strstr(fileName,".cssr") == fileName+strlen(fileName)-5) {
+	if (extension==".cssr") {
 		format = FORMAT_CSSR;
 		ncoord = readCSSRCellParams(muls,Mm,fileName);
 	}
-	if (strstr(fileName,".cfg") == fileName+strlen(fileName)-4) {
+	if (extension==".cfg") {
 		format = FORMAT_CFG;
 		ncoord = readCFGCellParams(muls,Mm,fileName);
 		// return readCFGUnitCell(natom,fileName,muls);
 	}
-	if (strstr(fileName,".dat") == fileName+strlen(fileName)-4) {
+	if (extension == ".dat") {
 		format = FORMAT_DAT;
 		ncoord = readDATCellParams(muls,Mm,fileName);
 		// return readCFGUnitCell(natom,fileName,muls);
@@ -1569,11 +1570,11 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	// static float **omega;  // array of eigenvalues for every k-vector 
 	// static fftw_complex ***eigVecs;  // array of eigenvectors for every k-vector
 	// static float **kVecs;    // array for Nk 3-dim k-vectors
-	// static double **q1=NULL, **q2=NULL;
+	// static float_tt **q1=NULL, **q2=NULL;
 	int Ncells;
-	// double kR,kRi,kRr;
+	// float_tt kR,kRi,kRr;
 	// FILE *fp;
-	//static double u2=0;
+	//static float_tt u2=0;
 	//static int u2Count = 0;
 	// static long iseed=0;
 	// column vectors
@@ -1600,7 +1601,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	// makeCellVectMuls(muls, axCell, byCell, czCell);
 	// We need to copy the transpose of muls.Mm to Mm.
 	// we therefore cannot use the following command:
-	// memcpy(Mm[0],muls.Mm[0],3*3*sizeof(double));
+	// memcpy(Mm[0],muls.Mm[0],3*3*sizeof(float_tt));
 	Mm.transposeInPlace();
 	//for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm(iy,ix)=muls.Mm(ix,iy);
 
@@ -1623,9 +1624,10 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	// showMatrix(MmOrig,3,3,"Morig");
 	// printf("%d %d\n",(int)Mm, (int)MmOrig);
 	a.setZero();
-	//memset(a[0],0,3*sizeof(double));
+	//memset(a[0],0,3*sizeof(float_tt));
 	// matrixProduct(a,1,3,Mminv,3,3,b);
 	//matrixProduct(Mminv,3,3,a,3,1,b);
+	//  20130514 correct eigen format, I think.
 	b = Mminv*a;
 	// showMatrix(Mm,3,3,"M");
 	// showMatrix(Mminv,3,3,"M");
@@ -1637,6 +1639,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 
 		// matrixProduct(a,1,3,Mminv,3,3,b);
 		//matrixProduct(Mminv,3,3,a,3,1,b);
+		//  20130514 correct eigen format, I think.
 		b = Mminv*a;
 
 		// showMatrix(b,1,3,"b");
@@ -1771,6 +1774,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 						exit(0);
 					}
 					// matrixProduct(aOrig,1,3,Mm,3,3,b);
+					//  20130514 correct eigen format, I think.
 					b = Mm*aOrig;
 					//matrixProduct(Mm,3,3,aOrig,3,1,b);
 
@@ -1783,6 +1787,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 						(y >= 0) && (y <= muls.cubey) &&
 						(z >= 0) && (z <= muls.cubez)) {
 							// matrixProduct(a,1,3,Mm,3,3,b);
+							//  20130514 correct eigen format, I think.
 							b=Mm*a;
 							//matrixProduct(Mm,3,3,a,3,1,b);
 							atoms[atomCount].x		= b(0)+dx; 
@@ -1832,7 +1837,7 @@ cMax = length of data buffer cRead
 cRead = char[] buffer to read into
 mesg = error message to print if not successful
 */
-size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
+int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
 {
 	if( fgets( cRead, cMax, fpRead) == NULL ) {
 		return 0;
@@ -1840,26 +1845,26 @@ size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
 		exit( 0 );
 		*/
 	}
-	return( strlen( cRead ) );
+	return (int)( strlen( cRead ) );
 
 }  /* end ReadLine */
 
-size_t getZNumber(std::string element) {
-	std::vector<std::string> elTable = getElTable();
+int getZNumber(std::string element) {
+	std::vector<std::string> elTable = ElTable::Get();
 	std::vector<std::string>::iterator it;
    it = std::find(elTable.begin(), elTable.end(), element);
    if( it==elTable.end() )
 		return 0;	
 	else
-		return distance(elTable.begin(),it);
+		return (int) distance(elTable.begin(),it);
 }
 
 #define CHARGE 0.0
 
 void writeFrameWork(FILE *fp,superCellBox superCell) {
-	std::vector<std::string> elTable = getElTable();
+	std::vector<std::string> elTable = ElTable::Get();
 	int i,id = 0,newId = 1;
-	double charge=0.0;
+	float_tt charge=0.0;
 
 	if (fp != NULL) fprintf(fp,"frame1 1 framework\n");
 	for (i=0;i<superCell.natoms;i++) {
@@ -1924,7 +1929,6 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 	}
 }
 
-
 #define A 0.0     // 975.857
 #define B 43684.0   // 425379 
 #define C 3.4483  // 5.04748
@@ -1933,13 +1937,13 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 * atoms nstart and ending just before atom nstop.   
 */
 void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
-	std::vector<std::string> elTable = getElTable();
+	std::vector<std::string> elTable = ElTable::Get();
 	int i,j,id;
 	int *idCountArray = NULL;
-	double charge,b,x,y,z;
+	float_tt charge,b,x,y,z;
 	// char elem[8];
 
-	memset(chargeTable,0,MAX_MASS_INDEX*sizeof(double));
+	memset(chargeTable,0,MAX_MASS_INDEX*sizeof(float_tt));
 
 	printf("amorph: %d ..%d-1\n",nstart,nstop);
 
@@ -2023,19 +2027,19 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 		for (j=id;j<=idArrayPtr;j++) {
 			// The following parameters are from S. Garofalini, J. Am. Cer. Soc. 67, 133 (1987)
 			switch (10*(id+1) + (j+1)) {
-	  case 11: b = 0.0; break;  // N -N
-	  case 12: b = 4.5; break;  // N -Si
-	  case 13: b = 4.5; break;  // N -Y
-	  case 14: b = 0.0; break;  // N -O
-	  case 22: b = 1.8770; break;  // Si-Si
-	  case 23: b = 4.4200; break;  // Si-Y
-	  case 24: b = 2.9620; break;  // Si-O
-	  case 33: b = 9.9706; break;  // Y -Y
-	  case 34: b = 6.0802; break;  // Y -O
-	  case 44: b = 0.7254; break;  // O -O		
-	  default : b=0.0;
+	  case 11: b = 0.0f; break;  // N -N
+	  case 12: b = 4.5f; break;  // N -Si
+	  case 13: b = 4.5f; break;  // N -Y
+	  case 14: b = 0.0f; break;  // N -O
+	  case 22: b = 1.8770f; break;  // Si-Si
+	  case 23: b = 4.4200f; break;  // Si-Y
+	  case 24: b = 2.9620f; break;  // Si-O
+	  case 33: b = 9.9706f; break;  // Y -Y
+	  case 34: b = 6.0802f; break;  // Y -O
+	  case 44: b = 0.7254f; break;  // O -O		
+	  default : b=0.0f;
 			}
-			b = b*6.022e4;  // *1e-16*6.022e23*1e-3
+			b = b*6.022e4f;  // *1e-16*6.022e23*1e-3
 			fprintf(fp,"%d %d %g %g %g\n",id+1,j+1,A,b,C);
 
 		}
