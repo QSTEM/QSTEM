@@ -1,11 +1,7 @@
 /* file: fileio_fftw3.c */
 
 #include <stdio.h>	/*  ANSI-C libraries */
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 #include <time.h>
-#include <ctype.h>
 
 #include <vector>
 #include <string>
@@ -13,6 +9,7 @@
 
 #include "defines.h"
 #include "stemtypes_fftw3.h"
+#include "data_containers.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
 #include "matrixlib.h"
 #include "readparams.h"
@@ -42,25 +39,6 @@ float_tt massArray[MAX_MASS_INDEX]={1.008f,                                     
 132.9054f,137.33f,138.9055f,178.49f,180.9479f};
 /* so far this list goes up to Xe (from Gerthsen) .. Ta (webelememts) */
 float_tt chargeTable[MAX_MASS_INDEX];
-
-
-struct atomCompareZnum {
-	bool operator ()( atom const &atom1,atom const &atom2 ) const {
-		return atom1.Znum<atom2.Znum;
-	}
-};
-
-struct atomCompareZYX {
-bool operator ()( atom const &atom1, const atom &atom2 ) const {
-		if (atom1.z>atom2.z) return true;
-		else if (atom1.z<atom2.z) return false;
-		if (atom1.y > atom2.y) return true;
-		else if (atom1.y < atom2.y) return false;
-		if (atom1.z > atom2.z) return true;
-		else if (atom1.z < atom2.z) return false;
-		return false;
-	}
-};
 
 
 
@@ -104,10 +82,10 @@ int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
     for (i=strlen(elem.c_str());i<13;i++)
       fprintf(fp," ");
     fprintf(fp,"1   ");
-    fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x,atoms[j].y,atoms[j].z);
+    fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].pos[0],atoms[j].pos[1],atoms[j].pos[2]);
     /*
-      fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x/muls->ax,
-      atoms[j].y/muls->by,atoms[j].z/muls->c);
+      fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].pos[0]/muls->ax,
+      atoms[j].pos[1]/muls->by,atoms[j].pos[2]/muls->c);
     */
   } 
   
@@ -167,7 +145,7 @@ int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
   elem = elTable[atoms[0].Znum];
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
   fprintf(fp,"%g\n%s\n",atoms[0].Znum,elem);
-  fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].x/ax,atoms[0].y/by,atoms[0].z/cz,
+  fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].pos[0]/ax,atoms[0].pos[1]/by,atoms[0].pos[2]/cz,
           atoms[0].dw,atoms[0].occ,atoms[0].q);
   
 
@@ -178,7 +156,7 @@ int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
       fprintf(fp,"%g\n%s\n",atoms[j].Znum,elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
-    fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].x/ax,atoms[j].y/by,atoms[j].z/cz,
+    fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].pos[0]/ax,atoms[j].pos[1]/by,atoms[j].pos[2]/cz,
             atoms[j].dw,atoms[j].occ,atoms[j].q);
     // if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
   } 
@@ -851,13 +829,13 @@ int readNextDATAtom(atom &newAtom, int flag, std::string fileName) {
   }
   
   newAtom.Znum = element;
-  newAtom.x    = static_cast<float_tt>(atomData[0]);
-  newAtom.y    = static_cast<float_tt>(atomData[1]);
-  newAtom.z    = static_cast<float_tt>(atomData[2]);
+  newAtom.pos[0]    = static_cast<float_tt>(atomData[0]);
+  newAtom.pos[1]    = static_cast<float_tt>(atomData[1]);
+  newAtom.pos[2]    = static_cast<float_tt>(atomData[2]);
   newAtom.dw   = static_cast<float_tt>(0.45*28.0/(float_tt)(2.0*element));	
   newAtom.occ  = static_cast<float_tt>(1.0);
   newAtom.q    = static_cast<float_tt>(0.0);
-  printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.x,newAtom.y,newAtom.z,newAtom.occ,newAtom.q);	  
+  printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.pos[0],newAtom.pos[1],newAtom.pos[2],newAtom.occ,newAtom.q);	  
   
   return 0;
 }
@@ -930,9 +908,9 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 
 
 	newAtom.Znum = element;
-	newAtom.x    = atomData[0];
-	newAtom.y    = atomData[1];
-	newAtom.z    = atomData[2];
+	newAtom.pos[0]    = atomData[0];
+	newAtom.pos[1]    = atomData[1];
+	newAtom.pos[2]    = atomData[2];
 	// newAtom->dw   = 0.45*28.0/((float_tt)(2*element));	
 	// printf("Element: %d, mass=%g\n",element,mass);
 	newAtom.dw   = static_cast<float_tt>(0.45*28.0/mass);	
@@ -992,9 +970,9 @@ int readNextCSSRAtom(atom &newAtom, int flag, std::string fileName) {
 		&count,element,s1,s2,s3,&count,&count,
 		&count,&count,&count,&count,&count,&count,&dw);
 
-	newAtom.x = static_cast<float_tt>(atof(s1));
-	newAtom.y = static_cast<float_tt>(atof(s2));
-	newAtom.z = static_cast<float_tt>(atof(s3));
+	newAtom.pos[0] = static_cast<float_tt>(atof(s1));
+	newAtom.pos[1] = static_cast<float_tt>(atof(s2));
+	newAtom.pos[2] = static_cast<float_tt>(atof(s3));
 	newAtom.occ = 1.0;
 	newAtom.Znum = getZNumber(element); 
 	newAtom.dw = dw;
@@ -1108,7 +1086,7 @@ void replicateUnitCell(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms
 			for (jequal=i-1;jequal>=0;jequal--) {
 				// if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
 				// the total occupany and the counter jequal.
-				if ((fabs(atoms[i].x-atoms[jequal].x) < 1e-6) && (fabs(atoms[i].y-atoms[jequal].y) < 1e-6) && (fabs(atoms[i].z-atoms[jequal].z) < 1e-6)) {
+				if ((fabs(atoms[i].pos[0]-atoms[jequal].pos[0]) < 1e-6) && (fabs(atoms[i].pos[1]-atoms[jequal].pos[1]) < 1e-6) && (fabs(atoms[i].pos[2]-atoms[jequal].pos[2]) < 1e-6)) {
 					totOcc += atoms[jequal].occ;
 				}
 				else break;
@@ -1182,7 +1160,7 @@ void replicateUnitCell(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms
 							if (muls.Znums[jz] == atoms[jChoice].Znum) break;
 						}
 					}
-					// printf("i2=%d, %d (%d) [%g %g %g]\n",i2,jequal,jz,atoms[jequal].x,atoms[jequal].y,atoms[jequal].z);
+					// printf("i2=%d, %d (%d) [%g %g %g]\n",i2,jequal,jz,atoms[jequal].pos[0],atoms[jequal].pos[1],atoms[jequal].pos[2]);
 
 					// this function does nothing, if muls.tds == 0
 					// if (j % 5 == 0) printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
@@ -1190,9 +1168,9 @@ void replicateUnitCell(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms
 					// printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
 
 					for (i2=i;i2>jequal;i2--) {
-						atoms[jCell+i2].x = atoms[i2].x+icx+u(0);
-						atoms[jCell+i2].y = atoms[i2].y+icy+u(1);
-						atoms[jCell+i2].z = atoms[i2].z+icz+u(2);
+						atoms[jCell+i2].pos[0] = atoms[i2].pos[0]+icx+u(0);
+						atoms[jCell+i2].pos[1] = atoms[i2].pos[1]+icy+u(1);
+						atoms[jCell+i2].pos[2] = atoms[i2].pos[2]+icz+u(2);
 					}
 				}  // for (icz=ncz-1;icz>=0;icz--)
 			} // for (icy=ncy-1;icy>=0;icy--) 
@@ -1341,11 +1319,11 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 		if((atoms[i].Znum < 1 ) || (atoms[i].Znum > NZMAX)) {
 			/* for (j=ncoord-1;j>=i;j--)
-			printf("%2d: %d (%g,%g,%g)\n",j,atoms[j].Znum,atoms[j].x,
-			atoms[j].y,atoms[j].z);
+			printf("%2d: %d (%g,%g,%g)\n",j,atoms[j].Znum,atoms[j].pos[0],
+			atoms[j].pos[1],atoms[j].pos[2]);
 			*/
 			sprintf(error_string, "Error: bad atomic number %d in file %s (atom %d [%d: %g %g %g])\n",
-				atoms[i].Znum,fileName,i,atoms[i].Znum,atoms[i].x,atoms[i].y,atoms[i].z);
+				atoms[i].Znum,fileName,i,atoms[i].Znum,atoms[i].pos[0],atoms[i].pos[1],atoms[i].pos[2]);
 			throw std::exception(error_string);
 		}
 
@@ -1386,7 +1364,7 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 	// First, we will sort the atoms by position:
 	if (handleVacancies) {
-		std::sort (atoms.begin(), atoms.end(), atomCompareZYX);
+		std::sort (atoms.begin(), atoms.end(), atomCompareZYX());
 		//qsort((void *)atoms,ncoord,sizeof(atom),);
 	}
 
@@ -1415,19 +1393,19 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 				// printf("Lattice is not orthogonal, or rotated\n");
 				for(i=0;i<natom;i++) {
 					/*
-					x = Mm(0,0)*atoms[i].x+Mm(1,0)*atoms[i].y+Mm(2,0)*atoms[i].z;
-					y = Mm(0,1)*atoms[i].x+Mm(1,1)*atoms[i].y+Mm(2,1)*atoms[i].z;
-					z = Mm(0,2)*atoms[i].x+Mm(1,2)*atoms[i].y+Mm(2,2)*atoms[i].z;
+					x = Mm(0,0)*atoms[i].pos[0]+Mm(1,0)*atoms[i].pos[1]+Mm(2,0)*atoms[i].pos[2];
+					y = Mm(0,1)*atoms[i].pos[0]+Mm(1,1)*atoms[i].pos[1]+Mm(2,1)*atoms[i].pos[2];
+					z = Mm(0,2)*atoms[i].pos[0]+Mm(1,2)*atoms[i].pos[1]+Mm(2,2)*atoms[i].pos[2];
 					*/
 
 					// This converts also to cartesian coordinates
-					x = Mm(0,0)*atoms[i].x+Mm(0,1)*atoms[i].y+Mm(0,2)*atoms[i].z;
-					y = Mm(1,0)*atoms[i].x+Mm(1,1)*atoms[i].y+Mm(1,2)*atoms[i].z;
-					z = Mm(2,0)*atoms[i].x+Mm(2,1)*atoms[i].y+Mm(2,2)*atoms[i].z;
+					x = Mm(0,0)*atoms[i].pos[0]+Mm(0,1)*atoms[i].pos[1]+Mm(0,2)*atoms[i].pos[2];
+					y = Mm(1,0)*atoms[i].pos[0]+Mm(1,1)*atoms[i].pos[1]+Mm(1,2)*atoms[i].pos[2];
+					z = Mm(2,0)*atoms[i].pos[0]+Mm(2,1)*atoms[i].pos[1]+Mm(2,2)*atoms[i].pos[2];
 
-					atoms[i].x = x;
-					atoms[i].y = y;
-					atoms[i].z = z;
+					atoms[i].pos[0] = x;
+					atoms[i].pos[1] = y;
+					atoms[i].pos[2] = z;
 
 				}      
 		}
@@ -1436,9 +1414,9 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 		*************************************************************/
 		else { 
 			for(i=0;i<natom;i++) {
-				atoms[i].x *= muls.ax; 
-				atoms[i].y *= muls.by; 
-				atoms[i].z *= muls.c;
+				atoms[i].pos[0] *= muls.ax; 
+				atoms[i].pos[1] *= muls.by; 
+				atoms[i].pos[2] *= muls.c;
 			}		 
 		}
 		// Now we have all the cartesian coordinates of all the atoms!
@@ -1489,16 +1467,16 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 		if ((muls.ctiltx != 0) || (muls.ctilty != 0) || (muls.ctiltz != 0)) {			
 			for(i=0;i<(natom);i++) {
 
-				u(0) = atoms[i].x-boxCenterX; 
-				u(1) = atoms[i].y-boxCenterY; 
-				u(2) = atoms[i].z-boxCenterZ; 
+				u(0) = atoms[i].pos[0]-boxCenterX; 
+				u(1) = atoms[i].pos[1]-boxCenterY; 
+				u(2) = atoms[i].pos[2]-boxCenterZ; 
 				rotateVect(u,u,muls.ctiltx,muls.ctilty,muls.ctiltz);  // simply applies rotation matrix
 				u(0) += boxCenterX;
 				u(1) += boxCenterY; 
 				u(2) += boxCenterZ; 
-				atoms[i].x = u(0);
-				atoms[i].y = u(1); 
-				atoms[i].z = u(2); 
+				atoms[i].pos[0] = u(0);
+				atoms[i].pos[1] = u(1); 
+				atoms[i].pos[2] = u(2); 
 				// boxXmin = boxXmin>u(0) ? u(0) : boxXmin; boxXmax = boxXmax<u(0) ? u(0) : boxXmax; 
 				// boxYmin = boxYmin>u(1) ? u(1) : boxYmin; boxYmax = boxYmax<u(1) ? u(1) : boxYmax; 
 				// boxZmin = boxZmin>u(2) ? u(2) : boxZmin; boxZmax = boxZmax<u(2) ? u(2) : boxZmax; 
@@ -1506,9 +1484,9 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 		} /* if tilts != 0 ... */
 
 		for(i=0;i<(natom);i++) {
-			atoms[i].x-=boxXmin; 
-			atoms[i].y-=boxYmin; 
-			atoms[i].z-=boxZmin; 
+			atoms[i].pos[0]-=boxXmin; 
+			atoms[i].pos[1]-=boxYmin; 
+			atoms[i].pos[2]-=boxZmin; 
 		}
 		muls.ax = boxXmax-boxXmin;
 		muls.by = boxYmax-boxYmin;
@@ -1524,8 +1502,8 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 	// Do this after the rotation!
 	if ((muls.xOffset != 0) || (muls.yOffset != 0)) {
 		for(i=0;i<natom;i++) {
-			atoms[i].x += muls.xOffset; 
-			atoms[i].y += muls.yOffset; 
+			atoms[i].pos[0] += muls.xOffset; 
+			atoms[i].pos[1] += muls.yOffset; 
 		}		 
 	}
 	} // end of Ncell mode conversion to cartesian coords and tilting.
@@ -1556,7 +1534,8 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	QSf3Mat MbPrim, MbPrimInv, MmOrig, MmOrigInv;
 	QSf3Vec a, aOrig, b, bfloor, blat;
 	static int oldAtomSize = 0;
-	float_tt x,y,z,dx,dy,dz; 
+	//float_tt x,y,z,dx,dy,dz; 
+	QSf3Vec pos, dpos;
 	float_tt totOcc,lastOcc,choice;
 	std::vector<atom> unitAtoms;
 	atom newAtom;
@@ -1592,9 +1571,10 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	muls.cubez*muls.cubez);
 	*/
 
-	dx = 0; dy = 0; dz = 0;
-	dx = muls.xOffset;
-	dy = muls.yOffset;
+	//dx = 0; dy = 0; dz = 0;
+	dpos.setZero();
+	dpos[0] = muls.xOffset;
+	dpos[1] = muls.yOffset;
 	/* find the rotated unit cell vectors .. 
 	* muls does still hold the single unit cell vectors in ax,by, and c
 	*/
@@ -1631,9 +1611,9 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	b = Mminv*a;
 	// showMatrix(Mm,3,3,"M");
 	// showMatrix(Mminv,3,3,"M");
-	nxmin = nxmax = (int)floor(b(0,0)-dx); 
-	nymin = nymax = (int)floor(b(1,0)-dy); 
-	nzmin = nzmax = (int)floor(b(2,0)-dz);
+	nxmin = nxmax = (int)floor(b(0,0)-dpos[0]); 
+	nymin = nymax = (int)floor(b(1,0)-dpos[1]); 
+	nzmin = nzmax = (int)floor(b(2,0)-dpos[2]);
 	for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
 		a(0,0)=ix*muls.cubex; a(1,0)=iy*muls.cubey; a(2,0)=iz*muls.cubez;
 
@@ -1643,12 +1623,13 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 		b = Mminv*a;
 
 		// showMatrix(b,1,3,"b");
-		if (nxmin > (int)floor(b(0,0)-dx)) nxmin=(int)floor(b(0,0)-dx);
-		if (nxmax < (int)ceil( b(0,0)-dx)) nxmax=(int)ceil( b(0,0)-dx);
-		if (nymin > (int)floor(b(1,0)-dy)) nymin=(int)floor(b(1,0)-dy);
-		if (nymax < (int)ceil( b(1,0)-dy)) nymax=(int)ceil( b(1,0)-dy);
-		if (nzmin > (int)floor(b(2,0)-dz)) nzmin=(int)floor(b(2,0)-dz);
-		if (nzmax < (int)ceil( b(2,0)-dz)) nzmax=(int)ceil( b(2,0)-dz);	  
+		// TODO: can I do comparisons elementwise with vectors?
+		if (nxmin > (int)floor(b(0,0)-dpos[0])) nxmin=(int)floor(b(0,0)-dpos[0]);
+		if (nxmax < (int)ceil( b(0,0)-dpos[0])) nxmax=(int)ceil( b(0,0)-dpos[0]);
+		if (nymin > (int)floor(b(1,0)-dpos[1])) nymin=(int)floor(b(1,0)-dpos[1]);
+		if (nymax < (int)ceil( b(1,0)-dpos[1])) nymax=(int)ceil( b(1,0)-dpos[1]);
+		if (nzmin > (int)floor(b(2,0)-dpos[2])) nzmin=(int)floor(b(2,0)-dpos[2]);
+		if (nzmax < (int)ceil( b(2,0)-dpos[2])) nzmax=(int)ceil( b(2,0)-dpos[2]);	  
 	}
 
 	// nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;
@@ -1674,8 +1655,8 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	atomCount = 0;  
 	jVac = 0;
 	for (iatom=0;iatom<ncoord;) {
-		// printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
-		//   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
+		// printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].pos[0],unitAtoms[iatom].pos[1],
+		//   unitAtoms[iatom].pos[2],unitAtoms[iatom].Znum);
 		//memcpy(newAtom,unitAtoms[iatom],sizeof(atom));
 		newAtom = unitAtoms[iatom];
 		for (jz=0;jz<muls.atomKinds;jz++)	if (muls.Znums[jz] == newAtom.Znum) break;
@@ -1698,7 +1679,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 			for (jequal=iatom+1;jequal<ncoord;jequal++) {
 				// if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
 				// the total occupany and the counter jequal.
-				if ((fabs(newAtom.x-unitAtoms[jequal].x) < 1e-6) && (fabs(newAtom.y-unitAtoms[jequal].y) < 1e-6) && (fabs(newAtom.z-unitAtoms[jequal].z) < 1e-6)) {
+				if ((fabs(newAtom.pos[0]-unitAtoms[jequal].pos[0]) < 1e-6) && (fabs(newAtom.pos[1]-unitAtoms[jequal].pos[1]) < 1e-6) && (fabs(newAtom.pos[2]-unitAtoms[jequal].pos[2]) < 1e-6)) {
 					totOcc += unitAtoms[jequal].occ;
 				}
 				else break;
@@ -1716,7 +1697,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 			for (iy=nymin;iy<=nymax;iy++) {
 				for (iz=nzmin;iz<=nzmax;iz++) {
 					// atom position in cubic reduced coordinates: 
-					aOrig(0,0) = ix+newAtom.x; aOrig(1,0) = iy+newAtom.y; aOrig(2,0) = iz+newAtom.z;
+					aOrig(0,0) = ix+newAtom.pos[0]; aOrig(1,0) = iy+newAtom.pos[1]; aOrig(2,0) = iz+newAtom.pos[2];
 
 					// Now is the time to remove atoms that are on the same position or could be vacancies:
 					// if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
@@ -1780,19 +1761,21 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 
 					// if (atomCount < 2) {showMatrix(a,1,3,"a");showMatrix(b,1,3,"b");}
 					// b now contains atom positions in cartesian coordinates */
-					x  = b(0)+dx; 
-					y  = b(1)+dy; 
-					z  = b(2)+dz; 
-					if ((x >= 0) && (x <= muls.cubex) &&
-						(y >= 0) && (y <= muls.cubey) &&
-						(z >= 0) && (z <= muls.cubez)) {
+					pos = b + dpos;
+					//x  = b(0)+dpos[0]; 
+					//y  = b(1)+dpos[1]; 
+					//z  = b(2)+dpos[2]; 
+					if ((pos[0] >= 0) && (pos[0] <= muls.cubex) &&
+						(pos[1] >= 0) && (pos[1] <= muls.cubey) &&
+						(pos[2] >= 0) && (pos[2] <= muls.cubez)) {
 							// matrixProduct(a,1,3,Mm,3,3,b);
 							//  20130514 correct eigen format, I think.
 							b=Mm*a;
 							//matrixProduct(Mm,3,3,a,3,1,b);
-							atoms[atomCount].x		= b(0)+dx; 
-							atoms[atomCount].y		= b(1)+dy; 
-							atoms[atomCount].z		= b(2)+dz; 
+							atoms[atomCount].pos = b + dpos;
+							//atoms[atomCount].pos[0]		= b(0)+dpos[0]; 
+							//atoms[atomCount].pos[1]		= b(1)+dpos[1]; 
+							//atoms[atomCount].pos[2]		= b(2)+dpos[2]; 
 							atoms[atomCount].dw		= unitAtoms[jChoice].dw;
 							atoms[atomCount].occ	= unitAtoms[jChoice].occ;
 							atoms[atomCount].q		= unitAtoms[jChoice].q;
@@ -1917,15 +1900,15 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 	  default: charge = 0.0; 
 			}
 
-			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %s\n",id+1,superCell.atoms[i].x,
-				superCell.atoms[i].y,superCell.atoms[i].z,
+			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %s\n",id+1,superCell.atoms[i].pos[0],
+				superCell.atoms[i].pos[1],superCell.atoms[i].pos[2],
 				// TODO: massArray should probably be a vector...
 				massArray[superCell.atoms[i].Znum-1],charge,
 				elTable[superCell.atoms[i].Znum]);
 		}
 		else
-			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f\n",id+1,superCell.atoms[i].x,
-			superCell.atoms[i].y,superCell.atoms[i].z);
+			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f\n",id+1,superCell.atoms[i].pos[0],
+			superCell.atoms[i].pos[1],superCell.atoms[i].pos[2]);
 	}
 }
 
@@ -1940,7 +1923,8 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 	std::vector<std::string> elTable = ElTable::Get();
 	int i,j,id;
 	int *idCountArray = NULL;
-	float_tt charge,b,x,y,z;
+	float_tt charge,b;//,x,y,z;
+	QSf3Arr pos;
 	// char elem[8];
 
 	memset(chargeTable,0,MAX_MASS_INDEX*sizeof(float_tt));
@@ -2048,23 +2032,22 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 		/*************************************************************************
 		* We can now write down the size of the MD cell:
 		*/
-		fprintf(fp,"%g %g %g 90 90 90 1 1 1\n",superCell.ax,superCell.by,superCell.cz);
+		fprintf(fp,"%g %g %g 90 90 90 1 1 1\n",superCell.cellDims[0],
+			superCell.cellDims[1],superCell.cellDims[2]);
 
 		/****************************************************************************
 		* now list the position of each one of the atoms in the amorphous phase
 		* in FRACTIONAL COORDINATES !!!
 		*/
-		for(i=nstart;i<nstop;i++) {   
-			x = superCell.atoms[i].x/superCell.ax;
-			y = superCell.atoms[i].y/superCell.by;
-			z = superCell.atoms[i].z/superCell.cz;
-			if (fabs(x-1.0) < 1e-5) x = 0.0;
-			if (fabs(y-1.0) < 1e-5) y = 0.0;
-			if (fabs(z-1.0) < 1e-5) z = 0.0;
-			fprintf(fp,"%s %7.5f %7.5f %7.5f\n",elTable[superCell.atoms[i].Znum],x,y,z);
+		for(i=nstart;i<nstop;i++) {
+			pos = superCell.atoms[i].pos/superCell.cellDims;
+			if (fabs(pos[0]-1.0) < 1e-5) pos[0] = 0.0;
+			if (fabs(pos[1]-1.0) < 1e-5) pos[1] = 0.0;
+			if (fabs(pos[2]-1.0) < 1e-5) pos[2] = 0.0;
+			fprintf(fp,"%s %7.5f %7.5f %7.5f\n",elTable[superCell.atoms[i].Znum],pos[0],pos[1],pos[2]);
 		}
 		if (nstart > 0)
-			fprintf(fp,"frame1 %7.5f %7.5f %7.5f 1 0 0 0\n",superCell.cmx,superCell.cmy,superCell.cmz);
+			fprintf(fp,"frame1 %7.5f %7.5f %7.5f 1 0 0 0\n",superCell.cm[0],superCell.cm[1],superCell.cm[2]);
 		fprintf(fp,"end\n");
 	}  // end of if fp != NULL
 }

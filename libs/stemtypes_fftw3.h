@@ -48,6 +48,7 @@ typedef Matrix< std::complex<float_tt>, Dynamic, Dynamic> QScMat;
 typedef Matrix< int, Dynamic, Dynamic> QSiMat;
 typedef Matrix< float_tt, Dynamic, 1> QSfVec;
 typedef Matrix< float_tt, 3, 1> QSf3Vec;
+typedef Array<float_tt, 3, 1> QSf3Arr;
 typedef Matrix< int, Dynamic, 1> QSiVec;
 
 typedef std::vector<QScMat, Eigen::aligned_allocator<QScMat>> QSVecOfcMat;
@@ -56,7 +57,8 @@ typedef std::vector<QSfMat, Eigen::aligned_allocator<QSfMat>> QSVecOffMat;
 ////////////////////////////////////////////////////////////////
 
 typedef struct atomStruct {
-  float z,y,x;
+  //float z,y,x;
+  QSf3Arr pos; // x, y, z;
   // float dx,dy,dz;  // thermal displacements
   float dw;      // Debye-Waller factor
   float occ;     // occupancy
@@ -93,8 +95,10 @@ typedef struct grainBoxStruct {
 } grainBox;
 
 typedef struct superCellBoxStruct {
-  float_tt cmx,cmy,cmz;  /* fractional center of mass coordinates */
-  float_tt ax,by,cz;
+  //float_tt cmx,cmy,cmz;  /* fractional center of mass coordinates */
+  QSf3Arr cm; //x, y, z
+  //float_tt ax,by,cz;
+  QSf3Arr cellDims; //x, y, z
   int natoms;
   std::vector<atom> atoms;
   // atom *atoms; /* contains all the atoms within the super cell */

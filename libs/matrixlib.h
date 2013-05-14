@@ -8,7 +8,7 @@ float_tt pythag(float_tt a, float_tt b);
 
 /* vector functions:
  */
-float_tt findLambda(plane &p, float *point, int revFlag);
+float_tt findLambda(plane &p, QSf3Vec &point, int revFlag);
 void showMatrix(QSfMat &m, std::string name);
 void vectDiff_f(QSfVec &a, QSfVec &b, QSfVec &c,int revFlag);
 float_tt vectLength(QSfVec &vect);

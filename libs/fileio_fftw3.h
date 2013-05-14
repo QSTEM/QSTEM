@@ -31,6 +31,23 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop);
 float_tt gasdev(long *idum); 
 float_tt ran(long *idum);
 float_tt ran1(long *idum);
-int atomCompareZYX(atom &atom1,atom &atom2);
-int atomCompareZnum(atom &atom1,atom &atom2);
+
+struct atomCompareZnum {
+	bool operator ()( atom const &atom1,atom const &atom2 ) const {
+		return atom1.Znum<atom2.Znum;
+	}
+};
+
+struct atomCompareZYX {
+bool operator ()( atom const &atom1, const atom &atom2 ) const {
+		if (atom1.pos[2]>atom2.pos[2]) return true;
+		else if (atom1.pos[2]<atom2.pos[2]) return false;
+		if (atom1.pos[1] > atom2.pos[1]) return true;
+		else if (atom1.pos[1] < atom2.pos[1]) return false;
+		if (atom1.pos[0] > atom2.pos[0]) return true;
+		else if (atom1.pos[0] < atom2.pos[0]) return false;
+		return false;
+	}
+};
+
 #endif /* FILEIO_H */

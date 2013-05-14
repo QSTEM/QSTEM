@@ -225,7 +225,7 @@ int removeVacancies(std::vector<atom> atoms,int natoms) {
 
 	// printf("Time: %d\n",time(NULL));
 	natomsFinal = natoms;
-	std::sort(atoms.begin(), atoms.end(), atomCompareZYX);
+	std::sort(atoms.begin(), atoms.end(), atomCompareZYX());
 	//qsort((void *)atoms,natoms,sizeof(atom),atomCompareZYX);
 
 	for(jz = 0,i=0;i<natoms;i++) {
@@ -274,7 +274,7 @@ int removeVacancies(std::vector<atom> atoms,int natoms) {
 	// printf("%d atoms left\n",natomsFinal);
 	// We now need to move all the atoms with zero Znum to the very end.
 	if (jz > 0) {
-		std::sort(atoms.begin(), atoms.end(), atomCompareZnum);
+		std::sort(atoms.begin(), atoms.end(), atomCompareZnum());
 		//qsort((void *)atoms,natoms,sizeof(atom),atomCompareZnum);
 		// for (i=0;i<natomsFinal;i++) printf("%3d: %d (%.1f %.1f %.1f): occ=%.1f\n",i,atoms[i].Znum,atoms[i].x,atoms[i].y,atoms[i].z,atoms[i].occ);
 	}
@@ -986,7 +986,8 @@ void makeSpecial(int distPlotFlag) {
 	float_tt d,r,x,y,z,dist,volume;
 	int i,j,Znum,count;
 	long seed;
-	float pos[3],center[3],grainBound[6];
+	QSf3Vec pos,center;
+	QSfVec grainBound(6);
 	int trials = 0,type;
 	//char *ptr;
 

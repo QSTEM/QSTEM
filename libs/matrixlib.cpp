@@ -65,7 +65,7 @@ void showMatrix(QSfMat m, std::string name) {
  * forward(1) (x,y,z), or reversed(-1) (z,y,x) order.
  * This is important for using the reversed order in the atom struct.
  */
-float_tt findLambda(plane *p, QSf3Vec point, int revFlag) {
+float_tt findLambda(plane &p, QSf3Vec &point, int revFlag) {
   QSf3Mat M, Minv;
   // TODO: we need to define M's size!!
   QSf3Vec diff;
@@ -89,11 +89,11 @@ float_tt findLambda(plane *p, QSf3Vec point, int revFlag) {
   vectDiff_f(point,&(p->pointX),diff,revFlag);
   */
 
-  M.col(0) = -(p->norm);
-  M.col(1) = (p->vect1);
-  M.col(2) = (p->vect2);
+  M.col(0) = -(p.norm);
+  M.col(1) = (p.vect1);
+  M.col(2) = (p.vect2);
 
-  vectDiff_f(point,p->point,diff,revFlag);
+  vectDiff_f(point,p.point,diff,revFlag);
 
   Minv = M.inverse();
   //inverse_3x3 (Minv[0],M[0]);
