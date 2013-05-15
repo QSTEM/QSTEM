@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
 	superCell.natoms = removeVacancies(superCell.atoms,superCell.natoms);
 
 	printf("will write cfg file to %s\n",outFileName);
-	writeCFG(superCell.atoms, superCell.natoms, outFileName, *muls);
+	writeCFG(superCell.atoms, superCell.natoms, outFileName, muls);
 	printf("wrote cfg file to %s\n",outFileName);
 
 	/**************************************************************

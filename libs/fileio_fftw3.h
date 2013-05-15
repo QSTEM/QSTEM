@@ -8,7 +8,7 @@ std::vector<atom> readUnitCell(int &natom,std::string fileName,MULS &muls,int ha
 void replicateUnitCell(int ncoord,int &natom,MULS &muls,std::vector<atom> atoms,int handleVacancies);
 std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms,int handleVacancies);
 int writePDB(std::vector<atom> atoms,int natoms,std::string fileName,MULS &muls);
-int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS &muls);
+int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls);
 // write CFG file using atomic positions stored in pos, Z's in Znum and DW-factors in dw
 // the unit cell is assumed to be cubic
 int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fileName,

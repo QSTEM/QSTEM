@@ -125,9 +125,10 @@ void MULS::initMuls()
 	sparam = QSfVec::Zero(NPARAM);
 }
 
+std::vector<std::string> ElTable::elements(110);
+
 ElTable::ElTable()
 {
-	elements = std::vector<std::string>(104);
 	elements.push_back("H");
 	elements.push_back("He");
 	elements.push_back("Li");

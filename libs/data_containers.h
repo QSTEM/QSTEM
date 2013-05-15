@@ -284,7 +284,9 @@ public:
 // Singleton class for the periodic table
 class ElTable
 {
+	static bool instanceFlag;
 	static std::vector<std::string> elements;
+	static ElTable *single;
 	ElTable();
 public:
 	static std::vector<std::string> Get(){return elements;}

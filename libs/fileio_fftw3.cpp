@@ -107,7 +107,7 @@ int removeRedundantAtoms(std::vector<atom> atoms,int natoms) {
 * AtomEye.
 */
 
-int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
+int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls) {
   std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   int j;
@@ -120,7 +120,7 @@ int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
     return 1;
   }
   
-  fp = fopen(fileName, "w" );
+  fp = fopen(fileName.c_str(), "w" );
   if( fp == NULL ) {
     printf("Cannot open file %s\n",fileName);
     return 0;
