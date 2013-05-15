@@ -54,18 +54,6 @@ good energies: 327, 360,393,520 keV
 #include "customslice.h"
 #include "data_containers.h"
 
-#define NCINMAX 1024
-#define NPARAM	64    /* number of parameters */
-#define MAX_SCANS 1   /* maximum number of linescans per graph window */
-#define PHASE_GRATING 0
-#define BUF_LEN 256
-
-#define DELTA_T 1     /* number of unit cells between pictures */
-#define PICTS 5      /* number of different thicknesses */
-#define NBITS 8	       /* number of bits for writeIntPix */
-#define RAD2DEG 57.2958
-#define SQRT_2 1.4142135
-
 const char *resultPage = "result.html";
 /* global variable: */
 MULS muls;
@@ -183,104 +171,6 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-/***************************************************************
-***************************************************************
-** End of MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN  ** 
-***************************************************************
-**************************************************************/
-
-void initMuls() {
-	int sCount,i,slices;
-	char waveFile[256];
-
-	slices = muls.slices;
-
-	/* general setup: */
-	muls.lpartl = 0;
-
-	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
-
-	for (sCount =0;sCount<slices;sCount++)
-		muls.cin2[sCount] = 'a'+sCount;
-	for (sCount = slices;sCount < NCINMAX;sCount++)
-		muls.cin2[sCount] = 0;
-	muls.nlayer = slices;
-	muls.saveFlag = 0;
-
-	muls.sigmaf = 0;
-	muls.dfdelt = 0;
-	muls.acmax = 0;
-	muls.acmin = 0;
-	muls.aobj = 0;
-	muls.Cs = 0;
-	muls.aAIS = 0;
-	// muls.areaAIS = 1.0;
-
-	// Tomography parameters:
-	muls.tomoTilt = 0;
-	muls.tomoStart = 0;
-	muls.tomoStep = 0;
-	muls.tomoCount = 0;  // indicate: NO Tomography simulation.
-
-	/* make multislice read the inout files and assign transr and transi: */
-	muls.trans = NULL;
-	muls.cz = NULL;  // (float_tt *)malloc(muls.slices*sizeof(float_tt));
-
-	muls.onlyFresnel = 0;
-	muls.showPhaseplate = 0;
-	muls.czOffset = 0;  /* defines the offset for the first slice in 
-						fractional coordinates        */
-	muls.normHolog = 0;
-	muls.gaussianProp = 0;
-
-
-	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
-	for (i=0;i<NPARAM;i++)
-		muls.sparam[i] = 0.0;
-	muls.kx = NULL;
-	muls.kx2= NULL;
-	muls.ky = NULL;
-	muls.ky2= NULL;
-
-	/****************************************************/
-	/* copied from slicecell.c                          */
-	muls.pendelloesung = NULL;
-}
-
-/*
-void writeIntPix(char *outFile,float_tt **pict,int nx,int ny) {
-float_tt rmin,rmax;
-int i,j, result;
-long **pix;
-
-rmin  = pict(0,0);
-rmax  = rmin;
-
-for( i=0; i<nx; i++)
-for(j=0; j<ny; j++)
-{
-if(pict(j,i) < rmin ) rmin = pict(j,i);
-if(pict(j,i) > rmax ) rmax = pict(j,i);
-}
-printf("min: %g  max: %g\n",rmin,rmax);
-
-pix = long2D(ny,nx,"pix array");
-
-for (i=0;i<ny;i++) {
-for(j=0;j<nx;j++) {
-pix(j,i) =(long)((pow(2,NBITS)-1.0)*((pict(i,j)-rmin)/(rmax-rmin)));
-}
-}
-result = tcreatePixFile(outFile,pix,nx,ny,
-0,0,NBITS,0,0,1.0,1.0);
-printf("output written to %s\n",outFile);
-
-if (result != 1)
-printf("\ncould not write output file %s\n",outFile);
-
-free(pix); 
-}
-*/
 int DirExists(char *filename) { 
   struct stat status; 
   status.st_mode = 0;
@@ -356,7 +246,6 @@ void displayParams() {
 	static char Date[16],Time[16];
 	time_t caltime;
 	struct tm *mytime;
-	const float_tt pi=3.1415926535897;
 
 	if (muls.printLevel < 1) {
 		if ((fpDir = fopen(muls.folder,"r"))) {
@@ -402,7 +291,7 @@ void displayParams() {
 
 	if ((muls.cubex == 0) || (muls.cubey == 0) || (muls.cubez == 0))
 		printf("* Unit cell:            ax=%g by=%g cz=%g\n",
-		muls.ax,muls.by,muls.c);
+		muls.cellDims[0],muls.cellDims[1],muls.cellDims[2]);
 	else {
 		printf("* Size of Cube:         ax=%g by=%g cz=%g\n",
 			muls.cubex,muls.cubey,muls.cubez);
@@ -417,7 +306,7 @@ void displayParams() {
 		(muls.tiltBack == 1 ? "on" : "off"));
 	printf("* Model dimensions:     ax=%gA, by=%gA, cz=%gA (after tilt)\n"
 		"*                       sampled every %g x %g x %g A\n",
-		muls.ax,muls.by,muls.c,muls.resolutionX,muls.resolutionY,muls.sliceThickness);
+		muls.cellDims[0],muls.cellDims[1],muls.cellDims[2],muls.resolutionX,muls.resolutionY,muls.sliceThickness);
 	printf("* Atom species:         %d (Z=%d",muls.atomKinds,muls.Znums[0]);
 	for (i=1;i<muls.atomKinds;i++) printf(", %d",muls.Znums[i]); printf(")\n");
 	printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
@@ -551,9 +440,9 @@ void displayParams() {
 		printf("*\n"
 			"* TOMO parameters:\n");
 		printf("* Starting angle:       %g mrad (%g deg)\n",
-			muls.tomoStart,muls.tomoStart*0.18/pi);
+			muls.tomoStart,muls.tomoStart*0.18/PI);
 		printf("* Angular increase:     %g mrad (%g deg)\n",
-			muls.tomoStep,muls.tomoStep*0.180/pi);
+			muls.tomoStep,muls.tomoStep*0.180/PI);
 		printf("* Number of dp's:       %d\n",muls.tomoCount);
 		printf("* Zoom factor:          %g\n",muls.zoomFactor);
 
@@ -592,8 +481,10 @@ void readArray(char *title,float_tt *array,int N) {
 **********************************************************************/
 void readSFactLUT() {
 	int Nk,i,j;
-	float_tt **sfTable=NULL;
-	float_tt *kArray = NULL;
+	QSfMat sfTable;
+	QSfVec kArray;
+
+
 	char buf[256], elem[8];
 
 	if (readparam("Nk:",buf,1))
@@ -603,9 +494,8 @@ void readSFactLUT() {
 		exit(0);
 	}
 
-	// allocate memory for sfTable and kArray:
-	sfTable = float_tt2D(muls.atomKinds,Nk+1,"sfTable");
-	kArray  = float_tt1D(Nk+1,"kArray");
+	sfTable = QSfMat(muls.atomKinds,Nk+1);
+	kArray  = QSfVec(Nk+1);
 
 	// read the k-values:
 	readArray("k:",kArray,Nk);
@@ -657,8 +547,6 @@ void readFile() {
 	long ltime;
 	unsigned long iseed;
 	float_tt dE_E0,x,y,dx,dy;
-	const float_tt pi=3.1415926535897;
-
 
 	ltime = (long) time(NULL);
 	iseed = (unsigned) ltime;
@@ -699,7 +587,7 @@ void readFile() {
 	if (muls.fileBase[0] == '"') {
 		strPtr = strchr(buf,'"');
 		strcpy(muls.fileBase,strPtr+1);
-		strPtr = strchr(muls.fileBase,'"');
+		strPtr = strchr(muls.fileBase.c_str(),'"');
 		*strPtr = '\0';
 	}
 
@@ -730,13 +618,13 @@ void readFile() {
 	if (readparam("Beam tilt X:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.btiltx),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.btiltx *= pi/180.0;
+			muls.btiltx *= PI/180.0;
 	}
 	answer[0] = '\0';
 	if (readparam("Beam tilt Y:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.btilty),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.btilty *= pi/180.0;
+			muls.btilty *= PI/180.0;
 	}  
 	if (readparam("Tilt back:",buf,1)) { 
 		sscanf(buf,"%s",answer);
@@ -754,19 +642,19 @@ void readFile() {
 	if (readparam("Crystal tilt X:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.ctiltx),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.ctiltx *= pi/180.0;
+			muls.ctiltx *= PI/180.0;
 	}
 	answer[0] = '\0';
 	if (readparam("Crystal tilt Y:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.ctilty),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.ctilty *= pi/180.0;
+			muls.ctilty *= PI/180.0;
 	}  
 	answer[0] = '\0';
 	if (readparam("Crystal tilt Z:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.ctiltz),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.ctiltz *= pi/180.0;
+			muls.ctiltz *= PI/180.0;
 	}
 	muls.cubex = 0; muls.cubey = 0; muls.cubez = 0;
 	if (readparam("Cube:",buf,1)) { 
@@ -868,8 +756,8 @@ void readFile() {
 		exit(0);
 	}
 	// printf("hello!\n");
-	ax = muls.ax/muls.nCellX;
-	by = muls.by/muls.nCellY;;
+	ax = muls.cellDims[0]/muls.nCellX;
+	by = muls.cellDims[1]/muls.nCellY;;
 	c =  muls.c/muls.nCellZ;
 
 
@@ -967,9 +855,9 @@ void readFile() {
 	* Fit the resolution to the wave function array, if not specified different
 	*/
 	if (muls.resolutionX == 0.0)
-		muls.resolutionX = muls.ax / (float_tt)muls.nx;
+		muls.resolutionX = muls.cellDims[0] / (float_tt)muls.nx;
 	if (muls.resolutionY == 0.0)
-		muls.resolutionY = muls.by / (float_tt)muls.ny;
+		muls.resolutionY = muls.cellDims[1] / (float_tt)muls.ny;
 
 
 
@@ -1042,8 +930,8 @@ void readFile() {
 
 	if (!muls.tds) muls.avgRuns = 1;
 
-	muls.scanXStart = muls.ax/2.0;
-	muls.scanYStart = muls.by/2.0;
+	muls.scanXStart = muls.cellDims[0]/2.0;
+	muls.scanYStart = muls.cellDims[1]/2.0;
 	muls.scanXN = 1;
 	muls.scanYN = 1;
 	muls.scanXStop = muls.scanXStart;
@@ -1134,11 +1022,11 @@ void readFile() {
 	//dy = sqrt((float_tt)pi)/((float_tt)2.0*(float_tt)(muls.avgRuns));
 	// using precalculated sqrt(pi):
 	dy = 1.772453850905/((float_tt)2.0*(float_tt)(muls.avgRuns));
-	dx = pi/((float_tt)(muls.avgRuns+1)*20);
+	dx = PI/((float_tt)(muls.avgRuns+1)*20);
 	for (ix=1,x=0,y=0;ix<muls.avgRuns;x+=dx) {
 		y += exp(-x*x)*dx;
 		if (y>=ix*dy) {
-			muls.dE_EArray[ix++] = x*2*dE_E0/pi;
+			muls.dE_EArray[ix++] = x*2*dE_E0/PI;
 			if (muls.printLevel > 2) printf("dE[%d]: %g eV\n",ix,muls.dE_EArray[ix-1]*muls.v0*1e3);
 			if (ix < muls.avgRuns) {
 				muls.dE_EArray[ix] = -muls.dE_EArray[ix-1];
@@ -1187,7 +1075,7 @@ void readFile() {
 	muls.astigAngle = 0;
 	if (readparam("astigmatism angle:",buf,1)) sscanf(buf,"%g",&(muls.astigAngle)); 
 	// convert astigAngle from deg to rad:
-	muls.astigAngle *= pi/180.0;
+	muls.astigAngle *= PI/180.0;
 
 	////////////////////////////////////////////////////////
 	// read in more aberrations:
@@ -1375,7 +1263,7 @@ void readFile() {
 	if (readparam("tomo tilt:",buf,1)) { 
 		sscanf(buf,"%lf %s",&(muls.tomoTilt),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.tomoTilt *= 1000*pi/180.0;
+			muls.tomoTilt *= 1000*PI/180.0;
 	}
 	/************************************************************************
 	* Tomography Parameters:
@@ -1384,12 +1272,12 @@ void readFile() {
 		if (readparam("tomo start:",buf,1)) { 
 			sscanf(buf,"%lf %s",&(muls.tomoStart),answer); /* in mrad */
 			if (tolower(answer[0]) == 'd')
-				muls.tomoStart *= 1000*pi/180.0;
+				muls.tomoStart *= 1000*PI/180.0;
 		}
 		if (readparam("tomo step:",buf,1)) {
 			sscanf(buf,"%lf %s",&(muls.tomoStep),answer); /* in mrad */
 			if (tolower(answer[0]) == 'd')
-				muls.tomoStep *= 1000*pi/180.0;
+				muls.tomoStep *= 1000*PI/180.0;
 		}
 
 		if (readparam("tomo count:",buf,1))  
@@ -1479,9 +1367,9 @@ void readFile() {
 	}
 	if ((muls.scanXStart<0) || (muls.scanYStart<0) ||
 		(muls.scanXStop<0) || (muls.scanYStop<0) ||
-		(muls.scanXStart>muls.ax) || (muls.scanYStart>muls.by) ||
-		(muls.scanXStop>muls.ax) || (muls.scanYStop>muls.by)) {
-			printf("Scanning window is outside model dimensions (%g,%g .. %g,%g) [ax = %g, by = %g]!\n",muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,muls.ax,muls.by);
+		(muls.scanXStart>muls.cellDims[0]) || (muls.scanYStart>muls.cellDims[1]) ||
+		(muls.scanXStop>muls.cellDims[0]) || (muls.scanYStop>muls.cellDims[1])) {
+			printf("Scanning window is outside model dimensions (%g,%g .. %g,%g) [ax = %g, by = %g]!\n",muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,muls.cellDims[0],muls.cellDims[1]);
 			exit(0);
 	}
 	/*************************************************************
@@ -1591,8 +1479,8 @@ void doTOMO() {
 	Mm = muls.Mm;
 	atoms = (atom *)malloc(muls.natom*sizeof(atom));
 
-	boxXmin = boxXmax = muls.ax/2.0;
-	boxYmin = boxYmax = muls.by/2.0;
+	boxXmin = boxXmax = muls.cellDims[0]/2.0;
+	boxYmin = boxYmax = muls.cellDims[1]/2.0;
 	boxZmin = boxZmax = muls.c/2.0;
 
 	// For all tomography tilt angles:
@@ -1601,13 +1489,13 @@ void doTOMO() {
 		// Try different corners of the box, and see, how far they poke out.
 		for (ix=-1;ix<=1;ix++) for (iy=-1;iy<=1;iy++) for (iz=-1;iz<=1;iz++) {
 			// Make center of unit cell rotation center
-			u[0]=ix*muls.ax/2; u[1]=iy*muls.by/2.0; u[2]=iz*muls.c/2.0;
+			u[0]=ix*muls.cellDims[0]/2; u[1]=iy*muls.cellDims[1]/2.0; u[2]=iz*muls.c/2.0;
 
 			// rotate about y-axis
 			rotateVect(u,u,0,theta*1e-3,0);
 
 			// shift origin back to old (0,0,0):
-			u[0]+=muls.ax/2; u[1]+=muls.by/2.0; u[2]+=muls.c/2.0;
+			u[0]+=muls.cellDims[0]/2; u[1]+=muls.cellDims[1]/2.0; u[2]+=muls.c/2.0;
 
 			boxXmin = boxXmin>u[0] ? u[0] : boxXmin; boxXmax = boxXmax<u[0] ? u[0] : boxXmax; 
 			boxYmin = boxYmin>u[1] ? u[1] : boxYmin; boxYmax = boxYmax<u[1] ? u[1] : boxYmax; 
@@ -1623,7 +1511,7 @@ void doTOMO() {
 	printf("Minimum box size for tomography tilt series: %g x %g x %gA, zoom Factor: %g\n",
 		boxXmax,boxYmax,boxZmax,muls.zoomFactor);
 	boxXmax /= muls.zoomFactor;
-	boxYmax = boxXmax*muls.by/muls.ax;
+	boxYmax = boxXmax*muls.cellDims[1]/muls.cellDims[0];
 
 	// boxMin will now be boxCenter:
 	boxXmin = 0.5*boxXmax;
@@ -1631,8 +1519,8 @@ void doTOMO() {
 	boxZmin = 0.5*boxZmax;
 
 	// We have to save the original unit cell dimensions
-	mAx = muls.ax; mBy = muls.by; mCz = muls.c;
-	muls.ax=boxXmax; muls.by=boxYmax; muls.c=boxZmax;
+	mAx = muls.cellDims[0]; mBy = muls.cellDims[1]; mCz = muls.c;
+	muls.cellDims[0]=boxXmax; muls.cellDims[1]=boxYmax; muls.c=boxZmax;
 
 	printf("Will use box sizes: %g x %g x %gA (kept original aspect ratio). \n"
 		"Writing structure files now, please wait ...\n",
@@ -1692,7 +1580,7 @@ void doTOMO() {
 		//	"./diff%03d.jpg\n\n",
 		//	(int)theta,muls.avgRuns,(int)theta,iTheta);
 	}
-	muls.ax = mAx; muls.by = mBy; muls.c = mCz;
+	muls.cellDims[0] = mAx; muls.cellDims[1] = mBy; muls.c = mCz;
 	sprintf(stemFile,"copy fparams.dat %s/",muls.folder);
 	system(stemFile);
 
@@ -2077,7 +1965,6 @@ void doCBED() {
 ***********************************************************************/
 
 void doTEM() {
-	const float_tt pi=3.1415926535897;
 	int ix,iy,i,pCount,result;
 	FILE *avgFp,*fp; // *fpPos=0;
 	float_tt timer,timerTot;
@@ -2138,8 +2025,8 @@ void doTEM() {
 		}
 		else {
 			// produce a tilted wave function (btiltx,btilty):
-			ktx = 2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
-			kty = 2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
+			ktx = 2.0*PI*sin(muls.btiltx)/wavelength(muls.v0);
+			kty = 2.0*PI*sin(muls.btilty)/wavelength(muls.v0);
 			for (ix=0;ix<muls.nx;ix++) {
 				x = muls.resolutionX*(ix-muls.nx/2);
 				for (iy=0;iy<muls.ny;iy++) {
@@ -2232,8 +2119,8 @@ void doTEM() {
 					else setHeaderComment(header,"Exit face wave function for no TDS");
 					sprintf(systStr,"%s/wave.img",muls.folder);
 					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
-						ktx = -2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
-						kty = -2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
+						ktx = -2.0*PI*sin(muls.btiltx)/wavelength(muls.v0);
+						kty = -2.0*PI*sin(muls.btilty)/wavelength(muls.v0);
 						for (ix=0;ix<muls.nx;ix++) {
 							x = muls.resolutionX*(ix-muls.nx/2);
 							for (iy=0;iy<muls.ny;iy++) {

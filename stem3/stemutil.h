@@ -52,7 +52,6 @@ float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag);
 float_tt gasdev(long *idum);
 float_tt rangauss( unsigned long *iseed );
 int ReadfeTable(int scatFlag );
-size_t ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
 float_tt sigma( float_tt kev );
 void splinh( float_tt x[], float_tt y[],
 	     float_tt b[], float_tt c[], float_tt d[], int n);
@@ -65,7 +64,6 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
 float_tt fe3D(int Z, float_tt q2,int tdsFlag, float_tt scale,int scatFlag);
 float_tt sfLUT(float_tt s,int atKind, MULS *muls);
 float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x);
-int atomCompare(const void *atom1,const void *atom2);
 
 
 float_tt getTime();

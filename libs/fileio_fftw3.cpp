@@ -399,9 +399,9 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
       fread(&Ns,sizeof(int),1,fpPhonon);
       // TODO: ok if precision if 1, will break if precision is 2.
       massPrim = QSfVec(Ns);
-      //      massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
+      //      massPrim =(float *)malloc(Ns*sizeof(float_tt));  // masses for every atom in primitive basis
 	  // TODO: verify file read
-      fread(massPrim.data(),sizeof(float),Ns,fpPhonon);
+      fread(massPrim.data(),sizeof(float_tt),Ns,fpPhonon);
       kVecs = QSfMat(Nk, 3);
       omega = QSfMat(Nk, 3*Ns);
       //      kVecs = float32_2D(Nk,3,"kVecs");
@@ -418,17 +418,17 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
 	  }
       //      eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
       
+	  // TODO: is the eigVecs getting filled properly without transpose?
       for (ix=0;ix<Nk;ix++) {
-	    // TODO: verify that .data() is acting like a pointer
         fread(kVecs.data()+ix,sizeof(float),3,fpPhonon);  // k-vector
+		ik=ix;
         for (iy=0;iy<3*Ns;iy++) {
 			fread(omega.data()+iy+3*ix,sizeof(float),1,fpPhonon);
-			//fread(&omega(iy,ix),sizeof(float),1,fpPhonon);
-          //fread(omega(iy,ix),sizeof(float),1,fpPhonon);
+			//fread(&omega(iy,ix),sizeof(float_tt),1,fpPhonon);
+          //fread(omega(iy,ix),sizeof(float_tt),1,fpPhonon);
           //fread(eigVecs(iy,ix),2*sizeof(float),3*Ns,fpPhonon);
-			// TODO: is this a problem?
 			//fread(&eigVecs[ik](iy, ix),2*sizeof(float),3*Ns,fpPhonon);
-			fread(eigVecs[ik].data()+iy+ix*3,2*sizeof(float),3*Ns,fpPhonon);
+			fread(eigVecs[ix].row(iy).data(),2*sizeof(float),3*Ns,fpPhonon);
         }	
       }
       /*

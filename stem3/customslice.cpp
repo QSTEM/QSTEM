@@ -27,10 +27,6 @@
 
 #define SQR(x) ((x)*(x))
 
-const float_tt pi     = 3.14159265358979;
-const float_tt twopi  = 6.28318530717959;
-const float_tt fourpi = 12.56637061435917;
-
 void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx, MULS *muls);
 
 
@@ -57,7 +53,8 @@ void make3DSlicesFT(MULS *muls) {
   int Nx=FTBOX_NX, Nz=FTBOX_NX, Nxm,Nzm; // size and center of single atom potential box
   int Nxl,Nzl;                       // size of lookup array
   float_tt axp, byp,czp,dXp,dYp,dZp;    // model dimensions and resolution
-  float_tt ***potLUT = NULL;           // potential lookup table for all atoms used
+  //float_tt ***potLUT = NULL;           // potential lookup table for all atoms used
+  QSVecOffMat potLUT;
   float_tt xOversample,zOversample;       // oversampling rate for x- and z-direction
   QSfVec rcutoff;            // radius after which set potential to 0 (one for each atom)
   int divCount = 0;
@@ -78,8 +75,6 @@ void make3DSlicesFT(MULS *muls) {
   float_tt sx,sz,sx2,sz2,sz2r;
   float_tt sx2max,sz2max;
 
-
-
   timer0 = getTime();
 
   /**********************************************************
@@ -90,12 +85,12 @@ void make3DSlicesFT(MULS *muls) {
     Nyp = muls->potNy;
     Nzp = muls->slices;
     // potential = float3D(Nzp,Nyp,Nxp,"potential");
-    // memset(potential[0][0],0,Nzp*Nyp*Nxp*sizeof(float));
+    // memset(potential(0,0),0,Nzp*Nyp*Nxp*sizeof(float));
 
     // read the atomic structure and the size of the box:
     atoms = muls->atoms;
     // axp = muls->ax; byp = muls->by; 
-    czp = muls->c/muls->cellDiv;
+    czp = muls->cellDims[2]/muls->cellDiv;
     axp = muls->potSizeX; byp = muls->potSizeY;
     // Now we need to adjust ax, Nx, cz, and Nz to work with the model parameters
     dXp = axp/Nxp;
@@ -133,14 +128,14 @@ void make3DSlicesFT(MULS *muls) {
 	rcutoff.setZero();
     //memset(rcutoff,0,muls->atomKinds*sizeof(float_tt));
     Nxm = Nx/2;   // Nym = Ny/2;
-    dsX = 1.0/ax; // dsY = 1.0/by; 
-    dsZ = 1.0/cz;
+    dsX = 1.0f/ax; // dsY = 1.0/by; 
+    dsZ = 1.0f/cz;
 
     
-    sx2max = 10.8*(Nxm*dsX);  sx2max = 1.0/SQR(sx2max);
+    sx2max = 10.8f*(Nxm*dsX);  sx2max = 1.0f/SQR(sx2max);
     // sy2max = 10.0*(Nym*dsY);  sy2max = 1.0/SQR(sy2max);
-    if (Nz > 1) Nzm = Nz/2, sz2max = 1.0/SQR(10.8*(Nzm*dsZ));  
-    else Nzm = 1, sz2max = 1.0;
+    if (Nz > 1) Nzm = Nz/2, sz2max = 1.0f/SQR(10.8f*(Nzm*dsZ));  
+    else Nzm = 1, sz2max = 1.0f;
     printf("ds=(%g,%g)/A, smax=(%g,%g)\n",dsX,dsZ,Nxm*dsX,Nzm*dsZ);
 
     // Now we need to make sure that the scattering factor tapers off to zero at the end:
@@ -152,29 +147,35 @@ void make3DSlicesFT(MULS *muls) {
      * We will now calculate the real space potential for every
      * kind of atom used in this model
      ************************************************************/
-    for (atKind = 0; atKind<muls->atomKinds;atKind++) { 
-      memset(pot[0],0,sizeof(fftw_complex)*Nz*Nx);
+    for (atKind = 0; atKind<muls->atomKinds;atKind++) 
+	{
+      //memset(pot[0],0,sizeof(fftw_complex)*Nz*Nx);
+		pot.setZero();
 
-      for (iz=0;iz<Nz;iz++) {
-	sz = (iz < Nzm ? iz : iz-Nz)*dsZ, sz2 = SQR(sz), sz2r = sz2max*sz2;
-	if ((Nz < 2) || (sz2r <=1.0)) {
-	  for (ix=0;ix<Nx;ix++) {
-	    sx = (ix < Nxm ? ix : ix-Nx)*dsX, sx2 = SQR(sx);	
-	    if (sz2r+sx2max*sx2 <=1.0) {  // enforce ellipse equation:
-	      s = sqrt(sz2+sx2);
-	      arg = twopi*(sx*(0.5*ax)+sz*(0.5*cz)); // place single atom in center of box
-	      ffr = cos(arg); ffi = sin(arg);	  
-	      // all the s are actually q, therefore S = 0.5*q = 0.5*s:
-	      pot[iz][ix][0] = sfLUT(0.5*s,atKind,muls)*ffr;
-	      pot[iz][ix][1] = sfLUT(0.5*s,atKind,muls)*ffi;
-	    }      
-	  }
-	}
+      for (iz=0;iz<Nz;iz++) 
+	  {
+		sz = (iz < Nzm ? iz : iz-Nz)*dsZ, sz2 = SQR(sz), sz2r = sz2max*sz2;
+		if ((Nz < 2) || (sz2r <=1.0)) 
+		{
+			for (ix=0;ix<Nx;ix++) 
+			{
+			sx = (ix < Nxm ? ix : ix-Nx)*dsX, sx2 = SQR(sx);	
+				if (sz2r+sx2max*sx2 <=1.0) 
+				{  // enforce ellipse equation:
+					s = sqrt(sz2+sx2);
+					arg = TWOPI * (sx*(0.5f*ax)+sz*(0.5f*cz)); // place single atom in center of box
+					ffr = cos(arg); ffi = sin(arg);	  
+					// all the s are actually q, therefore S = 0.5*q = 0.5*s:
+					pot(ix,iz).real() = sfLUT(0.5f*s,atKind,muls)*ffr;
+					pot(ix,iz).imag() = sfLUT(0.5f*s,atKind,muls)*ffi;
+				}      
+			}
+		}
       }
 
       // new fftw3 code:
-	  // TODO: 
-      plan = fftw_plan_dft_2d(Nz,Nx,(fftw_complex)pot.data(),(fftw_complex)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
+	  // TODO: Define different plans for different data types.
+      plan = fftw_plan_dft_2d(Nz,Nx,(fftw_complex *)pot.data(),(fftw_complex *)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
       fftw_execute(plan);
       fftw_destroy_plan(plan);
       // old fftw2 code:
@@ -186,26 +187,26 @@ void make3DSlicesFT(MULS *muls) {
        * so that pot is the true electrostatic potential. 
        */
       // scale = 47.87658/(sqrt((float_tt)(Nx*Ny))*(float_tt)Nz);
-      scale = 2*47.87658/(sqrt((float_tt)(Nx*Nz)*ax*cz));
+      scale = 2*47.87658f/(sqrt((float_tt)(Nx*Nz)*ax*cz));
       rcutoff[atKind] = 50;  // 50 A cutoff radius, initially
       for (iz=0;iz<Nz;iz++) {
 	for (ix=0;ix<Nx;ix++) {
 	  r = sqrt(SQR(dZ*(iz-Nzm))+SQR(dX*(ix-Nxm)));
-	  if (r > rcutoff[atKind]) pot[iz][ix][0] = 0.0, pot[iz][ix][1] = 0.0;
+	  if (r > rcutoff[atKind]) pot(ix,iz) = QScf(0.0f, 0.0f);
 	  else {
-	    if (pot[iz][ix][0] < 0) {
+	    if (pot(ix,iz).real() < 0) {
 	      rcutoff[atKind] = r;
-	      pot[iz][ix][0] = 0.0, pot[iz][ix][1] = 0.0;
+	      pot(ix,iz) = QScf(0.0f, 0.0f);
 	    }
 	    else
-	      pot[iz][ix][0] *= scale, pot[iz][ix][1] *= scale;	  
+	      pot(ix,iz) *= scale;
 	  }
 	}
       }  
       for (iz=0;iz<Nz;iz++) {
 	for (ix=0;ix<Nx;ix++) {
 	  r = sqrt(SQR(dZ*(iz-Nzm))+SQR(dX*(ix-Nxm)));
-	  if (r > rcutoff[atKind]) pot[iz][ix][0] = 0.0, pot[iz][ix][1] = 0.0;
+	  if (r > rcutoff[atKind]) pot(ix,iz)=QScf(0.0f, 0.0f);
 	}
       }
 
@@ -215,7 +216,7 @@ void make3DSlicesFT(MULS *muls) {
        */
       if (Nzp == 1) {
 	for (ix=0;ix<Nx;ix++) for (iz=1;iz<Nz;iz++)
-	  pot[0][ix][0] += pot[iz][ix][0], pot[0][ix][1] += pot[iz][ix][1];	
+	  pot(ix,0).real() += pot(ix,iz).real(), pot(ix,0).imag() += pot(ix,iz).imag();	
 	Nz = 1;
       }
       /* Now we will create a double array to hold the real valued potential as
@@ -225,8 +226,6 @@ void make3DSlicesFT(MULS *muls) {
        */  
       potLUT[atKind] = reduceAndExpand(pot,Nz,Nx,zOversample,&Nzl,&Nxl);      
     } // end of for atKind ...
-    free(pot[0]);
-    free(pot);
   } // if potential == NULL
   /*******************************************************************/
   
@@ -234,8 +233,10 @@ void make3DSlicesFT(MULS *muls) {
    * initializing  cz, and trans
    *************************************************************/
 
-  memset(muls->trans[0][0],0,Nzp*Nxp*Nyp*sizeof(fftw_complex));
-  if (muls->cz == NULL) muls->cz = float1D(Nzp,"cz");
+  // TODO: Do we need to loop through trans and zero it out?
+  //memset(muls->trans(0,0),0,Nzp*Nxp*Nyp*sizeof(fftw_complex));
+  //if (muls->cz == NULL) muls->cz = float1D(Nzp,"cz");
+  muls->cz = QSfVec(Nzp);
   for (i=0;i<Nzp;i++) muls->cz[i] = muls->sliceThickness;  					
   
   /********************************************************************
@@ -244,8 +245,8 @@ void make3DSlicesFT(MULS *muls) {
    */
   atoms = muls->atoms;
   if (divCount == 0) {
-    qsort(atoms,muls->natom,sizeof(atom),atomCompare);
-    if ((*muls).cfgFile != NULL) {
+    qsort(atoms,muls->natom,sizeof(atom),atomCompare());
+    if ((*muls).cfgFile != "") {
       sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
       writeCFG(atoms,muls->natom,buf,muls);	
     }
@@ -258,18 +259,18 @@ void make3DSlicesFT(MULS *muls) {
     for (j=0;j<muls->natom;j++) {
       for (atKind = 0;muls->Znums[atKind]!=atoms[j].Znum;atKind++); // find atKind 
       for (iz=0;iz<Nzp;iz++) for (pZ = 0;pZ<=perZ;pZ++) {
-	z = fabs((iz+0.5)*dZp-(atoms[j].z-zStart)+pZ*czp);
+	z = fabs((iz+0.5f)*dZp-(atoms[j].pos[2]-zStart)+pZ*czp);
 	// if (z <= rcutoff[atKind]+dZp) {
 	if (z <= rcutoff[atKind]+dZp) {
 	  for (ix=0;ix<Nxp;ix++)  for (pX = 0;pX<=perX;pX++) {
-	    x =((ix+0.5)*dXp-atoms[j].x+pX*axp)+ muls->potOffsetX;
+	    x =((ix+0.5f)*dXp-atoms[j].pos[0]+pX*axp)+ muls->potOffsetX;
 	    for (iy=0;iy<Nyp;iy++) for (pY = 0;pY<=perY;pY++)  {
-	      y = ((iy+0.5)*dYp-atoms[j].y+pY*byp) + muls->potOffsetY;
+	      y = ((iy+0.5f)*dYp-atoms[j].pos[1]+pY*byp) + muls->potOffsetY;
 	      rxy2 = SQR(x)+SQR(y);
 	      r = sqrt(rxy2+SQR(z));
 	      if (r <=rcutoff[atKind]+dZp+dXp)    
-		muls->trans[iz][ix][iy][0] += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0,sqrt(rxy2)/dX+1.0);
-	      //potential[iz][iy][ix] += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0,sqrt(rxy2)/dX+1.0);
+		muls->trans(ix,iz)[iy].real() += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0f,sqrt(rxy2)/dX+1.0f);
+	      //potential(iy,iz)[ix] += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0,sqrt(rxy2)/dX+1.0);
 	    }      
 	  }
 	}
@@ -315,7 +316,7 @@ void make3DSlicesFT(MULS *muls) {
 /*********************************************************************
  * plotVzr(pot,Nx,Nz);
  ********************************************************************/
-void plotVzr(fftw_complex **pot,int Nx,int Nz,float_tt dx,MULS *muls) {
+void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx,MULS *muls) {
   FILE *fp;
   int ix,iz;
   char str[128];
@@ -325,7 +326,7 @@ void plotVzr(fftw_complex **pot,int Nx,int Nz,float_tt dx,MULS *muls) {
   fp =fopen(str,"w");
  
   for (ix=Nx/2;ix<Nx;ix++) {
-    for (iz=0,p=0.0;iz<Nz;iz++) p += pot[iz][ix][0];	
+    for (iz=0,p=0.0;iz<Nz;iz++) p += pot(ix,iz).real();	
     // fprintf(fp,"%g %g %g\n",(ix-Nx/2)*dx,p,p*(ix-Nx/2)*dx);
     fprintf(fp,"%g %g\n",(ix-Nx/2)*dx,p*(ix-Nx/2)*dx);
   }
@@ -351,18 +352,20 @@ void plotVzr(fftw_complex **pot,int Nx,int Nz,float_tt dx,MULS *muls) {
  * zz(:,ncols+2) = 3*zz(:,ncols+1)-3*zz(:,ncols)+zz(:,ncols-1);
  * nrows = nrows+2; ncols = ncols+2;
  ******************************************************************/
-float_tt **reduceAndExpand(fftw_complex **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx) {
-  float_tt **ff;
+QSfMat reduceAndExpand(QScMat fc,int Nz,int Nx,int zOversample,int &fNz,int &fNx) 
+{
   int ix,iz,j,nx,nz,Ninteg,Nxm,Nzm;
 
   Nxm = Nx/2;
   Nzm = Nz/2;
   nx = Nxm;
   nz = (Nz == 1 ? 1 : Nzm+2);
-  ff = float_tt2D(nz,nx,"ff");
-  memset(ff[0],0,nz*nx*sizeof(float_tt));
-  *fNx = nx;
-  *fNz = nz;
+  QSfMat ff(nz, nx);
+  ff.setZero();
+  //ff = float_tt2D(nz,nx,"ff");
+  //memset(ff[0],0,nz*nx*sizeof(float_tt));
+  fNx = nx;
+  fNz = nz;
 
   Ninteg = (zOversample-1)/2;
   if (Ninteg*2+1 != zOversample) {
@@ -371,26 +374,26 @@ float_tt **reduceAndExpand(fftw_complex **fc,int Nz,int Nx,int zOversample,int *
   }
 
   if (Nz == 1) {
-    for (ix=0;ix<Nxm;ix++) ff[0][ix+1] = fc[0][ix+Nxm][0];
+    for (ix=0;ix<Nxm;ix++) ff(ix+1,0) = fc(ix+Nxm,0)[0];
     
-    ff[0][0] = 3.0*ff[0][1]-3.0*ff[0][2]+ff[0][3];
-    // ff[0][0] = ff[0][1]+(ff[0][1]-ff[0][2]);
+    ff(0,0) = 3.0*ff(1,0)-3.0*ff(2,0)+ff(3,0);
+    // ff(0,0) = ff(1,0)+(ff(1,0)-ff(2,0));
     return ff;
   }
   
   for (iz=0;iz<Nzm;iz++) for (ix=0;ix<Nxm;ix++) { 
     for (j=-Ninteg ; j<=Ninteg;j++)
 	if ((iz+j+Nzm>=0) && (iz+j<Nzm))
-	  ff[iz+1][ix+1] += fc[iz+Nzm+j][ix+Nxm][0];
+	  ff(ix+1,iz+1) += fc(ix+Nxm,iz+Nzm+j)[0];
   }
   // zz(:,1) = 3*zz(:,2)-3*zz(:,3)+zz(:,4);
   // zz(1,2:ncols+1) = 3*arg1(1,:)-3*arg1(2,:)+arg1(3,:);
   for (iz=1;iz<=Nzm;iz++) 
-    // ff[iz][0] = 3.0*ff[iz][1]-3.0*ff[iz][2]+ff[iz][3];
-    ff[iz][0] = ff[iz][1]+(ff[iz][1]-ff[iz][2]);
+    // ff(0,iz) = 3.0*ff(1,iz)-3.0*ff(2,iz)+ff(3,iz);
+    ff(0,iz) = ff(1,iz)+(ff(1,iz)-ff(2,iz));
   for (ix=0;ix<=Nxm;ix++) 
-    // ff[0][ix] = 3.0*ff[1][ix]-3.0*ff[2][ix]+ff[3][ix];
-    ff[0][ix] = ff[1][ix]+(ff[1][ix]-ff[2][ix]);
+    // ff(ix,0) = 3.0*ff(ix,1)-3.0*ff(ix,2)+ff(ix,3);
+    ff(ix,0) = ff(ix,1)+(ff(ix,1)-ff(ix,2));
   
   return ff;
 }

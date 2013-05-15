@@ -33,7 +33,7 @@
 #endif
 
 int feTableRead=0;	/* flag to remember if the param file has been read */
-float_tt **fparams=NULL;	/* to get fe(k) parameters */
+QSfMat fparams;	/* to get fe(k) parameters */
 const int nl=3, ng=3;	/* number of Lorenzians and Gaussians */
 
 
@@ -60,24 +60,22 @@ float_tt v3DatomLUT(int Z,float_tt r,int tdsFlag,int scatFlag)
 { 
   int i,iz;
   float_tt dlnr;
-  QSfVec splinr(NRMAX);
-  QSfMat splinv, splinb, splinc, splind;
+  QSfVec splinr(NRMAX);  // the radius away from the center of the atom
+  QSfVec splinv(NZMAX);  // these are the values of the function evaluated at splinr.
+  // spline coefficients per row; atomic number per column
+  QSfMat splin_coeffs(3,NZMAX);
+  //QSfMat splinv(), splinb, splinc, splind;
+  // tracks whether or not we have already calculated a spline for this
   QSiVec nspline(NZMAX);
   nspline.setZero();
   
   iz = Z-1;
-
-  // TODO: what is the actual size of these arrays?  They seem to be 2d,
-  //   but the allocation doesn't make it clear.
-  splinv = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
-  splinb = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
-  splinc = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
-  splind = (float_tt **)malloc(NZMAX*sizeof(float_tt*));
   
-    /*  generate a set of logarithmic r values */
-    dlnr = log(RMAX/RMIN)/(NRMAX-1);
-    for( i=0; i<NRMAX; i++)
-      splinr[i] = static_cast<float_tt>(RMIN * exp( i * dlnr ));
+  /*  generate a set of logarithmic r values */
+  dlnr = log(RMAX/RMIN)/(NRMAX-1);
+  // TODO: can we vectorize this?
+  for( i=0; i<NRMAX; i++)
+	splinr[i] = static_cast<float_tt>(RMIN * exp( i * dlnr ));
     /*
       printf( "fit from r= %g to r= %g\n", splinr[0], splinr[NRMAX-1] );
     */
@@ -88,12 +86,11 @@ float_tt v3DatomLUT(int Z,float_tt r,int tdsFlag,int scatFlag)
     /*
     printf("generating 3D spline %d \n",Z);
     */
-    
-    for( i=0; i<NRMAX; i++)
-      splinv[iz][i] = v3Datom(Z,splinr[i],tdsFlag,scatFlag);
+	// ordinarily, this function would be in a loop over i positions.
+	//  We vectorize is so that we fill in the appropriate column more quickly.
+    splinv.col(iz) = v3Datom(Z,splinr,tdsFlag,scatFlag);
     nspline[iz] = NRMAX;
-    splinh( splinr, splinv[iz], splinb[iz],
-	    splinc[iz], splind[iz], NRMAX);
+    splinh( splinr, splinv, splin_coeffs, NRMAX);
   }
   
   /***************************************************
@@ -102,8 +99,7 @@ float_tt v3DatomLUT(int Z,float_tt r,int tdsFlag,int scatFlag)
    * We can either do the real interpolation (lookup <0)
    * or simply look up the potential in the table 
    **************************************************/  
-  return seval(splinr, splinv[iz], splinb[iz],
-	       splinc[iz], splind[iz], nspline[iz], r );  
+  return seval(splinr, splinv[iz], splin_coeffs.col(iz), nspline[iz], r );  
 }  /* end v3DatomLUT() */
 
 
@@ -126,8 +122,9 @@ float_tt vzatomLUT(int Z, float_tt r,int tdsFlag,int scatFlag)
 {
   int i,iz;
   float_tt dlnr,result;
-  QSfVec splinr(NRMAX);
-  QSfMat splinv, splinb, splinc, splind; 
+  QSfArr splinr(NRMAX);
+  QSfArr splinv(NRMAX); 
+  QSfMat splin_coeffs(3, NRMAX); 
   QSiVec nspline(NZMAX);
   
   iz = Z-1;
@@ -153,10 +150,9 @@ float_tt vzatomLUT(int Z, float_tt r,int tdsFlag,int scatFlag)
     */
     
     for( i=0; i<NRMAX; i++)
-      splinv[iz][i] = vzatom(Z,splinr[i],tdsFlag,scatFlag);
+      splinv(i,iz) = vzatom(Z,splinr[i],tdsFlag,scatFlag);
     nspline[iz] = NRMAX;
-    splinh( splinr, splinv[iz], splinb[iz],
-	    splinc[iz], splind[iz], NRMAX);
+    splinh( splinr, splinv[iz], splin_coeffs.col(iz), NRMAX);
   }
   
   /***************************************************
@@ -165,8 +161,7 @@ float_tt vzatomLUT(int Z, float_tt r,int tdsFlag,int scatFlag)
    * We can either do the real interpolation (lookup <0)
    * or simply look up the potential in the table 
    **************************************************/  
-  result = seval(splinr, splinv[iz], splinb[iz],
-	       splinc[iz], splind[iz], nspline[iz], r );  
+  result = seval(splinr[iz], splinv[iz], splin_coeffs.col(iz), nspline[iz], r );  
   
   return result;
 }  /* end vzatomLUT() */
@@ -185,21 +180,21 @@ float_tt vzatomLUT(int Z, float_tt r,int tdsFlag,int scatFlag)
  	int i;
  	float_tt ax, sum, t;
  	
- 	float_tt i0a[] = { 1.0, 3.5156229, 3.0899424, 1.2067492,
-		0.2659732, 0.0360768, 0.0045813 };
+ 	float_tt i0a[] = { 1.0f, 3.5156229f, 3.0899424f, 1.2067492f,
+		0.2659732f, 0.0360768f, 0.0045813f };
 
- 	float_tt i0b[] = { 0.39894228, 0.01328592, 0.00225319,
- 		-0.00157565, 0.00916281, -0.02057706, 0.02635537,
- 		-0.01647633, 0.00392377};
+ 	float_tt i0b[] = { 0.39894228f, 0.01328592f, 0.00225319f,
+ 		-0.00157565f, 0.00916281f, -0.02057706f, 0.02635537f,
+ 		-0.01647633f, 0.00392377f};
 
 	ax = fabs( x );
 	if( ax <= 3.75 ) {
-		t = x / 3.75;
+		t = x / 3.75f;
 		t = t * t;
 		sum = i0a[6];
 		for( i=5; i>=0; i--) sum = sum*t + i0a[i]; 
 	} else {
-		t = 3.75 / ax;
+		t = 3.75f / ax;
 		sum = i0b[8];
 		for( i=7; i>=0; i--) sum = sum*t + i0b[i];
 		sum = exp( ax ) * sum / sqrt( ax );
@@ -228,21 +223,21 @@ float_tt vzatomLUT(int Z, float_tt r,int tdsFlag,int scatFlag)
  
  	int i;
  	float_tt ax, x2, sum;
- 	float_tt k0a[] = { -0.57721566, 0.42278420, 0.23069756,
- 		 0.03488590, 0.00262698, 0.00010750, 0.00000740};
+ 	float_tt k0a[] = { -0.57721566f, 0.42278420f, 0.23069756f,
+ 		 0.03488590f, 0.00262698f, 0.00010750f, 0.00000740f};
  	        
- 	float_tt k0b[] = { 1.25331414, -0.07832358, 0.02189568,
- 		 -0.01062446, 0.00587872, -0.00251540, 0.00053208};
+ 	float_tt k0b[] = { 1.25331414f, -0.07832358f, 0.02189568f,
+ 		 -0.01062446f, 0.00587872f, -0.00251540f, 0.00053208f};
 
 	ax = fabs( x );
 	if( (ax > 0.0)  && ( ax <=  2.0 ) ){
-		x2 = ax/2.0;
+		x2 = ax/2.0f;
 		x2 = x2 * x2;
 		sum = k0a[6];
 		for( i=5; i>=0; i--) sum = sum*x2 + k0a[i];
-		sum = -log(ax/2.0) * bessi0(x) + sum;
-	} else if( ax > 2.0 ) {
-		x2 = 2.0/ax;
+		sum = -log(ax/2.0f) * bessi0(x) + sum;
+	} else if( ax > 2.0f ) {
+		x2 = 2.0f/ax;
 		sum = k0b[6];
 		for( i=5; i>=0; i--) sum = sum*x2 + k0b[i];
 		sum = exp( -ax ) * sum / sqrt( ax );
@@ -291,13 +286,12 @@ float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag)
    int i,j;
    float_tt r,sum,t;
    float_tt suml,sumg,x;
-   static float_tt **f2par = NULL;
-   const float_tt pc1 = 150.4121417;
+   static QSfMat f2par;
+   const float_tt pc1 = 150.4121417f;
    
 
    /* Lorenzian, Gaussian constants */
-   const float_tt al=300.8242834, ag=150.4121417;
-   const float_tt pi=3.141592654;
+   const float_tt al=300.8242834f, ag=150.4121417f;
 
    if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
 
@@ -313,15 +307,15 @@ float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag)
     suml = sumg = 0.0;
      
      /* Lorenztians  nl = 3 = # of lorentzians*/
-     x = 2.0*pi*r;
+     x = 2.0*PI*r;
      for( i=0; i<2*nl; i+=2 )
-       suml += fparams[Z][i]* bessk0( x*sqrt(fparams[Z][i+1]) );
+       suml += fparams(i,Z)* bessk0( x*sqrt(fparams(i+1,Z)) );
      
      /* Gaussians  ng = 3 = # of gaussians */
-     x = pi*r;
+     x = PI*r;
      x = x*x;
      for( i=2*nl; i<2*(nl+ng); i+=2 )
-       sumg += fparams[Z][i]*exp(-x/fparams[Z][i+1]) / fparams[Z][i+1];
+       sumg += fparams(i,Z)*exp(-x/fparams(i+1,Z)) / fparams(i+1,Z);
      
      return( al*suml + ag*sumg );
    }
@@ -353,22 +347,22 @@ float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag)
        for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
 	 
 	 if (tdsFlag)
-	   t = fparams[i][j+1]/4.0; /* t = (b_i)/4 */
+	   t = fparams(j+1,i)/4.0; /* t = (b_i)/4 */
 	 else
-	   t = (fparams[i][j+1]+fparams[i][NPDTMAX])/4.0; /* t = (b_i+B)/4 */
+	   t = (fparams(j+1,i)+fparams(NPDTMAX,i))/4.0; /* t = (b_i+B)/4 */
 	 
-	 f2par[i][j] = pc1*fparams[i][j]/t;
-	 f2par[i][j+1] = -pi*pi/t;
+	 f2par(j,i) = pc1*fparams(j,i)/t;
+	 f2par(j+1,i) = -PI*PI/t;
 	 /*
 	   if (i==17)
-	   printf("%g %g, t=%g, pi=%g, B=%g\n",f2par[i][j],f2par[i][j+1],t,pi,fparams[i][NPDTMAX]);
+	   printf("%g %g, t=%g, PI=%g, B=%g\n",f2par(j,i),f2par(j+1,i),t,PI,fparams(NPDTMAX,i));
 	 */
        }
      }
      
      sum = 0;
      for (i=0;i<NPDTMAX;i+=2)
-       sum += f2par[Z][i]*exp(f2par[Z][i+1]*r*r);   
+       sum += f2par(i,Z)*exp(f2par(i+1,Z)*r*r);   
      return(sum);
    }
 }  /* end vzatom() */
@@ -402,38 +396,40 @@ float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag)
 	Formula: Kirkland, "Advanced Computing in Electron Microscopy"
 	p. 68/69 (5.9) and (5.10)
 	
-v3(x,y,z)= 2*pi^2*a0*e*sum{a_i/r*exp(-2*pi*r*sqrt(b_i))+
-	  +2*pi^(5/2)*a0*e*sum{c_i*d_i^(-3/2)*exp(-pi^2*r^2/d_i)}
+v3(x,y,z)= 2*PI^2*a0*e*sum{a_i/r*exp(-2*PI*r*sqrt(b_i))+
+	  +2*PI^(5/2)*a0*e*sum{c_i*d_i^(-3/2)*exp(-PI^2*r^2/d_i)}
 
     (r^2 = x^2+y^2+z^2)
 	
   simplify the 3D formula to
   v3 = pc1*[sum{p1_i/r*exp(p2_i*r)}+pc2*sum{p3_i*exp(p4_i*r^2)}]
 
-  pc1   = 2*pi^2*a0*e = ag
-  pc2   = sqrt(pi)
+  pc1   = 2*PI^2*a0*e = ag
+  pc2   = sqrt(PI)
   p1_i = a_i
-  p2_i = -2*pi*sqrt(b_i)
+  p2_i = -2*PI*sqrt(b_i)
   p3_i = c_i*d_i^(-3/2)
-  p4_i = -pi^2*r^2/d_i
+  p4_i = -PI^2*r^2/d_i
 
 */
 
-float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
+QSfArr v3Datom(int Z, QSfArr &r,int tdsFlag,int scatFlag)
 {
    int i,j,iz;
-   float_tt sum1,t;
-   float_tt sum2,r2;
+   QSfArr sum1(NZMAX), sum2(NZMAX);
+   float_tt t;
+   QSfArr r2;
    //static float_tt **f2par = NULL;
    QSfMat f2par(NZMAX+1,NPDTMAX);
 
    /* Gaussian constants */
-   const float_tt pi=3.141592654;
    const float_tt pc1 = 150.4121417;
-   const float_tt pc2 = sqrt(pi);
 
+   r2.setZero();
 
-   if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
+   if( (Z<NZMIN) || (Z>NZMAX) ) {
+	   return( r2 );
+   }
    iz = Z-1;
 
    /*********************************************************
@@ -444,7 +440,6 @@ float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
      ReadfeTable(scatFlag);
 
    if (scatFlag == WEICK_KOHL) {
-     if (f2par == NULL) {
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
@@ -452,34 +447,34 @@ float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
        //f2par = float_tt2D( NZMAX+1,2*(nl+nl), "f2par" );
        for (i=0;i<NZMAX;i++) {
 	 for (j=0;j<2*nl;j+=2) {
-	   f2par[i][j]      = fparams[i+1][j];                /* p1_i = a_i */
-	   f2par[i][j+1]    = -2*pi*sqrt(fparams[i+1][j+1]);  /* p2_i = -2*pi*sqrt(b_i) */ 
-	   t = fparams[i][2*nl+j+1];
-	   f2par[i][j+1+2*nl] =  -pi*pi/t;                  /* p4_i = -pi^2*r^2/d_i */
+	   f2par(j,i)      = fparams(j,i+1);                /* p1_i = a_i */
+	   f2par(j+1,i)    = -2*PI*sqrt(fparams(j+1,i+1));  /* p2_i = -2*PI*sqrt(b_i) */ 
+	   t = fparams(2*nl+j+1,i);
+	   f2par(j+1+2*nl,i) =  -PI*PI/t;                  /* p4_i = -PI^2*r^2/d_i */
 	   t = sqrt(t*t*t);	 
-	   f2par[i][j+2*nl] =  fparams[i+1][2*nl+j]/t;        /* p3_i = c_i*d_i^(-3/2) */
+	   f2par(j+2*nl,i) =  fparams(2*nl+j,i+1)/t;        /* p3_i = c_i*d_i^(-3/2) */
 	 }
        }
-     }
      
      /* avoid singularity at r=0 */
      /*     if( r < RMIN )  r = RMIN;*/
      if( r < 1.0e-10 )  r = 1.0e-10;
-     sum1 = sum2 = 0.0;
+	 sum1.setZero();
+	 sum2.setZero();
      
      /*****************************************************************************
-      * Formula: v3D = pc1*[1/r*sum{p1_i*exp(p2_i*r)}+pc2*sum{p3_i*exp(p4_i*r^2)}]
+      * Formula: v3D = pc1*[1/r*sum{p1_i*exp(p2_i*r)}+SQRT_PI*sum{p3_i*exp(p4_i*r^2)}]
       ****************************************************************************/
      /* first sum: */
      for( i=0; i<2*nl; i+=2 )
-       sum1 += f2par[iz][i]*exp(f2par[iz][i+1]*r);
+       sum1 += f2par(i,iz)*exp(f2par(i+1,iz)*r);
      
      /* second sum: */
      r2 = r*r;
      for( i=2*nl; i<2*(nl+ng); i+=2 )
-       sum2 += f2par[Z][i]*exp(f2par[Z][i+1]*r2);
+       sum2 += f2par(i,Z)*exp(f2par(i+1,Z)*r2);
      
-     return(pc1*(sum1/r+pc2*sum2));
+     return(pc1*(sum1/r+SQRT_PI*sum2));
    }
    else {  /* if scatFlag==DOYLE_TURNER */
      /*********************************************************************
@@ -487,7 +482,7 @@ float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
       * Scattering factors from :
       * L.-M. Peng Micron 30 (1999) p. 625-648
       *
-      * We also need the Debye-Waller factor B=8*pi^2*avg(u^2), which is
+      * We also need the Debye-Waller factor B=8*PI^2*avg(u^2), which is
       * expected to be stored in the last parameter in fparams
       * ReadFeTable will assign a default value of 0.5 as the Debye-Waller
       * factor, but one may want to change that by setting this last parameter 
@@ -497,34 +492,30 @@ float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
       * 
       * The potential is calculated according to the following formula:
       *
-      * V(r) = 8*pi^5/2*a0*e*sum{a_i*((b_i+B)/4)^-3/2*exp(-pi^2*r^2*4/(b_i+B))}
+      * V(r) = 8*PI^5/2*a0*e*sum{a_i*((b_i+B)/4)^-3/2*exp(-PI^2*r^2*4/(b_i+B))}
       *
       *******************************************************************/
-     if (f2par == NULL) 
-	 {
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
-		f2par = float_tt2D( , "f2par" );
 		for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) 
 		{
 			if (tdsFlag)
-				t=fparams[i][j+1]/4.0;   /* t = (b_i)/4 */
+				t=fparams(j+1,i)/4.0f;   /* t = (b_i)/4 */
 			else
-				t = (fparams[i][j+1]+fparams[i][NPDTMAX])/4.0; /* t = (b_i+B)/4 */
+				t = (fparams(j+1,i)+fparams(NPDTMAX,i))/4.0f; /* t = (b_i+B)/4 */
 	 
-			f2par[i][j] = pc1*pc2*fparams[i][j]/sqrt(t*t*t);
-			f2par[i][j+1] = -pi*pi/t;
+			f2par(j,i) = pc1*SQRT_PI*fparams(j,i)/sqrt(t*t*t);
+			f2par(j+1,i) = -PI*PI/t;
 			/*
 			if (i==17)
-			printf("%g %g, t=%g, pi=%g, B=%g\n",f2par[i][j],f2par[i][j+1],t,pi,fparams[i][NPDTMAX]);
+			printf("%g %g, t=%g, PI=%g, B=%g\n",f2par(j,i),f2par(j+1,i),t,PI,fparams(NPDTMAX,i));
 			*/
 		}
-     }
      
      sum1 = 0;
      for (i=0;i<NPDTMAX;i+=2)
-       sum1 += f2par[Z][i]*exp(f2par[Z][i+1]*r*r);   
+       sum1 += f2par(i,Z)*exp(f2par(i+1,Z)*r*r);   
      return(sum1);
    }
 }  /* end v3Datom() */
@@ -549,11 +540,9 @@ float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag)
 float_tt wavelength( float_tt kev )
 {
   float_tt w;
-  const float_tt emass=510.99906; /* electron rest mass in keV */
-  const float_tt hc=12.3984244; /* Planck's const x speed of light*/
   
   /* electron wavelength in Angstroms */
-  w = hc/sqrt( kev * ( 2*emass + kev ) );
+  w = HC/sqrt( kev * ( 2*EMASS + kev ) );
   
   return( w );
   
@@ -602,7 +591,6 @@ float_tt rangauss( unsigned long *iseed )
 {
   float_tt ranflat( unsigned long* );
   float_tt x1, x2, y;
-  static float_tt tpi=2.0*3.141592654;
   
   /* be careful to avoid taking log(0) */
   do{
@@ -611,7 +599,7 @@ float_tt rangauss( unsigned long *iseed )
     
   } while ( (x1 < 1.0e-30) || (x2 < 1.0e-30) );
   
-  y = sqrt( - 2.0 * log(x1) ) * cos( tpi * x2 );
+  y = sqrt( - 2.0 * log(x1) ) * cos( TWOPI * x2 );
   
   return( y );
   
@@ -671,13 +659,13 @@ int ReadfeTable(int scatFlag)
        
        /* define some (random) debye waller factors */
        if (zi == 14)
-	 fparams[zi][na] = 0.45; /*  for Si */
+	 fparams(na,zi) = 0.45f; /*  for Si */
        else if (zi == 79)
-	 fparams[zi][na] = 0.186;  /* for Au */
+	 fparams(na,zi) = 0.186f;  /* for Au */
        else if (zi == 29)
-	 fparams[zi][na] = 0.21;  /* for Cu (liquid N2) */
+	 fparams(na,zi) = 0.21f;  /* for Cu (liquid N2) */
        else
-	 fparams[zi][na] = 0.5;  /* for all other elements */
+	 fparams(na,zi) = 0.5f;  /* for all other elements */
        
        /* find Z delimiter */
        do { 
@@ -691,7 +679,7 @@ int ReadfeTable(int scatFlag)
        for( j=0; j<na; j+=4 ) {
 	 fgets( cline, NCMAX, fp );
 	 for( i=0; i<4; i++) {
-	   sscanf(&cline[i*17],"%le", &fparams[z][i+j] );
+	   sscanf(&cline[i*17],"%le", &fparams(i+j,z) );
 	 }
        }
        if( z != zi ) {  /* test integrity of the file */
@@ -708,23 +696,23 @@ int ReadfeTable(int scatFlag)
      for( zi=NZMIN; zi<=NZMAX; zi++) {
        /* define some (random) debye waller factors */
        if (zi == 14)
-	 fparams[zi][NPDTMAX] = 0.45; /*  for Si */
+	 fparams(NPDTMAX,zi) = 0.45f; /*  for Si */
        else if (zi == 79)
-	 fparams[zi][NPDTMAX] = 0.186;  /* for Au */
+	 fparams(NPDTMAX,zi) = 0.186f;  /* for Au */
        else if (zi == 6)
-	 fparams[zi][NPDTMAX] = 0.4;  /* for C */
+	 fparams(NPDTMAX,zi) = 0.4f;  /* for C */
        else
-	 fparams[zi][NPDTMAX] = 0.5;  /* for all other elements */
+	 fparams(NPDTMAX,zi) = 0.5f;  /* for all other elements */
        /*     printf("Using Debye-Waller Factor DW=%f for Z=%d\n",
-	      fparams[zi][NPDTMAX],zi);
+	      fparams(NPDTMAX,zi),zi);
        */
        
        if (fgets(cline,NCMAX,fp) == NULL)
 	 break;
        sscanf(cline,"%s %d %le %le %le %le %le %le %le %le",
-	      dummy,&z,&fparams[zi][0],&fparams[zi][2],
-	      &fparams[zi][4],&fparams[zi][6],
-	      &fparams[zi][1],&fparams[zi][3],&fparams[zi][5],&fparams[zi][7]);
+	      dummy,&z,&fparams(0,zi),&fparams(2,zi),
+	      &fparams(4,zi),&fparams(6,zi),
+	      &fparams(1,zi),&fparams(3,zi),&fparams(5,zi),&fparams(7,zi));
        if (z != zi)
 	 printf("Warning: corrupt data file %s!\n",fileName);
        n++;
@@ -762,15 +750,15 @@ int ReadfeTable(int scatFlag)
 
 float_tt sigma( float_tt kev )
 {
-  float_tt s, pi, wavl, x;
+  float_tt s, wavl, x;
   const float_tt emass=510.99906; /* electron rest mass in keV */
   float_tt wavelength( float_tt kev );  /*  get electron wavelength */
   
-  x = ( emass + kev ) / ( 2.0*emass + kev);  
+  x = ( emass + kev ) / ( 2.0f*emass + kev);  
   wavl = wavelength( kev );
-  pi = 4.0 * atan( 1.0 );
+  //pi = 4.0f * atan( 1.0f );
   
-  s = 2.0 * pi * x / (wavl*kev);  // 2*pi*kz*(1+kev/emaxx)/(2*emass+kev)
+  s = static_cast<float_tt>(2.0 * PI * x / (wavl*kev));  // 2*pi*kz*(1+kev/emaxx)/(2*emass+kev)
   
   return( s );
   
@@ -808,8 +796,7 @@ float_tt sigma( float_tt kev )
 	interval. NOTE that the last set of coefficients,
 	b[n-1], c[n-1], d[n-1] are meaningless.
 */
-void splinh( float_tt x[], float_tt y[],
-	     float_tt b[], float_tt c[], float_tt d[], int n)
+void splinh( QSfVec &x, QSfVec &y, QSfMat &coeffs, int n)
 {
 #define SMALL 1.0e-25
 
@@ -843,25 +830,28 @@ void splinh( float_tt x[], float_tt y[],
   nm1 = n-1;
   nm4 = n-4;
   
-  for( i=0; i<nm1; i++) {
+  for( i=0; i<nm1; i++) 
+  {
+	if( (m54+m32) > SMALL )
+	  t2= (m54*m3 + m32*m4) / (m54 + m32);
+	else 
+	  t2 = 0.5f* ( m3 + m4 );
     
-    if( (m54+m32) > SMALL )
-      t2= (m54*m3 + m32*m4) / (m54 + m32);
-    else 
-      t2 = 0.5* ( m3 + m4 );
-    
-    x43 = x[i+1] - x[i];
-    b[i] = t1;
-    c[i] = ( 3.0*m3 - t1 - t1 - t2 ) /x43;
-    d[i] = ( t1 + t2 - m3 - m3 ) / ( x43*x43 );
+	x43 = x[i+1] - x[i];
+    coeffs(0,i) = t1;
+    coeffs(1,i) = ( 3.0f*m3 - t1 - t1 - t2 ) /x43;
+    coeffs(2,i) = ( t1 + t2 - m3 - m3 ) / ( x43*x43 );
     
     m1 = m2;
     m2 = m3;
     m3 = m4;
     m4 = m5;
-    if( i < nm4 ) {
+    if( i < nm4 ) 
+	{
       m5 = ( y[i+4] - y[i+3] ) / ( x[i+4] - x[i+3] );
-    } else {
+    } 
+	else 
+	{
       m5 = m4 + m4 - m3;
     }
     
@@ -1159,45 +1149,45 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
 
 float_tt fe3D(int Z, float_tt q2,int tdsFlag,float_tt scale,int scatFlag)
 {
-  int i,j; // iz;
-  float_tt sum=0.0; // t;
-  static float_tt **f2par = NULL;
-  QSfMat f2par;
+	int i,j; // iz;
+	float_tt sum=0.0; // t;
+	//static float_tt **f2par = NULL;
+	QSfMat f2par;
 
-   /* Gaussian constants */
-   const float_tt pi=3.141592654;
-   const float_tt a0 = .529;  /* A */
-   const float_tt echarge = 14.39;  /* units: V*A */
+	/* Gaussian constants */
+	const float_tt a0 = .529f;  /* A */
+	const float_tt echarge = 14.39f;  /* units: V*A */
 
-   if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
+	if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
 
-   /*********************************************************
-    * read in the table from a file if this is the
-    * first time this is called 
+	/*********************************************************
+	* read in the table from a file if this is the
+	* first time this is called 
     ********************************************************/
-   if(fparams == NULL)
-     ReadfeTable(scatFlag);
+	if(fparams == NULL)
+		ReadfeTable(scatFlag);
 
-   if (scatFlag == WEICK_KOHL) {
-     if (f2par == NULL) { 
-       printf("Will use Weickenmeier & Kohl electron scattering "
-	      "factor parameterization\n");
-       f2par = fparams;     
-       if (!tdsFlag)
-	 printf("Will use DW-factor [B(Si)=%g]\n",fparams[14][2*(nl+ng)]); 
-       else
-	 printf("Will not use DW-factors\n");
-       
-     }
-     sum = 0.0;
-     for (j=0;j<2*nl;j+=2)
-       sum += fparams[Z][j]/(fparams[Z][j+1]+q2);
-     for (;j<2*(nl+ng);j+=2)
-       sum += fparams[Z][j]*exp(-fparams[Z][j+1]*q2);
-     if (!tdsFlag)
-       sum *= exp(-fparams[Z][2*(nl+ng)]*q2/(16*pi*pi));
-     sum *= 2*pi*a0*echarge;
-   }
+	if (scatFlag == WEICK_KOHL) 
+	{
+		// (if f2par == NULL)
+		printf("Will use Weickenmeier & Kohl electron scattering "
+			  "factor parameterization\n");
+		f2par = fparams;     
+		if (!tdsFlag)
+			printf("Will use DW-factor [B(Si)=%g]\n",fparams[14][2*(nl+ng)]); 
+		else
+			printf("Will not use DW-factors\n");    
+   
+		sum = 0.0;
+		for (j=0;j<2*nl;j+=2)
+			sum += fparams(j,Z)/(fparams(j+1,Z)+q2);
+		for (;j<2*(nl+ng);j+=2)
+			sum += fparams(j,Z)*exp(-fparams(j+1,Z)*q2);
+		if (!tdsFlag)
+			sum *= exp(-fparams[Z][2*(nl+ng)]*q2/(16*PI*PI));
+		sum *= 2*PI*a0*echarge;
+	}
+
    else {  /* ifdef DOYLE_TURNER */
      /*********************************************************************
       * determining V(r) using Doyle & Turner expansion
@@ -1224,13 +1214,13 @@ float_tt fe3D(int Z, float_tt q2,int tdsFlag,float_tt scale,int scatFlag)
       * fe(q) = sum_{i=1}^3 [a_i/(q^2+b_i)]+sum_{i=1}^3 [c_i*exp(-d_i*q^2)]
       *
       *******************************************************************/
-     if (f2par == NULL) {
+     //if (f2par == NULL) {
        /* make calculation more efficient by combining some of the 
 	  parameters to new ones:
        */
        printf("Will use Doyle-Turner electron scattering factors\n");
        if (!tdsFlag)
-	 printf("Will use DW-factor [B(Si)=%g]\n",fparams[14][NPDTMAX]); 
+	 printf("Will use DW-factor [B(Si)=%g]\n",fparams(NPDTMAX,14)); 
        else
 	 printf("Will not use DW-factors\n");
        
@@ -1238,24 +1228,23 @@ float_tt fe3D(int Z, float_tt q2,int tdsFlag,float_tt scale,int scatFlag)
 	   f2par = QSfMat(NZMAX+1,NPDTMAX);
        for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
 	 if (tdsFlag)  /* t = -(b_i)/(16*pi^2) */
-	   f2par[i][j+1] =-fparams[i][j+1]/(16.0*pi*pi);  
-	 /* f2par[i][j+1] =-fparams[i][j+1];  */ 
+	   f2par(j+1,i) =-fparams(j+1,i)/(16.0*PI*PI);  
+	 /* f2par(j+1,i) =-fparams(j+1,i);  */ 
 	 else   /* t = -(b_i+B)/(16*pi^2) */
-	   f2par[i][j+1] = -(fparams[i][j+1]+fparams[i][NPDTMAX])/(16*pi*pi); 
-	 /*f2par[i][j+1] = -(fparams[i][j+1]+fparams[i][NPDTMAX]); */
+	   f2par(j+1,i) = -(fparams(j+1,i)+fparams(NPDTMAX,i))/(16*PI*PI); 
+	 /*f2par(j+1,i) = -(fparams(j+1,i)+fparams(NPDTMAX,i)); */
 	 
-	 f2par[i][j] = scale*fparams[i][j];
+	 f2par(j,i) = scale*fparams(j,i);
 	 /*
 	   if (i==14)
 	   printf("f2par[%d][%d] = %g, f2par[%d][%d] = %g\n",
-	   i,j,f2par[i][j],i,j+1,f2par[i][j+1]);
+	   i,j,f2par(j,i),i,j+1,f2par(j+1,i));
 	 */
        }
-     }
      
      sum = 0.0;
      for (j=0;j<NPDTMAX;j+=2)
-       sum += f2par[Z][j]*exp(f2par[Z][j+1]*q2);   
+       sum += f2par(j,Z)*exp(f2par(j+1,Z)*q2);   
      
    }
    return(sum);
@@ -1301,7 +1290,7 @@ float_tt sfLUT(float_tt s,int atKind, MULS *muls)
 
 
 /* function bicubic from Matlab toolbox
- * zz = values of function F(z,x) F[iz][ix] = zz[iz*Nx+ix];
+ * zz = values of function F(z,x) F(ix,iz) = zz[iz*Nx+ix];
  * s = z-coordinate
  * t = x-coordinate
  */ 
@@ -1330,9 +1319,9 @@ float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
 
   if (Nz > 2) {
     if ((zi > Nz-3) || (xi > Nx-3)) return 0.0;
-    if ((zi < 1) && (xi < 1)) return ff[0][0];
-    if (zi < 1) return ff[0][xi];
-    if (xi < 1) return ff[zi][0];
+    if ((zi < 1) && (xi < 1)) return ff(0,0);
+    if (zi < 1) return ff(xi,0);
+    if (xi < 1) return ff(0,zi);
 
     ptr = ff[zi-1];
     f   = FX * (((2.0-z)*z-1)*z);
