@@ -170,9 +170,9 @@ int main(int argc, char *argv[]) {
 	str = strchr(outFileName,'.');
 	if (str == NULL) str=outFileName+strlen(outFileName);
 	sprintf(str,".cfg");
-	muls->ax = (float)superCell.ax;
-	muls->by = (float)superCell.by;
-	muls->c	= (float)superCell.cz;
+	muls->cellDims[0] = (float)superCell.cellDims[0];
+	muls->cellDims[1] = (float)superCell.cellDims[1];
+	muls->cellDims[2]	= (float)superCell.cellDims[2];
 
 	superCell.natoms = removeVacancies(superCell.atoms,superCell.natoms);
 
@@ -234,7 +234,7 @@ int removeVacancies(std::vector<atom> atoms,int natoms) {
 			for (j=i+1;j<natoms;j++) {
 				// if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
 				// the total occupany and the counter j.
-				if ((fabs(atoms[i].x-atoms[j].x) < 0.1) && (fabs(atoms[i].y-atoms[j].y) < 0.1) && (fabs(atoms[i].z-atoms[j].z) < 0.1)) {
+				if ((fabs(atoms[i].pos[0]-atoms[j].pos[0]) < 0.1) && (fabs(atoms[i].pos[1]-atoms[j].pos[1]) < 0.1) && (fabs(atoms[i].pos[2]-atoms[j].pos[2]) < 0.1)) {
 					totOcc += atoms[j].occ;
 				}
 				else break;
@@ -276,24 +276,27 @@ int removeVacancies(std::vector<atom> atoms,int natoms) {
 	if (jz > 0) {
 		std::sort(atoms.begin(), atoms.end(), atomCompareZnum());
 		//qsort((void *)atoms,natoms,sizeof(atom),atomCompareZnum);
-		// for (i=0;i<natomsFinal;i++) printf("%3d: %d (%.1f %.1f %.1f): occ=%.1f\n",i,atoms[i].Znum,atoms[i].x,atoms[i].y,atoms[i].z,atoms[i].occ);
+		// for (i=0;i<natomsFinal;i++) printf("%3d: %d (%.1f %.1f %.1f): occ=%.1f\n",i,atoms[i].Znum,atoms[i].pos[0],atoms[i].pos[1],atoms[i].pos[2],atoms[i].occ);
 	}
 	return natomsFinal;
 }
 
 void computeCenterofMass() {
 	int i;
-	float_tt cmx=0.0,cmy=0.0,cmz=0.0;
+	//float_tt cm[0]=0.0,cm[1]=0.0,cm[2]=0.0;
+	QSf3Arr cm;
 
 	for (i=0;i<superCell.natoms;i++) {
-		cmx += superCell.atoms[i].x;
-		cmy += superCell.atoms[i].y;
-		cmz += superCell.atoms[i].z;
+		cm += superCell.atoms[i].pos;
+		//cm[0] += superCell.atoms[i].pos[0];
+		//cm[1] += superCell.atoms[i].pos[1];
+		//cm[2] += superCell.atoms[i].pos[2];
 	}
-	superCell.cmx = cmx/(superCell.natoms*superCell.ax);
-	superCell.cmy = cmy/(superCell.natoms*superCell.by);
-	superCell.cmz = cmz/(superCell.natoms*superCell.cz);
-	printf("Center of mass of frame work: (%g, %g, %g)\n",superCell.cmx,superCell.cmy,superCell.cmz);
+	superCell.cm = cm / ((float)superCell.natoms*superCell.cellDims);
+	//superCell.cm[0] = cm[0]/(superCell.natoms*superCell.cellDims[0]);
+	//superCell.cm[1] = cm[1]/(superCell.natoms*superCell.cellDims[1]);
+	//superCell.cm[2] = cm[2]/(superCell.natoms*superCell.cellDims[2]);
+	printf("Center of mass of frame work: (%g, %g, %g)\n",superCell.cm[0],superCell.cm[1],superCell.cm[2]);
 }
 
 
@@ -324,7 +327,7 @@ int readParams(char *datFileName) {
 	* data for each grain 
 	*/
 	if (readparam("box:",parStr,1)) {
-		sscanf(parStr,"%lf %lf %lf",&(superCell.ax),&(superCell.by),&(superCell.cz));
+		sscanf(parStr,"%lf %lf %lf",&(superCell.cellDims[0]),&(superCell.cellDims[1]),&(superCell.cellDims[2]));
 	}
 	else {
 		printf("Size of super cell box not defined - exit!\n");
@@ -395,9 +398,9 @@ int readParams(char *datFileName) {
 			/*****************************************************
 			* Test code
 			*
-			printf("ax: %g, by: %g, cz: %g\n",muls->ax,muls->by,muls->c);
+			printf("ax: %g, by: %g, cz: %g\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2]);
 			for (i=0;i<grains[gCount].natoms;i++) {
-			printf("%d: %d (%g,%g,%g)\n",i,tempCell[i].Znum,tempCell[i].x,tempCell[i].y,tempCell[i].z);
+			printf("%d: %d (%g,%g,%g)\n",i,tempCell[i].Znum,tempCell[i].pos[0],tempCell[i].pos[1],tempCell[i].pos[2]);
 			}
 			*
 			*****************************************************/
@@ -408,9 +411,9 @@ int readParams(char *datFileName) {
 			grains[gCount].alpha = muls->cAlpha;
 			grains[gCount].beta  = muls->cBeta;
 			grains[gCount].gamma = muls->cGamma;
-			grains[gCount].ax = muls->ax;
-			grains[gCount].by = muls->by;
-			grains[gCount].cz = muls->c;
+			grains[gCount].cellDims[0] = muls->cellDims[0];
+			grains[gCount].cellDims[1] = muls->cellDims[1];
+			grains[gCount].cellDims[2] = muls->cellDims[2];
 		}
 		/***************************************************
 		* amorphous stuff
@@ -460,9 +463,9 @@ int readParams(char *datFileName) {
 			grains[gCount].alpha = 0;
 			grains[gCount].beta  = 0;
 			grains[gCount].gamma = 0;
-			grains[gCount].ax = 0;
-			grains[gCount].by = 0;
-			grains[gCount].cz = 0;
+			grains[gCount].cellDims[0] = 0;
+			grains[gCount].cellDims[1] = 0;
+			grains[gCount].cellDims[2] = 0;
 		}
 		/***************************************************
 		* code for specially distributed amorphous stuff
@@ -488,9 +491,9 @@ int readParams(char *datFileName) {
 			grains[gCount].alpha = 0;
 			grains[gCount].beta  = 0;
 			grains[gCount].gamma = 0;
-			grains[gCount].ax = 0;
-			grains[gCount].by = 0;
-			grains[gCount].cz = 0;
+			grains[gCount].cellDims[0] = 0;
+			grains[gCount].cellDims[1] = 0;
+			grains[gCount].cellDims[2] = 0;
 		}  // end of "special"
 		/* if we found tilt data */
 		else if (gCount >= 0) { 
@@ -544,11 +547,11 @@ int readParams(char *datFileName) {
 				grains[gCount].unitCell.resize(grains[gCount].natoms);
 				// Now read Znum, r (->z), and count (->y)
 				sscanf(parStr,"%d %f %d %f",&(grains[gCount].unitCell[grains[gCount].natoms-1].Znum),
-					&(grains[gCount].unitCell[grains[gCount].natoms-1].z),&Nkind,
-					&(grains[gCount].unitCell[grains[gCount].natoms-1].y));
+					&(grains[gCount].unitCell[grains[gCount].natoms-1].pos[2]),&Nkind,
+					&(grains[gCount].unitCell[grains[gCount].natoms-1].pos[1]));
 
 				// assign number of atoms directly, if specified in input file
-				if (Nkind > 0) grains[gCount].unitCell[grains[gCount].natoms-1].y = (float)Nkind;
+				if (Nkind > 0) grains[gCount].unitCell[grains[gCount].natoms-1].pos[1] = (float)Nkind;
 				for (i=0;i<muls->atomKinds;i++) 	
 					if (muls->Znums[i] == grains[gCount].unitCell[grains[gCount].natoms-1].Znum) break;
 				if (i == muls->atomKinds) {
@@ -569,12 +572,12 @@ void showData() {
 	int g,p;
 
 	printf("Supercell dimensions: %g x %g x %g A\n",
-		superCell.ax,superCell.by,superCell.cz);
+		superCell.cellDims[0],superCell.cellDims[1],superCell.cellDims[2]);
 
 	for (g=0;g<nGrains;g++) {
 		if (grains[g].amorphFlag == 0) {
 			printf("%d: Grain %s (ax=%g, by=%g, cz=%g, alpha=%g, beta=%g, gamma=%g)\n",
-				g,grains[g].name,grains[g].ax,grains[g].by,grains[g].cz,
+				g,grains[g].name,grains[g].cellDims[0],grains[g].cellDims[1],grains[g].cellDims[2],
 				grains[g].alpha,grains[g].beta,grains[g].gamma);
 			printf("%d atoms in unit cell\n",grains[g].natoms);
 			printf("tilt=(%g, %g, %g)rad shift=(%g, %g, %g)A\n",
@@ -621,10 +624,10 @@ void makeSuperCell() {
 	* the room diagonal:
 	*/
 	// calculation depended on ax being a pointer?
-	//maxLength = vectLength(superCell.ax);
-	maxLength = sqrt(superCell.ax*superCell.ax+
-		superCell.by*superCell.by+
-		superCell.cz*superCell.cz);
+	//maxLength = vectLength(superCell.cellDims[0]);
+	maxLength = sqrt(superCell.cellDims[0]*superCell.cellDims[0]+
+		superCell.cellDims[1]*superCell.cellDims[1]+
+		superCell.cellDims[2]*superCell.cellDims[2]);
 
 	// TODO: these are slices.
 	//axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
@@ -635,9 +638,9 @@ void makeSuperCell() {
 		* if this grain is a crystalline one ... 
 		*/
 		if (grains[g].amorphFlag == 0) {
-			dx = grains[g].shiftx/superCell.ax; 
-			dy = grains[g].shifty/superCell.by; 
-			dz = grains[g].shiftz/superCell.cz;
+			dx = grains[g].shiftx/superCell.cellDims[0]; 
+			dy = grains[g].shifty/superCell.cellDims[1]; 
+			dz = grains[g].shiftz/superCell.cellDims[2];
 			/* find the rotated unit cell vectors .. */
 			makeCellVect(grains[g], Mm);
 			// showMatrix(Mm,3,3,"M");
@@ -711,7 +714,7 @@ void makeSuperCell() {
 			nymin = nymax = (int)floor(b(1,0)-dy); 
 			nzmin = nzmax = (int)floor(b(2,0)-dz);
 			for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++) for (iz=0;iz<=1;iz++) {
-				a(0,0)=ix*superCell.ax; a(1,0)=iy*superCell.by; a(2,0)=iz*superCell.cz;
+				a(0,0)=ix*superCell.cellDims[0]; a(1,0)=iy*superCell.cellDims[1]; a(2,0)=iz*superCell.cellDims[2];
 
 				//matrixProduct(a,1,3,Mr2,3,3,b);
 				//  20130514 correct eigen format, I think.
@@ -740,21 +743,21 @@ void makeSuperCell() {
 				memcpy(&newAtom,&(grains[g].unitCell[iatom]),sizeof(atom));
 				// We need to convert the cartesian coordinates of this atom
 				// to fractional ones:
-				b(0,0) = newAtom.x;
-				b(1,0) = newAtom.y;
-				b(2,0) = newAtom.z;
+				b(0,0) = newAtom.pos[0];
+				b(1,0) = newAtom.pos[1];
+				b(2,0) = newAtom.pos[2];
 				//  20130514 correct eigen format, I think.
 				a = Mminv*b;
 				//matrixProduct(b,1,3,Mminv,3,3,a);
-				newAtom.x = a(0,0); newAtom.y = a(1,0); newAtom.z = a(2,0);
+				newAtom.pos[0] = a(0,0); newAtom.pos[1] = a(1,0); newAtom.pos[2] = a(2,0);
 				//printf("%2d: %d (%g,%g,%g) (%g,%g,%g)\n",iatom,newAtom.Znum,
 				//		 b(0,0),b(1,0),b(2,0),a(0,0),a(1,0),a(2,0));
 				for (ix=nxmin;ix<=nxmax;ix++) {
 					for (iy=nymin;iy<=nymax;iy++) {
 						for (iz=nzmin;iz<=nzmax;iz++) {
 							/* atom position in reduced coordinates: */
-							// a(0,0) = ix+newAtom.x; a(1,0) = iy+newAtom.y; a(2,0) = iz+newAtom.z;		 
-							a(0,0) = newAtom.x+ix; a(1,0) = newAtom.y+iy; a(2,0) = newAtom.z+iz;
+							// a(0,0) = ix+newAtom.pos[0]; a(1,0) = iy+newAtom.pos[1]; a(2,0) = iz+newAtom.pos[2];		 
+							a(0,0) = newAtom.pos[0]+ix; a(1,0) = newAtom.pos[1]+iy; a(2,0) = newAtom.pos[2]+iz;
 							//  20130514 correct eigen format, I think.
 							b=Mm*a;
 							//matrixProduct(a,1,3,Mm,3,3,b);
@@ -769,20 +772,20 @@ void makeSuperCell() {
 							b(1,0) = a(0,0)*Mm(1,0)+a(1,0)*Mm(1,1)+a(2,0)*Mm(1,2);
 							b(2,0) = a(0,0)*Mm(2,0)+a(1,0)*Mm(2,1)+a(2,0)*Mm(2,2);
 							*/
-							superCell.atoms[atomCount].x  = b(0,0)+dx; 
-							superCell.atoms[atomCount].y  = b(1,0)+dy; 
-							superCell.atoms[atomCount].z  = b(2,0)+dz; 
-							if ((superCell.atoms[atomCount].x >= 0) && 
-								(superCell.atoms[atomCount].x < superCell.ax) &&
-								(superCell.atoms[atomCount].y >= 0) && 
-								(superCell.atoms[atomCount].y < superCell.by) &&
-								(superCell.atoms[atomCount].z >= 0) && 
-								(superCell.atoms[atomCount].z < superCell.cz)) {
+							superCell.atoms[atomCount].pos[0]  = b(0,0)+dx; 
+							superCell.atoms[atomCount].pos[1]  = b(1,0)+dy; 
+							superCell.atoms[atomCount].pos[2]  = b(2,0)+dz; 
+							if ((superCell.atoms[atomCount].pos[0] >= 0) && 
+								(superCell.atoms[atomCount].pos[0] < superCell.cellDims[0]) &&
+								(superCell.atoms[atomCount].pos[1] >= 0) && 
+								(superCell.atoms[atomCount].pos[1] < superCell.cellDims[1]) &&
+								(superCell.atoms[atomCount].pos[2] >= 0) && 
+								(superCell.atoms[atomCount].pos[2] < superCell.cellDims[2])) {
 									// If this is a sphere:
 									if (grains[g].sphereRadius > 0) {
-										dxs = superCell.atoms[atomCount].x - grains[g].sphereX;
-										dys = superCell.atoms[atomCount].y - grains[g].sphereY;
-										dzs = superCell.atoms[atomCount].z - grains[g].sphereZ;
+										dxs = superCell.atoms[atomCount].pos[0] - grains[g].sphereX;
+										dys = superCell.atoms[atomCount].pos[1] - grains[g].sphereY;
+										dzs = superCell.atoms[atomCount].pos[2] - grains[g].sphereZ;
 										if (dxs*dxs+dys*dys+dzs*dzs < grains[g].sphereRadius*grains[g].sphereRadius) { 
 											superCell.atoms[atomCount].dw = newAtom.dw;
 											superCell.atoms[atomCount].occ = newAtom.occ;
@@ -796,16 +799,17 @@ void makeSuperCell() {
 										for (p=0;p<grains[g].nplanes;p++) {
 											/*
 											printf("hello %d (%g %g %g)\n",g,
-											superCell.atoms[atomCount].x,superCell.atoms[atomCount].y,
-											superCell.atoms[atomCount].z);
+											superCell.atoms[atomCount].pos[0],superCell.atoms[atomCount].pos[1],
+											superCell.atoms[atomCount].pos[2]);
 											*/
-											d = findLambda(grains[g].planes[p],&(superCell.atoms[atomCount].z),-1);
+											// TODO: why are we feeding a pointer to a position here?
+											d = findLambda(grains[g].planes[p],superCell.atoms[atomCount].pos,-1);
 
 											/*
 											printf("%3d lambda: %g (%g %g %g), (%g %g %g), %d\n",atomCount,d,
-											newAtom.x,newAtom.y,newAtom.z,
-											superCell.atoms[atomCount].x,superCell.atoms[atomCount].y,
-											superCell.atoms[atomCount].z,grains[g].nplanes);
+											newAtom.pos[0],newAtom.pos[1],newAtom.pos[2],
+											superCell.atoms[atomCount].pos[0],superCell.atoms[atomCount].pos[1],
+											superCell.atoms[atomCount].pos[2],grains[g].nplanes);
 											*/		
 											if (d < 0)
 												break;
@@ -877,9 +881,9 @@ void makeAmorphous() {
 			rCellx = r; rCelly = static_cast<float_tt>(sqrt(3.0)*r); rCellz = static_cast<float_tt>((sqrt(5.0)*r)/3.0);
 
 			/* determine number of unit cells in super cell */
-			nx = (int)(superCell.ax/rCellx);
-			ny = (int)(superCell.by/rCelly);
-			nz = (int)(superCell.cz/rCellz);
+			nx = (int)(superCell.cellDims[0]/rCellx);
+			ny = (int)(superCell.cellDims[1]/rCelly);
+			nz = (int)(superCell.cellDims[2]/rCellz);
 			amorphSites = 4*nx*ny*nz;
 			amorphCell = (atom *)malloc((amorphSites+1)*sizeof(atom));
 
@@ -890,17 +894,17 @@ void makeAmorphous() {
 						for (ic=0;ic<4;ic++) {
 							/* check if this atom and any of the 4 atoms per rect. unit cell lie within the super cell 
 							*/
-							amorphCell[atomCount].x  = ix*rCellx-(ic==3)*Mm(0,0)+(ic % 2)*Mm(0,1)+(ic>1)*Mm(0,2); 
-							amorphCell[atomCount].y  = iy*rCelly-(ic==3)*Mm(1,0)+(ic % 2)*Mm(1,1)+(ic>1)*Mm(1,2); 
-							amorphCell[atomCount].z  = iz*rCellz-(ic==3)*Mm(2,0)+(ic % 2)*Mm(2,1)+(ic>1)*Mm(2,2); 
-							if ((amorphCell[atomCount].x >= 0) && 
-								(amorphCell[atomCount].x < superCell.ax) &&
-								(amorphCell[atomCount].y >= 0) && 
-								(amorphCell[atomCount].y < superCell.by) &&
-								(amorphCell[atomCount].z >= 0) && 
-								(amorphCell[atomCount].z < superCell.cz)) {
+							amorphCell[atomCount].pos[0]  = ix*rCellx-(ic==3)*Mm(0,0)+(ic % 2)*Mm(0,1)+(ic>1)*Mm(0,2); 
+							amorphCell[atomCount].pos[1]  = iy*rCelly-(ic==3)*Mm(1,0)+(ic % 2)*Mm(1,1)+(ic>1)*Mm(1,2); 
+							amorphCell[atomCount].pos[2]  = iz*rCellz-(ic==3)*Mm(2,0)+(ic % 2)*Mm(2,1)+(ic>1)*Mm(2,2); 
+							if ((amorphCell[atomCount].pos[0] >= 0) && 
+								(amorphCell[atomCount].pos[0] < superCell.cellDims[0]) &&
+								(amorphCell[atomCount].pos[1] >= 0) && 
+								(amorphCell[atomCount].pos[1] < superCell.cellDims[1]) &&
+								(amorphCell[atomCount].pos[2] >= 0) && 
+								(amorphCell[atomCount].pos[2] < superCell.cellDims[2])) {
 									for (p=0;p<grains[g].nplanes;p++) {
-										d = findLambda(grains[g].planes[p],&(amorphCell[atomCount].z),-1);
+										d = findLambda(grains[g].planes[p],amorphCell[atomCount].pos,-1);
 										if (d < 0)
 											break;
 									}
@@ -940,7 +944,7 @@ void makeAmorphous() {
 					iz = randArray[iy];
 					if (iz > amorphSites) {
 						printf("%5d, iy: %d, sites: %d, atoms: %d  ",ix,iy,randCount,amorphAtoms);
-						printf("iz: %d (%.2f)\n",iz,(superCell.atoms[atomCount].z));
+						printf("iz: %d (%.2f)\n",iz,(superCell.atoms[atomCount].pos[2]));
 						printf("makeAmorphous: Error because of overlapping memory areas!\n");
 						for (iz=0;iz<=amorphAtoms;iz++)
 							printf("iz=%d: %d\n",iz,randArray[iz]);
@@ -961,9 +965,9 @@ void makeAmorphous() {
 				superCell.atoms[atomCount].dw = grains[g].unitCell[iatom].dw;
 				superCell.atoms[atomCount].occ = grains[g].unitCell[iatom].occ;
 				superCell.atoms[atomCount].Znum = grains[g].unitCell[iatom].Znum;
-				superCell.atoms[atomCount].x = amorphCell[iz].x;
-				superCell.atoms[atomCount].y = amorphCell[iz].y;
-				superCell.atoms[atomCount].z = amorphCell[iz].z;
+				superCell.atoms[atomCount].pos[0] = amorphCell[iz].pos[0];
+				superCell.atoms[atomCount].pos[1] = amorphCell[iz].pos[1];
+				superCell.atoms[atomCount].pos[2] = amorphCell[iz].pos[2];
 				atomCount++;
 			} 
 			superCell.natoms = atomCount;
@@ -986,7 +990,7 @@ void makeSpecial(int distPlotFlag) {
 	float_tt d,r,x,y,z,dist,volume;
 	int i,j,Znum,count;
 	long seed;
-	QSf3Vec pos,center;
+	QSf3Arr pos,center;
 	QSfVec grainBound(6);
 	int trials = 0,type;
 	//char *ptr;
@@ -1014,15 +1018,15 @@ void makeSpecial(int distPlotFlag) {
 			* We do this by brute force, by simply checking, if randomly
 			* distributed points are within the grain, or not.
 			*************************************************************/
-			grainBound[0] = superCell.ax;  grainBound[1] = 0;
-			grainBound[2] = superCell.by;  grainBound[3] = 0;
-			grainBound[4] = superCell.cz;  grainBound[5] = 0;
+			grainBound[0] = superCell.cellDims[0];  grainBound[1] = 0;
+			grainBound[2] = superCell.cellDims[1];  grainBound[3] = 0;
+			grainBound[4] = superCell.cellDims[2];  grainBound[5] = 0;
 			for (count=0, i=0; i<TRIAL_COUNT;i++) {
 				// remember that we have to create a vector with
 				// z,y,x, because that is the way the atom struct is 
-				pos[2] = superCell.ax*ran(&seed);
-				pos[1] = superCell.by*ran(&seed);
-				pos[0] = superCell.cz*ran(&seed);
+				pos[2] = superCell.cellDims[0]*ran(&seed);
+				pos[1] = superCell.cellDims[1]*ran(&seed);
+				pos[0] = superCell.cellDims[2]*ran(&seed);
 				for (p=0;p<grains[g].nplanes;p++) {
 					d = findLambda(grains[g].planes[p],pos,-1);
 					if (d < 0) break;
@@ -1044,7 +1048,7 @@ void makeSpecial(int distPlotFlag) {
 			center[0] /= (float_tt)count;
 			center[1] /= (float_tt)count;
 			center[2] /= (float_tt)count;
-			volume = superCell.ax*superCell.by*superCell.cz*(float_tt)count/(float_tt)TRIAL_COUNT;
+			volume = superCell.cellDims[0]*superCell.cellDims[1]*superCell.cellDims[2]*(float_tt)count/(float_tt)TRIAL_COUNT;
 			printf("Volume: %gA^3, %g %%\n",volume,(float_tt)(100*count)/(float_tt)TRIAL_COUNT);
 			printf("boundaries: x: %g..%g, y: %g..%g, z: %g..%g\n",
 				grainBound[0],grainBound[1],grainBound[2], 
@@ -1053,10 +1057,10 @@ void makeSpecial(int distPlotFlag) {
 			// First we need to find out how much memory we need to reserve for this grain
 			amorphAtoms = 0;
 			for (iatom=0;iatom<grains[g].natoms;iatom++) {
-				if (grains[g].unitCell[iatom].y < 1.0) {  // if this is a concentration, and no count
-					grains[g].unitCell[iatom].y *= volume;  // then convert it to number of atoms
+				if (grains[g].unitCell[iatom].pos[1] < 1.0) {  // if this is a concentration, and no count
+					grains[g].unitCell[iatom].pos[1] *= volume;  // then convert it to number of atoms
 				}
-				amorphAtoms += (int)(grains[g].unitCell[iatom].y);
+				amorphAtoms += (int)(grains[g].unitCell[iatom].pos[1]);
 			}
 
 			superCell.atoms.resize((amorphAtoms+superCell.natoms+1));
@@ -1064,19 +1068,19 @@ void makeSpecial(int distPlotFlag) {
 
 			// Now we can loop through and add these atoms randomly to the grain
 			for (iatom=0;iatom<grains[g].natoms;iatom++) {
-				r = grains[g].unitCell[iatom].z;             // radius of this atom
-				count = (int)(grains[g].unitCell[iatom].y);  // number of atoms of this kind
+				r = grains[g].unitCell[iatom].pos[2];             // radius of this atom
+				count = (int)(grains[g].unitCell[iatom].pos[1]);  // number of atoms of this kind
 				Znum = grains[g].unitCell[iatom].Znum;
 				covRad[Znum-1] = r;                          // set radius of other atoms also
 				for (j=0;j<count;j++) {
 					do { // make it lie within the grain bounding planes
 						do { // make the atoms not touch eachother
-							// z = superCell.cz*ran(&seed);
-							// y = superCell.by*ran(&seed);
+							// z = superCell.cellDims[2]*ran(&seed);
+							// y = superCell.cellDims[1]*ran(&seed);
 							z = grainBound[4]+ran(&seed)*(grainBound[5]-grainBound[4]);	    
 							y = grainBound[2]+ran(&seed)*(grainBound[3]-grainBound[2]);	    
-							if (fabs(superCell.cz-z) < 2e-5) z = 0.0;
-							if (fabs(superCell.by-y) < 2e-5) y = 0.0;
+							if (fabs(superCell.cellDims[2]-z) < 2e-5) z = 0.0;
+							if (fabs(superCell.cellDims[1]-y) < 2e-5) y = 0.0;
 							if (iatom > 0) {
 								x = grainBound[0]+ran(&seed)*(grainBound[1]-grainBound[0]);	    
 							}
@@ -1096,13 +1100,13 @@ void makeSpecial(int distPlotFlag) {
 			x = grainBound[0]+ran(&seed)*(grainBound[1]-grainBound[0]);	    
 								}
 							}
-							if (fabs(superCell.ax-x) < 2e-5) x = 0.0;
+							if (fabs(superCell.cellDims[0]-x) < 2e-5) x = 0.0;
 							// Now we must check, whether atoms overlap
 							for (i=0;i<atomCount;i++) {
 								for (p=-1;p<=1;p++) {
-									dist = sqrt(SQR(x-superCell.atoms[i].x)+
-										SQR(y-superCell.atoms[i].y+p*superCell.by)+
-										SQR(z-superCell.atoms[i].z));		  
+									dist = sqrt(SQR(x-superCell.atoms[i].pos[0])+
+										SQR(y-superCell.atoms[i].pos[1]+p*superCell.cellDims[1])+
+										SQR(z-superCell.atoms[i].pos[2]));		  
 									if (dist < r+covRad[superCell.atoms[i].Znum-1]) break;		
 								}	    
 								if (p < 2) break;
@@ -1121,12 +1125,12 @@ void makeSpecial(int distPlotFlag) {
 						superCell.atoms[atomCount].occ  = 1.0f;
 						superCell.atoms[atomCount].q    = 0;
 						superCell.atoms[atomCount].Znum = Znum;
-						superCell.atoms[atomCount].x    = x;
-						superCell.atoms[atomCount].y    = y;
-						superCell.atoms[atomCount].z    = z;
+						superCell.atoms[atomCount].pos[0]    = x;
+						superCell.atoms[atomCount].pos[1]    = y;
+						superCell.atoms[atomCount].pos[2]    = z;
 
 						for (p=0;p<grains[g].nplanes;p++) {
-							d = findLambda(grains[g].planes[p],&(superCell.atoms[atomCount].z),-1);
+							d = findLambda(grains[g].planes[p],superCell.atoms[atomCount].pos,-1);
 							if (d < 0) break;
 						}
 						// if all the previous tests have been successful, this atom is IN 
@@ -1137,7 +1141,7 @@ void makeSpecial(int distPlotFlag) {
 			} // for iatom = 0..natoms
 			printf("\n%d amorphous atoms, volume: %gA^3 (%g%%), center: %g, width: %g\n",
 				atomCount-superCell.natoms,
-				volume,100.0*volume/(superCell.ax*superCell.by*superCell.cz),center[0],
+				volume,100.0*volume/(superCell.cellDims[0]*superCell.cellDims[1]*superCell.cellDims[2]),center[0],
 				grainBound[1]-grainBound[0]);
 			switch (type) {
 	  case 2:
@@ -1153,7 +1157,7 @@ void makeSpecial(int distPlotFlag) {
 	/*******************************************************************
 	* Now we must produce distribution plots of the different atom kinds
 	*/
-	if (distPlotFlag) makeDistrPlot(superCell.atoms,superCell.ax);
+	if (distPlotFlag) makeDistrPlot(superCell.atoms,superCell.cellDims[0]);
 }
 
 /* This function creates the single gaussian distruted x-values for the dopand atoms
@@ -1198,7 +1202,7 @@ float_tt xDistrFun2(float_tt xcenter,float_tt width1,float_tt width2) {
 	if (width2 >0) {
 		count ++;
 		dx = width2*gasdev(&idum);
-		x = xcenter+width1*((ran(&seed) > 0.5)-0.5)+dx;
+		x = xcenter+width1*((ran(&seed) > 0.5f)-0.5f)+dx;
 		xavg += x;
 		x2 += SQR(dx);
 		return x;
@@ -1227,7 +1231,7 @@ void makeDistrPlot(std::vector<atom>atoms,float_tt ax) {
 	list = QSiMat(muls->atomKinds,count);
 	list.setZero();
 	for (j=0;j<atoms.size();j++) {
-		ind = (int)(atoms[j].x/DR);
+		ind = (int)(atoms[j].pos[0]/DR);
 		if (ind < 0) ind = 0;
 		if (ind >= count) ind = count;
 		for (i=0;i<muls->atomKinds;i++) if (muls->Znums[i] == atoms[j].Znum) break;

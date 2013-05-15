@@ -68,13 +68,13 @@ int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
     return 0;
   }
   
-  ax = muls->ax;
-  by=muls->by;
-  cz=muls->c;
+  ax = muls->cellDims[0];
+  by=muls->cellDims[1];
+  cz=muls->cellDims[2];
   
   fprintf(fp,"HEADER    libAtoms:Config_save_as_pdb; %d atoms\n",natoms);
   fprintf(fp,"CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1\n",
-          muls->ax,muls->by,muls->c);
+          muls->cellDims[0],muls->cellDims[1],muls->cellDims[2]);
 
   for (j=0;j<natoms;j++) {
     elem = elTable[atoms[j].Znum];
@@ -84,8 +84,8 @@ int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
     fprintf(fp,"1   ");
     fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].pos[0],atoms[j].pos[1],atoms[j].pos[2]);
     /*
-      fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].pos[0]/muls->ax,
-      atoms[j].pos[1]/muls->by,atoms[j].pos[2]/muls->c);
+      fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].pos[0]/muls->cellDims[0],
+      atoms[j].pos[1]/muls->cellDims[1],atoms[j].pos[2]/muls->cellDims[2]);
     */
   } 
   
@@ -126,12 +126,12 @@ int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
     return 0;
   }
   
-  // ax = muls->ax > MIN_EDGE_LENGTH ? muls->ax : MIN_EDGE_LENGTH;
-  // by = muls->by > MIN_EDGE_LENGTH ? muls->by : MIN_EDGE_LENGTH;
-  // cz = muls->c  > MIN_EDGE_LENGTH ? muls->c  : MIN_EDGE_LENGTH;
-  ax = muls->ax;
-  by = muls->by;
-  cz = muls->c;
+  // ax = muls->cellDims[0] > MIN_EDGE_LENGTH ? muls->cellDims[0] : MIN_EDGE_LENGTH;
+  // by = muls->cellDims[1] > MIN_EDGE_LENGTH ? muls->cellDims[1] : MIN_EDGE_LENGTH;
+  // cz = muls->cellDims[2]  > MIN_EDGE_LENGTH ? muls->cellDims[2]  : MIN_EDGE_LENGTH;
+  ax = muls->cellDims[0];
+  by = muls->cellDims[1];
+  cz = muls->cellDims[2];
   
   fprintf(fp,"Number of particles = %d\n",natoms);
   fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
@@ -139,11 +139,11 @@ int writeCFG(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
   fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
   fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
   fprintf(fp,".NO_VELOCITY.\nentry_count = 6\n");
-  printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  printf("ax: %g, by: %g, cz: %g n: %d\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2],natoms);
   
   
   elem = elTable[atoms[0].Znum];
-  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2],natoms);
   fprintf(fp,"%g\n%s\n",atoms[0].Znum,elem);
   fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].pos[0]/ax,atoms[0].pos[1]/by,atoms[0].pos[2]/cz,
           atoms[0].dw,atoms[0].occ,atoms[0].q);
@@ -201,7 +201,7 @@ int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fil
   
   
   elem = elTable[Znum[0]];
-  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2],natoms);
   fprintf(fp,"%g\n%s\n",Znum[0],elem);
   fprintf(fp,"%g %g %g %g\n",pos[0]*a/ax,pos[1]*b/by,pos[2]*c/cz,dw[0]);
   
@@ -566,9 +566,9 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     u2[ZnumIndex] += u(0)*u(0)+u(1)*u(1)+u(2)*u(2);
     ux += u(0); uy += u(1); uz += u(2);
 	// TODO: define ax, by, c in muls as QSf3Vec
-    u(0) /= muls.ax;
-    u(1) /= muls.by;
-    u(2) /= muls.c;
+    u(0) /= muls.cellDims[0];
+    u(1) /= muls.cellDims[1];
+    u(2) /= muls.cellDims[2];
     u2Count[ZnumIndex]++;
     
   } /* end of if Einstein */
@@ -625,9 +625,9 @@ int readDATCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
   parFpPull();  /* restore old parameter file pointer */
   
   
-  muls.ax = a;
-  muls.by = b;
-  muls.c  = c;
+  muls.cellDims[0] = a;
+  muls.cellDims[1] = b;
+  muls.cellDims[2]  = c;
   muls.cGamma = alpha;
   muls.cBeta  = beta;
   muls.cAlpha = gamma;
@@ -699,16 +699,16 @@ int readCFGCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   //for (i=0;i<9;i++) Mm(i,0) *= lengthScale;
   
   // todo: these are simple cartesian distances - should be easy to optimize.
-  muls.ax = sqrt(Mm(0,0)*Mm(0,0)+Mm(1,0)*Mm(1,0)+Mm(2,0)*Mm(2,0));
-  muls.by = sqrt(Mm(0,1)*Mm(0,1)+Mm(1,1)*Mm(1,1)+Mm(2,1)*Mm(2,1));
-  muls.c  = sqrt(Mm(0,2)*Mm(0,2)+Mm(1,2)*Mm(1,2)+Mm(2,2)*Mm(2,2));
+  muls.cellDims[0] = sqrt(Mm(0,0)*Mm(0,0)+Mm(1,0)*Mm(1,0)+Mm(2,0)*Mm(2,0));
+  muls.cellDims[1] = sqrt(Mm(0,1)*Mm(0,1)+Mm(1,1)*Mm(1,1)+Mm(2,1)*Mm(2,1));
+  muls.cellDims[2]  = sqrt(Mm(0,2)*Mm(0,2)+Mm(1,2)*Mm(1,2)+Mm(2,2)*Mm(2,2));
 
   muls.cGamma = atan2(Mm(1,1),Mm(0,1));
   //muls.cGamma = atan2(Mm(1,1),Mm(0,1));
-  muls.cBeta = acos(Mm(0,2)/muls.c);
-  //muls.cBeta = acos(Mm(0,2)/muls.c);
-  muls.cAlpha = acos(Mm(1,2)*sin(muls.cGamma)/muls.c+cos(muls.cBeta)*cos(muls.cGamma));
-  //muls.cAlpha = acos(Mm(1,2)*sin(muls.cGamma)/muls.c+cos(muls.cBeta)*cos(muls.cGamma));
+  muls.cBeta = acos(Mm(0,2)/muls.cellDims[2]);
+  //muls.cBeta = acos(Mm(0,2)/muls.cellDims[2]);
+  muls.cAlpha = acos(Mm(1,2)*sin(muls.cGamma)/muls.cellDims[2]+cos(muls.cBeta)*cos(muls.cGamma));
+  //muls.cAlpha = acos(Mm(1,2)*sin(muls.cGamma)/muls.cellDims[2]+cos(muls.cBeta)*cos(muls.cGamma));
   muls.cGamma /= (float)PI180;
   muls.cBeta  /= (float)PI180;
   muls.cAlpha /= (float)PI180;
@@ -736,9 +736,9 @@ int readCSSRCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   /* read the cell parameters from first and secons line */
   ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
   sscanf( buf, " %s %s %s",s1,s2,s3);
-  muls.ax = static_cast<float_tt>(atof(s1)); 
-  muls.by = static_cast<float_tt>(atof(s2)); 
-  muls.c = static_cast<float_tt>(atof(s3));
+  muls.cellDims[0] = static_cast<float_tt>(atof(s1)); 
+  muls.cellDims[1] = static_cast<float_tt>(atof(s2)); 
+  muls.cellDims[2] = static_cast<float_tt>(atof(s3));
   
   ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
   sscanf( buf, " %s %s %s",s1,s2,s3);
@@ -1255,11 +1255,11 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 	if (printFlag) {
 		printf("Lattice parameters: ax=%g by=%g cz=%g (%d atoms)\n",
-			muls.ax,muls.by,muls.c,ncoord);
+			muls.cellDims[0],muls.cellDims[1],muls.cellDims[2],ncoord);
 
 		if ((muls.cubex == 0) || (muls.cubey == 0) || (muls.cubez == 0))	 
 			printf("Size of Super-lattice: ax=%g by=%g cz=%g (%d x %d x %d)\n",
-			muls.ax*ncx,muls.by*ncy,muls.c*ncz,ncx,ncy,ncz);
+			muls.cellDims[0]*ncx,muls.cellDims[1]*ncy,muls.cellDims[2]*ncz,ncx,ncy,ncz);
 		else
 			printf("Size of Cube: ax=%g by=%g cz=%g\n",
 			muls.cubex,muls.cubey,muls.cubez);
@@ -1414,15 +1414,15 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 		*************************************************************/
 		else { 
 			for(i=0;i<natom;i++) {
-				atoms[i].pos[0] *= muls.ax; 
-				atoms[i].pos[1] *= muls.by; 
-				atoms[i].pos[2] *= muls.c;
+				atoms[i].pos[0] *= muls.cellDims[0]; 
+				atoms[i].pos[1] *= muls.cellDims[1]; 
+				atoms[i].pos[2] *= muls.cellDims[2];
 			}		 
 		}
 		// Now we have all the cartesian coordinates of all the atoms!
-		muls.ax *= ncx;
-		muls.by *= ncy;
-		muls.c  *= ncz;
+		muls.cellDims[0] *= ncx;
+		muls.cellDims[1] *= ncy;
+		muls.cellDims[2]  *= ncz;
 
 		/***************************************************************
 		* Now let us tilt around the center of the full crystal
@@ -1461,7 +1461,7 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 			}
 		}
 
-		// printf("(%f, %f, %f): %f .. %f, %f .. %f, %f .. %f\n",muls.ax,muls.by,muls.c,boxXmin,boxXmax,boxYmin,boxYmax,boxZmin,boxZmax);
+		// printf("(%f, %f, %f): %f .. %f, %f .. %f, %f .. %f\n",muls.cellDims[0],muls.cellDims[1],muls.cellDims[2],boxXmin,boxXmax,boxYmin,boxYmax,boxZmin,boxZmax);
 
 
 		if ((muls.ctiltx != 0) || (muls.ctilty != 0) || (muls.ctiltz != 0)) {			
@@ -1488,11 +1488,11 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 			atoms[i].pos[1]-=boxYmin; 
 			atoms[i].pos[2]-=boxZmin; 
 		}
-		muls.ax = boxXmax-boxXmin;
-		muls.by = boxYmax-boxYmin;
-		muls.c  = boxZmax-boxZmin;
+		muls.cellDims[0] = boxXmax-boxXmin;
+		muls.cellDims[1] = boxYmax-boxYmin;
+		muls.cellDims[2]  = boxZmax-boxZmin;
 
-		// printf("(%f, %f, %f): %f .. %f, %f .. %f, %f .. %f\n",muls.ax,muls.by,muls.c,boxXmin,boxXmax,boxYmin,boxYmax,boxZmin,boxZmax);
+		// printf("(%f, %f, %f): %f .. %f, %f .. %f, %f .. %f\n",muls.cellDims[0],muls.cellDims[1],muls.cellDims[2],boxXmin,boxXmax,boxYmin,boxYmax,boxZmin,boxZmax);
 		/*******************************************************************
 		* If one of the tilts was more than 30 degrees, we will re-assign 
 		* the lattice constants ax, by, and c by boxing the sample with a box 
@@ -1511,7 +1511,7 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 	/*
 	printf("Atom box: (%g %g %g) .. (%g %g %g)\n",boxXmin,boxYmin,boxZmin,boxXmax,boxYmax,boxZmax);
-	printf("ax: %g, bx: %g, c: %g\n",muls.ax,muls.by,muls.c);
+	printf("ax: %g, bx: %g, c: %g\n",muls.cellDims[0],muls.cellDims[1],muls.cellDims[2]);
 
 	printf("%d atoms read from file <%s>, %d atoms in model (Tilt: x: %g mrad, y: %g mrad).\n",
 	ncoord,fileName,natom,muls.ctiltx,muls.ctilty);
@@ -1794,9 +1794,9 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 		iatom = jequal;
 	} /* iatom ... */
 	if (muls.printLevel > 2) printf("Removed %d atoms because of multiple occupancy or occupancy < 1\n",jVac);
-	muls.ax = muls.cubex;
-	muls.by = muls.cubey;
-	muls.c  = muls.cubez;
+	muls.cellDims[0] = muls.cubex;
+	muls.cellDims[1] = muls.cubey;
+	muls.cellDims[2]  = muls.cubez;
 	natom = atomCount;
 	// call phononDisplacement again to update displacement data:
 	phononDisplacement(u,muls,iatom,ix,iy,iz,0,newAtom.dw,natom,jz);

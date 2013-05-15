@@ -70,7 +70,8 @@ typedef struct atomStruct {
  * a point (point) and 2 vectors (vect1, vect2)
  */
 typedef struct planeStruct {
-  QSf3Vec norm, vect1, vect2, point;
+  QSf3Vec norm, vect1, vect2;
+  QSf3Arr point;
 } plane;
 
 typedef struct grainBoxStruct {
@@ -84,7 +85,8 @@ typedef struct grainBoxStruct {
   // char *name;
   std::vector<atom> unitCell; /* definition of unit cell */
   int natoms;     /* number of atoms in unit cell */
-  float_tt ax,by,cz; /* unit cell parameters */
+  QSf3Arr cellDims;
+  //float_tt ax,by,cz; /* unit cell parameters */
   float_tt alpha, beta, gamma; /* unit cell parameters */
   float_tt tiltx,tilty,tiltz;
   float_tt shiftx,shifty,shiftz;

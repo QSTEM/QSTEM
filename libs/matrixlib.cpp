@@ -45,12 +45,12 @@ float_tt pythag(float_tt a, float_tt b) {
  * in reversed order, i.e. a[0]=z, a[1]=y, a[2]=x.
  */
 
-void vectDiff_f(QSf3Vec &a, QSf3Vec &b, QSf3Vec &c, int revFlag) {
+void vectDiff_f(QSf3Arr &a, QSf3Arr &b, QSf3Arr &c, int revFlag) {
   if (revFlag > 0) {
-	c = a.array()-b.array();
+	c = a-b;
   }
   else {
-	c = a.reverse().array()-b.array();
+	c = a.reverse()-b;
   }
 }
 
@@ -65,13 +65,9 @@ void showMatrix(QSfMat m, std::string name) {
  * forward(1) (x,y,z), or reversed(-1) (z,y,x) order.
  * This is important for using the reversed order in the atom struct.
  */
-float_tt findLambda(plane &p, QSf3Vec &point, int revFlag) {
+float_tt findLambda(plane &p, QSf3Arr &point, int revFlag) {
   QSf3Mat M, Minv;
-  // TODO: we need to define M's size!!
-  QSf3Vec diff;
-  //static float_tt **M=NULL;
-  //static float_tt **Minv=NULL;
-  //static float_tt *diff=NULL;
+  QSf3Arr diff;
   float_tt lambda; /* dummy variable */
 
   /*
@@ -102,7 +98,7 @@ float_tt findLambda(plane &p, QSf3Vec &point, int revFlag) {
   // showMatrix(&diff,1,3,"diff");
 
   //  lambda = dotProduct(Minv[0],diff);
-  lambda = Minv.row(0).dot(diff);
+  lambda = Minv.row(0).dot(diff.matrix());
 
   // printf("lambda: %g\n",lambda);
   return lambda;
@@ -204,27 +200,27 @@ void makeCellVect(grainBox &grain, QSf3Mat &Mm)
 {
   if ((grain.alpha == 90) && (grain.beta == 90) && (grain.gamma == 90)) {
     printf("Orthogonal unit cell\n");
-    Mm(0,0) = grain.ax; Mm(1,0) = 0; Mm(2,0) = 0;  
-    Mm(0,1) = 0; Mm(1,1) = grain.by;  Mm(2,1) = 0;
-    Mm(0,2) = 0; Mm(1,2) = 0; Mm(2,2) = grain.cz; 
+    Mm(0,0) = grain.cellDims[0]; Mm(1,0) = 0; Mm(2,0) = 0;  
+    Mm(0,1) = 0; Mm(1,1) = grain.cellDims[1];  Mm(2,1) = 0;
+    Mm(0,2) = 0; Mm(1,2) = 0; Mm(2,2) = grain.cellDims[2]; 
   }
  
   else {
 
-    Mm(0,0) = grain.ax; Mm(1,0) = 0; Mm(2,0) = 0;
+    Mm(0,0) = grain.cellDims[0]; Mm(1,0) = 0; Mm(2,0) = 0;
     
-    Mm(0,1) = static_cast<float_tt>(grain.by*cos(grain.gamma*PI180)); 
-    Mm(1,1) = static_cast<float_tt>(grain.by*sin(grain.gamma*PI180));
+    Mm(0,1) = static_cast<float_tt>(grain.cellDims[1]*cos(grain.gamma*PI180)); 
+    Mm(1,1) = static_cast<float_tt>(grain.cellDims[1]*sin(grain.gamma*PI180));
     Mm(2,1) = 0;
     
-    Mm(0,2) = static_cast<float_tt>(grain.cz*cos(grain.beta*PI180));
-    Mm(1,2) = static_cast<float_tt>(grain.cz*(cos(grain.alpha*PI180)-cos(grain.beta*PI180)*
+    Mm(0,2) = static_cast<float_tt>(grain.cellDims[2]*cos(grain.beta*PI180));
+    Mm(1,2) = static_cast<float_tt>(grain.cellDims[2]*(cos(grain.alpha*PI180)-cos(grain.beta*PI180)*
 			cos(grain.gamma*PI180))/sin(grain.gamma*PI180));
     if ((fabs(grain.alpha-90.0) < 1e-4) && (fabs(grain.beta-90.0) < 1e-4))
-      Mm(2,2) = grain.cz;
+      Mm(2,2) = grain.cellDims[2];
     else  {// the general function still seems to have a bug in it.
       // printf("alpha: %g, beta: %g\n",grain.alpha-90.0,grain.beta-90.0);
-      Mm(2,2) = static_cast<float_tt>(grain.cz*(sqrt(1-SQR(cos(grain.alpha*PI180))-SQR(cos(grain.beta*PI180))
+      Mm(2,2) = static_cast<float_tt>(grain.cellDims[2]*(sqrt(1-SQR(cos(grain.alpha*PI180))-SQR(cos(grain.beta*PI180))
 			       +2*cos(grain.alpha*PI180)*cos(grain.beta*PI180)*
 			       cos(grain.gamma*PI180))/sin(grain.gamma*PI180)));
     }
@@ -236,25 +232,25 @@ void makeCellVectMuls(MULS &muls, QSf3Mat &Mm) {
   
   if ((muls.cAlpha == 90) && (muls.cBeta == 90) && (muls.cGamma == 90)) {
     printf("Orthogonal unit cell\n");
-	Mm(0,0) = muls.ax; Mm(1,0) = 0; Mm(2,0) = 0;  // ax[0], ax[1], ax[2]
-    Mm(0,1) = 0; Mm(1,1) = muls.by;  Mm(2,1) = 0; // by[0], by[1], by[2]
-    Mm(0,2) = 0; Mm(1,2) = 0; Mm(2,2) = muls.c;  // cz[0], cz[1], cz[2]
+	Mm(0,0) = muls.cellDims[0]; Mm(1,0) = 0; Mm(2,0) = 0;  // ax[0], ax[1], ax[2]
+    Mm(0,1) = 0; Mm(1,1) = muls.cellDims[1];  Mm(2,1) = 0; // by[0], by[1], by[2]
+    Mm(0,2) = 0; Mm(1,2) = 0; Mm(2,2) = muls.cellDims[2];  // cz[0], cz[1], cz[2]
   }
  
   else {
 
 	   
-    Mm(0,0) = muls.ax; Mm(1,0) = 0; Mm(2,0) = 0;
+    Mm(0,0) = muls.cellDims[0]; Mm(1,0) = 0; Mm(2,0) = 0;
     
-    Mm(0,1) = static_cast<float_tt>(muls.by*cos(muls.cGamma*PI180)); 
-    Mm(1,1) = static_cast<float_tt>(muls.by*sin(muls.cGamma*PI180));
+    Mm(0,1) = static_cast<float_tt>(muls.cellDims[1]*cos(muls.cGamma*PI180)); 
+    Mm(1,1) = static_cast<float_tt>(muls.cellDims[1]*sin(muls.cGamma*PI180));
     Mm(2,1) = 0;
     
-	Mm(0,2) = static_cast<float_tt>(muls.c*cos(muls.cBeta*PI180));
-    Mm(1,2) = static_cast<float_tt>(muls.c*(cos(muls.cAlpha*PI180)-cos(muls.cBeta*PI180)*
+	Mm(0,2) = static_cast<float_tt>(muls.cellDims[2]*cos(muls.cBeta*PI180));
+    Mm(1,2) = static_cast<float_tt>(muls.cellDims[2]*(cos(muls.cAlpha*PI180)-cos(muls.cBeta*PI180)*
 			cos(muls.cGamma*PI180))/sin(muls.cGamma*PI180));
 
-    Mm(2,2) = static_cast<float_tt>(muls.c*(sqrt(1-cos(muls.cAlpha*PI180)*cos(muls.cAlpha*PI180)
+    Mm(2,2) = static_cast<float_tt>(muls.cellDims[2]*(sqrt(1-cos(muls.cAlpha*PI180)*cos(muls.cAlpha*PI180)
 			     -cos(muls.cBeta*PI180)*cos(muls.cBeta*PI180)
 			     +2*cos(muls.cAlpha*PI180)*cos(muls.cBeta*PI180)*
 			   cos(muls.cGamma*PI180))/sin(muls.cGamma*PI180)));

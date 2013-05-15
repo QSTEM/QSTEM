@@ -112,7 +112,8 @@ public:
   int centerSlices;                     /* flag indicating how to cut the sample */
   QSfMat pendelloesung;
   //float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
-  float_tt ax,by,c;	                /* lattice parameters */
+  //float_tt ax,by,c;	                /* lattice parameters */
+  QSf3Arr cellDims;
   float_tt cAlpha,cBeta,cGamma;
   // TODO: should be double? or OK to be dynamic?
   QSfMat Mm;
