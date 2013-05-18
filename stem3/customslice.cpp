@@ -10,6 +10,7 @@
 #include "stemutil.h"
 #include "customslice.h"
 #include "fileio_fftw3.h"
+#include "comparators.h"
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
@@ -306,7 +307,7 @@ void make3DSlicesFT(MULS *muls) {
       header->comment = (char *)malloc(40);
       sprintf(header->comment,"Projected Potential (%d slices)",muls->slices);       
       header->commentSize = 45;
-      writeImage((void **)muls->trans[iz],header,fileName);      
+      writeImage((void **)muls->trans[iz].data(),header,fileName);      
     } 
   } /* end of if savePotential ... */
   

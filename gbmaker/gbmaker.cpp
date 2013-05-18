@@ -11,10 +11,10 @@
 #include "floatdef.h"
 #include "stemtypes_fftw3.h"
 #include "data_containers.h"
-//#include "memory_fftw3.h"	/* memory allocation routines */
 #include "readparams.h"
 #include "matrixlib.h"
 #include "fileio_fftw3.h"
+#include "comparators.h"
 
 #define NAME_BUF_LEN 64
 #define CRYSTALLINE 0

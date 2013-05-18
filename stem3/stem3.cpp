@@ -499,7 +499,7 @@ void readSFactLUT() {
 	kArray  = QSfVec(Nk+1);
 
 	// read the k-values:
-	readArray("k:",kArray,Nk);
+	readArray("k:",kArray.data(),Nk);
 	kArray[Nk] = 2.0*kArray[Nk-1];
 
 	for (j=0;j<muls.atomKinds;j++) {

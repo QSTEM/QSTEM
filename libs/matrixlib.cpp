@@ -54,7 +54,8 @@ void vectDiff_f(QSf3Arr &a, QSf3Arr &b, QSf3Arr &c, int revFlag) {
   }
 }
 
-void showMatrix(QSfMat m, std::string name) {
+template <typename Derived>
+void showMatrix(const EigenBase<Derived>& m, std::string name) {
   std::cout << "Here is the matrix " << name << ":\n" << m << std::endl;
 }
 

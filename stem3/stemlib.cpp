@@ -1,17 +1,12 @@
 #include <stdio.h>	/*  ANSI-C libraries */
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 #include <time.h>
 
+#include "comparators.h"
 #include "stemlib.h"
-#include "memory_fftw3.h"	/* memory allocation routines */
 #include "stemutil.h"
-// #include "tiffsubs.h"
 #include "imagelib_fftw3.h"
 #include "fileio_fftw3.h"
-// #include "floatdef.h"
-// #include "imagelib.h"
+
 
 
 #define _CRTDBG_MAP_ALLOC
@@ -101,7 +96,7 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 	// static double x2,y2,z2,r2;
 	// static int avgSteps,maxSteps,stepCount,maxStepCount;
 	double maxRadius2;
-    char fileName[NCINMAX], 
+    char fileName[NCINMAX];
 	char systStr[NCINMAX];
     std::complex<float_tt> sum;
 	int tZ, tnx, tny, tnz, tzOversample;  
@@ -110,8 +105,7 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 	int numRead = 0,dummy;
 
 
-	(*vlu)[0] = 0.0;
-	(*vlu)[1] = 0.0;
+	(*vlu) = 0.0;
 
 	/* initialize all the atoms to non-used */
 	if (aBox == NULL) {
