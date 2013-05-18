@@ -4,6 +4,7 @@
 #include <vector>
 #include "defines.h"
 #include "stemtypes_fftw3.h"
+#include "splines.h"
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -290,6 +291,23 @@ class ElTable
 	ElTable();
 public:
 	static std::vector<std::string> Get(){return elements;}
+};
+
+// Class for calculating and managing potentials
+class Potential
+{
+	// a set of logarithmic r values
+	static std::vector<float_tt> m_splinr;
+	std::vector<int> m_knownZvalues;
+	std::vector<AkimaSpline<float_tt,float_tt>> m_splines;
+	bool m_tdsFlag;
+	int m_scatFlag;
+
+	void GenerateSplineEntry(int Z);
+
+public:
+	Potential();
+	float_tt LookUp(int Z, float_tt R);
 };
 
 #endif

@@ -41,22 +41,17 @@ void *memcopy(void *dest, const void *src, size_t n);
 // atom *readUnitCell(int &natom,char *fileName,MULS *muls,int handleVacancies);
 atom *readCFGUnitCell(int &natom,char *fileName,MULS *muls);
 
-float_tt v3DatomLUT(int iz,float_tt r,int tdsFlag,int scatFlag);
-float_tt vzatomLUT( int Z, float_tt r ,int tdsFlag,int scatFlag);
-float_tt v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // float_tt
-
 float_tt wavelength( float_tt kev );
-float_tt v3Datom(int Z, float_tt r,int tdsFlag,int scatFlag);
-float_tt vzatom( int Z, float_tt radius,int tdsFlag,int scatFlag);
 
 float_tt gasdev(long *idum);
 float_tt rangauss( unsigned long *iseed );
 int ReadfeTable(int scatFlag );
 float_tt sigma( float_tt kev );
-void splinh( float_tt x[], float_tt y[],
-	     float_tt b[], float_tt c[], float_tt d[], int n);
-float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
-	     float_tt *d, int n, float_tt x0 );
+//void splinh( QSfVec &x, QSfVec &y, QSfMat &coeffs, int n);
+//void splinh( float_tt x[], float_tt y[],
+	     //float_tt b[], float_tt c[], float_tt d[], int n);
+//float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+	     //float_tt *d, int n, float_tt x0 );
 float_tt ranflat( unsigned long *iseed );
 int parlay( const char c[], int islice[], int nsmax, int lmax,
 	    int *nslice, int fperr );

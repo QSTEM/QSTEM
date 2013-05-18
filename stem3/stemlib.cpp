@@ -240,8 +240,7 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 	/***************************************************************
 	* Do the trilinear interpolation
 	*/
-	sum[0] = 0.0;
-	sum[1] = 0.0;
+	sum=0;
 	if (x*x+y*y+z*z > maxRadius2) {
 		return;
 	}
@@ -262,10 +261,9 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 		if (dz < 0) dz = 0.0;
 	}
 
-
 	if ((*muls).potential3D) {
-		if (aBox[Znum].B_ > 0) {
-			sum[0] = (1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz][ix][iy].real()+
+		if (aBox[Znum].B > 0) {
+			sum.real() = (1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz][ix][iy].real()+
 				dx*aBox[Znum].potential[iz][ix+1][iy].real())+
 				dy*((1.0-dx)*aBox[Znum].potential[iz][ix][iy+1].real()+
 				dx*aBox[Znum].potential[iz][ix+1][iy+1].real()))+
@@ -283,7 +281,7 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 				dx*aBox[Znum].potential[iz+1][ix+1][iy+1].imag()));
 		}
 		else {
-			sum[0] = (1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[iz][ix][iy]+
+			sum.real() = (1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[iz][ix][iy]+
 				dx*aBox[Znum].rpotential[iz][ix+1][iy])+
 				dy*((1.0-dx)*aBox[Znum].rpotential[iz][ix][iy+1]+
 				dx*aBox[Znum].rpotential[iz][ix+1][iy+1]))+
@@ -293,8 +291,10 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 				dx*aBox[Znum].rpotential[iz+1][ix+1][iy+1]));
 		}
 	}
-	else {
-		if (aBox[Znum].B > 0) {
+	else 
+	{
+		if (aBox[Znum].B > 0) 
+		{
 			sum.real() = (1.0-dy)*((1.0-dx)*aBox[Znum].potential[0][ix][iy].real()+
 				dx*aBox[Znum].potential[0][ix+1][iy].real())+
 				dy*((1.0-dx)*aBox[Znum].potential[0][ix][iy+1].real()+
@@ -304,8 +304,9 @@ void atomBoxLookUp(std::complex<float_tt> *vlu, MULS *muls, int Znum,double x, d
 				dy*((1.0-dx)*aBox[Znum].potential[0][ix][iy+1].imag()+
 				dx*aBox[Znum].potential[0][ix+1][iy+1].imag());
 		}
-		else {
-			sum[0] = (1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[0](iy,ix)+
+		else 
+		{
+			sum.real() = (1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[0](iy,ix)+
 				dx*aBox[Znum].rpotential[0](iy, ix+1)+
 				dy*((1.0-dx)*aBox[Znum].rpotential[0](iy+1, ix)+
 				dx*aBox[Znum].rpotential[0](iy+1, ix+1));
@@ -455,7 +456,8 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		/**********************************************************
 		* Sort the atoms in z.
 		*********************************************************/
-		qsort(atoms,natom,sizeof(atom),atomCompare);
+		//qsort(atoms,natom,sizeof(atom),atomCompare);
+		std::sort(atoms.begin(), atoms.end(), atomCompareZnum());
 		if ((*muls).cfgFile != NULL) {
 			sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
 			// append the TDS run number

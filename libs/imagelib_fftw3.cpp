@@ -213,7 +213,7 @@ void setHeaderComment(imageStruct *header, char *comment) {
   if (comment != NULL) {
     header->comment = (char *)malloc(strlen(comment)+1);
     strcpy(header->comment,comment);
-    header->commentSize = strlen(comment);
+    header->commentSize = (int)strlen(comment);
   }
   else {
     header->comment = (char *)malloc(1);

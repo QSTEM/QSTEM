@@ -31,9 +31,6 @@
 #define EXTRA_LAYERS 3  /* number of extra layers for potential overlap */
 
 #define NCINMAX  500	/* max number of characers in stacking spec */
-#define NRMAX	50	/* number of values in look-up-table in vzatomLUT */
-#define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
-#define RMAX	5
 #define BUF_LEN 256
 #define NPDTMAX 8       /* number of parameters for doyle turner sfacts */
 #define NPMAX	12	/* number of parameters for each Z */

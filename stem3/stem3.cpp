@@ -418,6 +418,7 @@ void displayParams() {
 		printf("* Number of detectors:  %d\n",muls.detectorNum);
 		for (i=0;i<muls.detectorNum;i++) {
 			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name);
+			// TODO: some fixed-length formatting going on here.
 			for (j=0;j<14-strlen(muls.detectors[0][i].name);j++) printf(" ");
 			printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
 				muls.detectors[0][i].rInside,

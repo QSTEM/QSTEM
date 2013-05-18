@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include <string.h>
 #include "data_containers.h"
+#include "splines.h"
 
 WAVEFUNC::WAVEFUNC(int x, int y) :
 detPosX(0),
@@ -8,6 +9,7 @@ detPosY(0),
 iPosX(0),
 iPosY(0),
 thickness(0.0),
+intIntensity(0),
 nx(0),
 ny(0)
 {
@@ -36,20 +38,19 @@ ny(0)
         fileStart = "mulswav.img";
 }
 
-WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
+WAVEFUNC::WAVEFUNC( WAVEFUNC& other ) :
+iPosX(other.iPosX),
+iPosY(other.iPosY),
+detPosX(other.detPosX),
+detPosY(other.detPosY),
+nx(other.nx),
+ny(other.ny),
+fileStart(other.fileStart),
+fileout(other.fileout),
+avgName(other.avgName),
+thickness(0.0),
+intIntensity(0)
 {
-	iPosX = other.iPosX;
-	iPosY = other.iPosY;
-	detPosX = other.detPosX;
-	detPosY = other.detPosY;
-
-        fileStart = other.fileStart;
-        fileout = other.fileout;
-        avgName = other.avgName;
-
-	nx = other.nx;
-	ny = other.ny;
-
 	diffpat = QSfMat::Zero(nx, ny);
 	avgArray = QSfMat::Zero(nx, ny);
 
@@ -129,6 +130,8 @@ std::vector<std::string> ElTable::elements(110);
 
 ElTable::ElTable()
 {
+	// offset by one so that elements can be addressed by their Z directly.
+	elements.push_back("DUMMY");
 	elements.push_back("H");
 	elements.push_back("He");
 	elements.push_back("Li");
@@ -235,3 +238,56 @@ ElTable::ElTable()
 	elements.push_back("No");
 	elements.push_back("Lr");
 }
+
+#define NRMAX	50	/* number of values in look-up-table in vzatomLUT */
+#define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
+#define RMAX	5
+
+//
+std::vector<float_tt> Potential::m_splinr;
+
+Potential::Potential() :
+m_splines(std::vector<AkimaSpline<float_tt,float_tt>>(NZMAX+1))
+{
+	m_splinr=std::vector<float_tt>(NRMAX);
+	m_splines=std::vector<AkimaSpline<float_tt,float_tt>>(NZMAX+1);
+	float_tt dlnr = static_cast<float_tt>(log(RMAX/RMIN)/(NRMAX-1));
+	for( int i=0; i<NRMAX; i++)
+	{
+		m_splinr[i] = static_cast<float_tt>(RMIN * exp( i * dlnr ));
+	}
+}
+
+void Potential::GenerateSplineEntry(int Z)
+{
+	std::vector<float_tt> potential_values(m_splinr.size());
+
+	// First, map the splinr std::vector to an Eigen Array (for vectorized operations in v3DAtom)
+	float_tt* r_ptr = &m_splinr[0];
+	Eigen::Map<QSfArr> e_splinr(r_ptr, NRMAX);
+
+	// Map the potential_values to a separate Eigen Array to store the output
+	float_tt* v_ptr = &potential_values[0];
+	Eigen::Map<QSfArr> e_pots(v_ptr, NRMAX);
+	// Do the computation.  NOTE: this is storing the data in potential_values, because the
+	//    eigen array maps directly to its memory.
+	//e_pots = v3Datom(Z, e_splinr, m_tdsFlag, m_scatFlag);
+
+	// feed the data into the spline fitter
+	m_splines[Z] = AkimaSpline<float_tt, float_tt>(m_splinr, potential_values);
+	// record the fact that we know about this atom now.
+	m_knownZvalues.push_back(Z);
+}
+
+float_tt Potential::LookUp(int Z, float_tt r)
+{
+	// check if spline has already been fit for this Z:
+	if(std::find(m_knownZvalues.begin(), m_knownZvalues.end(), Z)==m_knownZvalues.end())
+	{
+		// If not, do so.
+		GenerateSplineEntry(Z);
+	}
+	// evaluate the spline at radius r
+	return m_splines[Z].interpolate(r);
+}
+

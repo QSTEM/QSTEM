@@ -9,6 +9,7 @@
 
 #include "defines.h"
 #include "stemtypes_fftw3.h"
+#include "comparators.h"
 #include "data_containers.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
 #include "matrixlib.h"

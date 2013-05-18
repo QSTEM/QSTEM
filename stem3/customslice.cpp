@@ -245,7 +245,8 @@ void make3DSlicesFT(MULS *muls) {
    */
   atoms = muls->atoms;
   if (divCount == 0) {
-    qsort(atoms,muls->natom,sizeof(atom),atomCompare());
+	std::sort(atoms.begin(), atoms.end(), atomCompareZnum());
+    //qsort(atoms,muls->natom,sizeof(atom),atomCompare());
     if ((*muls).cfgFile != "") {
       sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
       writeCFG(atoms,muls->natom,buf,muls);	
