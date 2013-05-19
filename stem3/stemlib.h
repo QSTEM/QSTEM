@@ -5,6 +5,7 @@
 
 #include "stemtypes_fftw3.h"
 #include "data_containers.h"
+#include <string>
 
 
 /**********************************************
@@ -22,15 +23,15 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slices);
 //void detectorCollect(MULS *muls, WAVEFUNC *wave);
 void saveSTEMImages(MULS *muls);
 
-void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center);
+void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center);
 void make3DSlicesFFT(MULS *muls,int nlayer,char *fileName,atom *center);
 void createAtomBox(MULS *muls, int Znum, atomBox *aBox);
 void transmit(void **wave,void **trans,int nx, int ny,int posx,int posy);
 void propagate_slow(void** wave,int nx, int ny,MULS *muls);
-fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B);
-fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut);
-fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut,float q);
-fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B);
+//fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B);
+//fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut);
+//fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut,float q);
+//fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B);
 
 WAVEFUNC initWave(int nx, int ny);
 void readStartWave(MULS *muls, WAVEFUNC *wave);

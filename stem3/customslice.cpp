@@ -164,11 +164,11 @@ void make3DSlicesFT(MULS *muls) {
 				if (sz2r+sx2max*sx2 <=1.0) 
 				{  // enforce ellipse equation:
 					s = sqrt(sz2+sx2);
-					arg = TWOPI * (sx*(0.5f*ax)+sz*(0.5f*cz)); // place single atom in center of box
+					arg = static_cast<float_tt>(TWOPI * (sx*(0.5f*ax)+sz*(0.5f*cz))); // place single atom in center of box
 					ffr = cos(arg); ffi = sin(arg);	  
 					// all the s are actually q, therefore S = 0.5*q = 0.5*s:
-					pot(ix,iz).real() = sfLUT(0.5f*s,atKind,muls)*ffr;
-					pot(ix,iz).imag() = sfLUT(0.5f*s,atKind,muls)*ffi;
+					pot(ix,iz) = std::complex<float_tt>(sfLUT(0.5f*s,atKind,muls)*ffr, 
+														sfLUT(0.5f*s,atKind,muls)*ffi);
 				}      
 			}
 		}
@@ -217,7 +217,7 @@ void make3DSlicesFT(MULS *muls) {
        */
       if (Nzp == 1) {
 	for (ix=0;ix<Nx;ix++) for (iz=1;iz<Nz;iz++)
-	  pot(ix,0).real() += pot(ix,iz).real(), pot(ix,0).imag() += pot(ix,iz).imag();	
+	  pot(ix,0) += pot(ix,iz);	
 	Nz = 1;
       }
       /* Now we will create a double array to hold the real valued potential as
@@ -270,8 +270,9 @@ void make3DSlicesFT(MULS *muls) {
 	      y = ((iy+0.5f)*dYp-atoms[j].pos[1]+pY*byp) + muls->potOffsetY;
 	      rxy2 = SQR(x)+SQR(y);
 	      r = sqrt(rxy2+SQR(z));
-	      if (r <=rcutoff[atKind]+dZp+dXp)    
-		muls->trans(ix,iz)[iy].real() += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0f,sqrt(rxy2)/dX+1.0f);
+	      if (r <=rcutoff[atKind]+dZp+dXp)
+			  // adding only to real value!
+		muls->trans[iz](iy,ix) += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0f,sqrt(rxy2)/dX+1.0f);
 	      //potential(iy,iz)[ix] += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0,sqrt(rxy2)/dX+1.0);
 	    }      
 	  }
@@ -376,9 +377,9 @@ QSfMat reduceAndExpand(QScMat fc,int Nz,int Nx,int zOversample,int &fNz,int &fNx
   }
 
   if (Nz == 1) {
-    for (ix=0;ix<Nxm;ix++) ff(ix+1,0) = fc(ix+Nxm,0)[0];
+    for (ix=0;ix<Nxm;ix++) ff(ix+1,0) = fc(ix+Nxm,0).real();
     
-    ff(0,0) = 3.0*ff(1,0)-3.0*ff(2,0)+ff(3,0);
+    ff(0,0) = 3.0f*ff(1,0)-3.0f*ff(2,0)+ff(3,0);
     // ff(0,0) = ff(1,0)+(ff(1,0)-ff(2,0));
     return ff;
   }
@@ -386,7 +387,7 @@ QSfMat reduceAndExpand(QScMat fc,int Nz,int Nx,int zOversample,int &fNz,int &fNx
   for (iz=0;iz<Nzm;iz++) for (ix=0;ix<Nxm;ix++) { 
     for (j=-Ninteg ; j<=Ninteg;j++)
 	if ((iz+j+Nzm>=0) && (iz+j<Nzm))
-	  ff(ix+1,iz+1) += fc(ix+Nxm,iz+Nzm+j)[0];
+	  ff(ix+1,iz+1) += fc(ix+Nxm,iz+Nzm+j).real();
   }
   // zz(:,1) = 3*zz(:,2)-3*zz(:,3)+zz(:,4);
   // zz(1,2:ncols+1) = 3*arg1(1,:)-3*arg1(2,:)+arg1(3,:);
