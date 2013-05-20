@@ -29,9 +29,9 @@ imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,dou
 				  int paramSize, double *params,char *comment); 
 void setHeaderComment(imageStruct *header, char *comment);
   
-imageStruct *readImage(void ***pix,int nx,int ny,char *fileName);
-void writeImage(void **pix, imageStruct *header, char *fileName);
-void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSize);
+imageStruct *readImage(void ***pix,int nx,int ny,const char *fileName);
+void writeImage(void **pix, imageStruct *header, const char *fileName);
+void writeRealImage(void **pix, imageStruct *header, const char *fileName, int dataSize);
 /*
 void writeRealImage(fftw_real **pix, int nx, int ny, float_t dx, 
 		   float_t dy, float_t t,char *fileName);

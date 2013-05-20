@@ -15,6 +15,7 @@ class Potential
 	static std::vector<float_tt> m_splinr;
 	std::vector<int> m_knownZvalues;
 	std::vector<AkimaSpline<float_tt,float_tt> > m_splines;
+	QScMat atPot;
 	bool m_tdsFlag;
 	int m_scatFlag;
 

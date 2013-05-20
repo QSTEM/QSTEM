@@ -23,7 +23,7 @@
                    // format changes.
 
 
-void writeImage(void **pix, imageStruct *header, char *fileName) {
+void writeImage(void **pix, imageStruct *header, const char *fileName) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -69,7 +69,7 @@ void writeImage(void **pix, imageStruct *header, char *fileName) {
 }
 
 
-void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSize) {
+void writeRealImage(void **pix, imageStruct *header, const char *fileName, int dataSize) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -114,7 +114,7 @@ void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSiz
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.
  ***********************************************************/
-imageStruct *readImage(QSfMat pix,int nx,int ny,char *fileName) {
+imageStruct *readImage(QSfMat pix, int nx, int ny, const char *fileName) {
   FILE *fp;
   size_t nRead=0;
   int trial=0,maxTrial=3,freadError=0;
