@@ -115,9 +115,9 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 			aBox[ix].rpotential = QSVecOffMat();
 			aBox[ix].B = -1.0;
 		}
-		dx = (*muls).resolutionX;    ddx = dx/(double)OVERSAMPLING;
-		dy = (*muls).resolutionY;    ddy = dy/(double)OVERSAMPLING;
-		dz = (*muls).sliceThickness; ddz = dz/(double)OVERSAMPLINGZ;
+		dx = (*muls).resolutionX;    ddx = static_cast<float_tt>(dx/(double)OVERSAMPLING);
+		dy = (*muls).resolutionY;    ddy = static_cast<float_tt>(dy/(double)OVERSAMPLING);
+		dz = (*muls).sliceThickness; ddz = static_cast<float_tt>(dz/(double)OVERSAMPLINGZ);
 		maxRadius2 = (*muls).atomRadius*(*muls).atomRadius;
 		/* For now we don't care, if the box has only small 
 		* prime factors, because we will not fourier transform it
@@ -189,7 +189,7 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 				sprintf(systStr,"scatpot %s %d %g %d %d %d %g %g %g %d %g",
 					fileName,Znum,B,boxNx,boxNy,boxNz,ddx,ddy,ddz,OVERSAMPLINGZ,(*muls).v0);
 				system(systStr);
-				if ((fp=fopen(fileName.c_str(),"r")) == NULL) {
+				if ((fp=fopen(fileName,"r")) == NULL) {
 					if (muls->printLevel >0)
 						printf("cannot calculate projected potential using scatpot - exit!\n");
 					exit(0);
@@ -203,20 +203,19 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 			aBox[Znum].rpotential = QSVecOffMat(boxNz);
 			for (int slc=0; slc<boxNz; slc++)
 			{
-				aBox[Znum].rpotential[slc]=QSfMat(boxNx,boxNy);
+				aBox[Znum].rpotential[slc]=QSfMat(boxNx,boxNy);	
+				numRead = fread(aBox[Znum].rpotential[slc].data(),sizeof(float_tt),
+					(boxNx*boxNy),fp);
 			}
-			//float3D(boxNz,boxNx,boxNy,"atomBox");
-			numRead = fread(aBox[Znum].rpotential(0,0),sizeof(float_tt),
-				(size_t)(boxNx*boxNy*boxNz),fp);	
 		}
 		else {
-#if FLOAT_PRECISION == 1
-			numRead = fread(aBox[Znum].potential(0,0),sizeof(fftwf_complex),
-				(size_t)(boxNx*boxNy*boxNz),fp);	
-#else
-			numRead = fread(aBox[Znum].potential(0,0),sizeof(fftw_complex),
-				(size_t)(boxNx*boxNy*boxNz),fp);	
-#endif
+			aBox[Znum].potential = QSVecOfcMat(boxNz);
+			for (int slc=0; slc<boxNz; slc++)
+			{
+				aBox[Znum].potential[slc]=QScMat(boxNx,boxNy);	
+				numRead = fread(aBox[Znum].potential[slc].data(),2*sizeof(float_tt),
+					(boxNx*boxNy),fp);
+			}
 		}
 
 		/* writeImage_old(aBox[Znum].potential[0],boxNx,boxNy, 0.0,"potential.img");
@@ -263,22 +262,22 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 	if ((*muls).potential3D) {
 		if (aBox[Znum].B > 0) {
 			sum = QScf(
-				(1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz](iy,ix).real()+
+				(1.0f-dz)*((1.0f-dy)*((1.0f-dx)*aBox[Znum].potential[iz](iy,ix).real()+
 				dx*aBox[Znum].potential[iz](iy,ix+1).real())+
-				dy*((1.0-dx)*aBox[Znum].potential[iz](iy+1,ix).real()+
+				dy*((1.0f-dx)*aBox[Znum].potential[iz](iy+1,ix).real()+
 				dx*aBox[Znum].potential[iz](iy+1,ix+1).real()))+
-				dz*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz+1](iy,ix).real()+
+				dz*((1.0f-dy)*((1.0f-dx)*aBox[Znum].potential[iz+1](iy,ix).real()+
 				dx*aBox[Znum].potential[iz+1](iy,ix+1).real())+
-				dy*((1.0-dx)*aBox[Znum].potential[iz+1](iy+1,ix).real()+
+				dy*((1.0f-dx)*aBox[Znum].potential[iz+1](iy+1,ix).real()+
 				dx*aBox[Znum].potential[iz+1](iy+1,ix+1).real()))
 				,
-				(1.0-dz)*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz](iy,ix).imag()+
+				(1.0f-dz)*((1.0f-dy)*((1.0f-dx)*aBox[Znum].potential[iz](iy,ix).imag()+
 				dx*aBox[Znum].potential[iz](iy,ix+1).imag())+
-				dy*((1.0-dx)*aBox[Znum].potential[iz](iy+1,ix).imag()+
+				dy*((1.0f-dx)*aBox[Znum].potential[iz](iy+1,ix).imag()+
 				dx*aBox[Znum].potential[iz](iy+1,ix+1).imag()))+
-				dz*((1.0-dy)*((1.0-dx)*aBox[Znum].potential[iz+1](iy,ix).imag()+
+				dz*((1.0f-dy)*((1.0f-dx)*aBox[Znum].potential[iz+1](iy,ix).imag()+
 				dx*aBox[Znum].potential[iz+1](iy,ix+1).imag())+
-				dy*((1.0-dx)*aBox[Znum].potential[iz+1](iy+1,ix).imag()+
+				dy*((1.0f-dx)*aBox[Znum].potential[iz+1](iy+1,ix).imag()+
 				dx*aBox[Znum].potential[iz+1](iy+1,ix+1).imag()))
 				);
 		}
@@ -299,17 +298,14 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 				);
 			*/
 			sum = QScf(
-				(1.0-dz)*(1.0-dy)*(
-				(1.0-dx)*aBox[Znum].rpotential[iz](iy,ix)+
+				(1.0f-dz)*(1.0f-dy)*(
+				(1.0f-dx)*aBox[Znum].rpotential[iz](iy,ix)+
 				dx*aBox[Znum].rpotential[iz](iy,ix+1))+
-
-				dy*((1.0-dx)*aBox[Znum].rpotential[iz](iy+1,ix)+
+				dy*((1.0f-dx)*aBox[Znum].rpotential[iz](iy+1,ix)+
 				dx*aBox[Znum].rpotential[iz](iy+1,ix+1))+
-
-				dz*((1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[iz+1](iy,ix)+
+				dz*((1.0f-dy)*((1.0f-dx)*aBox[Znum].rpotential[iz+1](iy,ix)+
 				dx*aBox[Znum].rpotential[iz+1](iy,ix+1))+
-
-				dy*((1.0-dx)*aBox[Znum].rpotential[iz+1](iy+1,ix)+
+				dy*((1.0f-dx)*aBox[Znum].rpotential[iz+1](iy+1,ix)+
 				dx*aBox[Znum].rpotential[iz+1](iy+1,ix+1)))
 				,
 				0
@@ -322,23 +318,23 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 		if (aBox[Znum].B > 0) 
 		{
 			sum = QScf(
-				(1.0-dy)*((1.0-dx)*aBox[Znum].potential[0](iy,ix).real()+
+				(1.0f-dy)*((1.0f-dx)*aBox[Znum].potential[0](iy,ix).real()+
 				dx*aBox[Znum].potential[0](iy, ix+1).real())+
-				dy*((1.0-dx)*aBox[Znum].potential[0](iy+1,ix).real()+
+				dy*((1.0f-dx)*aBox[Znum].potential[0](iy+1,ix).real()+
 				dx*aBox[Znum].potential[0](iy+1,ix+1).real())
 				,
-				(1.0-dy)*((1.0-dx)*aBox[Znum].potential[0](iy,ix).imag()+
+				(1.0f-dy)*((1.0f-dx)*aBox[Znum].potential[0](iy,ix).imag()+
 				dx*aBox[Znum].potential[0](iy,ix+1).imag())+
-				dy*((1.0-dx)*aBox[Znum].potential[0](iy+1,ix).imag()+
+				dy*((1.0f-dx)*aBox[Znum].potential[0](iy+1,ix).imag()+
 				dx*aBox[Znum].potential[0](iy+1,ix+1).imag()));
 		}
 		else 
 		{
 			// imaginary part is 0.
 			sum = QScf(
-				(1.0-dy)*((1.0-dx)*aBox[Znum].rpotential[0](iy,ix)+
+				(1.0f-dy)*((1.0f-dx)*aBox[Znum].rpotential[0](iy,ix)+
 				dx*aBox[Znum].rpotential[0](iy, ix+1)+
-				dy*((1.0-dx)*aBox[Znum].rpotential[0](iy+1, ix)+
+				dy*((1.0f-dx)*aBox[Znum].rpotential[0](iy+1, ix)+
 				dx*aBox[Znum].rpotential[0](iy+1, ix+1)))
 				,
 				0
@@ -605,13 +601,11 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	}
 
 	// reset the potential to zero:  
-#if FLOAT_PRECISION == 1
-	memset((void *)&(muls->trans[0][0][0].real()),0,
-		muls->slices*muls->potNx*muls->potNy*sizeof(fftwf_complex));
-#else
-	memset((void *)&(muls->trans[0][0][0].real()),0,
-		muls->slices*muls->potNx*muls->potNy*sizeof(fftw_complex));
-#endif
+	for (int slc=0; slc<muls->slices; slc++)
+	{
+		muls->trans[slc].setZero();
+	}
+	
 	nyAtBox   = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionY);
 	nxyAtBox  = nyAtBox*(2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX));
 	nyAtBox2  = 2*nyAtBox;
@@ -792,7 +786,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 							iz = (iAtomZ+32*nlayer) % nlayer;	  /* shift into the positive range */
 							atomBoxLookUp(&dPot,muls,atoms[iatom].Znum,x,y,0,
 								muls->tds ? 0 : atoms[iatom].dw);
-							z = (double)(iAtomZ+1)*(*muls).cz[0]-atomZ;
+							z = (iAtomZ+1)*(*muls).cz[0]-atomZ;
 
 							/* 
 							printf("iz=%d,%d, z=%g, atomZ=%g(%g), iAtomZ=%d, c=%g (%d, %d))\n",

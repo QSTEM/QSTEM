@@ -1500,7 +1500,8 @@ void doTOMO() {
 			rotateVect(u,u,0,theta*1e-3,0);
 
 			// shift origin back to old (0,0,0):
-			u[0]+=muls.cellDims[0]/2; u[1]+=muls.cellDims[1]/2.0; u[2]+=muls.cellDims[2]/2.0;
+			u += muls.cellDims/2;
+			//u[0]+=muls.cellDims[0]/2; u[1]+=muls.cellDims[1]/2.0f; u[2]+=muls.cellDims[2]/2.0f;
 
 			boxMin[0] = boxMin[0]>u[0] ? u[0] : boxMin[0]; boxMax[0] = boxMax[0]<u[0] ? u[0] : boxMax[0]; 
 			boxMin[1] = boxMin[1]>u[1] ? u[1] : boxMin[1]; boxMax[1] = boxMax[1]<u[1] ? u[1] : boxMax[1]; 
@@ -1662,8 +1663,8 @@ void doCBED() {
 		* then also be adjusted, so that it is off-center
 		*/
 
-		probeOffsetX = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
-		probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
+		probeOffsetX = static_cast<float_tt>(muls.sourceRadius*gasdev(&iseed)*SQRT_2);
+		probeOffsetY = static_cast<float_tt>(muls.sourceRadius*gasdev(&iseed)*SQRT_2);
 		muls.scanXStart = probeCenterX+probeOffsetX;
 		muls.scanYStart = probeCenterY+probeOffsetY;
 		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
@@ -2007,8 +2008,8 @@ void doTEM() {
 		}
 		else {
 			// produce a tilted wave function (btiltx,btilty):
-			ktx = 2.0*PI*sin(muls.btiltx)/wavelength(muls.v0);
-			kty = 2.0*PI*sin(muls.btilty)/wavelength(muls.v0);
+			ktx = static_cast<float_tt>(2.0*PI*sin(muls.btiltx)/wavelength(muls.v0));
+			kty = static_cast<float_tt>(2.0*PI*sin(muls.btilty)/wavelength(muls.v0));
 			for (ix=0;ix<muls.nx;ix++) {
 				x = muls.resolutionX*(ix-muls.nx/2);
 				for (iy=0;iy<muls.ny;iy++) {

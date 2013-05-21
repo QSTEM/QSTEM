@@ -207,7 +207,7 @@ float_tt rangauss( unsigned long *iseed )
     
   } while ( (x1 < 1.0e-30) || (x2 < 1.0e-30) );
   
-  y = sqrt( - 2.0 * log(x1) ) * cos( TWOPI * x2 );
+  y = sqrt( - 2.0f * log(x1) ) * (float_tt)(cos( TWOPI * x2 ));
   
   return( y );
   
@@ -472,32 +472,32 @@ float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
   z   = z-(float_tt)zi;
   
   
-  x0  = ((2.0-x)*x-1.0)*x;
-  x1  = (3.0*x-5.0)*x*x+2.0;
-  x2  = ((4.0-3.0*x)*x+1.0)*x;
-  x   = (x-1.0)*x*x;
+  x0  = ((2.0f-x)*x-1.0f)*x;
+  x1  = (3.0f*x-5.0f)*x*x+2.0f;
+  x2  = ((4.0f-3.0f*x)*x+1.0f)*x;
+  x   = (x-1.0f)*x*x;
 
 
   if (Nz > 2) {
 	  // these were ff[0][0]
     if ((zi > Nz-3) || (xi > Nx-3)) return 0.0;
-    if ((zi < 1) && (xi < 1)) return ff(0,0);  // was ff[0][0]
-    if (zi < 1) return ff(xi,0);  // was ff[0][xi]
-    if (xi < 1) return ff(0,zi);  // was ff[zi][0]
+    if ((zi < 1) && (xi < 1)) return ff[0][0];  // was ff[0][0]
+    if (zi < 1) return ff[0][xi];
+    if (xi < 1) return ff[zi][0];  // was ff[zi][0]
 
     ptr = ff[zi-1];
-    f   = FX * (((2.0-z)*z-1)*z);
+    f   = FX * (((2.0f-z)*z-1)*z);
     ptr = ff[zi];
-    f   += FX * ((3.0*z-5.0)*z*z+2.0);
+    f   += FX * ((3.0f*z-5.0f)*z*z+2.0f);
     ptr = ff[zi+1];
-    f   += FX * (((4.0-3.0*z)*z+1.0)*z);
+    f   += FX * (((4.0f-3.0f*z)*z+1.0f)*z);
     ptr = ff[zi+2];
-    f   += FX * ((z-1.0)*z*z);
-    f   *= 0.25;
+    f   += FX * ((z-1.0f)*z*z);
+    f   *= 0.25f;
   }
   else {
     ptr = ff[0];
-    f = 0.5 * FX;    
+    f = 0.5f * FX;    
   }
   return f;
 }
