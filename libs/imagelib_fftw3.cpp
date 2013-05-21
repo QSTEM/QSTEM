@@ -57,8 +57,8 @@ void writeImage(void **pix, imageStruct *header, const char *fileName) {
   */
 
   fwrite((void *)header,header->headerSize,1,fp);
-  fwrite((void *)(header->params),sizeof(double),header->paramSize,fp);
-  fwrite((void *)(header->comment),1,header->commentSize,fp);
+  fwrite((void *)(&header->params[0]),sizeof(float_tt),header->paramSize,fp);
+  fwrite((void *)(header->comment.c_str()),1,header->commentSize,fp);
   
   if (fwrite(pix[0],header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
     printf("Error while writing %d x %d data to file %s\n",nx,ny,fileName);
@@ -69,7 +69,7 @@ void writeImage(void **pix, imageStruct *header, const char *fileName) {
 }
 
 
-void writeRealImage(void **pix, imageStruct *header, const char *fileName, int dataSize) {
+void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName, int dataSize) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -95,9 +95,9 @@ void writeRealImage(void **pix, imageStruct *header, const char *fileName, int d
   printf("value: %g .. %g\n",rmin,rmax); 
   */  
   fwrite((void *)header,header->headerSize,1,fp);
-  fwrite((void *)(header->params),sizeof(double),header->paramSize,fp);
-  fwrite((void *)(header->comment),1,header->commentSize,fp);
-  if (fwrite((void *)pix[0],header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
+  fwrite((void *)(&header->params[0]),sizeof(float_tt),header->paramSize,fp);
+  fwrite((void *)(header->comment.c_str()),1,header->commentSize,fp);
+  if (fwrite((void *)pix.data(),header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
     printf("writeRealImage: Error while writing data to file %s\n",fileName);
     fclose(fp);
     exit(0);
@@ -168,7 +168,7 @@ imageStruct *makeNewHeader(int nx,int ny) {
   
   header = (imageStruct *)malloc(sizeof(imageStruct));
   header->headerSize = sizeof(imageStruct)-sizeof(double *)-sizeof(char *);
-  header->params = NULL;
+  header->params = std::vector<float_tt>();
   header->paramSize = 0;
   header->nx = nx;
   header->ny = ny;
@@ -177,13 +177,13 @@ imageStruct *makeNewHeader(int nx,int ny) {
   header->dx = 1.0;
   header->dy = 1.0;
   header->complexFlag = 0;
-  header->comment = NULL;
-  setHeaderComment(header,NULL);
+  header->comment = "";
+  setHeaderComment(header,"");
   return header;
 }
 
-imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
-				  int paramSize, double *params,char *comment) {  
+imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,float_tt t,float_tt dx,float_tt dy,
+								  int paramSize, std::vector<float_tt> params, std::string comment) {  
   imageStruct *header;
   
   header = (imageStruct *)malloc(sizeof(imageStruct));
@@ -198,26 +198,22 @@ imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,dou
   header->dy = dy;
   header->complexFlag = cFlag;
 
-  header->comment = NULL;
+  header->comment = "";
   header->commentSize = 0;
   setHeaderComment(header,comment);	  
   return header;
 }
 
-void setHeaderComment(imageStruct *header, char *comment) {
+void setHeaderComment(imageStruct *header, std::string comment) {
 
-  if (header->comment != NULL) {
-    free(header->comment);
-    // header->comment = NULL;
-  }
-  if (comment != NULL) {
-    header->comment = (char *)malloc(strlen(comment)+1);
-    strcpy(header->comment,comment);
-    header->commentSize = (int)strlen(comment);
+  if (!comment.empty()) {
+    //header->comment = (char *)malloc(strlen(comment)+1);
+	header->comment = comment;
+    header->commentSize = (int)comment.length();
   }
   else {
-    header->comment = (char *)malloc(1);
-    *(header->comment) = '\0';  
+    //header->comment = (char *)malloc(1);
+    //*(header->comment) = '\0';  
     header->commentSize = 0;
   }
 }
@@ -228,6 +224,7 @@ void setHeaderComment(imageStruct *header, char *comment) {
  */
 void getImageHeader(imageStruct *header, FILE *fp) {
   int hSize=sizeof(imageStruct);
+  char buf[200];
 
   // reset the file pointer, just to make sure we are at the beginning
   clearerr(fp);
@@ -239,155 +236,15 @@ void getImageHeader(imageStruct *header, FILE *fp) {
   fread((void *)header,1,hSize,fp);
   // read the additional parameters:
   if (header->paramSize >0) {
-    header->params = (double *)realloc(header->params,header->paramSize*sizeof(double));
-    fread((void *)(header->params),sizeof(double),header->paramSize,fp);
+	  header->params = std::vector<float_tt>(header->paramSize);//(double *)realloc(header->params,header->paramSize*sizeof(double));
+	  fread((void *)(&header->params[0]),sizeof(float_tt),header->paramSize,fp);
   }
   // read the comment
   if (header->commentSize>0) {
-    header->comment = (char *)realloc(header->comment,(header->commentSize)+1);
-    header->comment[header->commentSize] = '\0';
-    fread((void *)(header->comment),1,header->commentSize,fp);  	
+    fread((void *)(buf),1,header->commentSize,fp);
+	header->comment = std::string(buf);
   }
   // printf("DataSize: %d, complex: %d\n",header->dataSize,header->complexFlag);
-}
-
-
-
-/*****************************************************************
- * Old Image routines:
- ****************************************************************/
-
-
-void writeImage_old(fftw_complex **pix, int nx, int ny,float t,char *fileName) {
-  FILE *fp;
-  int size[2],flag=2,ix,iy;
-  double rmin,rmax;
-
-  size[0] = nx;
-  size[1] = ny;
-  if ((fp = fopen(fileName,"w"))==NULL) {
-    printf("Could not write file %s\n",fileName);
-    exit(0);
-  }
-
-  rmin = pix[0][0][0];
-  rmax = rmin;
-  for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-    if (rmin > pix[ix][iy][0]) rmin = pix[ix][iy][0];
-    if (rmax < pix[ix][iy][0]) rmax = pix[ix][iy][0];    
-  }
-  //  printf("value: %g .. %g\n",rmin,rmax);
-
-  fwrite((void *)size,sizeof(int),2,fp);
-  fwrite((void *)(&t),sizeof(float),1,fp);  
-  fwrite((void *)(&flag),sizeof(int),1,fp);
-  fseek(fp,2*sizeof(fftw_complex),SEEK_SET);
-  if (fwrite((void *)pix[0],sizeof(fftw_complex), 
-	     (size_t)(nx*ny),fp) != nx*ny)
-    {
-      printf("Error while writing data to file %s\n",fileName);
-      fclose(fp);
-      exit(0);
-    }
-  fclose(fp);
-}
-
-
-void writeRealImage_old(fftw_real **pix, int nx, int ny,float t,char *fileName) {
-  FILE *fp;
-  int size[2],flag=0;
-
-  size[0] = nx;
-  size[1] = ny;
-  if ((fp = fopen(fileName,"w"))==NULL) {
-    printf("Could not write file %s\n",fileName);
-    return;
-  }
-
-  fwrite((void *)size,sizeof(int),2,fp);
-  fwrite((void *)(&t),sizeof(float),1,fp);  
-  fwrite((void *)(&flag),sizeof(int),1,fp);  
-  fseek(fp,4*sizeof(fftw_real),SEEK_SET);
-  if (fwrite((void *)pix[0],sizeof(fftw_real), 
-	     (size_t)(nx*ny),fp) != nx*ny)
-    {
-      printf("Error while writing data to file %s\n",fileName);
-      fclose(fp);
-      exit(0);
-    }
-  fclose(fp);
-}
-
-void readImage_old(fftw_complex **pix, int nx, int ny,float *t, char *fileName) {
-  FILE *fp;
-  size_t nRead=0;
-  int size[2];
-  int trial=0,maxTrial=3,freadError=0;
-
-  do {
-    if ((fp = fopen(fileName,"r"))==NULL) {
-      printf("Could not open file %s for reading\n",fileName);
-      // wait a short while 
-      while (nRead < 1e5) nRead++;
-    }
-    else {
-      clearerr(fp);
-      
-      fread((void *)size,sizeof(int),2,fp);
-      fread((void *)t,sizeof(float),1,fp);
-      fseek(fp,2*sizeof(fftw_complex),SEEK_SET);
-      nRead = fread((void *)pix[0],sizeof(fftw_complex), (size_t)(nx*ny),fp);
-      if (nRead != nx*ny) {
-	freadError = 1;
-	printf("Error while reading data from file %s:"
-	       " %d (of %d) elements read\n",
-	       fileName,nRead,(nx)*(ny));
-	printf("EOF: %d, Ferror: %d\n",feof(fp),ferror(fp));
-	fclose(fp);
-      }
-    }
-    // we will try three times to read this file. 
-  }  while ((freadError > 0) && (++trial < maxTrial));
-  
-  if ((nx != size[0]) || (ny != size[1])) {
-    printf("Stored image %s has wrong size!\n",fileName);
-    fclose(fp);
-    exit(0);
-  }
-  fclose(fp);
-}
-
-void readRealImage_old(fftw_real **pix, int nx, int ny,float *t, char *fileName) {
-  FILE *fp;
-  size_t nRead,ix,iy;
-  int size[2];
-
-  if ((fp = fopen(fileName,"r"))==NULL) {
-    printf("Could not open file %s for reading\n",fileName);
-    for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) pix[ix][iy] = 0.0;
-    return;
-  }
-  clearerr(fp);
-
-  fread((void *)size,sizeof(int),2,fp);
-  fread((void *)t,sizeof(float),1,fp);
-  fseek(fp,2*sizeof(fftw_complex),SEEK_SET);
-  nRead = fread((void *)pix[0],sizeof(fftw_real), (size_t)(nx*ny),fp);
-  if (nRead != nx*ny) {
-    printf("Error while reading data from file %s:"
-	   " %d (of %d) elements read ",
-	   fileName,nRead,(nx)*(ny));
-    printf("(EOF: %d, Ferror: %d)\n",feof(fp),ferror(fp));
-    fclose(fp);
-    exit(0);
-  }
-  
-  if ((nx != size[0]) || (ny != size[1])) {
-    printf("Stored image %s has wrong size!\n",fileName);
-    fclose(fp);
-    exit(0);
-  }
-  fclose(fp);
 }
 
 

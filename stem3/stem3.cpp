@@ -23,7 +23,8 @@ good energies: 327, 360,393,520 keV
 #include <crtdbg.h>
 #endif
 #endif
-#include <string.h>
+//#include <string.h>
+#include <string>
 #ifndef WIN32
 #ifdef __cplusplus
 #include <cmath>
@@ -542,7 +543,7 @@ void readFile() {
 	FILE *fpTemp;
 	float ax,by,cz;
 	char buf[BUF_LEN],*strPtr;
-	int i,ix,iy;
+	int i,ix;
 	int potDimensions[2];
 	long ltime;
 	unsigned long iseed;
@@ -1494,13 +1495,13 @@ void doTOMO() {
 		// Try different corners of the box, and see, how far they poke out.
 		for (ix=-1;ix<=1;ix++) for (iy=-1;iy<=1;iy++) for (iz=-1;iz<=1;iz++) {
 			// Make center of unit cell rotation center
-			u << ix*muls.cellDims[0]/2, iy*muls.cellDims[1]/2.0, iz*muls.cellDims[2]/2.0;;
+			u << ix*muls.cellDims[0]/2.0f, iy*muls.cellDims[1]/2.0f, iz*muls.cellDims[2]/2.0f;;
 
 			// rotate about y-axis
-			rotateVect(u,u,0,theta*1e-3,0);
+			rotateVect(u,u,0,theta*1e-3f,0);
 
 			// shift origin back to old (0,0,0):
-			u += muls.cellDims/2;
+			u.array() += muls.cellDims/2;
 			//u[0]+=muls.cellDims[0]/2; u[1]+=muls.cellDims[1]/2.0f; u[2]+=muls.cellDims[2]/2.0f;
 
 			boxMin[0] = boxMin[0]>u[0] ? u[0] : boxMin[0]; boxMax[0] = boxMax[0]<u[0] ? u[0] : boxMax[0]; 
@@ -1562,7 +1563,7 @@ void doTOMO() {
 			u = (muls.atoms[i].pos - mpos.array()/2.0).matrix(); 
 			//u[1] = muls.atoms[i].y - mBy/2.0; 
 			//u[2] = muls.atoms[i].z - mCz/2.0; 
-			rotateVect(u,u,0,theta*1e-3,0);
+			rotateVect(u,u,0,theta*1e-3f,0);
 			atoms[i].pos = u+boxMin;
 			//atoms[i].x = u[0]+boxMin[0];
 			//atoms[i].y = u[1]+boxMin[1]; 
@@ -1672,7 +1673,7 @@ void doCBED() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"wave function");
+				0,std::vector<float_tt>(),"wave function");
 			header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
 			writeImage((void **)wave->wave.data(),header,systStr);
@@ -1790,7 +1791,7 @@ void doCBED() {
 					if (header == NULL) 
 						header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 						muls.resolutionX,muls.resolutionY,
-						0,NULL,"wave function");
+						0,std::vector<float_tt>(),"wave function");
 					header->t = wave->thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
 					writeImage((void **)wave->wave.data(),header,systStr);
@@ -1853,21 +1854,21 @@ void doCBED() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
-				1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
+				1,std::vector<float_tt>(1,muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
 			else {
 				header->t = wave->thickness;
 				header->dx = 1.0/(muls.nx*muls.resolutionX);
 				header->dy = 1.0/(muls.ny*muls.resolutionY);
 				if (header->paramSize < 1) {
-					header->params = (float_tt*)malloc(2*sizeof(float_tt));
+					header->params = std::vector<float_tt>(2);
 					header->paramSize = 2;
 				}
 
 				header->params[0] = muls.tomoTilt;
-				header->params[1] = 1.0/wavelength(muls.v0);
+				header->params[1] = 1.0f/wavelength(muls.v0);
 				setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
 			}
-			writeRealImage((void **)avgArray,header,avgName,sizeof(float_tt));
+			writeRealImage(avgArray,header,avgName,sizeof(float_tt));
 
 			/* report the result on the web page */
 			// printf("Will write report now\n");
@@ -2098,21 +2099,20 @@ void doTEM() {
 					else setHeaderComment(header,"Exit face wave function for no TDS");
 					sprintf(systStr,"%s/wave.img",muls.folder);
 					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
-						ktx = -2.0*PI*sin(muls.btiltx)/wavelength(muls.v0);
-						kty = -2.0*PI*sin(muls.btilty)/wavelength(muls.v0);
+						ktx = static_cast<float_tt>(-2.0*PI*sin(muls.btiltx)/wavelength(muls.v0));
+						kty = static_cast<float_tt>(-2.0*PI*sin(muls.btilty)/wavelength(muls.v0));
 						for (ix=0;ix<muls.nx;ix++) {
 							x = muls.resolutionX*(ix-muls.nx/2);
 							for (iy=0;iy<muls.ny;iy++) {
 								y = muls.resolutionY*(ix-muls.nx/2);
-								wave->wave(iy,ix)[0] *= cos(ktx*x+kty*y);	
-								wave->wave(iy,ix)[1] *= sin(ktx*x+kty*y);
+								wave->wave(iy,ix) *= QScf(cos(ktx*x+kty*y), sin(ktx*x+kty*y));
 							}
 						}
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
 					}
 
 
-					writeImage((void **)wave->wave,header,systStr);
+					writeImage((void **)wave->wave.data(),header,systStr);
 					//    system("showimage diff.img 2 &");
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
@@ -2125,8 +2125,7 @@ void doTEM() {
 					header->dy = muls.resolutionY;
 					header->complexFlag = 1;
 					header->paramSize = 9;
-					if (header->params == NULL)
-						header->params = (float_tt *)malloc(header->paramSize*sizeof(float_tt));
+					header->params = std::vector<float_tt>(9);
 					header->params[0] = muls.v0;  				// high voltage
 					header->params[1] = muls.Cs;				// spherical aberration
 					header->params[2] = muls.df0;				// defocus
@@ -2141,7 +2140,7 @@ void doTEM() {
 
 
 					setHeaderComment(header,"complex exit face Wave function");
-					writeImage((void **)wave->wave,header,systStr);
+					writeImage((void **)wave->wave.data(),header,systStr);
 				}
 #endif 
 
@@ -2164,7 +2163,8 @@ void doTEM() {
 			/***********************************************************
 			* Save the diffraction pattern
 			**********************************************************/	
-			memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
+			avgArray = diffArray;
+			//memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
@@ -2196,8 +2196,7 @@ void doTEM() {
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave(iy,ix)[0] = wave->wave(iy,ix)[0];
-				imageWave(iy,ix)[1] = wave->wave(iy,ix)[1];
+				imageWave(iy,ix) = wave->wave(iy,ix);
 			}
 			fftwf_execute_dft(wave->fftPlanWaveInv,(fftwf_complex*)imageWave.data(),(fftwf_complex*)imageWave.data());
 			// get the amplitude squared:
@@ -2207,11 +2206,11 @@ void doTEM() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"Image");
+				0,std::vector<float_tt>(),"Image");
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
 			sprintf(avgName,"%s/image.img",muls.folder);
-			writeRealImage((void **)diffArray.data(),header,avgName,sizeof(float_tt));
+			writeRealImage(diffArray,header,avgName,sizeof(float_tt));
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2231,9 +2230,9 @@ void doTEM() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"diffraction pattern");
+				0,std::vector<float_tt>(),"diffraction pattern");
 			header->t = wave->thickness;
-			writeRealImage((void **)avgArray.data(),header,avgName,sizeof(float_tt));
+			writeRealImage(avgArray,header,avgName,sizeof(float_tt));
 
 
 			/* report the result on the web page */
@@ -2291,7 +2290,7 @@ void doTEM() {
 			}
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
-			writeRealImage((void **)diffArray.data(),header,avgName,sizeof(float_tt));
+			writeRealImage(diffArray,header,avgName,sizeof(float_tt));
 			// End of Image writing (if avgCount > 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2313,7 +2312,7 @@ void doTEM() {
 				printf("Writing Pendelloesung data\n");
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+					fprintf(fp,"%g",iy*muls.cellDims[2]/((float)(muls.slices*muls.cellDiv)));
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
 						// store the AMPLITUDE:
@@ -2350,16 +2349,17 @@ void doTEM() {
 void doSTEM() {
 	int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
 	float_tt timer, total_time=0;
-	char buf[BUF_LEN],avgName[256],systStr[256];
-	char jpgName[256], tifName[256];
-	float_tt xpos,ypos,t;
+	char buf[BUF_LEN];//,avgName[256],systStr[256];
+	std::string bufstr;
+	//char jpgName[256], tifName[256];
+	float_tt t;
 	static QSfMat avgArray;
 	QSfVec chisq;
-	float_tt ,collectedIntensity;
+	float_tt collectedIntensity;
 	static imageStruct *header = NULL;
 	static imageStruct *header_read = NULL;
-	float cztot;
-	int islice;
+	//float cztot;
+	//int islice;
 
 	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
 	//WAVEFUNC *wave = *(new WAVEFUNC(muls.nx,muls.ny));
@@ -2487,7 +2487,7 @@ void doSTEM() {
 				// default(none) forces us to specify all of the variables that are used in the parallel section.  
 				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
 #pragma omp parallel firstprivate(header, header_read) \
-	private(ix, iy, ixa, iya, wave, t, timer) \
+	private(ix, iy, ixa, iya, wave, t, timer, buf, std::string) \
 	shared(pCount, picts, chisq, muls, collectedIntensity, total_time, waves) \
 	default(none)
 #pragma omp for
@@ -2607,10 +2607,10 @@ void doSTEM() {
 							if (header == NULL) 
 									header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 										muls.resolutionX,muls.resolutionY,
-										0,NULL,"diffraction pattern");
+										0,std::vector<float_tt>(),"diffraction pattern");
 								// printf("Created header\n");
 							header->t = wave->thickness;
-							writeRealImage((void **)wave->avgArray.data(), header, wave->avgName.c_str(), sizeof(float_tt));
+							writeRealImage(wave->avgArray, header, wave->avgName.c_str(), sizeof(float_tt));
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;

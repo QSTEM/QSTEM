@@ -15,11 +15,11 @@ public:
 	int iPosX,iPosY;      /* integer position of probe position array */
 	int nx, ny;			/* size of diffpat arrays */
 	int detPosX,detPosY;
-        std::string fileStart;
-        std::string fileout;
-        std::string avgName;
-        QSfMat diffpat;
-        QSfMat avgArray;
+    std::string fileStart;
+    std::string fileout;
+    std::string avgName;
+    QSfMat diffpat;
+    QSfMat avgArray;
 	float_tt thickness;
 	float_tt intIntensity;
 
@@ -269,7 +269,7 @@ public:
   int save_output_flag;
   
     // TODO: Does this need to be double, or can it be float (as might be done dynamically?
-  QSfMat dE_EArray;
+  QSfVec dE_EArray;
   //float_tt *dE_EArray;
 
   // Tomography parameters:

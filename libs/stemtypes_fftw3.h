@@ -58,6 +58,10 @@ typedef Matrix<int, 3, 1> QSi3Vec;
 typedef std::vector<QScMat, Eigen::aligned_allocator<QScMat> > QSVecOfcMat;
 typedef std::vector<QSfMat, Eigen::aligned_allocator<QSfMat> > QSVecOffMat;
 
+// for 4D arrays - atPot, specifically, which has one index for Z-num, another for depth, 
+//    and the remaining two for width and length.
+typedef std::vector<QSVecOfcMat, Eigen::aligned_allocator<QScMat> > QSVecOfVecOfcMat;
+
 ////////////////////////////////////////////////////////////////
 
 typedef struct atomStruct {

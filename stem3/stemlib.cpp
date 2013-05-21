@@ -367,7 +367,6 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	int nzSub,Nr,ir,Nz_lut;
 	int iOffsLimHi,iOffsLimLo,iOffsStep;
 
-	float_tt *slicePos;
 	float_tt z,x,y,r,ddx,ddy,ddr,dr,r2sqr,x2,y2,potVal,dOffsZ;
 	// char *sliceFile = "slices.dat";
 	char buf[BUF_LEN];
@@ -379,6 +378,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	fftwf_complex	*atPotPtr;
 	float *potPtr=NULL, *ptr;
 	static int divCount = 0;
+	QSfVec slicePos;
 	QSfMat tempPot;
 	QSVecOfcMat oldTrans;
 	QSVecOfcMat oldTrans0;

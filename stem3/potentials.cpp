@@ -1,6 +1,12 @@
 #include "potentials.h"
 #include "defines.h"
 
+// provide array variable names 
+// - scatPar[N_ELEM][N_SF] and
+// - scatParOffs[N_ELEM][N_SF]
+// and also define N_SF and N_ELEM:
+#include "scatfactsRez.h"
+
 #define NRMAX	50	/* number of values in look-up-table in vzatomLUT */
 #define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
 #define RMAX	5
@@ -9,98 +15,121 @@
 std::vector<float_tt> Potential::m_splinr;
 
 // initialization for 3D pots
-void Potential::Potential3D(MULS *muls)
+Potential::Potential(MULS *m) :
+m_atPot(N_ELEM),
+m_potentialSplines(std::vector<AkimaSpline<float_tt,float_tt>>(N_SF)),
+m_offsetSplines(std::vector<AkimaSpline<float_tt,float_tt>>(N_SF)),
+muls(m)
 {
-	int ix,iy,iz,iiz,ind3d,iKind,izOffset;
-	double zScale,kzmax,zPos,xPos;
-	fftwf_plan plan;
-	static double f,phase,s2,s3,kmax2,smax2,kx,kz,dkx,dky,dkz; // ,dx2,dy2,dz2;
-	static int nx,ny,nz,nzPerSlice;
+	int ix,iy;
+	float_tt kmax2,smax2,dkx,dky; // ,dx2,dy2,dz2;
+	int nx;
 
 	// scattering factors in:
 	// float scatPar[4][30]
 
-		nx = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX);
-		ny = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionY);
-		// The FFT-resolution in the z-direction must be high enough to avoid 
-		// artifacts due to premature cutoff of the rec. space scattering factor 
-		// we will therefore make it roughly the same as the x-resolution
-		// However, we will make sure that a single slice contains an integer number 
-		// of sampling points.
-		nzPerSlice = (int)floor(OVERSAMP_X*muls->sliceThickness/muls->resolutionX);
-		// make nzPerSlice odd:
-		if (2.0*(nzPerSlice >> 1) == nzPerSlice) nzPerSlice += 1;
-		// Total number of z-positions should be twice that of atomRadius/sliceThickness 
-		nz = (2*(int)ceil(muls->atomRadius/muls->sliceThickness))*nzPerSlice;
-		if (muls->printLevel > 1) printf("Will use %d sampling points per slice, total nz=%d (%d)\n",nzPerSlice,nz,nzPerSlice >> 1);
+	nx = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX);
 
-		atPot = QScMat(nx*nz, NZMAX);
+	dkx = 0.5f*OVERSAMP_X/(nx*muls->resolutionX);  // nx*muls->resolutionX is roughly 2*muls->atomRadius
+	// dky = 0.5*OVERSAMP_X/(ny*muls->resolutionY);
+	dky = dkx;                                    
+	kmax2 = static_cast<float_tt>(0.5f*nx*dkx/(double)OVERSAMP_X);  // largest k that we'll admit
+	smax2 = kmax2;
 
-		dkx = 0.5*OVERSAMP_X/(nx*muls->resolutionX);  // nx*muls->resolutionX is roughly 2*muls->atomRadius
-		// dky = 0.5*OVERSAMP_X/(ny*muls->resolutionY);
-		dky = dkx;                                    
-		dkz = nzPerSlice/(double)(nz*muls->sliceThickness);
-		kmax2 = 0.5*nx*dkx/(double)OVERSAMP_X;  // largest k that we'll admit
-		smax2 = kmax2;
+	scatPar[0][N_SF-1] = 1.2f*smax2;
+	scatPar[0][N_SF-2] = 1.1f*smax2;
+	scatPar[0][N_SF-3] = smax2;
+	// adjust the resolution of the lookup table if necessary
+	if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3]) {
 
-		printf("dkx = %g, nx = %d, kmax2 = %g\n",dkx,nx,kmax2);
-		if (muls->printLevel > 1) printf("Cutoff scattering angle: kmax=%g (1/A), dk=(%g,%g %g)\n",kmax2,dkx,dky,dkz);
-		scatPar[0][N_SF-1] = 1.2*smax2;
-		scatPar[0][N_SF-2] = 1.1*smax2;
-		scatPar[0][N_SF-3] = smax2;
-		// adjust the resolution of the lookup table if necessary
-		if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3]) {
-
-			if (1) {
-				// set additional scattering parameters to zero:
-				for (ix = 0;ix < N_SF-10;ix++) {
-					if (scatPar[0][N_SF-4-ix] < scatPar[0][N_SF-3]-0.001*(ix+1)) break;
-					scatPar[0][N_SF-4-ix] = scatPar[0][N_SF-3]-0.001*(ix+1);
-					for (iy=1; iy<N_ELEM;iy++) scatPar[iy][N_SF-4-ix] = 0; 
-				}
+		if (1) {
+			// set additional scattering parameters to zero:
+			for (ix = 0;ix < N_SF-10;ix++) {
+				if (scatPar[0][N_SF-4-ix] < scatPar[0][N_SF-3]-0.001*(ix+1)) break;
+				scatPar[0][N_SF-4-ix] = scatPar[0][N_SF-3]-0.001f*(ix+1);
+				for (iy=1; iy<N_ELEM;iy++) scatPar[iy][N_SF-4-ix] = 0; 
 			}
-			else {
-				for (ix = 0;ix < 20;ix++) {
-					if (scatPar[0][N_SF-4-ix] < scatPar[0][N_SF-3]) break;
-					scatPar[0][N_SF-4-ix] = scatPar[0][N_SF-3];
-					for (iy=1; iy<N_ELEM;iy++) scatPar[iy][N_SF-4-ix] = scatPar[iy][N_SF-3];	
-				}
-			}		
-			if (muls->printLevel > 1) printf("getAtomPotential3D: set resolution of scattering factor to %g/A!\n",
-				scatPar[0][N_SF-4-ix]);
-		}	// end of if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3])
-		smax2 *= smax2;
-		kmax2 *= kmax2;
-		// allocate a list of pointers for the element-specific potential lookup table
-		//atPot = (fftwf_complex **)malloc((NZMAX+1)*sizeof(fftwf_complex *));
-		for (ix=0;ix<=NZMAX;ix++) atPot[ix] = NULL;
-		temp  = (fftwf_complex*) fftwf_malloc(nx*nz*sizeof(fftwf_complex));
+		}
+		else {
+			for (ix = 0;ix < 20;ix++) {
+				if (scatPar[0][N_SF-4-ix] < scatPar[0][N_SF-3]) break;
+				scatPar[0][N_SF-4-ix] = scatPar[0][N_SF-3];
+				for (iy=1; iy<N_ELEM;iy++) scatPar[iy][N_SF-4-ix] = scatPar[iy][N_SF-3];	
+			}
+		}		
+		if (muls->printLevel > 1) printf("getAtomPotential3D: set resolution of scattering factor to %g/A!\n",
+			scatPar[0][N_SF-4-ix]);
+	}	// end of if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3])
+	smax2 *= smax2;
+	kmax2 *= kmax2;
+	
+	// These are the radii away from the atom center
+	//m_splinr=std::vector<float_tt>(scatPar,scatPar+N_SF);
+	
+	for( int i=0; i<N_SF; i++)
+	{
+		m_splinr[i] = static_cast<float_tt>(scatPar[0][i]);
+	}
+
+
+	// allocate a list of pointers for the element-specific potential lookup table
+	//atPot = (fftwf_complex **)malloc((NZMAX+1)*sizeof(fftwf_complex *));
+	//for (ix=0;ix<=NZMAX;ix++) for(int slc=0;slc<;slc++) atPot[ix][slc].setZero();
+	//temp  = QScMat(nx*nz);//(fftwf_complex*) fftwf_malloc(nx*nz*sizeof(fftwf_complex));
 }
 
 //
-void Potential::CreateAtPot(int Znum, bool useOffset)
+void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 {
 	int ix,iy,iz,iiz,ind3d,iKind,izOffset;
-	double zScale,kzmax,zPos,xPos;
+	float_tt zScale,kzmax,zPos,xPos;
 	fftwf_plan plan;
-	static double f,phase,s2,s3,kmax2,smax2,kx,kz,dkx,dky,dkz; // ,dx2,dy2,dz2;
-	static int nx,ny,nz,nzPerSlice;
+	float_tt f,phase,s2,s3,kmax2,smax2,kx,kz,dkx,dky,dkz; // ,dx2,dy2,dz2;
+	int nx,ny,nz,nzPerSlice;
 
 	iKind = Znum;
 
+	nx = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX);
+	ny = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionY);
+	// The FFT-resolution in the z-direction must be high enough to avoid 
+	// artifacts due to premature cutoff of the rec. space scattering factor 
+	// we will therefore make it roughly the same as the x-resolution
+	// However, we will make sure that a single slice contains an integer number 
+	// of sampling points.
+	nzPerSlice = (int)floor(OVERSAMP_X*muls->sliceThickness/muls->resolutionX);
+	// make nzPerSlice odd:
+	if (2.0f*(nzPerSlice >> 1) == nzPerSlice) nzPerSlice += 1;
+	// Total number of z-positions should be twice that of atomRadius/sliceThickness 
+	nz = (2*(int)ceil(muls->atomRadius/muls->sliceThickness))*nzPerSlice;
+
+	if (muls->printLevel > 1) printf("Will use %d sampling points per slice, total nz=%d (%d)\n",nzPerSlice,nz,nzPerSlice >> 1);
+
+	dkx = 0.5f*OVERSAMP_X/(nx*muls->resolutionX);  // nx*muls->resolutionX is roughly 2*muls->atomRadius
+	// dky = 0.5*OVERSAMP_X/(ny*muls->resolutionY);
+	dky = dkx;                                    
+	dkz = static_cast<float_tt>(nzPerSlice/(float_tt)(nz*muls->sliceThickness));
+	kmax2 = static_cast<float_tt>(0.5f*nx*dkx/(float_tt)OVERSAMP_X);  // largest k that we'll admit
+	smax2 = kmax2*kmax2;
+
+	printf("dkx = %g, nx = %d, kmax2 = %g\n",dkx,nx,kmax2);
+	if (muls->printLevel > 1) printf("Cutoff scattering angle: kmax=%g (1/A), dk=(%g,%g %g)\n",kmax2,dkx,dky,dkz);
+
 	// setup cubic spline interpolation:
-	splinh(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF);
+	//splinh(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF);
 
 	// allocate a 3D array:
-	//atPot[Znum] = QScMat(nx, nz); //(fftwf_complex*) fftwf_malloc(nx*nz/4*sizeof(fftwf_complex));
+	m_atPot[Znum] = QScMat(nx, nz/4); //(fftwf_complex*) fftwf_malloc(nx*nz/4*sizeof(fftwf_complex));
+	m_atPot[Znum].setZero();
+	QScMat temp(nx,nz);
+	temp.setZero();
 	//memset(temp,0,nx*nz*sizeof(fftwf_complex));
-	kzmax	  = dkz*nz/2.0; 
+	kzmax	  = dkz*nz/2.0f; 
 	// define x-and z-position of atom center:
 	// The atom should sit in the top-left corner, 
 	// however (nzPerSlice+1)/2 above zero in z-direction
 	xPos = -2.0*PI*0.0;  // or muls->resolutionX*nx/(OVERSAMP_X), if in center
 	izOffset = (nzPerSlice-1)/2;
-	zPos = -2.0*PI*(muls->sliceThickness/nzPerSlice*(izOffset));
+	zPos = static_cast<float_tt>(-2.0*PI*(muls->sliceThickness/nzPerSlice*(izOffset)));
 
 	// What this look-up procedure will do is to supply V(r,z) computed from fe(q).
 	// Since V(r,z) is rotationally symmetric we might as well compute 
@@ -119,18 +148,22 @@ void Potential::CreateAtPot(int Znum, bool useOffset)
 			kx = dkx*(ix<nx/2 ? ix : ix-nx);	   
 			s2 = (kx*kx+kz*kz);
 			// if this is within the allowed circle:
-			if (s2<smax2) {
-				ind3d = ix+iz*nx;
+			if (s2<kmax2) {
+				//ind3d = ix+iz*nx;
 				// f = fe3D(Znum,k2,muls->tds,1.0,muls->scatFactor);
 				// multiply scattering factor with Debye-Waller factor:
 				// printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
-				f = seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s2))*exp(-s2*B*0.25);
+				// scatPar[0] is first row
+				f = SplineLookUp(iKind, sqrt(s2), charge)*exp(-s2*B*0.25f);
+				//f = seval(scatpar.row(0), scatPar.row(iKind), N_SF, point_to_eval_at);
+				//f = seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s2))*exp(-s2*B*0.25);
 				// perform the qy-integration for qy <> 0:
 				for (iy=1;iy<nx;iy++) {
 					s3 = dkx*iy;
 					s3 = s3*s3+s2;
 					if (s3<smax2) {
-						f += 2*seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s3))*exp(-s3*B*0.25);
+						f += SplineLookUp(iKind, sqrt(s3), charge)*exp(-s3*B*0.25f);
+						//f += 2*seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s3))*exp(-s3*B*0.25);
 					}
 					else break;
 				}
@@ -138,7 +171,8 @@ void Potential::CreateAtPot(int Znum, bool useOffset)
 				// note that the factor 2 is missing in the phase (2pi k*r)
 				// this places the atoms in the center of the box.
 				phase	= kx*xPos + kz*zPos;
-				temp[ind3d] = QScf(f*cos(phase), f*sin(phase)); // *zScale
+				//temp[ind3d] = QScf(f*cos(phase), f*sin(phase)); // *zScale
+				temp(iz*nx,ix) = QScf(f*cos(phase), f*sin(phase)); // *zScale
 				// if ((kx==0) && (ky==0)) printf(" f=%g (%g, [%g, %g])\n",f,f*zScale,atPot[Znum][ind3d].real(),atPot[Znum][ind3d][1]);
 			}
 		}
@@ -169,24 +203,29 @@ void Potential::CreateAtPot(int Znum, bool useOffset)
 	// It is certainly debatable whether this is a good apprach, or not. 
 	// printf("Setting up %d x %d potential for Znum=%d, (atom kind %d), Omega=%g\n",nx,nz,Znum,iKind,dkx*dky*dkz);
 	// min = atPot[Znum][ny/2+nx/2*ny+nz/2*nx*ny].real();
-	for (ix=0;ix<nx/2;ix++)  for (iz=0;iz<nz/2;iz++) {
-		ind3d = ix+iz*nx/2;
-		// Integrate over nzPerSlice neighboring layers here:::::::::
-		for (zScale=0,iiz=-izOffset;iiz<=izOffset;iiz++) {
-			if (iz+izOffset+iiz < nz/2) zScale += temp[ix+(iz+izOffset+iiz)*nx][0];
+	for (ix=0;ix<nx/2;ix++)  
+	{
+		for (iz=0;iz<nz/2;iz++) 
+		{
+			ind3d = ix+iz*nx/2;
+			// Integrate over nzPerSlice neighboring layers here:::::::::
+			for (zScale=0,iiz=-izOffset;iiz<=izOffset;iiz++) {
+				if (iz+izOffset+iiz < nz/2) zScale += temp(nx*(iz+izOffset+iiz),ix).real();
+				//if (iz+izOffset+iiz < nz/2) zScale += temp[ix+(iz+izOffset+iiz)*nx][0];
+			}
+			if (zScale < 0) zScale = 0;
+			// assign the iz-th slice the sum of the 3 other slices:
+			// and divide by unit cell volume (since this is in 3D):
+			// Where does the '1/2' come from???  OVERSAMP_X*OVERSAMP_Y/8 = 1/2
+			// if nothing has changed, then OVERSAMP_X=2 OVERSAMP_Z=18.
+			// remember, that s=0.5*k; 	
+			// This potential will later again be scaled by lambda*gamma (=0.025*1.39139)
+			m_atPot[Znum](iz*nx/2,ix) = QScf(47.8658f*dkx*dkz/(nz)*zScale,0); 
+				// *8*14.4*0.529=4*a0*e (s. Kirkland's book, p. 207)
+			// 2*pi*14.4*0.529 = 7.6176;
+			// if (atPot[Znum][ind3d].real() < min) min = atPot[Znum][ind3d].real();
+			//atPot[Znum][ind3d][1]= 0;
 		}
-		if (zScale < 0) zScale = 0;
-		// assign the iz-th slice the sum of the 3 other slices:
-		// and divide by unit cell volume (since this is in 3D):
-		// Where does the '1/2' come from???  OVERSAMP_X*OVERSAMP_Y/8 = 1/2
-		// if nothing has changed, then OVERSAMP_X=2 OVERSAMP_Z=18.
-		// remember, that s=0.5*k; 	
-		// This potential will later again be scaled by lambda*gamma (=0.025*1.39139)
-		atPot[Znum][ind3d] = QScf(47.8658*dkx*dkz/(nz)*zScale,0); 
-			// *8*14.4*0.529=4*a0*e (s. Kirkland's book, p. 207)
-		// 2*pi*14.4*0.529 = 7.6176;
-		// if (atPot[Znum][ind3d].real() < min) min = atPot[Znum][ind3d].real();
-		//atPot[Znum][ind3d][1]= 0;
 	}
 	// make sure we don't produce negative potential:
 	// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny].real() -= min;
@@ -207,55 +246,71 @@ void Potential::CreateAtPot(int Znum, bool useOffset)
 		nx/2,nz/2,Znum,iKind,B,dkx,dky,dkz,izOffset);
 }
 
-Potential::Potential() :
-m_splines(std::vector<AkimaSpline<float_tt,float_tt>>(NZMAX+1))
+void Potential::GenerateSplineEntry(int Z, float_tt charge)
 {
-	m_splinr=std::vector<float_tt>(NRMAX);
-	m_splines=std::vector<AkimaSpline<float_tt,float_tt>>(NZMAX+1);
-	float_tt dlnr = static_cast<float_tt>(log(RMAX/RMIN)/(NRMAX-1));
-	for( int i=0; i<NRMAX; i++)
+	std::vector<float_tt> potential_values(m_splinr.size());
+	if (charge==0)
 	{
-		m_splinr[i] = static_cast<float_tt>(RMIN * exp( i * dlnr ));
+		// copies the data from the scatpar array into this vector.
+		//std::vector<float_tt> potential_values(&scatPar[Z], &(scatPar[Z])+m_splinr.size());
+		for( int i=0; i<N_SF; i++)
+		{
+			potential_values[i] = static_cast<float_tt>(scatPar[Z][i]);
+		}
+		// feed the data into the spline fitter
+		m_potentialSplines[Z] = AkimaSpline<float_tt, float_tt>(m_splinr, potential_values);
+		// record the fact that we know about this atom now.
+	}
+	else
+	{
+		// copies the data from the scatpar array into this vector.
+		//std::vector<float_tt> potential_values(&scatParOffs[Z], &(scatParOffs[Z])+m_splinr.size());
+		for( int i=0; i<N_SF; i++)
+		{
+			potential_values[i] = static_cast<float_tt>(scatParOffs[Z][i]);
+		}
+		// feed the data into the spline fitter
+		m_offsetSplines[Z] = AkimaSpline<float_tt, float_tt>(m_splinr, potential_values);
+		// record the fact that we know about this atom now.
 	}
 }
 
-void Potential::GenerateSplineEntry(int Z)
-{
-	std::vector<float_tt> potential_values(m_splinr.size());
-
-	// First, map the splinr std::vector to an Eigen Array (for vectorized operations in v3DAtom)
-	float_tt* r_ptr = &m_splinr[0];
-	Eigen::Map<QSfArr> e_splinr(r_ptr, NRMAX);
-
-	// Map the potential_values to a separate Eigen Array to store the output
-	float_tt* v_ptr = &potential_values[0];
-	Eigen::Map<QSfArr> e_pots(v_ptr, NRMAX);
-	// Do the computation.  NOTE: this is storing the data in potential_values, because the
-	//    eigen array maps directly to its memory.
-	//e_pots = v3Datom(Z, e_splinr, m_tdsFlag, m_scatFlag);
-
-	// feed the data into the spline fitter
-	m_splines[Z] = AkimaSpline<float_tt, float_tt>(m_splinr, potential_values);
-	// record the fact that we know about this atom now.
-	m_knownZvalues.push_back(Z);
-}
-
-float_tt Potential::LookUp(int Z, float_tt r)
+float_tt Potential::SplineLookUp(int Z, float_tt r, float_tt charge)
 {
 	// check if spline has already been fit for this Z:
 	if(std::find(m_knownZvalues.begin(), m_knownZvalues.end(), Z)==m_knownZvalues.end())
 	{
 		// If not, do so.
-		GenerateSplineEntry(Z);
+		GenerateSplineEntry(Z, charge);
 	}
 	// evaluate the spline at radius r
-	return m_splines[Z].interpolate(r);
+	if (charge==0)
+	{
+		return m_potentialSplines[Z].interpolate(r);
+	}
+	else
+	{
+		return m_offsetSplines[Z].interpolate(r);
+	}
 }
 
+/*
+// Returns the 3D array of the atom potential for the provided Z.
+QSVecOfcMat Potential::GetPot(int Z, bool useOffset)
+{
+	if (std::find(m_knownZvalues.begin(), m_knownZvalues.end(), Z)==m_knownZvalues.end())
+	{
+		CreateAtPot(Znum, useOffset);
+	}
+	m_knownZvalues.push_back(Z);
+	return m_atPot[Z];
+}
+*/
 
 /********************************************************************************
 * Create Lookup table for 3D potential due to neutral atoms
 ********************************************************************************/
+/*
 #define PHI_SCALE 47.87658
 QScMat getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int *Nz_lut) {
 	int ix,iy,iz,iiz,ind3d,iKind,izOffset;
@@ -280,10 +335,12 @@ QScMat getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int *
 	*Nr	  = nx/2;
 	return atPot[Znum];
 }
+*/
 
 /********************************************************************************
 * Lookup function for 3D potential offset due to charged atoms (ions)
 ********************************************************************************/
+/*
 QScMat getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int *Nz_lut,float q) {
 	int ix,iy,iz,iiz,ind3d,iKind,izOffset;
 	double zScale,kzmax,zPos,xPos;
@@ -314,7 +371,9 @@ QScMat getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr
 }
 // #undef SHOW_SINGLE_POTENTIAL
 // end of fftwf_complex *getAtomPotential3D(...)
+*/
 
+/*
 #define PHI_SCALE 47.87658
 // #define SHOW_SINGLE_POTENTIAL 0
 ////////////////////////////////////////////////////////////////////////////
@@ -353,6 +412,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 					// multiply scattering factor with Debye-Waller factor:
 					// printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
 					f = seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s2))*exp(-s2*B*0.25);
+					*/
 					/*
 					for (iz=1;iz<nx;iz++) {
 						s3 = 0.5*dkx*iz;
@@ -365,6 +425,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 					
 					f *= 0.5*dkx;
 					*/
+/*
 					// phase	= kx*xPos + kz*zPos;
 					// phase = PI*(kx*muls->resolutionX*nx/(OVERSAMP_X)+ky*muls->resolutionY*ny/(OVERSAMP_X));
 					phase = PI*(kx*muls->resolutionX*nx+ky*muls->resolutionY*ny);
@@ -387,6 +448,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 		for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
 				atPot[Znum][iy+ix*ny][0] *= dkx*dky*(OVERSAMP_X*OVERSAMP_X);  
 		}
+		*/
 		/*
 		for (min = atPot[Znum][0][0],ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
 			if (sqrt((double)((ix-nx/2)*(ix-nx/2)+(iy-ny/2)*(iy-ny/2))) > nx/2)
@@ -410,6 +472,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 		*/
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
+/*
 #if SHOW_SINGLE_POTENTIAL == 1
 		if (header == NULL) 
 			header = makeNewHeaderCompact(1,nx,ny,0,muls->resolutionX/OVERSAMP_X,
@@ -425,3 +488,4 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 }
 #undef PHI_SCALE
 #undef SHOW_SINGLE_POTENTIAL
+*/

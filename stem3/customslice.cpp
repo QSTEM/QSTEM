@@ -211,8 +211,6 @@ void make3DSlicesFT(MULS *muls) {
 	}
       }
 
-      // plotVzr(pot,Nx,Nz,dX,muls);
-
       /* Now we need to integrate over z, if we only have a single slice
        */
       if (Nzp == 1) {
@@ -305,8 +303,7 @@ void make3DSlicesFT(MULS *muls) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
       if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
-      header->comment = (char *)malloc(40);
-      sprintf(header->comment,"Projected Potential (%d slices)",muls->slices);       
+      header->comment = "Projected Potential (%d slices)",muls->slices);       
       header->commentSize = 45;
       writeImage((void **)muls->trans[iz].data(),header,fileName);      
     } 
@@ -314,30 +311,6 @@ void make3DSlicesFT(MULS *muls) {
   
   printf("Calculation took %.1f sec, rc[0]: %gA\n",(getTime()-timer0),rcutoff[0]);
 }  // end of function
-
-
-/*********************************************************************
- * plotVzr(pot,Nx,Nz);
- ********************************************************************/
-void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx,MULS *muls) {
-  FILE *fp;
-  int ix,iz;
-  char str[128];
-  float_tt p;
-
-  sprintf(str,"%s/vz.dat",muls->folder);
-  fp =fopen(str,"w");
- 
-  for (ix=Nx/2;ix<Nx;ix++) {
-    for (iz=0,p=0.0;iz<Nz;iz++) p += pot(ix,iz).real();	
-    // fprintf(fp,"%g %g %g\n",(ix-Nx/2)*dx,p,p*(ix-Nx/2)*dx);
-    fprintf(fp,"%g %g\n",(ix-Nx/2)*dx,p*(ix-Nx/2)*dx);
-  }
-
-  fclose(fp);
-  sprintf(str,"xmgr -nxy %s/vz.dat &",muls->folder);
-  system(str);
-}
 
 
 /******************************************************************

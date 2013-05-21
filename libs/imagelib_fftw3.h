@@ -18,20 +18,20 @@ typedef struct imageStructType {
                    // distinguish between images produced by different versions of stem
   double t;        // thickness
   double dx,dy;    // size of one pixel
-  double *params;  // array for additional parameters
-  char *comment;   // comment of prev. specified length
+  std::vector<float_tt> params;  // array for additional parameters
+  std::string comment;   // comment of prev. specified length
 } imageStruct;
 
 
 void getImageHeader(imageStruct *header,FILE * fp);
 imageStruct *makeNewHeader(int nx,int ny);
 imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
-				  int paramSize, double *params,char *comment); 
-void setHeaderComment(imageStruct *header, char *comment);
+								  int paramSize, std::vector<float_tt> params, std::string comment); 
+void setHeaderComment(imageStruct *header, std::string comment);
   
 imageStruct *readImage(void ***pix,int nx,int ny,const char *fileName);
 void writeImage(void **pix, imageStruct *header, const char *fileName);
-void writeRealImage(void **pix, imageStruct *header, const char *fileName, int dataSize);
+void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName, int dataSize);
 /*
 void writeRealImage(fftw_real **pix, int nx, int ny, float_t dx, 
 		   float_t dy, float_t t,char *fileName);
