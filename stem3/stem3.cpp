@@ -1737,8 +1737,8 @@ void doCBED() {
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
 	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
-	static imageStruct *header = NULL;
-	imageStruct *header_read = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
+	boost::shared_ptr<imageStruct>header_read = boost::shared_ptr<imageStruct>();
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
@@ -2090,8 +2090,8 @@ void doTEM() {
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
+	boost::shared_ptr<imageStruct>header_read = boost::shared_ptr<imageStruct>();
 	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
 	static fftwf_complex **imageWave = NULL;
 
@@ -2497,8 +2497,8 @@ void doSTEM() {
 	real xpos,ypos,t;
 	static real **avgArray=NULL;
 	double *chisq,collectedIntensity;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
+	boost::shared_ptr<imageStruct>header_read = boost::shared_ptr<imageStruct>();
 	float cztot;
 	int islice;
 
@@ -2821,7 +2821,7 @@ void doSTEM() {
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-	free(chisq);
+	//free(chisq);
 	for (int th=0; th<omp_get_num_threads(); th++)
 	{
 		delete(waves[th]);

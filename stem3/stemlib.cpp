@@ -1,8 +1,16 @@
+#define _CRTDBG_MAP_ALLOC
+
 #include <stdio.h>	/*  ANSI-C libraries */
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
+
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
 
 #include "stemlib.h"
 #include "memory_fftw3.h"	/* memory allocation routines */
@@ -394,7 +402,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	static fftw_complex ***oldTrans = NULL;
 	static fftw_complex ***oldTrans0 = NULL;
 #endif
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 	fftw_complex dPot;
 #if Z_INTERPOLATION
 	double ddz;
@@ -1277,9 +1285,9 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 				0,NULL,NULL);
 			header->commentSize = 64;
 			header->t = muls->sliceThickness;
-			header->comment = (char *)malloc(header->commentSize);
-			memset(header->comment,0,header->commentSize);
-			sprintf(header->comment,"Projected Potential (slice %d)",iz);		 
+			header->comment = boost::shared_array<char>(new char[header->commentSize]);
+			memset(header->comment.get(),0,header->commentSize);
+			sprintf(header->comment.get(),"Projected Potential (slice %d)",iz);		 
 			header->complexFlag = 1;
 			writeImage((void **)muls->trans[iz],header,filename); 	 
 		} // loop through all slices
@@ -1309,10 +1317,10 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			0,NULL,NULL);
 		header->commentSize = 64;
 		header->t = nlayer*muls->sliceThickness;
-		header->comment = (char *)malloc(header->commentSize);
-		memset(header->comment,0,header->commentSize);
+		header->comment = boost::shared_array<char>(new char[header->commentSize]);
+		memset(header->comment.get(),0,header->commentSize);
 		header->complexFlag = 0;
-		sprintf(header->comment,"Projected Potential (sum of %d slices)",muls->slices);		 
+		sprintf(header->comment.get(),"Projected Potential (sum of %d slices)",muls->slices);		 
 		writeRealImage((void **)tempPot,header,filename,sizeof(float)); 	 
 	}
 
@@ -1333,7 +1341,7 @@ fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *
 	static fftwf_complex **atPot = NULL;
 	static fftwf_complex *temp = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 	static fftwf_complex *ptr = NULL;
 	static char fileName[256];
 #endif 
@@ -1550,7 +1558,7 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 	static fftwf_complex **atPot = NULL;
 	static fftwf_complex *temp = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 	static fftwf_complex *ptr = NULL;
 	static char fileName[256];
 #endif 
@@ -1759,7 +1767,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 	static int nx,ny;
 	static fftwf_complex **atPot = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 	static char fileName[256];
 #endif 
 	static double *splinb=NULL;
@@ -2659,7 +2667,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 	char outStr[64];
 	double fftScale;
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 
 	printFlag = (muls->printLevel > 3);
 	fftScale = 1.0/(muls->nx*muls->ny);
@@ -2819,7 +2827,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 	int t;
 	static char fileName[256]; 
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 
 	if ((slice < muls->slices*muls->cellDiv-1) && ((slice+1) % muls->outputInterval != 0)) return;
 
@@ -2870,8 +2878,8 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	real k2;
 	double intensity,scale,scaleCBED,scaleDiff,intensity_save;
 	char fileName[256],avgName[256]; 
-	imageStruct *header = NULL;
-	imageStruct *diffHeader = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
+	boost::shared_ptr<imageStruct>diffHeader = boost::shared_ptr<imageStruct>();
 #if USE_LOCAL_DIFF
 	static float_tt **diffpat = NULL;
 #endif
@@ -3015,7 +3023,7 @@ void saveSTEMImages(MULS *muls)
 	int i, ix, islice;
 	double intensity;
 	static char fileName[256]; 
-	imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 	std::vector<DETECTOR> detectors;
 	float t;
 
@@ -3075,7 +3083,7 @@ void saveSTEMImages(MULS *muls)
 }
 
 void readStartWave(MULS *muls, WAVEFUNC *wave) {
-	imageStruct *header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart);
+	boost::shared_ptr<imageStruct>header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart);
 	// TODO: modifying shared value from multiple threads?
 	wave->thickness = header->t;
 	if (muls->nx != header->nx) {
@@ -3456,7 +3464,7 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 	static int nx,ny,nz;
 	static fftwf_complex **atPot = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 	static fftwf_complex *ptr = NULL;
 	static char fileName[256];
 #endif 

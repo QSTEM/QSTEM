@@ -63,7 +63,7 @@ void make3DSlicesFT(MULS *muls) {
   static int divCount = 0;
   static char buf[128];
   static double dX,dZ;                      // real space resol. of FT box
-  static imageStruct *header = NULL;
+  boost::shared_ptr<imageStruct> header = boost::shared_ptr<imageStruct>();
   static char fileName[64];
 
 
@@ -300,8 +300,8 @@ void make3DSlicesFT(MULS *muls) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
       if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
-      header->comment = (char *)malloc(40);
-      sprintf(header->comment,"Projected Potential (%d slices)",muls->slices);       
+	  header->comment = boost::shared_array<char>(new char[45]);
+      sprintf(header->comment.get(),"Projected Potential (%d slices)",muls->slices);
       header->commentSize = 45;
       writeImage((void **)muls->trans[iz],header,fileName);      
     } 

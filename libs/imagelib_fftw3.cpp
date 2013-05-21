@@ -1,4 +1,4 @@
-
+#define _CRTDBG_MAP_ALLOC
 
 #include <stdio.h>	/*  ANSI-C libraries */
 #include <stdlib.h>
@@ -23,7 +23,7 @@
                    // format changes.
 
 
-void writeImage(void **pix, imageStruct *header, char *fileName) {
+void writeImage(void **pix, boost::shared_ptr<imageStruct>header, char *fileName) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -56,9 +56,9 @@ void writeImage(void **pix, imageStruct *header, char *fileName) {
   printf("value: %g .. %g\n",rmin,rmax); 
   */
 
-  fwrite((void *)header,header->headerSize,1,fp);
+  fwrite((void *)header.get(),header->headerSize,1,fp);
   fwrite((void *)(header->params),sizeof(double),header->paramSize,fp);
-  fwrite((void *)(header->comment),1,header->commentSize,fp);
+  fwrite((void *)(header->comment.get()),1,header->commentSize,fp);
   
   if (fwrite(pix[0],header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
     printf("Error while writing %d x %d data to file %s\n",nx,ny,fileName);
@@ -69,7 +69,7 @@ void writeImage(void **pix, imageStruct *header, char *fileName) {
 }
 
 
-void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSize) {
+void writeRealImage(void **pix, boost::shared_ptr<imageStruct>header, char *fileName, int dataSize) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -94,9 +94,9 @@ void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSiz
   }
   printf("value: %g .. %g\n",rmin,rmax); 
   */  
-  fwrite((void *)header,header->headerSize,1,fp);
+  fwrite((void *)header.get(),header->headerSize,1,fp);
   fwrite((void *)(header->params),sizeof(double),header->paramSize,fp);
-  fwrite((void *)(header->comment),1,header->commentSize,fp);
+  fwrite((void *)(header->comment.get()),1,header->commentSize,fp);
   if (fwrite((void *)pix[0],header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
     printf("writeRealImage: Error while writing data to file %s\n",fileName);
     fclose(fp);
@@ -114,11 +114,11 @@ void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSiz
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.
  ***********************************************************/
-imageStruct *readImage(void ***pix,int nx,int ny,char *fileName) {
+boost::shared_ptr<imageStruct>readImage(void ***pix,int nx,int ny,char *fileName) {
   FILE *fp;
   int nRead=0;
   int trial=0,maxTrial=3,freadError=0;
-  static imageStruct *header = NULL;
+  boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
 
   if (header == NULL) header = makeNewHeader(1,1);
  
@@ -165,31 +165,33 @@ imageStruct *readImage(void ***pix,int nx,int ny,char *fileName) {
  * Image header routines
  ****************************************************************/
 
-imageStruct *makeNewHeader(int nx,int ny) {  
-  imageStruct *header = NULL;
+boost::shared_ptr<imageStruct> makeNewHeader(int nx,int ny) {  
+	boost::shared_ptr<imageStruct> header = boost::shared_ptr<imageStruct>();
   
   
-  header = (imageStruct *)malloc(sizeof(imageStruct));
-  header->headerSize = sizeof(imageStruct)-sizeof(double *)-sizeof(char *);
-  header->params = NULL;
-  header->paramSize = 0;
-  header->nx = nx;
-  header->ny = ny;
-  header->version = VERSION;
-  header->t = 0.0;
-  header->dx = 1.0;
-  header->dy = 1.0;
-  header->complexFlag = 0;
-  header->comment = NULL;
-  setHeaderComment(header,NULL);
-  return header;
+	//header = boost::shared_ptr<imageStruct>((imageStruct *)malloc(sizeof(imageStruct)));
+	header = boost::shared_ptr<imageStruct>(new imageStruct());
+	header->headerSize = sizeof(imageStruct)-sizeof(double *)-sizeof(char *);
+	header->params = NULL;
+	header->paramSize = 0;
+	header->nx = nx;
+	header->ny = ny;
+	header->version = VERSION;
+	header->t = 0.0;
+	header->dx = 1.0;
+	header->dy = 1.0;
+	header->complexFlag = 0;
+	header->comment = boost::shared_array<char>();
+	setHeaderComment(header,NULL);
+	return header;
 }
 
-imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
+boost::shared_ptr<imageStruct> makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
 				  int paramSize, double *params,char *comment) {  
-  imageStruct *header;
+  boost::shared_ptr<imageStruct> header;
   
-  header = (imageStruct *)malloc(sizeof(imageStruct));
+  //header = boost::shared_ptr<imageStruct>((imageStruct *)malloc(sizeof(imageStruct)));
+  header = boost::shared_ptr<imageStruct>(new imageStruct());
   header->headerSize = sizeof(imageStruct)-sizeof(double *)-sizeof(char *);
   header->params = params;
   header->paramSize = paramSize;
@@ -201,26 +203,27 @@ imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,dou
   header->dy = dy;
   header->complexFlag = cFlag;
 
-  header->comment = NULL;
+  header->comment = boost::shared_array<char>();
   header->commentSize = 0;
   setHeaderComment(header,comment);	  
   return header;
 }
 
-void setHeaderComment(imageStruct *header, char *comment) {
+void setHeaderComment(boost::shared_ptr<imageStruct> header, char *comment) {
 
-  if (header->comment != NULL) {
-    free(header->comment);
+  // don't need to do this - the shared ptr takes care of it.
+  //if (header->comment != NULL) {
+//    free(header->comment);
     // header->comment = NULL;
-  }
+  //}
   if (comment != NULL) {
-    header->comment = (char *)malloc(strlen(comment)+1);
-    strcpy(header->comment,comment);
+	header->comment = boost::shared_array<char>(new char[strlen(comment)+1]);
+    strcpy(header->comment.get(),comment);
     header->commentSize = strlen(comment);
   }
   else {
-    header->comment = (char *)malloc(1);
-    *(header->comment) = '\0';  
+    header->comment = boost::shared_array<char>(new char[1]);
+    *(header->comment.get()) = '\0';  
     header->commentSize = 0;
   }
 }
@@ -229,7 +232,7 @@ void setHeaderComment(imageStruct *header, char *comment) {
  * or point to a valid memory region already, because the will be 
  * REALLOCed
  */
-void getImageHeader(imageStruct *header, FILE *fp) {
+void getImageHeader(boost::shared_ptr<imageStruct>header, FILE *fp) {
   int hSize=sizeof(imageStruct);
 
   // reset the file pointer, just to make sure we are at the beginning
@@ -239,7 +242,7 @@ void getImageHeader(imageStruct *header, FILE *fp) {
   // first we will read in the fixed header of headerSize bytes
   fread((void *)&hSize,sizeof(int),1,fp);
   fseek(fp,0,SEEK_SET);
-  fread((void *)header,1,hSize,fp);
+  fread((void *)header.get(),1,hSize,fp);
   // read the additional parameters:
   if (header->paramSize >0) {
     header->params = (double *)realloc(header->params,header->paramSize*sizeof(double));
@@ -247,9 +250,9 @@ void getImageHeader(imageStruct *header, FILE *fp) {
   }
   // read the comment
   if (header->commentSize>0) {
-    header->comment = (char *)realloc(header->comment,(header->commentSize)+1);
+    header->comment = boost::shared_array<char>(new char[header->commentSize+1]);
     header->comment[header->commentSize] = '\0';
-    fread((void *)(header->comment),1,header->commentSize,fp);  	
+    fread((void *)(header->comment.get()),1,header->commentSize,fp);  	
   }
   // printf("DataSize: %d, complex: %d\n",header->dataSize,header->complexFlag);
 }

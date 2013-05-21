@@ -1,5 +1,7 @@
 /* file: STEMutil.c */
 
+#define _CRTDBG_MAP_ALLOC
+
 #include <stdio.h>	/*  ANSI-C libraries */
 #include <stdlib.h>
 #include <string.h>

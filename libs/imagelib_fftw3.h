@@ -5,6 +5,8 @@
 // #include "floatdef.h"
 #include "stemtypes_fftw3.h"
 
+#include "boost\shared_ptr.hpp"
+#include "boost\shared_array.hpp"
 
 typedef struct imageStructType {
   int headerSize;  // first byte of image will be size of image header (in bytes)
@@ -19,19 +21,19 @@ typedef struct imageStructType {
   double t;        // thickness
   double dx,dy;    // size of one pixel
   double *params;  // array for additional parameters
-  char *comment;   // comment of prev. specified length
+  boost::shared_array<char>comment;   // comment of prev. specified length
 } imageStruct;
 
 
-void getImageHeader(imageStruct *header,FILE * fp);
-imageStruct *makeNewHeader(int nx,int ny);
-imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
+void getImageHeader(boost::shared_ptr<imageStruct>header,FILE * fp);
+boost::shared_ptr<imageStruct>makeNewHeader(int nx,int ny);
+boost::shared_ptr<imageStruct>makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
 				  int paramSize, double *params,char *comment); 
-void setHeaderComment(imageStruct *header, char *comment);
+void setHeaderComment(boost::shared_ptr<imageStruct>header, char *comment);
   
-imageStruct *readImage(void ***pix,int nx,int ny,char *fileName);
-void writeImage(void **pix, imageStruct *header, char *fileName);
-void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSize);
+boost::shared_ptr<imageStruct>readImage(void ***pix,int nx,int ny,char *fileName);
+void writeImage(void **pix, boost::shared_ptr<imageStruct>header, char *fileName);
+void writeRealImage(void **pix, boost::shared_ptr<imageStruct>header, char *fileName, int dataSize);
 /*
 void writeRealImage(fftw_real **pix, int nx, int ny, float_t dx, 
 		   float_t dy, float_t t,char *fileName);
@@ -50,7 +52,7 @@ void readRealImage(fftw_real **pix, int nx, int ny,real *dx,
 /**************************************************************
  * Here is how to use the new image writing routines
  *
- * static imageStruct *header = NULL;
+ * static boost::shared_ptr<imageStruct>header = boost::shared_ptr<imageStruct>();
  *
  * if (header == NULL) header = makeNewHeaderCompact(cFlag,Nx,Ny,t,dx,dy,0,NULL,comment);
  * writeImage(cimage,header,filename);
@@ -59,7 +61,7 @@ void readRealImage(fftw_real **pix, int nx, int ny,real *dx,
  **************************************************************
  * Reading an image works like this:
  * 
- * imageStruct *header;
+ * boost::shared_ptr<imageStruct>header;
  * header = readImage((void ***)(&pix),nx,ny,fileName);
  *
  * [This function will read an image.  It reuses the same header 

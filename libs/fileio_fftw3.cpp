@@ -1,4 +1,5 @@
 /* file: fileio_fftw3.c */
+#define _CRTDBG_MAP_ALLOC
 
 #include <stdio.h>	/*  ANSI-C libraries */
 #include <stdlib.h>
@@ -6,6 +7,12 @@
 #include <math.h>
 #include <time.h>
 #include <ctype.h>
+
+#ifdef WIN32
+#if _DEBUG
+#include <crtdbg.h>
+#endif
+#endif
 
 // #include "../lib/floatdef.h"
 #include "stemtypes_fftw3.h"
