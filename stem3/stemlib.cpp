@@ -31,7 +31,7 @@ const float_tt pid2=2*PI;
 // - scatPar[N_ELEM][N_SF] and
 // - scatParOffs[N_ELEM][N_SF]
 // and also define N_SF and N_ELEM:
-#include "scatfactsRez.h"
+//#include "scatfactsRez.h"
 #else
 
 #define N_SF 30
@@ -205,7 +205,7 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 			for (int slc=0; slc<boxNz; slc++)
 			{
 				aBox[Znum].rpotential[slc]=QSfMat(boxNx,boxNy);	
-				numRead = fread(aBox[Znum].rpotential[slc].data(),sizeof(float_tt),
+				numRead = (int)fread(aBox[Znum].rpotential[slc].data(),sizeof(float_tt),
 					(boxNx*boxNy),fp);
 			}
 		}
@@ -214,7 +214,7 @@ void atomBoxLookUp(QScf *vlu, MULS *muls, int Znum, float_tt x, float_tt y, floa
 			for (int slc=0; slc<boxNz; slc++)
 			{
 				aBox[Znum].potential[slc]=QScMat(boxNx,boxNy);	
-				numRead = fread(aBox[Znum].potential[slc].data(),2*sizeof(float_tt),
+				numRead = (int)fread(aBox[Znum].potential[slc].data(),2*sizeof(float_tt),
 					(boxNx*boxNy),fp);
 			}
 		}
@@ -365,8 +365,10 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	int i=0,j,nx,ny,ix,iy,iax,iay,iaz,sliceStep;
 	int iAtomX,iAtomY,iAtomZ,iRadX,iRadY,iRadZ,iRad2;
 	int iax0,iax1,iay0,iay1,iaz0,iaz1,nyAtBox,nyAtBox2,nxyAtBox,nxyAtBox2,iOffsX,iOffsY,iOffsZ;
-	int nzSub,Nr,ir,Nz_lut;
+	int ir;
 	int iOffsLimHi,iOffsLimLo,iOffsStep;
+
+	QScf *atPotDataPtr;
 
 	float_tt z,x,y,r,ddx,ddy,ddr,dr,r2sqr,x2,y2,potVal,dOffsZ;
 	// char *sliceFile = "slices.dat";
@@ -376,8 +378,8 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	float_tt atomRadius2;
 	time_t time0,time1;
 	float s11,s12,s21,s22;
-	//QScMat atPotPtr;
-	std::complex<float_tt> *potPtr, *ptr;
+	QScMat atPot, atOffsetPot;
+	//std::complex<float_tt> *potPtr, *ptr;
 	static int divCount = 0;
 	QSfVec slicePos;
 	QSfMat tempPot;
@@ -392,7 +394,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	float_tt ddz;
 #endif
 #if USE_Q_POT_OFFSETS
-	//QSfVec	atPotOffsPtr;
+	//QSfVec	atOffsetPot;
 #endif
 
 	oldTrans0 = QSVecOfcMat(nlayer);
@@ -592,7 +594,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 	if (muls->readPotential) {
 		for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
 			sprintf(buf,"%s/potential_%d.img",muls->folder,i);
-			header = readImage((void ***)&tempPot,0,0,buf);
+			header = readImage(tempPot,0,0,buf);
 			// printf("%d: read potential with Nx=%d, Ny=%d\n",i,header->nx,header->ny);
 			if ((nx != header->nx) || (ny != header->ny))
 				printf("potential array size mismatch: (%d,%d) != (%d,%d)\n",
@@ -854,27 +856,36 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 
 
 						// define range of sampling from atomZ-/+atomRadius
+						// if iAtomZ - iRadZ is < 0; output iAtomZ-iRadZ-iAtomZ = iRadZ
+						//    else: output iAtomZ-iRadZ-iRadZ = iAtomZ-2iRadZ
 						iaz0 = iAtomZ-iRadZ <  0 ? -iAtomZ : -iRadZ;
 						iaz1 = iAtomZ+iRadZ >= muls->slices ?  muls->slices-iAtomZ-1 : iRadZ;
 						// iaz0 = 0;  iaz1 = 0;
-						// printf("iatomZ: %d, %d..%d cz=%g, %g (%d), dOffsZ=%g (%d)\n",iAtomZ,iaz0,iaz1,muls->sliceThickness,atomZ,(int)atomZ,(iAtomZ+iaz0-atomZ/muls->sliceThickness)*nzSub,(int)(iAtomZ+iaz0-atomZ/muls->sliceThickness)*nzSub+0.5);
+						// printf("iatomZ: %d, %d..%d cz=%g, %g (%d), dOffsZ=%g (%d)\n",iAtomZ,iaz0,iaz1,muls->sliceThickness,atomZ,(int)atomZ,(iAtomZ+iaz0-atomZ/muls->sliceThickness)*potObject.GetNzSub(),(int)(iAtomZ+iaz0-atomZ/muls->sliceThickness)*potObject.GetNzSub()+0.5);
 						if ((iAtomZ+iaz0 <	muls->slices) && (iAtomZ+iaz1 >= 0)) {
 							// retrieve the pointer for this atom
-							//atPotPtr     = getAtomPotential3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut);
+							atPot = potObject.GetPot(atoms[iatom].Znum);
+							//atPot     = getAtomPotential3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&potObject.GetNzSub(),&potObject.GetNr(),&Nz_lut);
+							// next line doesn't belong here - pasted for study.
+							//potVal = (1-ddr)*atPot[ir-iOffsZ+potObject.GetNr()][0]+ddr*atPot[ir+1-iOffsZ+potObject.GetNr()][0];
 //#if USE_Q_POT_OFFSETS
 							// retrieve the pointer to the array of charge-dependent potential offset
 							// This function will return NULL; if the charge of this atom is zero:
-							//atPotOffsPtr = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut,atoms[iatom].q);
+							//atOffsetPot = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&potObject.GetNzSub(),&Nr,&Nz_lut,atoms[iatom].q);
+							atOffsetPot = potObject.GetPot(atoms[iatom].Znum,atoms[iatom].q);
 //#endif // USE_Q_POT_OFFSETS
-							iOffsLimHi   =  Nr*(Nz_lut-1);
-							iOffsLimLo   = -Nr*(Nz_lut-1);
-							iOffsStep    = nzSub*Nr;
+							iOffsLimHi   =  potObject.GetNr()*(potObject.GetNzLUT()-1);
+							iOffsLimLo   =  -potObject.GetNr()*(potObject.GetNzLUT()-1);
+							iOffsStep    =  potObject.GetNzSub()*potObject.GetNr();
 
 							// Slices around the slice that this atom is located in must be affected by this atom:
 							// iaz must be relative to the first slice of the atom potential box.
+							// TODO: should be able to vectorize this.
+							//cols = iax1-iax0;
+							//rows = iay1-iay0;
+							//transPot = muls->trans[iAtomZ+iaz0].block(iay0,iax0,rows,cols);
 							for (iax=iax0; iax <= iax1; iax++) {
-								potPtr = &(muls->trans[iAtomZ+iaz0](iay0,iax).real());
-								// potPtr = &(muls->trans[iAtomZ-iaz0+iaz][iax][iay0].real());
+								// potPtr = &(muls->trans[iAtomZ+iaz0][iax][iay0][0]);
 								// printf("access: %d %d %d (%d)\n",iAtomZ+iaz0,iax,iay0,(int)potPtr);							
 
 								//////////////////////////////////////////////////////////////////////
@@ -890,48 +901,45 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 									ddr = r/dr;
 									ir	= (int)floor(ddr);
 									// add in different slices, once r has been defined
-									if (ir < Nr-1) {
+									if (ir < potObject.GetNr()-1) {
 										ddr -= ir;
-										ptr = potPtr;
+										//ptr = muls->trans[iAtomZ+iaz0](iay,iax);
 
-										dOffsZ = (iAtomZ+iaz0-atomZ/muls->sliceThickness)*nzSub;
+										dOffsZ = (iAtomZ+iaz0-atomZ/muls->sliceThickness)*potObject.GetNzSub();
 #if Z_INTERPOLATION
 										iOffsZ = (int)dOffsZ;
 										ddz    = fabs(dOffsZ - (float_tt)iOffsZ);
 #else
 										iOffsZ = (int)(dOffsZ+0.5);
 #endif
-										iOffsZ *= Nr;
+										iOffsZ *= potObject.GetNr();
 
 										for (iaz=iaz0; iaz <= iaz1; iaz++) {
 											potVal = 0;
-											// iOffsZ = (int)(fabs(iAtomZ+iaz-atomZ/muls->sliceThickness)*nzSub+0.5);
+											// iOffsZ = (int)(fabs(iAtomZ+iaz-atomZ/muls->sliceThickness)*potObject.GetNzSub()+0.5);
 											if (iOffsZ < 0) {
 												if (iOffsZ > iOffsLimLo) {
 													// do the real part by linear interpolation in r-dimension:
 #if Z_INTERPOLATION
-													potVal = (1-ddz)*((1-ddr)*atPotPtr[ir-iOffsZ+Nr][0]+ddr*atPotPtr[ir+1-iOffsZ+Nr][0])+
-														ddz *((1-ddr)*atPotPtr[ir-iOffsZ   ][0]+ddr*atPotPtr[ir+1-iOffsZ   ][0]);
+													potVal = (1-ddz)*((1-ddr)*atPot[ir-iOffsZ+potObject.GetNr()][0]+ddr*atPot[ir+1-iOffsZ+potObject.GetNr()][0])+
+														ddz *((1-ddr)*atPot[ir-iOffsZ   ][0]+ddr*atPot[ir+1-iOffsZ   ][0]);
 #if USE_Q_POT_OFFSETS
 													// add the charge-dependent potential offset
-													if (atPotOffsPtr != NULL) {
-														potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atPotOffsPtr[ir-iOffsZ+Nr][0]+ddr*atPotOffsPtr[ir+1-iOffsZ+Nr][0])+
-															ddz *((1-ddr)*atPotOffsPtr[ir-iOffsZ   ][0]+ddr*atPotOffsPtr[ir+1-iOffsZ   ][0]));		
+													if (atOffsetPot != NULL) {
+														potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atOffsetPot[ir-iOffsZ+potObject.GetNr()][0]+ddr*atOffsetPot[ir+1-iOffsZ+potObject.GetNr()][0])+
+															ddz *((1-ddr)*atOffsetPot[ir-iOffsZ   ][0]+ddr*atOffsetPot[ir+1-iOffsZ   ][0]));		
 													}	
 #endif  // USE_Q_POT_OFFSETS
 #else   // Z_INTERPOLATION
-													potVal = (1 - ddr) * potObject.SplineLookUp(iAtomZ+iaz0,ir-iOffsZ+Nr) + 
-														ddr * potObject.SplineLookUp(iAtomZ+iaz0,ir+1-iOffsZ+Nr);
-													//potVal = (1-ddr)*atPotPtr[ir-iOffsZ+Nr][0]+ddr*atPotPtr[ir+1-iOffsZ+Nr][0];
+													//potVal = (1-ddr)*atPot[ir-iOffsZ+potObject.GetNr()][0]+ddr*atPot[ir+1-iOffsZ+potObject.GetNr()][0];
 #if USE_Q_POT_OFFSETS
 													// add the charge-dependent potential offset
-													//if (atPotOffsPtr != NULL) {
+													//if (atOffsetPot != NULL) {
 													if (atoms[iatom].q!=0)
 													{
-														potVal += atoms[iatom].q*((1-ddr)*potObject.SplineLookUp(iAtomZ+iaz0,ir-iOffsZ+Nr,atoms[iatom].q)
-															+ddr*potObject.SplineLookUp(iAtomZ+iaz0,ir+1-iOffsZ+Nr,atoms[iatom].q));
+														potVal += (atoms[iatom].q*((1-ddr)*atPot(ir-iOffsZ+potObject.GetNr(),0)+ddr*atPot(ir+1-iOffsZ+potObject.GetNr(),0))).real();
 													}
-														//potVal += atoms[iatom].q*((1-ddr)*atPotOffsPtr[ir-iOffsZ+Nr].real()+ddr*atPotOffsPtr[ir+1-iOffsZ+Nr].real());
+														//potVal += atoms[iatom].q*((1-ddr)*atOffsetPot[ir-iOffsZ+potObject.GetNr()].real()+ddr*atOffsetPot[ir+1-iOffsZ+potObject.GetNr()].real());
 													//}	
 #endif  // USE_Q_POT_OFFSETS
 #endif  // Z_INTERPOLATION
@@ -944,23 +952,23 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 												if (iOffsZ < iOffsLimHi) {
 													// do the real part by linear interpolation in r-dimension:
 #if Z_INTERPOLATION
-													potVal = (1-ddz)*((1-ddr)*atPotPtr[ir+iOffsZ][0]+ddr*atPotPtr[ir+1+iOffsZ][0])+
-														ddz *((1-ddr)*atPotPtr[ir+iOffsZ+Nr][0]+ddr*atPotPtr[ir+1+iOffsZ+Nr][0]);
+													potVal = (1-ddz)*((1-ddr)*atPot[ir+iOffsZ][0]+ddr*atPot[ir+1+iOffsZ][0])+
+														ddz *((1-ddr)*atPot[ir+iOffsZ+potObject.GetNr()][0]+ddr*atPot[ir+1+iOffsZ+potObject.GetNr()][0]);
 #if USE_Q_POT_OFFSETS
 													// add the charge-dependent potential offset
-													if (atPotOffsPtr != NULL) {
-														potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atPotOffsPtr[ir+iOffsZ][0]+ddr*atPotOffsPtr[ir+1+iOffsZ][0])+
-															ddz *((1-ddr)*atPotOffsPtr[ir+iOffsZ+Nr][0]+ddr*atPotOffsPtr[ir+1+iOffsZ+Nr][0]));
+													if (atOffsetPot != NULL) {
+														potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atOffsetPot[ir+iOffsZ][0]+ddr*atOffsetPot[ir+1+iOffsZ][0])+
+															ddz *((1-ddr)*atOffsetPot[ir+iOffsZ+potObject.GetNr()][0]+ddr*atOffsetPot[ir+1+iOffsZ+potObject.GetNr()][0]));
 													}
 #endif  // USE_Q_POT_OFFSETS
 #else   // Z_INTERPOLATION
-													potVal = (1-ddr)*atPotPtr[ir+iOffsZ].real()+ddr*atPotPtr[ir+1+iOffsZ].real();
+													potVal = (1-ddr)*atPot(ir+iOffsZ,0).real()+ddr*atPot(ir+1+iOffsZ,0).real();
 #if USE_Q_POT_OFFSETS
 													// add the charge-dependent potential offset
-													//if (atPotOffsPtr != NULL) {
+													//if (atOffsetPot != NULL) {
 													if (atoms[iatom].q!=0)
 													{
-														potVal += atoms[iatom].q*((1-ddr)*atPotOffsPtr[ir+iOffsZ].real()+ddr*atPotOffsPtr[ir+1+iOffsZ].real());
+														potVal += atoms[iatom].q*((1-ddr)*atOffsetPot(ir+iOffsZ,0).real()+ddr*atOffsetPot(ir+1+iOffsZ,0).real());
 													}
 													//}
 #endif  // USE_Q_POT_OFFSETS
@@ -969,16 +977,18 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 
 												}
 											} // if iOffsZ >=0
-											*ptr += potVal;  // ptr = potPtr = muls->trans[...]
+											// this is probably slower than the old pointer method, but it's much easier to see what's going on.
+											muls->trans[iAtomZ+iaz0](iay,iax) += potVal;  // ptr = potPtr = muls->trans[...]
 
-											ptr  += sliceStep;	// advance to the next slice
+											//ptr  += sliceStep;	// advance to the next slice
+
 											// add the remaining potential to the next slice:
 											// if (iaz < iaz1)	*ptr += (1-ddz)*potVal;
 											iOffsZ += iOffsStep;
 										} // end of iaz-loop
-									} // if ir < Nr
+									} // if ir < potObject.GetNr()
 									// advance pointer to next complex potential point:
-									potPtr++;
+									//potPtr++;
 									// make imaginary part zero for now
 									// *potPtr = 0;
 									// potPtr++;
@@ -988,7 +998,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 								} // iay=iay0 .. iay1	  
 							} // iax=iax0 .. iax1
 						} // iaz0+iAtomZ < muls->slices
-						// dOffsZ = (iAtomZ-atomZ/muls->sliceThickness)*nzSub;
+						// dOffsZ = (iAtomZ-atomZ/muls->sliceThickness)*potObject.GetNzSub();
 						// printf("%5d (%2d): iAtomZ=%2d, offsZ=%g, diff=%g, (%g)\n",
 						//	  iatom,atoms[iatom].Znum,iAtomZ,dOffsZ,dOffsZ - (int)(dOffsZ+0.5),iAtomZ-atomZ/muls->sliceThickness);
 					} // if within bounds	
@@ -1016,20 +1026,20 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 						s12 = (1-ddx)*ddy;
 						s21 = ddx*(1-ddy);
 						s22 = ddx*ddy;
-						atPotPtr = getAtomPotential2D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw);
+						//atPot = getAtomPotential2D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw);
 
 						for (iax=iax0; iax < iax1; iax++) {
 							// printf("(%d, %d): %d,%d\n",iax,nyAtBox,(iOffsX+OVERSAMP_X*(iax-iax0)),iOffsY+iay1-iay0);
 							// potPtr and ptr are of type (float *)
 							//potPtr = muls->trans[iAtomZ](iay0,iax).data();
-							potPtr = muls->trans[iAtomZ].data();
-							ptr = &(atPotPtr[(iOffsX+OVERSAMP_X*(iax-iax0))*nyAtBox+iOffsY][0]);
+							//potPtr = ;
+							atPotDataPtr = atPot.data()+((iOffsX+OVERSAMP_X*(iax-iax0))*nyAtBox+iOffsY);
 							for (iay=iay0; iay < iay1; iay++) {
-								*potPtr += s11*(*ptr)+s12*(*(ptr+2))+s21*(*(ptr+nyAtBox2))+s22*(*(ptr+nyAtBox2+2));
+								muls->trans[iAtomZ](iay,iax) += (s11*(*atPotDataPtr)+s12*(*(atPotDataPtr+2))+s21*(*(atPotDataPtr+nyAtBox2))+s22*(*(atPotDataPtr+nyAtBox2+2)));
 
 								// *potPtr = 0;
-								potPtr++;
-								ptr += 2*OVERSAMP_X;
+								//potPtr++;
+								atPotDataPtr += 2*OVERSAMP_X;
 							}
 						}
 
@@ -1060,21 +1070,21 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 					// printf("%d: iatomZ: %d, %d cz=%g, %g\n",iatom,iAtomZ,iaz0,muls->sliceThickness,atomZ);
 					if ((iAtomZ+iaz0 <  muls->slices) && (iAtomZ+iaz1 >= 0)) {
 						// retrieve the pointer for this atom
-						atPotPtr = getAtomPotential3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut);
+						//atPot = getAtomPotential3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&potObject.GetNzSub(),&Nr,&Nz_lut);
 #if USE_Q_POT_OFFSETS
 						// retrieve the pointer to the array of charge-dependent potential offset
 						// This function will return NULL; if the charge of this atom is zero:
-						atPotOffsPtr = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut,atoms[iatom].q);
+						//atOffsetPot = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw,&potObject.GetNzSub(),&Nr,&Nz_lut,atoms[iatom].q);
 #endif // USE_Q_POT_OFFSETS
-						iOffsLimHi =	Nr*(Nz_lut-1);
-						iOffsLimLo = -Nr*(Nz_lut-1);
-						iOffsStep  = nzSub*Nr;
+						iOffsLimHi =	potObject.GetNr()*(potObject.GetNzLUT()-1);
+						iOffsLimLo = -potObject.GetNr()*(potObject.GetNzLUT()-1);
+						iOffsStep  = potObject.GetNzSub()*potObject.GetNr();
 
 						// Slices around the slice that this atom is located in must be affected by this atom:
 						// iaz must be relative to the first slice of the atom potential box.
 						for (iax=iax0; iax < iax1; iax++) {
 							//potPtr = muls->trans[iAtomZ+iaz0]((iay0+2*muls->potNy) % muls->potNy,(iax+2*muls->potNx) % muls->potNx).data();
-							potPtr = muls->trans[iAtomZ+iaz0].data();
+							//potPtr = muls->trans[iAtomZ+iaz0].data+;
 							// potPtr = &(muls->trans[iAtomZ-iaz0+iaz][iax][iay0].real());
 							x2 = iax*dx - atomX;	x2 *= x2;
 							for (iay=iay0; iay < iay1; ) {
@@ -1084,43 +1094,43 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 								ddr = r/dr;
 								ir  = (int)floor(ddr);
 								// add in different slices, once r has been defined
-								if (ir < Nr-1) {
+								if (ir < potObject.GetNr()-1) {
 									ddr -= ir;
-									ptr = potPtr;
+									//ptr = potPtr;
 									// Include interpolation in z-direction as well (may do it in a very smart way here !):
 
-									dOffsZ = (iAtomZ+iaz0-atomZ/muls->sliceThickness)*nzSub;
+									dOffsZ = (iAtomZ+iaz0-atomZ/muls->sliceThickness)*potObject.GetNzSub();
 #if Z_INTERPOLATION
 									iOffsZ = (int)dOffsZ;
 									ddz	 = fabs(dOffsZ - (float_tt)iOffsZ);
 #else  // Z_INTERPOLATION
 									iOffsZ = (int)(dOffsZ+0.5);
 #endif  // Z_INTERPOLATION
-									iOffsZ *= Nr;
+									iOffsZ *= potObject.GetNr();
 
 									for (iaz=iaz0; iaz <= iaz1; iaz++) {
 										potVal = 0;
-										// iOffsZ = (int)(fabs(iAtomZ+iaz-atomZ/muls->sliceThickness)*nzSub+0.5);
+										// iOffsZ = (int)(fabs(iAtomZ+iaz-atomZ/muls->sliceThickness)*potObject.GetNzSub()+0.5);
 										if (iOffsZ < 0) {
 											if (iOffsZ > iOffsLimLo) {
 												// do the real part by linear interpolation in r-dimension:
 #if Z_INTERPOLATION
-												potVal = (1-ddz)*((1-ddr)*atPotPtr[ir-iOffsZ+Nr].real()+ddr*atPotPtr[ir+1-iOffsZ+Nr].real())+
-													ddz *((1-ddr)*atPotPtr[ir-iOffsZ	 ].real()+ddr*atPotPtr[ir+1-iOffsZ	 ].real());
+												potVal = (1-ddz)*((1-ddr)*atPot[ir-iOffsZ+Nr].real()+ddr*atPot[ir+1-iOffsZ+Nr].real())+
+													ddz *((1-ddr)*atPot[ir-iOffsZ	 ].real()+ddr*atPot[ir+1-iOffsZ	 ].real());
 #if USE_Q_POT_OFFSETS
 												// add the charge-dependent potential offset
-												if (atPotOffsPtr != NULL) {
-													potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atPotOffsPtr[ir-iOffsZ+Nr].real()+ddr*atPotOffsPtr[ir+1-iOffsZ+Nr].real())+
-														ddz *((1-ddr)*atPotOffsPtr[ir-iOffsZ   ].real()+ddr*atPotOffsPtr[ir+1-iOffsZ   ].real()));		
+												if (atOffsetPot != NULL) {
+													potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atOffsetPot[ir-iOffsZ+Nr].real()+ddr*atOffsetPot[ir+1-iOffsZ+Nr].real())+
+														ddz *((1-ddr)*atOffsetPot[ir-iOffsZ   ].real()+ddr*atOffsetPot[ir+1-iOffsZ   ].real()));		
 												}	
 #endif  // USE_Q_POT_OFFSETS
 #else  // Z_INTERPOLATION
-												potVal = (1-ddr)*atPotPtr[ir-iOffsZ+Nr].real()+ddr*atPotPtr[ir+1-iOffsZ+Nr].real();
+												potVal = (1-ddr)*atPot(ir-iOffsZ+potObject.GetNr(),0).real()+ddr*atPot(ir+1-iOffsZ+potObject.GetNr(),0).real();
 #if USE_Q_POT_OFFSETS
 												// add the charge-dependent potential offset
-												//if (atPotOffsPtr != NULL) {
+												//if (atOffsetPot != NULL) {
 												// this will do nothing if the charge is 0.
-													potVal += atoms[iatom].q*((1-ddr)*atPotOffsPtr[ir-iOffsZ+Nr].real()+ddr*atPotOffsPtr[ir+1-iOffsZ+Nr][0]);
+													potVal += (atoms[iatom].q*((1-ddr)*atOffsetPot(ir-iOffsZ+potObject.GetNr(),0).real()+ddr*atOffsetPot(ir+1-iOffsZ+potObject.GetNr(),0))).real();
 												//}	
 #endif  // USE_Q_POT_OFFSETS
 #endif  // Z_INTERPOLATION
@@ -1132,49 +1142,50 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 											if (iOffsZ < iOffsLimHi) {
 												// do the real part by linear interpolation in r-dimension:
 #if Z_INTERPOLATION
-												potVal = (1-ddz)*((1-ddr)*atPotPtr[ir+iOffsZ].real()+ddr*atPotPtr[ir+1+iOffsZ].real())+
-													ddz *((1-ddr)*atPotPtr[ir+iOffsZ+Nr].real()+ddr*atPotPtr[ir+1+iOffsZ+Nr].real());
+												potVal = (1-ddz)*((1-ddr)*atPot[ir+iOffsZ].real()+ddr*atPot[ir+1+iOffsZ].real())+
+													ddz *((1-ddr)*atPot[ir+iOffsZ+potObject.GetNr()].real()+ddr*atPot[ir+1+iOffsZ+potObject.GetNr()].real());
 #if USE_Q_POT_OFFSETS
 												// add the charge-dependent potential offset
-												if (atPotOffsPtr != NULL) {
-													potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atPotOffsPtr[ir+iOffsZ].real()+ddr*atPotOffsPtr[ir+1+iOffsZ].real())+
-														ddz *((1-ddr)*atPotOffsPtr[ir+iOffsZ+Nr].real()+ddr*atPotOffsPtr[ir+1+iOffsZ+Nr].real()));
+												if (atOffsetPot != NULL) {
+													potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atOffsetPot[ir+iOffsZ].real()+ddr*atOffsetPot[ir+1+iOffsZ].real())+
+														ddz *((1-ddr)*atOffsetPot[ir+iOffsZ+potObject.GetNr()].real()+ddr*atOffsetPot[ir+1+iOffsZ+potObject.GetNr()].real()));
 												}
 #endif  // USE_Q_POT_OFFSETS
 #else  // Z_INTERPOLATION
-												potVal = (1-ddr)*atPotPtr[ir+iOffsZ].real()+ddr*atPotPtr[ir+1+iOffsZ].real();
+												potVal = (1-ddr)*atPot(ir+iOffsZ,0).real()+ddr*atPot(ir+1+iOffsZ,0).real();
 #if USE_Q_POT_OFFSETS
 												// add the charge-dependent potential offset
-												//if (atPotOffsPtr != QScf(0,0)) {
-													//potVal += atoms[iatom].q*((1-ddr)*atPotOffsPtr[ir+iOffsZ][0]+ddr*atPotOffsPtr[ir+1+iOffsZ][0]);
-													potVal += atoms[iatom].q*((1-ddr)*atPotOffsPtr[ir+iOffsZ].real()+ddr*atPotOffsPtr[ir+1+iOffsZ].real());
+												//if (atOffsetPot != QScf(0,0)) {
+													//potVal += atoms[iatom].q*((1-ddr)*atOffsetPot[ir+iOffsZ][0]+ddr*atOffsetPot[ir+1+iOffsZ][0]);
+													potVal += atoms[iatom].q*((1-ddr)*atOffsetPot(ir+iOffsZ,0).real()+ddr*atOffsetPot(ir+1+iOffsZ,0).real());
 												//}
 #endif  // USE_Q_POT_OFFSETS
 #endif  // Z_INTERPOLATION
 											}
 										}
-										*ptr += potVal;
+										muls->trans[iAtomZ+iaz](iay, iax) += std::complex<float_tt>(potVal,0.0f);
 
-										ptr  += sliceStep;  // advance to the next slice
+										//ptr  += sliceStep;  // advance to the next slice
 										// add the remaining potential to the next slice:
 										// if (iaz < iaz1)  *ptr += (1-ddz)*potVal;
 										iOffsZ += iOffsStep;
 									}
-								} // if ir < Nr-1
+								} // if ir < potObject.GetNr()-1
 								// advance pointer to next complex potential point:
-								potPtr+=2;
+								//potPtr+=2;
 								// make imaginary part zero for now
 								// *potPtr = 0;
 								// potPtr++;
 
 								// wrap around when end of y-line is reached:
-								if (++iay % muls->potNy == 0) potPtr -= 2*muls->potNy;		
+								if (++iay % muls->potNy == 0) muls->trans[iAtomZ+iaz](iay, iax) -= 2*muls->potNy;		
 							}   
 						}
 					} // iaz0+iAtomZ < muls->slices
 				}  // muls->potential3D	
 				////////////////////////////////////////////////////////////////////
 				// 2D potential (periodic) calculation already seems to work!
+				/*
 				else {
 					iAtomZ = (int)floor(atomZ/muls->sliceThickness);
 					iax0 = iAtomX-iRadX+2*muls->potNx;
@@ -1188,18 +1199,20 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 					iOffsY = (int)floor(ddy);
 					ddx -= iOffsX;
 					ddy -= iOffsY;
+					*/
 					/*
 					s11 = (1-ddx)*(1-ddy);
 					s12 = (1-ddx)*ddy;
 					s21 = ddx*(1-ddy);
 					s22 = ddx*ddy;
-					*/									
+					*/
+				/*
 				    s22 = (1-ddx)*(1-ddy);
 					s21 = (1-ddx)*ddy;
 					s12 = ddx*(1-ddy);
 					s11 = ddx*ddy;
 
-					atPotPtr = getAtomPotential2D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw);
+					atPot = getAtomPotential2D(atoms[iatom].Znum,muls,muls->tds ? 0 : atoms[iatom].dw);
 
 					// if (iatom < 3) printf("atom #%d: ddx=%g, ddy=%g iatomZ=%d, atomZ=%g, %g\n",iatom,ddx,ddy,iAtomZ,atomZ,atoms[iatom].pos[2]);
 					for (iax=iax0; iax < iax1; iax++) {  // TODO: should use ix += OVERSAMP_X
@@ -1209,7 +1222,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 						// Only the exact slice that this atom is located in is affected by this atom:
 						int atPosX = (OVERSAMP_X*(iax-iax0)-iOffsX);
 						if ((atPosX >= 0) && (atPosX < nyAtBox-1)) {
-							ptr = &(atPotPtr[atPosX*nyAtBox-iOffsY][0]);
+							ptr = &(atPot[atPosX*nyAtBox-iOffsY][0]);
 						for (iay=iay0; iay < iay1; iay++) {
 							// wrap around when end of y-line is reached:
 								int atPosY = (iay-iay0)*OVERSAMP_X-iOffsY; 
@@ -1226,6 +1239,7 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 						} // if atPosX within limits
 					}   
 				}  // muls->potential3D	== 0
+				*/
 			}
 			////////////////////////////////////////////////////////////////////
 		} /* end of if (fftpotential) */
@@ -1690,7 +1704,8 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 
 	/**************************************************/
 	/* Setup all the reciprocal lattice vector arrays */
-	if ((kx2 == NULL)||(ky2 == NULL)) {
+	// TODO: optimize such that this initialization only takes place once.
+	//if ((kx2 == NULL)||(ky2 == NULL)) {
 		kx2    = QSfVec(nx);
 		ky2    = QSfVec(ny);
 		/*
@@ -1713,7 +1728,7 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 			ky2[iy] = ky*ky;
 		}    
 		if (muls->printLevel > 2) printf("Reciprocal lattice vector arrays initialized ... \n");
-	}
+	//}
 	/**************************************************/
 	/* setup of all the necessary parameters: */
 	wavlen = (float_tt) wavelength((*muls).v0);
@@ -1939,7 +1954,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			fftw_execute(wave->fftPlanWaveInv);
 #endif
 			// old code: fftwnd_one((*muls).fftPlanInv,(fftw_complex *)wave[0][0], NULL);
-			fft_normalize((void **)wave->wave.data(),muls->nx,muls->ny);
+			fft_normalize(wave->wave,muls->nx,muls->ny);
 
 			/*
 			sprintf(outStr,"wave%d.img",islice);
@@ -2209,7 +2224,7 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 			writeRealImage(wave->diffpat,diffHeader,avgName);
 		}
 		else {
-			readImage((void ***)diffpatAvg.data(),muls->nx,muls->ny,avgName);
+			readImage(diffpatAvg,muls->nx,muls->ny,avgName);
 			diffpatAvg.array() = muls->avgCount*diffpatAvg.array()+wave->diffpat.array()/(muls->avgCount+1);
 			writeRealImage(diffpatAvg,diffHeader,avgName);
 		}
@@ -2297,7 +2312,7 @@ void saveSTEMImages(MULS *muls)
 }
 
 void readStartWave(MULS *muls, WAVEFUNC *wave) {
-	imageStruct *header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart.c_str());
+	imageStruct *header = readComplexImage(wave->wave,muls->nx,muls->ny,wave->fileStart.c_str());
 	// TODO: modifying shared value from multiple threads?
 	wave->thickness = header->t;
 	if (muls->nx != header->nx) {
@@ -2487,10 +2502,6 @@ void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer, int absolute_slice) {
 			scale = 1.0F / ( ((float_tt)muls->nx) * ((float_tt)muls->ny) );
 			hbeam = (*muls).hbeam;
 			kbeam = (*muls).kbeam;
-			if ((hbeam == NULL) || (kbeam == NULL)) {
-				printf("ERROR: hbeam or kbeam == NULL!\n");
-				exit(0);
-			}
 
 			sprintf(fileAmpl,"%s/beams_amp.dat",(*muls).folder);
 			sprintf(filePhase,"%s/beams_phase.dat",(*muls).folder);

@@ -102,6 +102,10 @@ void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 	// Total number of z-positions should be twice that of atomRadius/sliceThickness 
 	nz = (2*(int)ceil(muls->atomRadius/muls->sliceThickness))*nzPerSlice;
 
+	m_Nz_lut = nz/2;
+	m_nzSub  = nzPerSlice;
+	m_Nr	  = nx/2;
+
 	if (muls->printLevel > 1) printf("Will use %d sampling points per slice, total nz=%d (%d)\n",nzPerSlice,nz,nzPerSlice >> 1);
 
 	dkx = 0.5f*OVERSAMP_X/(nx*muls->resolutionX);  // nx*muls->resolutionX is roughly 2*muls->atomRadius
@@ -118,9 +122,12 @@ void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 	//splinh(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF);
 
 	// allocate a 3D array:
-	m_atPot[Znum] = QScMat(nx, nz/4); //(fftwf_complex*) fftwf_malloc(nx*nz/4*sizeof(fftwf_complex));
+	// this is really an nx/2 x nz/2 matrix, but for simple addressing later in terms of radii,
+	//   we treat it here as sort of a vector.
+	m_atPot[Znum] = QScMat(nx*nz/4,1); //(fftwf_complex*) fftwf_malloc(nx*nz/4*sizeof(fftwf_complex));
 	m_atPot[Znum].setZero();
-	QScMat temp(nx,nz);
+	// Again, here is supposed to be nx x nz matrix, but we flatten it.
+	QScMat temp(nx*nz,1);
 	temp.setZero();
 	//memset(temp,0,nx*nz*sizeof(fftwf_complex));
 	kzmax	  = dkz*nz/2.0f; 
@@ -145,6 +152,8 @@ void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 		// zScale = fabs(kz) <= kzborder ? 1.0 : 0.5+0.5*cos(M_PI*(fabs(kz)-kzborder)/(kzmax-kzborder));
 		// printf("iz=%d, kz=%g, zScale=%g ",iz,kz,zScale);
 		for (ix=0;ix<nx;ix++) {
+			// This is the flattened index into the atPot matrix.
+			ind3d = ix+iz*nx;
 			kx = dkx*(ix<nx/2 ? ix : ix-nx);	   
 			s2 = (kx*kx+kz*kz);
 			// if this is within the allowed circle:
@@ -172,7 +181,7 @@ void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 				// this places the atoms in the center of the box.
 				phase	= kx*xPos + kz*zPos;
 				//temp[ind3d] = QScf(f*cos(phase), f*sin(phase)); // *zScale
-				temp(iz*nx,ix) = QScf(f*cos(phase), f*sin(phase)); // *zScale
+				temp(ind3d) = QScf(f*cos(phase), f*sin(phase)); // *zScale
 				// if ((kx==0) && (ky==0)) printf(" f=%g (%g, [%g, %g])\n",f,f*zScale,atPot[Znum][ind3d].real(),atPot[Znum][ind3d][1]);
 			}
 		}
@@ -220,7 +229,7 @@ void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 			// if nothing has changed, then OVERSAMP_X=2 OVERSAMP_Z=18.
 			// remember, that s=0.5*k; 	
 			// This potential will later again be scaled by lambda*gamma (=0.025*1.39139)
-			m_atPot[Znum](iz*nx/2,ix) = QScf(47.8658f*dkx*dkz/(nz)*zScale,0); 
+			m_atPot[Znum](ind3d) = QScf(47.8658f*dkx*dkz/(nz)*zScale,0); 
 				// *8*14.4*0.529=4*a0*e (s. Kirkland's book, p. 207)
 			// 2*pi*14.4*0.529 = 7.6176;
 			// if (atPot[Znum][ind3d].real() < min) min = atPot[Znum][ind3d].real();
@@ -294,48 +303,17 @@ float_tt Potential::SplineLookUp(int Z, float_tt r, float_tt charge)
 	}
 }
 
-/*
+
 // Returns the 3D array of the atom potential for the provided Z.
-QSVecOfcMat Potential::GetPot(int Z, float_tt charge)
+QScMat Potential::GetPot(int Z, float_tt charge)
 {
 	if (std::find(m_knownZvalues.begin(), m_knownZvalues.end(), Z)==m_knownZvalues.end())
 	{
-		CreateAtPot(Znum, useOffset);
+		CreateAtPot(Z, charge);
 	}
 	m_knownZvalues.push_back(Z);
 	return m_atPot[Z];
 }
-*/
-
-/********************************************************************************
-* Create Lookup table for 3D potential due to neutral atoms
-********************************************************************************/
-/*
-#define PHI_SCALE 47.87658
-QScMat getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int *Nz_lut) {
-	int ix,iy,iz,iiz,ind3d,iKind,izOffset;
-	double zScale,kzmax,zPos,xPos;
-	fftwf_plan plan;
-	static double f,phase,s2,s3,kmax2,smax2,kx,kz,dkx,dky,dkz; // ,dx2,dy2,dz2;
-	static int nx,ny,nz,nzPerSlice;
-	static QScMat atPot;
-	static fftwf_complex *temp = NULL;
-#if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
-	static fftwf_complex *ptr = NULL;
-	static char fileName[256];
-#endif 
-
-	// initialize this atom, if it has not been done yet:
-	if (atPot[Znum] == NULL) {
-		
-	}
-	*Nz_lut = nz/2;
-	*nzSub  = nzPerSlice;
-	*Nr	  = nx/2;
-	return atPot[Znum];
-}
-*/
 
 /********************************************************************************
 * Lookup function for 3D potential offset due to charged atoms (ions)

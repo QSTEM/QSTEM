@@ -17,7 +17,7 @@ int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fil
 //int readCubicCFG(float_tt **pos,float_tt **dw, int **Znum, float_tt *ax,float_tt *by,float_tt *cz,
 		 //float_tt ctiltx, float_tt ctilty);
 
-void writeSTEMinput(char* stemFile,char *cfgFile,MULS &muls);
+void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls);
 
 /* Helper functions for above functions: */
 int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );

@@ -527,4 +527,3 @@ int atomCompare(const void *atom1,const void *atom2) {
   return ((*(float_tt *)atom1 == *(float_tt *)atom2) ? 0 : 
 	  ((*(float_tt *)atom1 > *(float_tt *)atom2) ? 1 : -1)); 
 }
-

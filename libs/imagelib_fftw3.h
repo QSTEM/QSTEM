@@ -25,11 +25,12 @@ typedef struct imageStructType {
 
 void getImageHeader(imageStruct *header,FILE * fp);
 imageStruct *makeNewHeader(int nx,int ny);
-imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
+imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny, float_tt t, float_tt dx, float_tt dy,
 								  int paramSize, std::vector<float_tt> params, std::string comment); 
 void setHeaderComment(imageStruct *header, std::string comment);
   
-imageStruct *readImage(void ***pix,int nx,int ny,const char *fileName);
+imageStruct *readImage(QSfMat &pix,int nx,int ny,const char *fileName);
+imageStruct *readComplexImage(QScMat &pix, int nx, int ny, const char *fileName);
 void writeComplexImage(QScMat pix, imageStruct *header, const char *fileName);
 void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName);
 /*

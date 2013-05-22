@@ -23,7 +23,7 @@ public:
 	float_tt thickness;
 	float_tt intIntensity;
 
-        QScMat wave;
+    QScMat wave;
         
 
 #if FLOAT_PRECISION == 1

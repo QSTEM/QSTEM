@@ -11,6 +11,7 @@
 #include "customslice.h"
 #include "fileio_fftw3.h"
 #include "comparators.h"
+#include "potentials.h"
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
@@ -65,7 +66,7 @@ void make3DSlicesFT(MULS *muls) {
   /******************************************
    * only needed during initialization: 
    */
-  fftw_plan plan;                   // fftw array
+  fftwf_plan plan;                   // fftw array
   int fftMeasureFlag = FFTW_ESTIMATE; // fftw plan needed for FFT
   QScMat pot;          // single atom potential box
   float_tt ax,cz;                        // real space size of FT box
@@ -141,6 +142,7 @@ void make3DSlicesFT(MULS *muls) {
     // sfC[sfCSize-1] = 0.0;
 
     timer = getTime();
+	Potential *potObject = new Potential(muls);
     /*************************************************************
      * We will now calculate the real space potential for every
      * kind of atom used in this model
@@ -164,18 +166,19 @@ void make3DSlicesFT(MULS *muls) {
 					arg = static_cast<float_tt>(TWOPI * (sx*(0.5f*ax)+sz*(0.5f*cz))); // place single atom in center of box
 					ffr = cos(arg); ffi = sin(arg);	  
 					// all the s are actually q, therefore S = 0.5*q = 0.5*s:
-					pot(ix,iz) = std::complex<float_tt>(sfLUT(0.5f*s,atKind,muls)*ffr, 
-														sfLUT(0.5f*s,atKind,muls)*ffi);
+					pot(ix,iz) = std::complex<float_tt>(potObject->SplineLookUp(atKind,0.5f*s)*ffr, 
+														potObject->SplineLookUp(atKind,0.5f*s)*ffi);
 				}      
 			}
 		}
       }
+	  delete(potObject);
 
       // new fftw3 code:
 	  // TODO: Define different plans for different data types.
-      plan = fftw_plan_dft_2d(Nz,Nx,(fftw_complex *)pot.data(),(fftw_complex *)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
-      fftw_execute(plan);
-      fftw_destroy_plan(plan);
+      plan = fftwf_plan_dft_2d(Nz,Nx,(fftwf_complex *)pot.data(),(fftwf_complex *)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
+      fftwf_execute(plan);
+      fftwf_destroy_plan(plan);
       // old fftw2 code:
       // plan = fftw2d_create_plan(Nz,Nx,FFTW_BACKWARD,fftMeasureFlag | FFTW_IN_PLACE);  
       // fftwnd_one(plan, pot[0], NULL); 

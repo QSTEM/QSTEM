@@ -114,7 +114,7 @@ void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName) {
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.
  ***********************************************************/
-imageStruct *readImage(QSfMat pix, int nx, int ny, const char *fileName) {
+imageStruct *readImage(QSfMat &pix, int nx, int ny, const char *fileName) {
   FILE *fp;
   size_t nRead=0;
   int trial=0,maxTrial=3,freadError=0;
@@ -131,7 +131,6 @@ imageStruct *readImage(QSfMat pix, int nx, int ny, const char *fileName) {
     }
     else {
       getImageHeader(header,fp);
-
 
       if ((nx != header->nx)||(ny != header->ny)) {
 		sprintf(error_string, "readImage: image size mismatch nx = %d (%d), ny = %d (%d)\n", header->nx,nx,header->ny,ny);
@@ -157,6 +156,56 @@ imageStruct *readImage(QSfMat pix, int nx, int ny, const char *fileName) {
   return header;
 }
 
+/***********************************************************
+ * This function will read an image.  It reuses the same header 
+ * struct over and over.  Therefore, values must be copied from 
+ * the header members before calling this function again.
+ *
+ * The image pointer may also be NULL, in which case memory will be
+ * allocated for it, and its size will be returned in the header struct
+ * members nx, and ny.
+ ***********************************************************/
+imageStruct *readComplexImage(QScMat &pix, int nx, int ny, const char *fileName) {
+  FILE *fp;
+  size_t nRead=0;
+  int trial=0,maxTrial=3,freadError=0;
+  static imageStruct *header = NULL;
+  char error_string[300];
+
+  if (header == NULL) header = makeNewHeader(1,1);
+ 
+  do {
+    if ((fp = fopen(fileName,"rb"))==NULL) {
+      printf("Could not open file %s for reading\n",fileName);
+      /* wait a short while */
+      while (nRead < 1e5) nRead++;
+    }
+    else {
+      getImageHeader(header,fp);
+
+      if ((nx != header->nx)||(ny != header->ny)) {
+		sprintf(error_string, "readImage: image size mismatch nx = %d (%d), ny = %d (%d)\n", header->nx,nx,header->ny,ny);
+		throw std::exception(error_string);
+      }
+      nRead = fread((void *)pix.data(),2*sizeof(float_tt),(size_t)(nx*ny),fp);
+      if (nRead != nx*ny) {
+		freadError = 1;
+		sprintf(error_string, "Error while reading data from file %s:"
+	       " %d (of %d) elements read\n"
+		   "EOF: %d, Ferror: %d, dataSize: %d\n",
+		   fileName,nRead,(nx)*(ny),feof(fp),ferror(fp),header->dataSize);
+		fclose(fp);
+		fp = NULL;
+		throw std::exception(error_string);
+      }
+    }
+    /* we will try three times to read this file. */
+  }  while ((freadError > 0) && (++trial < maxTrial));
+  
+  if (fp != NULL) fclose(fp);
+
+  return header;
+}
 
 /*****************************************************************
  * Image header routines

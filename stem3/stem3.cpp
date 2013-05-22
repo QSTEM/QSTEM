@@ -61,10 +61,9 @@ const char *resultPage = "result.html";
 MULS muls;
 // int fftMeasureFlag = FFTW_MEASURE;
 int fftMeasureFlag = FFTW_ESTIMATE;
-extern char *elTable;
 
 void makeAnotation(float_tt **pict,int nx,int ny,char *text);
-void initMuls();
+//void initMuls();
 void writeIntPix(char *outFile,float_tt **pict,int nx,int ny);
 void runMuls(int lstart);
 void saveLineScan(int run);
@@ -454,7 +453,7 @@ void displayParams() {
 }
 
 
-void readArray(char *title,float_tt *array,int N) {
+void readArray(const char *title,float_tt *array,int N) {
 	int i;
 	char buf[512],*str;
 
@@ -484,7 +483,8 @@ void readSFactLUT() {
 	QSfVec kArray;
 
 
-	char buf[256], elem[8];
+	char buf[256];
+	std::string elem;
 
 	if (readparam("Nk:",buf,1))
 		Nk = atoi(buf);
@@ -503,16 +503,9 @@ void readSFactLUT() {
 	kArray[Nk] = 2.0f*kArray[Nk-1];
 
 	for (j=0;j<muls.atomKinds;j++) {
-		elem[3] = '\0';
-		elem[2] = ':';
-		elem[0] = elTable[2*muls.Znums[j]-2];
-		elem[1] = elTable[2*muls.Znums[j]-1];
-		if (elem[1] == ' ') {
-			elem[1] = ':';
-			elem[2] = '\0';
-		}
+		elem = ElTable::Get()[muls.Znums[j]].c_str();
 		// printf("%s\n",elem);
-		readArray(elem, sfTable.col(j).data(),Nk);
+		readArray(elem.c_str(), sfTable.col(j).data(),Nk);
 		sfTable(Nk,j) = 0.0;
 	}
 
@@ -855,9 +848,8 @@ void readFile() {
 	if (readparam("slices between outputs:",buf,1)) sscanf(buf,"%d",&(muls.outputInterval));
 	if (muls.outputInterval < 1) muls.outputInterval= muls.slices;
 
-
-
-	initMuls();  
+	// muls is initialized in its constructor.
+	//initMuls();  
 	muls.czOffset = 0.0; /* slize z-position offset in cartesian coords */
 	if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(muls.czOffset));
 
@@ -1578,7 +1570,7 @@ void doTOMO() {
 		printf("Writing file %s | ",cfgFile);
 		writeCFG(atoms,muls.natom,cfgFile,&muls);
 		sprintf(cfgFile,"tomo_%dmrad.cfg",(int)theta);
-		writeSTEMinput(stemFile,cfgFile,muls);
+		writeSTEMinput(stemFile,cfgFile,&muls);
 
 		// add to script files:
 		fprintf(fpScript,"stem tomo_%dmrad.dat\n",(int)theta);
@@ -1818,7 +1810,7 @@ void doCBED() {
 
 		sprintf(avgName,"%s/diff.img",muls.folder);
 		// readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		header_read = readImage(diffArray,muls.nx,muls.ny,avgName);
 
 
 		if (muls.avgCount == 0) {
@@ -2157,7 +2149,7 @@ void doTEM() {
 		sprintf(avgName,"%s/diff.img",muls.folder);
 
 		//readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		header_read = readImage(diffArray,muls.nx,muls.ny,avgName);
 
 		if (muls.avgCount == 0) {
 			/***********************************************************
@@ -2282,7 +2274,7 @@ void doTEM() {
 
 			// save the amplitude squared:
 			sprintf(avgName,"%s/image.img",muls.folder); 
-			header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+			header_read = readImage(diffArray,muls.nx,muls.ny,avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				t = ((float_tt)muls.avgCount*diffArray(iy,ix)+
 					imageWave(iy,ix).real()*imageWave(iy,ix).real()+imageWave(iy,ix).imag()*imageWave(iy,ix).imag())/(float_tt)(muls.avgCount+1);
@@ -2590,7 +2582,7 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName.c_str());
+								header_read = readImage(wave->avgArray, muls.nx, muls.ny, wave->avgName.c_str());
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((float_tt)muls.avgCount * wave->avgArray(iya,ixa) +
 										wave->diffpat(iya,ixa)) / ((float_tt)(muls.avgCount + 1));

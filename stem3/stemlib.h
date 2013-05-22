@@ -14,7 +14,7 @@
  * with parameters given in muls
  *********************************************/
 // int probe(MULS *muls,double dx, double dy);
-void probe(MULS *muls, WAVEFUNC *wave, double dx, double dy);
+void probe(MULS *muls, WAVEFUNC *wave, float_tt dx, float_tt dy);
 void probePlot(MULS *muls, WAVEFUNC *wave);
 
 void initSTEMSlices(MULS *muls, int nlayer);
@@ -26,8 +26,8 @@ void saveSTEMImages(MULS *muls);
 void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center);
 void make3DSlicesFFT(MULS *muls,int nlayer,char *fileName,atom *center);
 void createAtomBox(MULS *muls, int Znum, atomBox *aBox);
-void transmit(QScMat wave, QScMat trans,int nx, int ny,int posx,int posy);
-void propagate_slow(QScMat wave,int nx, int ny,MULS *muls);
+void transmit(QScMat &wave, QScMat &trans,int nx, int ny,int posx,int posy);
+void propagate_slow(QScMat &wave,int nx, int ny,MULS *muls);
 //fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B);
 //fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut);
 //fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut,float q);
@@ -44,7 +44,7 @@ void readStartWave(MULS *muls, WAVEFUNC *wave);
 int runMulsSTEM_old(MULS *muls,int lstart);
 int runMulsSTEM(MULS *muls, WAVEFUNC *wave);
 void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz);
-void fft_normalize(void **array,int nx, int ny);
+void fft_normalize(QScMat carray,int nx, int ny);
 void showPotential(fftw_complex ***pot,int nz,int nx,int ny,
 		   double dx,double dy,double dz);
 void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,
