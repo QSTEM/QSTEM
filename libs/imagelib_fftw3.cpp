@@ -23,7 +23,7 @@
                    // format changes.
 
 
-void writeImage(void **pix, imageStruct *header, const char *fileName) {
+void writeComplexImage(QScMat pix, imageStruct *header, const char *fileName) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -60,7 +60,7 @@ void writeImage(void **pix, imageStruct *header, const char *fileName) {
   fwrite((void *)(&header->params[0]),sizeof(float_tt),header->paramSize,fp);
   fwrite((void *)(header->comment.c_str()),1,header->commentSize,fp);
   
-  if (fwrite(pix[0],header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
+  if (fwrite(pix.data(),header->dataSize,(size_t)(nx*ny),fp) != nx*ny) {
     printf("Error while writing %d x %d data to file %s\n",nx,ny,fileName);
     fclose(fp);
     exit(0);
@@ -69,7 +69,7 @@ void writeImage(void **pix, imageStruct *header, const char *fileName) {
 }
 
 
-void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName, int dataSize) {
+void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName) {
   FILE *fp;
   int nx,ny;
   // double rmin,rmax;
@@ -81,7 +81,7 @@ void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName, int d
   }
   header->version = VERSION;
   header->headerSize = sizeof(imageStruct)-sizeof(double *)-sizeof(char *);
-  header->dataSize = dataSize;
+  header->dataSize = sizeof(float_tt);
   header->complexFlag = 0;
   nx = header->nx;  ny = header->ny;
 

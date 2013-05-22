@@ -56,7 +56,7 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
 	    int *nslice, int fperr );
 /* long powerof2( long n ); */
 float_tt sfLUT(float_tt s,int atKind, MULS *muls);
-float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x);
+float_tt bicubic(QSfMat ff,int Nz, int Nx,float_tt z,float_tt x);
 
 
 float_tt getTime();

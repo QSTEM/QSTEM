@@ -17,10 +17,10 @@ class Potential
 	bool m_tdsFlag;
 	int m_scatFlag;
 
-	void GenerateSplineEntry(int Z, float_tt charge);
-	void CreateAtPot(int Znum, float_tt B, float_tt charge);
+	void GenerateSplineEntry(int Z, float_tt charge=0);
+	void CreateAtPot(int Znum, float_tt B, float_tt charge=0);
 
 public:
 	Potential(MULS *muls);
-	float_tt SplineLookUp(int Z, float_tt R, float_tt charge);
+	float_tt SplineLookUp(int Z, float_tt R, float_tt charge=0);
 };

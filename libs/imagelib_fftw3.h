@@ -16,8 +16,8 @@ typedef struct imageStructType {
   int dataSize;    // size of one data element in bytes (e.g. complex double: 16)
   int version;     // The version flag will later help to find out how to 
                    // distinguish between images produced by different versions of stem
-  double t;        // thickness
-  double dx,dy;    // size of one pixel
+  float_tt t;        // thickness
+  float_tt dx,dy;    // size of one pixel
   std::vector<float_tt> params;  // array for additional parameters
   std::string comment;   // comment of prev. specified length
 } imageStruct;
@@ -30,8 +30,8 @@ imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,dou
 void setHeaderComment(imageStruct *header, std::string comment);
   
 imageStruct *readImage(void ***pix,int nx,int ny,const char *fileName);
-void writeImage(void **pix, imageStruct *header, const char *fileName);
-void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName, int dataSize);
+void writeComplexImage(QScMat pix, imageStruct *header, const char *fileName);
+void writeRealImage(QSfMat pix, imageStruct *header, const char *fileName);
 /*
 void writeRealImage(fftw_real **pix, int nx, int ny, float_t dx, 
 		   float_t dy, float_t t,char *fileName);

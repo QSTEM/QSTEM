@@ -126,7 +126,7 @@ void *memcopy(void *dest, const void *src, size_t n)
 		sum = k0b[6];
 		for( i=5; i>=0; i--) sum = sum*x2 + k0b[i];
 		sum = exp( -ax ) * sum / sqrt( ax );
-	} else sum = 1.0e20;
+	} else sum = 1.0e20f;
 	return ( sum );
 
 }  /* end bessk0() */
@@ -450,13 +450,26 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
   }
 */
 
+double cubicInterpolate (double p[4], double x) {
+	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+}
+
+double bicubicInterpolate (double p[4][4], double x, double y) {
+	double arr[4];
+	arr[0] = cubicInterpolate(p[0], y);
+	arr[1] = cubicInterpolate(p[1], y);
+	arr[2] = cubicInterpolate(p[2], y);
+	arr[3] = cubicInterpolate(p[3], y);
+	return cubicInterpolate(arr, x);
+}
+
 /* function bicubic from Matlab toolbox
  * zz = values of function F(z,x) F(ix,iz) = zz[iz*Nx+ix];
  * s = z-coordinate
  * t = x-coordinate
  */ 
 #define FX (ptr[xi-1]*x0 + ptr[xi]*x1 + ptr[xi+1]*x2 + ptr[xi+2]*x)
-float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
+float_tt bicubic(QSfMat ff,int Nz, int Nx,float_tt z,float_tt x) {
   static float_tt x0,x1,x2,f;
   static float_tt *ptr;
   static int xi,zi;
@@ -481,22 +494,24 @@ float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
   if (Nz > 2) {
 	  // these were ff[0][0]
     if ((zi > Nz-3) || (xi > Nx-3)) return 0.0;
-    if ((zi < 1) && (xi < 1)) return ff[0][0];  // was ff[0][0]
-    if (zi < 1) return ff[0][xi];
-    if (xi < 1) return ff[zi][0];  // was ff[zi][0]
+    if ((zi < 1) && (xi < 1)) return ff(0,0);  // was ff[0][0]
+    //if (zi < 1) return ff[0][xi];
+	if (zi < 1) return ff(xi,0);
+    //if (xi < 1) return ff[zi][0];  // was ff[zi][0]
+	if (xi < 1) return ff(0,zi);  // was ff[zi][0]
 
-    ptr = ff[zi-1];
+    ptr = ff.row(zi-1).data();
     f   = FX * (((2.0f-z)*z-1)*z);
-    ptr = ff[zi];
+    ptr = ff.row(zi).data();
     f   += FX * ((3.0f*z-5.0f)*z*z+2.0f);
-    ptr = ff[zi+1];
+    ptr = ff.row(zi+1).data();
     f   += FX * (((4.0f-3.0f*z)*z+1.0f)*z);
-    ptr = ff[zi+2];
+    ptr = ff.row(zi+2).data();
     f   += FX * ((z-1.0f)*z*z);
     f   *= 0.25f;
   }
   else {
-    ptr = ff[0];
+    ptr = ff.data();
     f = 0.5f * FX;    
   }
   return f;

@@ -28,9 +28,6 @@
 
 #define SQR(x) ((x)*(x))
 
-void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx, MULS *muls);
-
-
 void make3DSlicesFT(MULS *muls) {
 
   /************************************************************************
@@ -81,7 +78,7 @@ void make3DSlicesFT(MULS *muls) {
   /**********************************************************
    * Initialization of parameter used in this function
    *********************************************************/
-  if (potLUT == NULL) {
+  //if (potLUT == NULL) {
     Nxp = muls->potNx;
     Nyp = muls->potNy;
     Nzp = muls->slices;
@@ -223,9 +220,9 @@ void make3DSlicesFT(MULS *muls) {
        * and pre-integrate its values.
        * We are assuming that zOversample is always an odd number!
        */  
-      potLUT[atKind] = reduceAndExpand(pot,Nz,Nx,zOversample,&Nzl,&Nxl);      
+      potLUT[atKind] = reduceAndExpand(pot,Nz,Nx,zOversample,Nzl,Nxl);      
     } // end of for atKind ...
-  } // if potential == NULL
+  //} // if potential == NULL
   /*******************************************************************/
   
   /*******************************************************
@@ -302,10 +299,11 @@ void make3DSlicesFT(MULS *muls) {
     for (iz=0;iz<Nzp;iz++) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
-      if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
-      header->comment = "Projected Potential (%d slices)",muls->slices);       
-      header->commentSize = 45;
-      writeImage((void **)muls->trans[iz].data(),header,fileName);      
+	  if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,std::vector<float_tt>(),NULL);
+	  sprintf(buf,"Projected Potential (%d slices)",muls->slices);
+      header->comment = buf;
+      header->commentSize = (int)header->comment.length();
+      writeComplexImage(muls->trans[iz],header,fileName);      
     } 
   } /* end of if savePotential ... */
   

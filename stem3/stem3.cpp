@@ -1676,7 +1676,7 @@ void doCBED() {
 				0,std::vector<float_tt>(),"wave function");
 			header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
-			writeImage((void **)wave->wave.data(),header,systStr);
+			writeComplexImage(wave->wave,header,systStr);
 			// writeImage(muls.wave,header,"wave->img");
 			// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave->img");
 			// system("showimage diff.img 2 &");
@@ -1794,7 +1794,7 @@ void doCBED() {
 						0,std::vector<float_tt>(),"wave function");
 					header->t = wave->thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
-					writeImage((void **)wave->wave.data(),header,systStr);
+					writeComplexImage(wave->wave,header,systStr);
 					// writeImage(muls.wave,header,"wave.img");
 					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
 					// system("showimage diff.img 2 &");
@@ -1857,8 +1857,8 @@ void doCBED() {
 				1,std::vector<float_tt>(1,muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
 			else {
 				header->t = wave->thickness;
-				header->dx = 1.0/(muls.nx*muls.resolutionX);
-				header->dy = 1.0/(muls.ny*muls.resolutionY);
+				header->dx = 1.0f/(muls.nx*muls.resolutionX);
+				header->dy = 1.0f/(muls.ny*muls.resolutionY);
 				if (header->paramSize < 1) {
 					header->params = std::vector<float_tt>(2);
 					header->paramSize = 2;
@@ -1868,7 +1868,7 @@ void doCBED() {
 				header->params[1] = 1.0f/wavelength(muls.v0);
 				setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
 			}
-			writeRealImage(avgArray,header,avgName,sizeof(float_tt));
+			writeRealImage(avgArray,header,avgName);
 
 			/* report the result on the web page */
 			// printf("Will write report now\n");
@@ -2112,7 +2112,7 @@ void doTEM() {
 					}
 
 
-					writeImage((void **)wave->wave.data(),header,systStr);
+					writeComplexImage(wave->wave,header,systStr);
 					//    system("showimage diff.img 2 &");
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
@@ -2140,7 +2140,7 @@ void doTEM() {
 
 
 					setHeaderComment(header,"complex exit face Wave function");
-					writeImage((void **)wave->wave.data(),header,systStr);
+					writeComplexImage(wave->wave,header,systStr);
 				}
 #endif 
 
@@ -2210,7 +2210,7 @@ void doTEM() {
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
 			sprintf(avgName,"%s/image.img",muls.folder);
-			writeRealImage(diffArray,header,avgName,sizeof(float_tt));
+			writeRealImage(diffArray,header,avgName);
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2232,7 +2232,7 @@ void doTEM() {
 				muls.resolutionX,muls.resolutionY,
 				0,std::vector<float_tt>(),"diffraction pattern");
 			header->t = wave->thickness;
-			writeRealImage(avgArray,header,avgName,sizeof(float_tt));
+			writeRealImage(avgArray,header,avgName);
 
 
 			/* report the result on the web page */
@@ -2290,7 +2290,7 @@ void doTEM() {
 			}
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
-			writeRealImage(diffArray,header,avgName,sizeof(float_tt));
+			writeRealImage(diffArray,header,avgName);
 			// End of Image writing (if avgCount > 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2610,7 +2610,7 @@ void doSTEM() {
 										0,std::vector<float_tt>(),"diffraction pattern");
 								// printf("Created header\n");
 							header->t = wave->thickness;
-							writeRealImage(wave->avgArray, header, wave->avgName.c_str(), sizeof(float_tt));
+							writeRealImage(wave->avgArray, header, wave->avgName.c_str());
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;

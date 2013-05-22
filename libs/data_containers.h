@@ -197,7 +197,8 @@ public:
   int saveFlag;			/* flag indicating, whether to save the result */
   float_tt rmin,rmax;		/* min and max of real part */
   float_tt aimin,aimax;		/* min and max of imag part */
-  QSfVec kx2, ky2, k2max, kx, ky;
+  QSfVec kx2, ky2, kx, ky;
+  float_tt k2max;
   //float_tt *kx2,*ky2,k2max,*kx,*ky;
 
   int nlayer;

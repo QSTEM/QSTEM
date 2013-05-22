@@ -296,7 +296,7 @@ float_tt Potential::SplineLookUp(int Z, float_tt r, float_tt charge)
 
 /*
 // Returns the 3D array of the atom potential for the provided Z.
-QSVecOfcMat Potential::GetPot(int Z, bool useOffset)
+QSVecOfcMat Potential::GetPot(int Z, float_tt charge)
 {
 	if (std::find(m_knownZvalues.begin(), m_knownZvalues.end(), Z)==m_knownZvalues.end())
 	{
