@@ -15,6 +15,7 @@
 #include "matrixlib.h"
 #include "readparams.h"
 #include "fileio_fftw3.h"
+#include "stringutils.h"
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
@@ -52,7 +53,6 @@ float_tt chargeTable[MAX_MASS_INDEX];
 ********************************************************/
 
 int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
-	std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   size_t j,i;
   std::string elem;
@@ -78,7 +78,7 @@ int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
           muls->cellDims[0],muls->cellDims[1],muls->cellDims[2]);
 
   for (j=0;j<natoms;j++) {
-    elem = elTable[atoms[j].Znum];
+	elem = ElTable::GetSymbol(atoms[j].Znum);
     fprintf(fp,"ATOM   %4d %s",j+1,elem);
     for (i=strlen(elem.c_str());i<13;i++)
       fprintf(fp," ");
@@ -109,7 +109,6 @@ int removeRedundantAtoms(std::vector<atom> atoms,int natoms) {
 */
 
 int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls) {
-  std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   int j;
 
@@ -143,7 +142,7 @@ int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls)
   printf("ax: %g, by: %g, cz: %g n: %d\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2],natoms);
   
   
-  elem = elTable[atoms[0].Znum];
+  elem = ElTable::GetSymbol(atoms[0].Znum);
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2],natoms);
   fprintf(fp,"%g\n%s\n",atoms[0].Znum,elem);
   fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].pos[0]/ax,atoms[0].pos[1]/by,atoms[0].pos[2]/cz,
@@ -153,7 +152,7 @@ int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls)
 
   for (j=1;j<natoms;j++) {
     if (atoms[j].Znum != atoms[j-1].Znum) {
-      elem = elTable[atoms[j].Znum];
+		elem = ElTable::GetSymbol(atoms[j].Znum);
       fprintf(fp,"%g\n%s\n",atoms[j].Znum,elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
@@ -171,7 +170,6 @@ int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls)
 // the unit cell is assumed to be cubic
 int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fileName,
                        float_tt a,float_tt b,float_tt c) {
-  std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
   int j;
   std::string elem;
@@ -201,14 +199,14 @@ int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fil
   printf("ax: %g, by: %g, cz: %g n: %d\n",ax,by,c,natoms);
   
   
-  elem = elTable[Znum[0]];
+  elem = ElTable::GetSymbol(Znum[0]);
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->cellDims[0],muls->cellDims[1],muls->cellDims[2],natoms);
   fprintf(fp,"%g\n%s\n",Znum[0],elem);
   fprintf(fp,"%g %g %g %g\n",pos[0]*a/ax,pos[1]*b/by,pos[2]*c/cz,dw[0]);
   
   for (j=1;j<natoms;j++) {
     if (Znum[j] != Znum[j-1]) {
-      elem = elTable[Znum[j]];
+      elem = ElTable::GetSymbol(Znum[j]);
       fprintf(fp,"%g\n%s\n",Znum[j],elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
@@ -667,9 +665,24 @@ int readCFGCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   resetParamFile();  
   setComment('#');  
   if (readparam("Number of particles =",buf,1)) sscanf(buf,"%d",&ncoord);
-  if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
+#if FLOAT_PRECISION==1
+  // TODO: the format string here is different for floats (%f) and doubles (%lf).
+  //     This might break if code is compiled with precision = 2!  Change to (%lf) in that case.
+  if (readparam("A =",buf,1)) sscanf(buf,"%f",&lengthScale);
+  if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%f",Mm.data()+0);
+  if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%f",Mm.data()+1);
+  if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%f",Mm.data()+2);
   
-  // TODO: verify that .data is behaving as a ptr
+  if (readparam("H0(2,1) =",buf,1)) sscanf(buf,"%f",Mm.data()+3);
+  if (readparam("H0(2,2) =",buf,1)) sscanf(buf,"%f",Mm.data()+4);
+  if (readparam("H0(2,3) =",buf,1)) sscanf(buf,"%f",Mm.data()+5);
+  
+  if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%f",Mm.data()+6);
+  if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%f",Mm.data()+7);
+  if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%f",Mm.data()+8);
+
+#else
+  if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
   if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm.data()+0);
   if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm.data()+1);
   if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm.data()+2);
@@ -681,6 +694,7 @@ int readCFGCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%lf",Mm.data()+6);
   if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%lf",Mm.data()+7);
   if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%lf",Mm.data()+8);
+#endif
 
   // Eigen is column-major, but our parameter reading in was just done as row-major.
   //  transpose to swap.
@@ -812,7 +826,7 @@ int readNextDATAtom(atom &newAtom, int flag, std::string fileName) {
     // str = strnext(buf," \t");
     if (buf != NULL) {
       memcpy(elementStr,buf,2);
-	  element = getZNumber(std::string(elementStr));
+	  element = ElTable::GetZ(std::string(elementStr));
     }
   } while (element == 0);
   if (printFlag) printf("Found Z=%d\n",element);
@@ -892,7 +906,7 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 		mass = static_cast<float_tt>(atof(buf));
 		// printf("nV: %d, eC: %d (%g)\n",noVelocityFlag, entryCount,atof(buf));
 		if (fgets(buf,NCMAX,fp) == NULL) return -1;    
-		element = getZNumber(std::string(buf));
+		element = ElTable::GetZ(buf);
 		// printf("*** found element %d (%s %d) ***\n",element,buf,strlen(buf));
 		if (fgets(buf,NCMAX,fp) == NULL) return -1;
 	}
@@ -975,7 +989,7 @@ int readNextCSSRAtom(atom &newAtom, int flag, std::string fileName) {
 	newAtom.pos[1] = static_cast<float_tt>(atof(s2));
 	newAtom.pos[2] = static_cast<float_tt>(atof(s3));
 	newAtom.occ = 1.0;
-	newAtom.Znum = getZNumber(element); 
+	newAtom.Znum = ElTable::GetZ(std::string(element)); 
 	newAtom.dw = dw;
 
 	/*
@@ -1221,20 +1235,20 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 	if(idx != std::string::npos)
 	{
-		extension = fileName.substr(idx+1);
+		extension = GetExtension(fileName);
 	}
 
 	/* figure out, whether we have  cssr, pdb, or cfg */
-	if (extension==".cssr") {
+	if (extension.compare("cssr")==0) {
 		format = FORMAT_CSSR;
 		ncoord = readCSSRCellParams(muls,Mm,fileName);
 	}
-	if (extension==".cfg") {
+	if (extension.compare("cfg")==0) {
 		format = FORMAT_CFG;
 		ncoord = readCFGCellParams(muls,Mm,fileName);
 		// return readCFGUnitCell(natom,fileName,muls);
 	}
-	if (extension == ".dat") {
+	if (extension.compare("dat")==0) {
 		format = FORMAT_DAT;
 		ncoord = readDATCellParams(muls,Mm,fileName);
 		// return readCFGUnitCell(natom,fileName,muls);
@@ -1336,6 +1350,7 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 			if (atomKinds > muls.atomKinds) {
 				muls.atomKinds = atomKinds;
 				// printf("%d kinds (%d)\n",atomKinds,atoms[i].Znum);
+				muls.Znums.resize(muls.atomKinds);
 			}  
 			muls.Znums[jz] = atoms[i].Znum;
 		}
@@ -1833,20 +1848,9 @@ int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
 
 }  /* end ReadLine */
 
-int getZNumber(std::string element) {
-	std::vector<std::string> elTable = ElTable::Get();
-	std::vector<std::string>::iterator it;
-   it = std::find(elTable.begin(), elTable.end(), element);
-   if( it==elTable.end() )
-		return 0;	
-	else
-		return (int) distance(elTable.begin(),it);
-}
-
 #define CHARGE 0.0
 
 void writeFrameWork(FILE *fp,superCellBox superCell) {
-	std::vector<std::string> elTable = ElTable::Get();
 	int i,id = 0,newId = 1;
 	float_tt charge=0.0;
 
@@ -1905,7 +1909,7 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 				superCell.atoms[i].pos[1],superCell.atoms[i].pos[2],
 				// TODO: massArray should probably be a vector...
 				massArray[superCell.atoms[i].Znum-1],charge,
-				elTable[superCell.atoms[i].Znum]);
+				ElTable::GetSymbol(superCell.atoms[i].Znum));
 		}
 		else
 			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f\n",id+1,superCell.atoms[i].pos[0],
@@ -1921,7 +1925,6 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 * atoms nstart and ending just before atom nstop.   
 */
 void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
-	std::vector<std::string> elTable = ElTable::Get();
 	int i,j,id;
 	int *idCountArray = NULL;
 	float_tt charge,b;//,x,y,z;
@@ -1995,10 +1998,9 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 	  default: charge = 0.0; 
 			}
 			if (fp != NULL) {
-				fprintf(fp,"%c%c %d\n",elTable[2*idArray[id]-2],elTable[2*idArray[id]-1],idCountArray[id]);
-				fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %c%c\n",id+1,0.0,0.0,0.0,
-					massArray[idArray[id]-1],charge,
-					elTable[2*idArray[id]-2],elTable[2*idArray[id]-1]);    
+				fprintf(fp,"%s %d\n",ElTable::GetSymbol(idArray[id]), idCountArray[id]);
+				fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %s\n",id+1,0.0,0.0,0.0,
+					massArray[idArray[id]-1],charge, ElTable::GetSymbol(idArray[id]));    
 			}
 		}
 	}
@@ -2045,7 +2047,7 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 			if (fabs(pos[0]-1.0) < 1e-5) pos[0] = 0.0;
 			if (fabs(pos[1]-1.0) < 1e-5) pos[1] = 0.0;
 			if (fabs(pos[2]-1.0) < 1e-5) pos[2] = 0.0;
-			fprintf(fp,"%s %7.5f %7.5f %7.5f\n",elTable[superCell.atoms[i].Znum],pos[0],pos[1],pos[2]);
+			fprintf(fp,"%s %7.5f %7.5f %7.5f\n",ElTable::GetSymbol(superCell.atoms[i].Znum),pos[0],pos[1],pos[2]);
 		}
 		if (nstart > 0)
 			fprintf(fp,"frame1 %7.5f %7.5f %7.5f 1 0 0 0\n",superCell.cm[0],superCell.cm[1],superCell.cm[2]);

@@ -2,6 +2,7 @@
 #define DATA_CONTAINERS_H
 
 #include <vector>
+#include <map>
 #include "defines.h"
 #include "stemtypes_fftw3.h"
 #include "splines.h"
@@ -287,11 +288,17 @@ public:
 class ElTable
 {
 	static bool instanceFlag;
-	static std::vector<std::string> elements;
+	//static std::vector<std::string> elements;
+	static std::map<int,std::string> ZToSymbol;
+	static std::map<std::string, int> SymbolToZ;
 	static ElTable *single;
+	static bool isFilled;
+	static void Fill();
 	ElTable();
 public:
-	static std::vector<std::string> Get(){return elements;}
+	//static std::vector<std::string> Get();
+	static std::string GetSymbol(int Z);
+	static int GetZ(std::string symbol);
 };
 
 #endif

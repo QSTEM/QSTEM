@@ -21,7 +21,6 @@ void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls);
 
 /* Helper functions for above functions: */
 int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
-int getZNumber(std::string element);
 int readCFGCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName);
 int readCSSRCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName);
 

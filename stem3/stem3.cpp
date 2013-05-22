@@ -503,7 +503,7 @@ void readSFactLUT() {
 	kArray[Nk] = 2.0f*kArray[Nk-1];
 
 	for (j=0;j<muls.atomKinds;j++) {
-		elem = ElTable::Get()[muls.Znums[j]].c_str();
+		elem = ElTable::GetSymbol(muls.Znums[j]).c_str();
 		// printf("%s\n",elem);
 		readArray(elem.c_str(), sfTable.col(j).data(),Nk);
 		sfTable(Nk,j) = 0.0;
@@ -586,6 +586,7 @@ void readFile() {
 	if (muls.fileBase[0] == '"') {
 		muls.fileBase+='"';
 	}
+	muls.fileBase = StripSpaces(muls.fileBase);
 		//strPtr = strchr(buf,'"');
 		//strcpy(muls.fileBase,strPtr+1);
 		//strPtr = strchr(muls.fileBase.c_str(),'"');
