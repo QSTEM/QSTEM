@@ -226,7 +226,7 @@ public:
   int detectorNum;
   /* we will alow as many detector 
 			   definitions as the user wants */
-  std::vector<std::vector<DETECTOR>> detectors;
+  std::vector<std::vector<DETECTOR> > detectors;
   //DETECTOR *detectors;
   int save_output_flag;
   
