@@ -5,6 +5,8 @@
 #include "stemtypes_fftw3.h"
 
 std::vector<atom> readUnitCell(int &natom,std::string fileName,MULS &muls,int handleVacancies);
+int phononDisplacement(QSf3Vec &u, MULS &muls, int id, int icx, int icy,
+                       int icz, int atomCount, float_tt dw, int maxAtom, int ZnumIndex);
 void replicateUnitCell(int ncoord,int &natom,MULS &muls,std::vector<atom> atoms,int handleVacancies);
 std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms,int handleVacancies);
 int writePDB(std::vector<atom> atoms,int natoms,std::string fileName,MULS &muls);

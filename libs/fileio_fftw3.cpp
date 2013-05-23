@@ -238,7 +238,7 @@ int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fil
 ********************************************************************************/ 
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,natom,jz);
 //  j == atomCount
-int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
+int phononDisplacement(QSf3Vec &u, MULS &muls, int id, int icx, int icy,
                        int icz, int atomCount, float_tt dw, int maxAtom, int ZnumIndex) {
   int ix,iy,idd; // iz;
   static FILE *fpPhonon = NULL;
@@ -532,6 +532,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     //memcpy(u,uf,3*sizeof(float_tt));
 	u = uf;
   }
+  // if not Einstein:
   else {
     // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
     printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",ZnumIndex,Ns,Nk,id,Nk,3*Ns,3*Ns);
@@ -591,7 +592,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int readDATCellParams(MULS &muls, QSf3Mat Mm, std::string fileName) {
+int readDATCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName) {
   int ncoord;
   char buf[256];
   float_tt a,b,c,alpha=90.0,beta=90.0,gamma=90.0;
@@ -1229,7 +1230,6 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 	Mm.setZero();
 	//memset(Mm[0],0,9*sizeof(float_tt));
-	muls.Mm = Mm;
 	//u = (float_tt *)malloc(3*sizeof(float_tt));
 
 	std::string::size_type idx;
@@ -1267,6 +1267,8 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 		throw std::exception(error_string);
 	}
 
+	muls.Mm = Mm;
+
 	ncx = muls.nCellX;
 	ncy = muls.nCellY;
 	ncz = muls.nCellZ;
@@ -1294,6 +1296,7 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 		// clear the vector of atoms
 		atoms.clear();
 		//if (atoms != NULL) free(atoms);
+		// why do we allocate all of these here?  We don't read in this many atoms.
 		atoms = std::vector<atom>(ncoord*ncx*ncy*ncz);
 		//atoms = (atom *)malloc(ncoord*sizeof(atom)*ncx*ncy*ncz);
 		ncoord_old = ncoord;
@@ -1383,7 +1386,7 @@ std::vector<atom> readUnitCell(int &natom, std::string fileName, MULS &muls, int
 
 	// First, we will sort the atoms by position:
 	if (handleVacancies) {
-		std::sort (atoms.begin(), atoms.end(), atomCompareZYX());
+		std::sort (atoms.begin(), atoms.begin()+ncoord, atomCompareZYX());
 		//qsort((void *)atoms,ncoord,sizeof(atom),);
 	}
 
@@ -1601,7 +1604,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	// We need to copy the transpose of muls.Mm to Mm.
 	// we therefore cannot use the following command:
 	// memcpy(Mm[0],muls.Mm[0],3*3*sizeof(float_tt));
-	Mm.transposeInPlace();
+	Mm = muls.Mm.transpose();
 	//for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm(iy,ix)=muls.Mm(ix,iy);
 
 	MmOrig = Mm.transpose();
@@ -1624,9 +1627,9 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	// printf("%d %d\n",(int)Mm, (int)MmOrig);
 	a.setZero();
 	//memset(a[0],0,3*sizeof(float_tt));
-	// matrixProduct(a,1,3,Mminv,3,3,b);
-	//matrixProduct(Mminv,3,3,a,3,1,b);
 	//  20130514 correct eigen format, I think.
+	// TODO: Won't b just be 0 here?  Why bother with the multiply?
+	//matrixProduct(Mminv,3,3,a,3,1,b);
 	b = Mminv*a;
 	// showMatrix(Mm,3,3,"M");
 	// showMatrix(Mminv,3,3,"M");
@@ -1651,15 +1654,18 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 		if (nzmax < (int)ceil( b(2,0)-dpos[2])) nzmax=(int)ceil( b(2,0)-dpos[2]);	  
 	}
 
+	std::vector<atom>::const_iterator first = atoms.begin();
+	std::vector<atom>::const_iterator last = atoms.begin() + ncoord;
+	unitAtoms=std::vector<atom>(first, last);
 	// nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;
-	unitAtoms = std::vector<atom>(ncoord);
+	//unitAtoms = std::vector<atom>(ncoord);
 	//unitAtoms = (atom *)malloc(ncoord*sizeof(atom));
 
 	// TODO: are we not copying the entire atoms vector (is ncoord the same
 	//    as atoms.size()?)
 	// std::vector<atom>
 	//memcpy(unitAtoms,atoms,ncoord*sizeof(atom));
-	unitAtoms = atoms;
+	//unitAtoms = atoms;
 
 	atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
 	if (atomSize != oldAtomSize) {
@@ -1713,9 +1719,14 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 
 
 		// printf("%d: %d\n",atomCount,jz);
-		for (ix=nxmin;ix<=nxmax;ix++) {
-			for (iy=nymin;iy<=nymax;iy++) {
-				for (iz=nzmin;iz<=nzmax;iz++) {
+		// TODO: these loops were all <= - and went out of bounds on the atoms array.
+		//    should we make the atom array bigger, or just only go to <max?
+		//for (ix=nxmin;ix<=nxmax;ix++) {
+			//for (iy=nymin;iy<=nymax;iy++) {
+				//for (iz=nzmin;iz<=nzmax;iz++) {
+		for (ix=nxmin;ix<nxmax;ix++) {
+			for (iy=nymin;iy<nymax;iy++) {
+				for (iz=nzmin;iz<nzmax;iz++) {
 					// atom position in cubic reduced coordinates: 
 					aOrig(0,0) = ix+newAtom.pos[0]; aOrig(1,0) = iy+newAtom.pos[1]; aOrig(2,0) = iz+newAtom.pos[2];
 
@@ -1754,9 +1765,6 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 					if (jChoice != iatom) {
 						for (jz=0;jz<muls.atomKinds;jz++)	if (muls.Znums[jz] == unitAtoms[jChoice].Znum) break;
 					}
-
-
-
 
 					// here we need to call phononDisplacement:
 					// phononDisplacement(u,muls,iatom,ix,iy,iz,atomCount,atoms[i].dw,natom,atoms[i].Znum);
