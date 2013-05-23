@@ -11,12 +11,10 @@
 #define RMIN	0.01	/* min r (in Ang) range of LUT for vzatomLUT() */
 #define RMAX	5
 
-//
-std::vector<float_tt> Potential::m_splinr;
-
 // initialization for 3D pots
 Potential::Potential(MULS *m) :
 m_atPot(N_ELEM),
+m_splinr(N_SF),
 m_potentialSplines(std::vector<AkimaSpline<float_tt,float_tt>>(N_SF)),
 m_offsetSplines(std::vector<AkimaSpline<float_tt,float_tt>>(N_SF)),
 muls(m)
@@ -219,7 +217,7 @@ void Potential::CreateAtPot(int Znum, float_tt B, float_tt charge)
 			ind3d = ix+iz*nx/2;
 			// Integrate over nzPerSlice neighboring layers here:::::::::
 			for (zScale=0,iiz=-izOffset;iiz<=izOffset;iiz++) {
-				if (iz+izOffset+iiz < nz/2) zScale += temp(nx*(iz+izOffset+iiz),ix).real();
+				if (iz+izOffset+iiz < nz/2) zScale += temp(ind3d).real();
 				//if (iz+izOffset+iiz < nz/2) zScale += temp[ix+(iz+izOffset+iiz)*nx][0];
 			}
 			if (zScale < 0) zScale = 0;
