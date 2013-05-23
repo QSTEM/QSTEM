@@ -868,7 +868,7 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 	static FILE *fp=NULL;
 	static int noVelocityFlag = 1,entryCount = 3,element = 1;
 	char buf[NCMAX];
-	float_tt *atomData = NULL;
+	QSfVec atomData(7);
 	float_tt mass = 28;
 	char *str = NULL;
 	int j;
@@ -896,7 +896,8 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 		if (readparam("entry_count =",buf,1)) sscanf(buf,"%d",&entryCount);
 		if (!noVelocityFlag) entryCount+=3;
 		fp = getFp();  /* get the file pointer from the parameter file routines */
-		atomData = (float_tt *)malloc((entryCount+1)*sizeof(float_tt));
+		//atomData = (float_tt *)malloc((entryCount+1)*sizeof(float_tt));
+		//atomData = QSfVec(entryCount+1);
 	}
 
 	if (fgets(buf,NCMAX,fp) == NULL) return -1;
@@ -918,6 +919,7 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 			printf("readNextCFGatom: Error: incomplete data line: >%s<\n",buf);
 			return -1;
 		}
+		double test = atof(str);
 		atomData[j] = static_cast<float_tt>(atof(str)); str=strnext(str," \t");
 	}
 
@@ -940,7 +942,7 @@ int readNextCFGAtom(atom &newAtom, int flag, std::string fileName) {
 	// read the atom's charge:
 	if (entryCount > 5+3*(1-noVelocityFlag)) 
 		newAtom.q = atomData[5+3*(1-noVelocityFlag)];
-	// printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	
+	printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.pos[0],newAtom.pos[1],newAtom.pos[2],newAtom.occ,newAtom.q);	
 
 	return 0;
 }
