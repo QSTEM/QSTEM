@@ -258,11 +258,12 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
   int ik,lambda,icoord; // Ncells, nkomega;
   float_tt kR,kRi,kRr,wobble;
   float_tt ux=0, uy=0, uz=0;
-  QSfVec u2;
+  static QSfVec u2;
   //	static float_tt *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
   // static double uxCollect=0,uyCollect=0,uzCollect=0;
-  std::vector<int> u2Count;
-  int runCount = 1,u2Size = -1;
+  static std::vector<int> u2Count;
+  // TODO: we depend on this being static - don't change unless you account for that.
+  static int runCount = 1,u2Size = -1;
   long iseed=0;
   QSf3Mat Mm, MmInv;
   //	double **Mm=NULL,**MmInv=NULL;
@@ -275,6 +276,9 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
   if (muls.tds == 0) return 0;
 
   // TODO: u2 and u2Count
+  u2 = QSfVec(muls.atomKinds);
+  u2Count = std::vector<int>(muls.atomKinds);
+
   
   /***************************************************************************
    * We will give a statistics report, everytime, when we find atomCount == 0
@@ -850,7 +854,7 @@ int readNextDATAtom(atom &newAtom, int flag, std::string fileName) {
   newAtom.dw   = static_cast<float_tt>(0.45*28.0/(float_tt)(2.0*element));	
   newAtom.occ  = static_cast<float_tt>(1.0);
   newAtom.q    = static_cast<float_tt>(0.0);
-  printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.pos[0],newAtom.pos[1],newAtom.pos[2],newAtom.occ,newAtom.q);	  
+  // printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom.Znum,newAtom.pos[0],newAtom.pos[1],newAtom.pos[2],newAtom.occ,newAtom.q);	  
   
   return 0;
 }
@@ -1658,6 +1662,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	//    as atoms.size()?)
 	// std::vector<atom>
 	//memcpy(unitAtoms,atoms,ncoord*sizeof(atom));
+	unitAtoms = atoms;
 
 	atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
 	if (atomSize != oldAtomSize) {
@@ -1673,8 +1678,8 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 	atomCount = 0;  
 	jVac = 0;
 	for (iatom=0;iatom<ncoord;) {
-		// printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].pos[0],unitAtoms[iatom].pos[1],
-		//   unitAtoms[iatom].pos[2],unitAtoms[iatom].Znum);
+		 printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].pos[0],unitAtoms[iatom].pos[1],
+		   unitAtoms[iatom].pos[2],unitAtoms[iatom].Znum);
 		//memcpy(newAtom,unitAtoms[iatom],sizeof(atom));
 		newAtom = unitAtoms[iatom];
 		for (jz=0;jz<muls.atomKinds;jz++)	if (muls.Znums[jz] == newAtom.Znum) break;
@@ -1746,7 +1751,7 @@ std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls, std::vector<atom>
 							}
 							lastOcc += unitAtoms[i2].occ;
 						}
-						// printf("Keeping atom %d (%d), Z=%d\n",jChoice,iatom,unitAtoms[jChoice].Znum);
+						 printf("Keeping atom %d (%d), Z=%d\n",jChoice,iatom,unitAtoms[jChoice].Znum);
 					}
 					// if (jChoice != iatom) memcpy(&newAtom,unitAtoms+jChoice,sizeof(atom));
 					if (jChoice != iatom) {
