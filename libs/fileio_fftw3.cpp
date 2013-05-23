@@ -258,10 +258,10 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
   int ik,lambda,icoord; // Ncells, nkomega;
   float_tt kR,kRi,kRr,wobble;
   float_tt ux=0, uy=0, uz=0;
-  static QSfVec u2;
+  static QSfVec u2(muls.atomKinds);
   //	static float_tt *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
   // static double uxCollect=0,uyCollect=0,uzCollect=0;
-  static std::vector<int> u2Count;
+  static std::vector<int> u2Count(muls.atomKinds);
   // TODO: we depend on this being static - don't change unless you account for that.
   static int runCount = 1,u2Size = -1;
   long iseed=0;
@@ -274,11 +274,6 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
   static float_tt wobScale = 0,sq3,scale=0;
   
   if (muls.tds == 0) return 0;
-
-  // TODO: u2 and u2Count
-  u2 = QSfVec(muls.atomKinds);
-  u2Count = std::vector<int>(muls.atomKinds);
-
   
   /***************************************************************************
    * We will give a statistics report, everytime, when we find atomCount == 0
@@ -394,7 +389,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     }
     else {
       
-      if (2*sizeof(float) != sizeof(fftwf_complex)) {
+      if (2*sizeof(float_tt) != sizeof(fftwf_complex)) {
         printf("phononDisplacement: data type mismatch: fftw_complex != 2*float!\n");
         exit(0);
       }
@@ -520,6 +515,7 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
      */
     // TODO: optimize
 	//  20130514 correct Eigen format, I think.
+	// TODO: MmInv has no data!!
 	uf = MmInv*u;
     //matrixProduct(&u,1,3,MmInv,3,3,&uf);
     // test:
@@ -569,9 +565,10 @@ int phononDisplacement(QSf3Vec u, MULS &muls, int id, int icx, int icy,
     u2[ZnumIndex] += u(0)*u(0)+u(1)*u(1)+u(2)*u(2);
     ux += u(0); uy += u(1); uz += u(2);
 	// TODO: define ax, by, c in muls as QSf3Vec
-    u(0) /= muls.cellDims[0];
-    u(1) /= muls.cellDims[1];
-    u(2) /= muls.cellDims[2];
+	u.array() /= muls.cellDims;
+    //u(0) /= muls.cellDims[0];
+    //u(1) /= muls.cellDims[1];
+    //u(2) /= muls.cellDims[2];
     u2Count[ZnumIndex]++;
     
   } /* end of if Einstein */
