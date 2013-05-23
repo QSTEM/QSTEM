@@ -5,7 +5,7 @@
 5 kV: gaussian parameter: 11
 good energies: 327, 360,393,520 keV
 */
-#define VERSION 2.23
+#define VERSION 3.0
 #define VIB_IMAGE_TEST
 // #define VIB_IMAGE_TEST_CBED
 
@@ -414,7 +414,7 @@ void displayParams() {
 			0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
 		printf("* Number of detectors:  %d\n",muls.detectorNum);
 		for (i=0;i<muls.detectorNum;i++) {
-			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name);
+			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name.c_str());
 			// TODO: some fixed-length formatting going on here.
 			for (j=0;j<14-strlen(muls.detectors[0][i].name.c_str());j++) printf(" ");
 			printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
