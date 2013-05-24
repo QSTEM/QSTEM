@@ -2878,7 +2878,7 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	float_tt **diffpatAvg = NULL;
 	int tCount = 0;
 
-	std::vector<std::vector<DETECTOR>> detectors;
+	std::vector<std::vector<DETECTOR> > detectors;
 
 	scale = muls->electronScale/((double)(muls->nx*muls->ny)*(muls->nx*muls->ny));
 	// scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));

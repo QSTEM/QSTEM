@@ -2705,8 +2705,8 @@ void doSTEM() {
 					{
 						sprintf(wave->avgName,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
 	#ifndef WIN32
-						sprintf(tifName,"%s/diffAvg_%d_%d.tif",muls.folder,ix,iy);
-						sprintf(jpgName,"%s/diffAvg_%d_%d_%d.jpg",muls.folder,ix,iy,muls.avgCount);
+                                                //						sprintf(tifName,"%s/diffAvg_%d_%d.tif",muls.folder,ix,iy);
+						//sprintf(jpgName,"%s/diffAvg_%d_%d_%d.jpg",muls.folder,ix,iy,muls.avgCount);
 	#endif	    
 						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
 

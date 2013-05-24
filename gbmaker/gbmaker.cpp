@@ -939,7 +939,7 @@ void makeAmorphous() {
 					iz = randArray[iy];
 					if (iz > amorphSites) {
 						printf("%5d, iy: %d, sites: %d, atoms: %d  ",ix,iy,randCount,amorphAtoms);
-						printf("iz: %d (%d)\n",iz,(int)&(superCell.atoms[atomCount].z));
+						printf("iz: %d (%d)\n",iz,(int)superCell.atoms[atomCount].z);
 						printf("makeAmorphous: Error because of overlapping memory areas!\n");
 						for (iz=0;iz<=amorphAtoms;iz++)
 							printf("iz=%d: %d\n",iz,randArray[iz]);
