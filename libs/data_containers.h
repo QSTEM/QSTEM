@@ -2,6 +2,7 @@
 #define DATA_CONTAINERS_H
 
 #include <vector>
+#include <map>
 #include "defines.h"
 #include "stemtypes_fftw3.h"
 #include "splines.h"
@@ -15,15 +16,15 @@ public:
 	int iPosX,iPosY;      /* integer position of probe position array */
 	int nx, ny;			/* size of diffpat arrays */
 	int detPosX,detPosY;
-        std::string fileStart;
-        std::string fileout;
-        std::string avgName;
-        QSfMat diffpat;
-        QSfMat avgArray;
+    std::string fileStart;
+    std::string fileout;
+    std::string avgName;
+    QSfMat diffpat;
+    QSfMat avgArray;
 	float_tt thickness;
 	float_tt intIntensity;
 
-        QScMat wave;
+    QScMat wave;
         
 
 #if FLOAT_PRECISION == 1
@@ -197,7 +198,8 @@ public:
   int saveFlag;			/* flag indicating, whether to save the result */
   float_tt rmin,rmax;		/* min and max of real part */
   float_tt aimin,aimax;		/* min and max of imag part */
-  QSfVec kx2, ky2, k2max, kx, ky;
+  QSfVec kx2, ky2, kx, ky;
+  float_tt k2max;
   //float_tt *kx2,*ky2,k2max,*kx,*ky;
 
   int nlayer;
@@ -269,7 +271,7 @@ public:
   int save_output_flag;
   
     // TODO: Does this need to be double, or can it be float (as might be done dynamically?
-  QSfMat dE_EArray;
+  QSfVec dE_EArray;
   //float_tt *dE_EArray;
 
   // Tomography parameters:
@@ -286,28 +288,17 @@ public:
 class ElTable
 {
 	static bool instanceFlag;
-	static std::vector<std::string> elements;
+	//static std::vector<std::string> elements;
+	static std::map<int,std::string> ZToSymbol;
+	static std::map<std::string, int> SymbolToZ;
 	static ElTable *single;
+	static bool isFilled;
+	static void Fill();
 	ElTable();
 public:
-	static std::vector<std::string> Get(){return elements;}
-};
-
-// Class for calculating and managing potentials
-class Potential
-{
-	// a set of logarithmic r values
-	static std::vector<float_tt> m_splinr;
-	std::vector<int> m_knownZvalues;
-	std::vector<AkimaSpline<float_tt,float_tt> > m_splines;
-	bool m_tdsFlag;
-	int m_scatFlag;
-
-	void GenerateSplineEntry(int Z);
-
-public:
-	Potential();
-	float_tt LookUp(int Z, float_tt R);
+	//static std::vector<std::string> Get();
+	static std::string GetSymbol(int Z);
+	static int GetZ(std::string symbol);
 };
 
 #endif

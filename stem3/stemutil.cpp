@@ -126,7 +126,7 @@ void *memcopy(void *dest, const void *src, size_t n)
 		sum = k0b[6];
 		for( i=5; i>=0; i--) sum = sum*x2 + k0b[i];
 		sum = exp( -ax ) * sum / sqrt( ax );
-	} else sum = 1.0e20;
+	} else sum = 1.0e20f;
 	return ( sum );
 
 }  /* end bessk0() */
@@ -148,11 +148,9 @@ void *memcopy(void *dest, const void *src, size_t n)
 */
 
 float_tt wavelength( float_tt kev )
-{
-  float_tt w;
-  
+{ 
   /* electron wavelength in Angstroms */
-  w = HC/sqrt( kev * ( 2*EMASS + kev ) );
+  float_tt w = static_cast<float_tt>(HC/sqrt( kev * ( 2*EMASS + kev ) ));
   
   return( w );
   
@@ -209,139 +207,11 @@ float_tt rangauss( unsigned long *iseed )
     
   } while ( (x1 < 1.0e-30) || (x2 < 1.0e-30) );
   
-  y = sqrt( - 2.0 * log(x1) ) * cos( TWOPI * x2 );
+  y = sqrt( - 2.0f * log(x1) ) * (float_tt)(cos( TWOPI * x2 ));
   
   return( y );
   
 }  /* end rangauss() */
-
-/*************************************************************/
-/*--------------------- ReadfeTable() -----------------------*/
-/*
-   read electron scattering factors parameters 
-	   from file fparam.dat
-  
-  the constants that must be defined above are
-
-#define NPMAX	12	= number of parameters for each Z 
-#define NZMIN	1	= min Z in featom.tab 
-#define NZMAX	103	= max Z in featom.tab 
-#define	NCMAX	132	= characters per line to read 
-
-  assumed global vars:
-
-int feTableRead=0; = flag to remember if the param file has been read 
-int nl=3, ng=3; = number of Lorenzians and Gaussians 
-float_tt fparams[][] = fe parameters
-
-********************************************************************/
-int ReadfeTable(int scatFlag)
-{
-   static char cline[NCMAX],dummy[32];
-   static char fileName[32] = "sfact_peng.dat"; 
-   int na,i,j;
-   float_tt w;
-   char *cstatus;
-   int n, zi, z;
-   FILE *fp;
-   
-   /* if the file has been read already then just return */
-   if( feTableRead == 1 ) return(0);
-   
-   if (scatFlag == DOYLE_TURNER)
-     sprintf(fileName,"sfact_peng.dat");
-   else
-     sprintf(fileName,"fparams.dat");
-
-   if( (fp = fopen(fileName, "r") ) == NULL)  {
-	printf("ReadfeTable() can't open file %s\n",fileName);
-	exit( 0 );
-   }
-
-   if (scatFlag == WEICK_KOHL) {
-     printf("Reading Weickenmeier & Kohl parameters from %s\n",fileName);
-     na = 2*( nl + ng );	/* number of params to fit */
-	 fparams = QSfMat(NZMAX+1, na+1);
-     //fparams = float_tt2D( NZMAX+1, na+1, "fparams" );
-     n = 0;
-     
-     for( zi=NZMIN; zi<=NZMAX; zi++) {
-       
-       /* define some (random) debye waller factors */
-       if (zi == 14)
-	 fparams(na,zi) = 0.45f; /*  for Si */
-       else if (zi == 79)
-	 fparams(na,zi) = 0.186f;  /* for Au */
-       else if (zi == 29)
-	 fparams(na,zi) = 0.21f;  /* for Cu (liquid N2) */
-       else
-	 fparams(na,zi) = 0.5f;  /* for all other elements */
-       
-       /* find Z delimiter */
-       do { 
-	 cstatus = fgets( cline, NCMAX, fp );
-	 if( cstatus == NULL ) break;
-       } while ( strncmp( cline, "Z=", 2 ) != 0 );
-       if( cstatus == NULL ) break;
-       
-       n += 1;
-       sscanf( cline, "Z=%d,  chisq=%lf\n", &z, &w);
-       for( j=0; j<na; j+=4 ) {
-	 fgets( cline, NCMAX, fp );
-	 for( i=0; i<4; i++) {
-	   sscanf(&cline[i*17],"%le", &fparams(i+j,z) );
-	 }
-       }
-       if( z != zi ) {  /* test integrity of the file */
-	 printf( "Warning, Z= %d read when expecting"
-		 " Z= %d, in ReadfeTable().\n",
-		 z, zi);
-       }
-     }  /* end for(zi=2.. */
-   }
-   else {  /* DOYLE_TURNER */
-     printf("Reading Doyle & Turner parameters from %s\n",fileName);
-     fparams = QSfMat( NZMAX+1, NPDTMAX+1);
-     n = 0;
-     for( zi=NZMIN; zi<=NZMAX; zi++) {
-       /* define some (random) debye waller factors */
-       if (zi == 14)
-	 fparams(NPDTMAX,zi) = 0.45f; /*  for Si */
-       else if (zi == 79)
-	 fparams(NPDTMAX,zi) = 0.186f;  /* for Au */
-       else if (zi == 6)
-	 fparams(NPDTMAX,zi) = 0.4f;  /* for C */
-       else
-	 fparams(NPDTMAX,zi) = 0.5f;  /* for all other elements */
-       /*     printf("Using Debye-Waller Factor DW=%f for Z=%d\n",
-	      fparams(NPDTMAX,zi),zi);
-       */
-       
-       if (fgets(cline,NCMAX,fp) == NULL)
-	 break;
-       sscanf(cline,"%s %d %le %le %le %le %le %le %le %le",
-	      dummy,&z,&fparams(0,zi),&fparams(2,zi),
-	      &fparams(4,zi),&fparams(6,zi),
-	      &fparams(1,zi),&fparams(3,zi),&fparams(5,zi),&fparams(7,zi));
-       if (z != zi)
-	 printf("Warning: corrupt data file %s!\n",fileName);
-       n++;
-     }  /* end for(zi=1.. */
-   } /* DOYLE_TURNER */
-
-   if( n != (NZMAX-NZMIN + 1) ) {
-     printf("Warning, only %d elements read in "
-	    "in feTableRead() (too small).\n", n );
-   }
-   fclose( fp );
-
-   feTableRead = 1;	/* remember that table has been read */
-   return( n );
-   
-} /* end ReadfeTable() */
-
-
-
 
 
 /*--------------------- sigma() -----------------------------------*/
@@ -361,7 +231,7 @@ int ReadfeTable(int scatFlag)
 float_tt sigma( float_tt kev )
 {
   float_tt s, wavl, x;
-  const float_tt emass=510.99906; /* electron rest mass in keV */
+  const float_tt emass=510.99906f; /* electron rest mass in keV */
   float_tt wavelength( float_tt kev );  /*  get electron wavelength */
   
   x = ( emass + kev ) / ( 2.0f*emass + kev);  
@@ -580,171 +450,18 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
   }
 */
 
+double cubicInterpolate (double p[4], double x) {
+	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+}
 
-
-/*********************************************************************/
-/*--------------------- fe3D() -----------------------------------*/
-/* written by Christoph Koch 5/22/01
-
-
-	return the reciprocal space 3D atomic potential
-	in Volt for atomic number Z at wavevector of length q
-
-	Z = atomic number 1 <= Z <= 103
-	q2 = rec. radius in 1/A^2
-	tdsFlag: indicates whether we simulate temperature using 
-	    Debye-Waller factors, or random displacement of atoms
-	scale: overall scaling factor, e.g. scaling for FFT
-	scatFlag: whether we use doyle-turner or weickenmeier-kohl parameters
-
-	assumed global constants:
-	
-	#define NZMIN	1	= min Z in sfact_peng.dat 
-	#define NZMAX	98	= max Z in sfact_peng.dat
-	
-*******************************************************************/
-
-float_tt fe3D(int Z, float_tt q2,int tdsFlag,float_tt scale,int scatFlag)
-{
-	int i,j; // iz;
-	float_tt sum=0.0; // t;
-	//static float_tt **f2par = NULL;
-	QSfMat f2par;
-
-	/* Gaussian constants */
-	const float_tt a0 = .529f;  /* A */
-	const float_tt echarge = 14.39f;  /* units: V*A */
-
-	if( (Z<NZMIN) || (Z>NZMAX) ) return( 0.0 );
-
-	/*********************************************************
-	* read in the table from a file if this is the
-	* first time this is called 
-    ********************************************************/
-	if(fparams == NULL)
-		ReadfeTable(scatFlag);
-
-	if (scatFlag == WEICK_KOHL) 
-	{
-		// (if f2par == NULL)
-		printf("Will use Weickenmeier & Kohl electron scattering "
-			  "factor parameterization\n");
-		f2par = fparams;     
-		if (!tdsFlag)
-			printf("Will use DW-factor [B(Si)=%g]\n",fparams[14][2*(nl+ng)]); 
-		else
-			printf("Will not use DW-factors\n");    
-   
-		sum = 0.0;
-		for (j=0;j<2*nl;j+=2)
-			sum += fparams(j,Z)/(fparams(j+1,Z)+q2);
-		for (;j<2*(nl+ng);j+=2)
-			sum += fparams(j,Z)*exp(-fparams(j+1,Z)*q2);
-		if (!tdsFlag)
-			sum *= exp(-fparams[Z][2*(nl+ng)]*q2/(16*PI*PI));
-		sum *= 2*PI*a0*echarge;
-	}
-
-   else {  /* ifdef DOYLE_TURNER */
-     /*********************************************************************
-      * determining V(r) using Doyle & Turner expansion
-      * Scattering factors from :
-      * L.-M. Peng, Micron 30, p. 625-648 (1999)
-      *
-      * We also need the Debye-Waller factor B=8*pi^2*avg(u^2), which is
-      * expected to be stored in the last parameter in fparams
-      * ReadFeTable will assign a default value of 0.5 as the Debye-Waller
-      * factor, but one may want to change that by setting this last parameter 
-      * manally before running this routine.
-      *
-      * q = 4*pi*s
-      * fe(s) = K*integral{phi(r)*exp(-i*q*r)}dr^3
-      *       = K*integral{phi(r)*exp(-2*pi*i*(2s)*r)}dr^3
-      * => fe(q/2) = K*integral{phi(r)*exp(-2*pi*i*q*r)}dr^3
-      *            = FT(phi(r))
-      * fe3D(s) = sum_{i=1}^NPDTMAX [a_i*exp(-b_i*s^2)]
-      * fe3D(q) = sum_{i=1}^NPDTMAX [a_i*exp(-b_i*q^2/(16*pi^2))]
-      *
-      *
-      * for Kirklands scattering factor expansion:
-      * Weickenmeier and Kohl, Acta Cryst. A47, p. 590-597 (1991)
-      * fe(q) = sum_{i=1}^3 [a_i/(q^2+b_i)]+sum_{i=1}^3 [c_i*exp(-d_i*q^2)]
-      *
-      *******************************************************************/
-     //if (f2par == NULL) {
-       /* make calculation more efficient by combining some of the 
-	  parameters to new ones:
-       */
-       printf("Will use Doyle-Turner electron scattering factors\n");
-       if (!tdsFlag)
-	 printf("Will use DW-factor [B(Si)=%g]\n",fparams(NPDTMAX,14)); 
-       else
-	 printf("Will not use DW-factors\n");
-       
-       //f2par = float_tt2D( NZMAX+1,NPDTMAX, "f2par" );
-	   f2par = QSfMat(NZMAX+1,NPDTMAX);
-       for (i=1;i<=NZMAX;i++) for (j=0;j<NPDTMAX;j+=2) {
-	 if (tdsFlag)  /* t = -(b_i)/(16*pi^2) */
-	   f2par(j+1,i) =-fparams(j+1,i)/(16.0*PI*PI);  
-	 /* f2par(j+1,i) =-fparams(j+1,i);  */ 
-	 else   /* t = -(b_i+B)/(16*pi^2) */
-	   f2par(j+1,i) = -(fparams(j+1,i)+fparams(NPDTMAX,i))/(16*PI*PI); 
-	 /*f2par(j+1,i) = -(fparams(j+1,i)+fparams(NPDTMAX,i)); */
-	 
-	 f2par(j,i) = scale*fparams(j,i);
-	 /*
-	   if (i==14)
-	   printf("f2par[%d][%d] = %g, f2par[%d][%d] = %g\n",
-	   i,j,f2par(j,i),i,j+1,f2par(j+1,i));
-	 */
-       }
-     
-     sum = 0.0;
-     for (j=0;j<NPDTMAX;j+=2)
-       sum += f2par(j,Z)*exp(f2par(j+1,Z)*q2);   
-     
-   }
-   return(sum);
-}  /* end fe3D() */
-
-
-float_tt sfLUT(float_tt s,int atKind, MULS *muls)
-{
-   int i;
-   float_tt sf;
-   static int sfSize = 0;
-   static int atKinds = 0;
-   sfSize = muls->sfNk;
-   QSfVec splinx;
-   atKinds = muls->atomKinds;
-   // TODO: may need to swap dimensions here.
-   QSfMat spliny(atKinds,sfSize);
-   QSfMat splinb(atKinds,sfSize); 
-   QSfMat splinc(atKinds,sfSize);
-   QSfMat splind(atKinds,sfSize);
-   
-   static float_tt maxK = 0;
-   
-   splinx = muls->sfkArray;
-   spliny = muls->sfTable;
-   maxK = splinx[sfSize-1];
-
-   for (i=0;i<atKinds;i++)
-     splinh(splinx,spliny[i],splinb[i],splinc[i],splind[i],sfSize);
-   
-   /* now that everything is set up find the
-      scattering factor by interpolation in the table 
-   */
-   if (s > maxK) return 0.0;     
-   if (atKind < atKinds) {
-     sf = seval(splinx,spliny[atKind],splinb[atKind],splinc[atKind],splind[atKind],sfSize,s);
-     if (sf < 0) return 0.0;
-     return(sf);
-   }
-   printf("sfLUT: invalid atom kind (%d) - exit!\n",atKind);
-   exit(0);
-}  /* end sfLUT() */
-
+double bicubicInterpolate (double p[4][4], double x, double y) {
+	double arr[4];
+	arr[0] = cubicInterpolate(p[0], y);
+	arr[1] = cubicInterpolate(p[1], y);
+	arr[2] = cubicInterpolate(p[2], y);
+	arr[3] = cubicInterpolate(p[3], y);
+	return cubicInterpolate(arr, x);
+}
 
 /* function bicubic from Matlab toolbox
  * zz = values of function F(z,x) F(ix,iz) = zz[iz*Nx+ix];
@@ -752,7 +469,7 @@ float_tt sfLUT(float_tt s,int atKind, MULS *muls)
  * t = x-coordinate
  */ 
 #define FX (ptr[xi-1]*x0 + ptr[xi]*x1 + ptr[xi+1]*x2 + ptr[xi+2]*x)
-float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
+float_tt bicubic(QSfMat ff,int Nz, int Nx,float_tt z,float_tt x) {
   static float_tt x0,x1,x2,f;
   static float_tt *ptr;
   static int xi,zi;
@@ -768,31 +485,34 @@ float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x) {
   z   = z-(float_tt)zi;
   
   
-  x0  = ((2.0-x)*x-1.0)*x;
-  x1  = (3.0*x-5.0)*x*x+2.0;
-  x2  = ((4.0-3.0*x)*x+1.0)*x;
-  x   = (x-1.0)*x*x;
+  x0  = ((2.0f-x)*x-1.0f)*x;
+  x1  = (3.0f*x-5.0f)*x*x+2.0f;
+  x2  = ((4.0f-3.0f*x)*x+1.0f)*x;
+  x   = (x-1.0f)*x*x;
 
 
   if (Nz > 2) {
+	  // these were ff[0][0]
     if ((zi > Nz-3) || (xi > Nx-3)) return 0.0;
-    if ((zi < 1) && (xi < 1)) return ff(0,0);
-    if (zi < 1) return ff(xi,0);
-    if (xi < 1) return ff(0,zi);
+    if ((zi < 1) && (xi < 1)) return ff(0,0);  // was ff[0][0]
+    //if (zi < 1) return ff[0][xi];
+	if (zi < 1) return ff(xi,0);
+    //if (xi < 1) return ff[zi][0];  // was ff[zi][0]
+	if (xi < 1) return ff(0,zi);  // was ff[zi][0]
 
-    ptr = ff[zi-1];
-    f   = FX * (((2.0-z)*z-1)*z);
-    ptr = ff[zi];
-    f   += FX * ((3.0*z-5.0)*z*z+2.0);
-    ptr = ff[zi+1];
-    f   += FX * (((4.0-3.0*z)*z+1.0)*z);
-    ptr = ff[zi+2];
-    f   += FX * ((z-1.0)*z*z);
-    f   *= 0.25;
+    ptr = ff.row(zi-1).data();
+    f   = FX * (((2.0f-z)*z-1)*z);
+    ptr = ff.row(zi).data();
+    f   += FX * ((3.0f*z-5.0f)*z*z+2.0f);
+    ptr = ff.row(zi+1).data();
+    f   += FX * (((4.0f-3.0f*z)*z+1.0f)*z);
+    ptr = ff.row(zi+2).data();
+    f   += FX * ((z-1.0f)*z*z);
+    f   *= 0.25f;
   }
   else {
-    ptr = ff[0];
-    f = 0.5 * FX;    
+    ptr = ff.data();
+    f = 0.5f * FX;    
   }
   return f;
 }
@@ -807,4 +527,3 @@ int atomCompare(const void *atom1,const void *atom2) {
   return ((*(float_tt *)atom1 == *(float_tt *)atom2) ? 0 : 
 	  ((*(float_tt *)atom1 > *(float_tt *)atom2) ? 1 : -1)); 
 }
-

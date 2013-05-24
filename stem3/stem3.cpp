@@ -5,7 +5,7 @@
 5 kV: gaussian parameter: 11
 good energies: 327, 360,393,520 keV
 */
-#define VERSION 2.23
+#define VERSION 3.0
 #define VIB_IMAGE_TEST
 // #define VIB_IMAGE_TEST_CBED
 
@@ -23,7 +23,8 @@ good energies: 327, 360,393,520 keV
 #include <crtdbg.h>
 #endif
 #endif
-#include <string.h>
+//#include <string.h>
+#include <string>
 #ifndef WIN32
 #ifdef __cplusplus
 #include <cmath>
@@ -53,16 +54,16 @@ good energies: 327, 360,393,520 keV
 // #include "weblib.h"
 #include "customslice.h"
 #include "data_containers.h"
+#include "stringutils.h"
 
 const char *resultPage = "result.html";
 /* global variable: */
 MULS muls;
 // int fftMeasureFlag = FFTW_MEASURE;
 int fftMeasureFlag = FFTW_ESTIMATE;
-extern char *elTable;
 
 void makeAnotation(float_tt **pict,int nx,int ny,char *text);
-void initMuls();
+//void initMuls();
 void writeIntPix(char *outFile,float_tt **pict,int nx,int ny);
 void runMuls(int lstart);
 void saveLineScan(int run);
@@ -92,10 +93,6 @@ int main(int argc, char *argv[]) {
 	float_tt timerTot;
 	char fileName[256]; 
 	char cinTemp[BUF_LEN];
-#ifdef WIN32
-	time_t rawtime;
-	struct tm * timeinfo;
-#endif
 
 	timerTot = cputim();
 	for (i=0;i<BUF_LEN;i++)
@@ -199,7 +196,7 @@ void displayProgress(int flag) {
 		return;
 	}
 	time(&time1);  
-	curTime = difftime(time1,time0);
+	curTime = static_cast<float_tt>(difftime(time1,time0));
 	/*   curTime = cputim()-timer;
 	if (curTime < 0) {
 	printf("timer: %g, curr. time: %g, diff: %g\n",timer,cputim(),curTime);
@@ -401,8 +398,8 @@ void displayParams() {
 	/*  printf("Optimizing fftw plans according to probe array (%d x %dpixels = %g x %gA) ...\n",
 	muls.nx,muls.ny,muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
 	*/
-	k2max = muls.nx/(2.0*muls.potSizeX);
-	temp = muls.ny/(2.0*muls.potSizeY);
+	k2max = muls.nx/(2.0f*muls.potSizeX);
+	temp = muls.ny/(2.0f*muls.potSizeY);
 	if( temp < k2max ) k2max = temp;
 	k2max = (BW * k2max);
 
@@ -417,9 +414,9 @@ void displayParams() {
 			0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
 		printf("* Number of detectors:  %d\n",muls.detectorNum);
 		for (i=0;i<muls.detectorNum;i++) {
-			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name);
+			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name.c_str());
 			// TODO: some fixed-length formatting going on here.
-			for (j=0;j<14-strlen(muls.detectors[0][i].name);j++) printf(" ");
+			for (j=0;j<14-strlen(muls.detectors[0][i].name.c_str());j++) printf(" ");
 			printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
 				muls.detectors[0][i].rInside,
 				muls.detectors[0][i].rOutside,
@@ -456,7 +453,7 @@ void displayParams() {
 }
 
 
-void readArray(char *title,float_tt *array,int N) {
+void readArray(const char *title,float_tt *array,int N) {
 	int i;
 	char buf[512],*str;
 
@@ -465,7 +462,7 @@ void readArray(char *title,float_tt *array,int N) {
 	str = buf;
 	if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t");
 	while (i<N) {
-		array[i++] = atof(str);
+		array[i++] = static_cast<float_tt>(atof(str));
 		str = strnext(str," \t\n");
 		while (str == NULL) {
 			if (!readNextLine(buf,511)) 
@@ -486,7 +483,8 @@ void readSFactLUT() {
 	QSfVec kArray;
 
 
-	char buf[256], elem[8];
+	char buf[256];
+	std::string elem;
 
 	if (readparam("Nk:",buf,1))
 		Nk = atoi(buf);
@@ -495,24 +493,19 @@ void readSFactLUT() {
 		exit(0);
 	}
 
+	// Table has atomKinds columns (x), with sf's for each atom kind stored
+	//    as a column.
 	sfTable = QSfMat(muls.atomKinds,Nk+1);
 	kArray  = QSfVec(Nk+1);
 
 	// read the k-values:
 	readArray("k:",kArray.data(),Nk);
-	kArray[Nk] = 2.0*kArray[Nk-1];
+	kArray[Nk] = 2.0f*kArray[Nk-1];
 
 	for (j=0;j<muls.atomKinds;j++) {
-		elem[3] = '\0';
-		elem[2] = ':';
-		elem[0] = elTable[2*muls.Znums[j]-2];
-		elem[1] = elTable[2*muls.Znums[j]-1];
-		if (elem[1] == ' ') {
-			elem[1] = ':';
-			elem[2] = '\0';
-		}
+		elem = ElTable::GetSymbol(muls.Znums[j]).c_str();
 		// printf("%s\n",elem);
-		readArray(elem,sfTable[j],Nk);
+		readArray(elem.c_str(), sfTable.col(j).data(),Nk);
 		sfTable(Nk,j) = 0.0;
 	}
 
@@ -541,9 +534,9 @@ void readSFactLUT() {
 void readFile() {
 	char answer[256],*strptr;
 	FILE *fpTemp;
-	float ax,by,c;
+	float ax,by,cz;
 	char buf[BUF_LEN],*strPtr;
-	int i,ix,iy;
+	int i,ix;
 	int potDimensions[2];
 	long ltime;
 	unsigned long iseed;
@@ -585,12 +578,20 @@ void readFile() {
 	}
 	*/
 	// search for second '"', in case the filename is in quotation marks:
+	// remove any quotation marks from the filename:
+	std::string fname = std::string(buf);
+	fname.erase(std::remove( fname.begin(), fname.end(), '\"' ), fname.end());
+	muls.fileBase += fname;
+	// append quotation marks to the end, if the muls filebase starts with them.
 	if (muls.fileBase[0] == '"') {
-		strPtr = strchr(buf,'"');
-		strcpy(muls.fileBase,strPtr+1);
-		strPtr = strchr(muls.fileBase.c_str(),'"');
-		*strPtr = '\0';
+		muls.fileBase+='"';
 	}
+	muls.fileBase = StripSpaces(muls.fileBase);
+		//strPtr = strchr(buf,'"');
+		//strcpy(muls.fileBase,strPtr+1);
+		//strPtr = strchr(muls.fileBase.c_str(),'"');
+		//*strPtr = '\0';
+	//}
 
 
 	// printf("fileBase: %s\n",muls.fileBase);
@@ -619,13 +620,13 @@ void readFile() {
 	if (readparam("Beam tilt X:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.btiltx),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.btiltx *= PI/180.0;
+			muls.btiltx *= static_cast<float_tt>(PI/180.0);
 	}
 	answer[0] = '\0';
 	if (readparam("Beam tilt Y:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.btilty),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.btilty *= PI/180.0;
+			muls.btilty *= static_cast<float_tt>(PI/180.0);
 	}  
 	if (readparam("Tilt back:",buf,1)) { 
 		sscanf(buf,"%s",answer);
@@ -643,19 +644,19 @@ void readFile() {
 	if (readparam("Crystal tilt X:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.ctiltx),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.ctiltx *= PI/180.0;
+			muls.ctiltx *= static_cast<float_tt>(PI/180.0);
 	}
 	answer[0] = '\0';
 	if (readparam("Crystal tilt Y:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.ctilty),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.ctilty *= PI/180.0;
+			muls.ctilty *= static_cast<float_tt>(PI/180.0);
 	}  
 	answer[0] = '\0';
 	if (readparam("Crystal tilt Z:",buf,1)) { 
 		sscanf(buf,"%g %s",&(muls.ctiltz),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.ctiltz *= PI/180.0;
+			muls.ctiltz *= static_cast<float_tt>(PI/180.0);
 	}
 	muls.cubex = 0; muls.cubey = 0; muls.cubez = 0;
 	if (readparam("Cube:",buf,1)) { 
@@ -688,49 +689,52 @@ void readFile() {
 	/**********************************************************************
 	* Read the atomic model positions !!!
 	*********************************************************************/
-	sprintf(muls.atomPosFile,muls.fileBase);
-	/* remove directory in front of file base: */
-	while ((strptr = strchr(muls.fileBase,'\\')) != NULL) strcpy(muls.fileBase,strptr+1);
-
-	/* add a '_' to fileBase, if not existent */
-	if (strrchr(muls.fileBase,'_') != muls.fileBase+strlen(muls.fileBase)-1) {
-		if ((strPtr = strchr(muls.fileBase,'.')) != NULL) sprintf(strPtr,"_");
-		else strcat(muls.fileBase,"_");
+	muls.atomPosFile = muls.fileBase;
+	
+	if (!muls.fileBase.empty())
+	{
+		char lastChar = *muls.fileBase.rbegin();
+		// if our fileBase is a directory, but no file:
+		if (lastChar == '\\' || lastChar == '/')
+		{
+			muls.fileBase = "_";
+		}
+		// Otherwise, try to split off the directory part, keeping only the filename.
+		muls.fileBase = ExtractFilename(muls.fileBase);
 	}
-	if (strchr(muls.atomPosFile,'.') == NULL) {
-		/*   
-		strPtr = strrchr(muls.atomPosFile,'_');
-		if (strPtr != NULL)
-		*(strPtr) = 0;
-		*/
-		/* take atomPosFile as is, or add an ending to it, if it has none yet
-		*/
-		if (strrchr(muls.atomPosFile,'.') == NULL) {
-			sprintf(buf,"%s.cssr",muls.atomPosFile);
-			if ((fpTemp=fopen(buf,"r")) == NULL) {
-				sprintf(buf,"%s.cfg",muls.atomPosFile);
-				if ((fpTemp=fopen(buf,"r")) == NULL) {
-					printf("Could not find input file %s.cssr or %s.cfg\n",
-						muls.atomPosFile,muls.atomPosFile);
-					exit(0);
-				}
-				strcat(muls.atomPosFile,".cfg");
-				fclose(fpTemp);
+	else
+	{
+		muls.fileBase = "_";
+	}
+
+	/* take atomPosFile as is, or add an ending to it, if it has none yet
+	*/
+	if (muls.atomPosFile.find('.')==muls.atomPosFile.npos) {
+		std::string tmp;
+		tmp = muls.atomPosFile += ".cssr";
+		if ((fpTemp=fopen(tmp.c_str(),"r")) == NULL) {
+			tmp = muls.atomPosFile += ".cfg";
+			if ((fpTemp=fopen(tmp.c_str(),"r")) == NULL) {
+				printf("Could not find input file %s.cssr or %s.cfg\n",
+					muls.atomPosFile, muls.atomPosFile);
+				exit(0);
 			}
-			else {
-				strcat(muls.atomPosFile,".cssr");
-				fclose(fpTemp);
-			}
+			muls.atomPosFile+=".cfg";
+			fclose(fpTemp);
+		}
+		else {
+			muls.atomPosFile+=".cssr";
+			fclose(fpTemp);
 		}
 	}
 	// We need to initialize a few variables, before reading the atomic 
 	// positions for the first time.
 	muls.natom = 0;
-	muls.atoms = NULL;
-	muls.Znums = NULL;
 	muls.atomKinds = 0;
-	muls.u2 = NULL;
-	muls.u2avg = NULL;
+	//muls.atoms = NULL;
+	//muls.Znums = NULL;
+	//muls.u2 = NULL;
+	//muls.u2avg = NULL;
 
 	muls.xOffset = 0.0; /* slize z-position offset in cartesian coords */
 	if (readparam("xOffset:",buf,1)) sscanf(buf,"%g",&(muls.xOffset));
@@ -743,12 +747,13 @@ void readFile() {
 	// _CrtSetDbgFlag  _CRTDBG_CHECK_ALWAYS_DF();
 	// printf("memory check: %d, ptr= %d\n",_CrtCheckMemory(),(int)malloc(32*sizeof(char)));
 
-	muls.atoms = readUnitCell(&(muls.natom),muls.atomPosFile,&muls,1);
+	muls.atoms = readUnitCell(muls.natom, muls.atomPosFile, muls, 1);
 
 	// printf("memory check: %d, ptr= %d\n",_CrtCheckMemory(),(int)malloc(32*sizeof(char)));
 
 
-	if (muls.atoms == NULL) {
+	if (muls.atoms.empty()) 
+	{
 		printf("Error reading atomic positions!\n");
 		exit(0);
 	}
@@ -759,7 +764,7 @@ void readFile() {
 	// printf("hello!\n");
 	ax = muls.cellDims[0]/muls.nCellX;
 	by = muls.cellDims[1]/muls.nCellY;;
-	c =  muls.c/muls.nCellZ;
+	cz =  muls.cellDims[2]/muls.nCellZ;
 
 
 	/*****************************************************************
@@ -796,7 +801,7 @@ void readFile() {
 			if (muls.cubez >0)
 				muls.slices = (int)(muls.cubez/(muls.cellDiv*muls.sliceThickness)+0.99);
 			else
-				muls.slices = (int)(muls.c/(muls.cellDiv*muls.sliceThickness)+0.99);
+				muls.slices = (int)(muls.cellDims[2]/(muls.cellDiv*muls.sliceThickness)+0.99);
 		}
 		muls.slices += muls.centerSlices;
 	}
@@ -808,23 +813,23 @@ void readFile() {
 			if (muls.sliceThickness == 0.0) {
 				if ((muls.slices == 1) && (muls.cellDiv == 1)) {
 					if (muls.cubez >0)
-						muls.sliceThickness = (muls.centerSlices) ? 2.0*muls.cubez/muls.cellDiv : muls.cubez/muls.cellDiv;
+						muls.sliceThickness = (muls.centerSlices) ? 2.0f*muls.cubez/muls.cellDiv : muls.cubez/muls.cellDiv;
 					else
 						// muls.sliceThickness = (muls.centerSlices) ? 2.0*muls.c/(muls.cellDiv) : muls.c/(muls.cellDiv);
-						muls.sliceThickness = (muls.centerSlices) ? 1.0*muls.c/(muls.cellDiv) : muls.c/(muls.cellDiv);
+						muls.sliceThickness = (muls.centerSlices) ? 1.0f*muls.cellDims[2]/(muls.cellDiv) : muls.cellDims[2]/(muls.cellDiv);
 				}
 				else {
 					if (muls.cubez >0) {
 						muls.sliceThickness = muls.cubez/(muls.cellDiv*muls.slices-muls.centerSlices);
 					}
 					else {
-						muls.sliceThickness = muls.c/(muls.cellDiv*muls.slices);
+						muls.sliceThickness = muls.cellDims[2]/(muls.cellDiv*muls.slices);
 					}
 				}
 			}
 			else {
 				muls.cellDiv = (muls.cubez >0) ? (int)ceil(muls.cubez/(muls.slices*muls.sliceThickness)) :
-					(int)ceil(muls.c/(muls.slices*muls.sliceThickness));
+					(int)ceil(muls.cellDims[2]/(muls.slices*muls.sliceThickness));
 			if (muls.cellDiv < 1) muls.cellDiv = 1;
 			}
 		}
@@ -837,16 +842,15 @@ void readFile() {
 	*/
 
 	muls.equalDivs = ((!muls.tds)  && (muls.nCellZ % muls.cellDiv == 0) && 
-		(fabs(muls.slices*muls.sliceThickness-muls.c/muls.cellDiv) < 1e-5));
+		(fabs(muls.slices*muls.sliceThickness-muls.cellDims[2]/muls.cellDiv) < 1e-5));
 
 	// read the output interval:
 	muls.outputInterval = muls.slices;
 	if (readparam("slices between outputs:",buf,1)) sscanf(buf,"%d",&(muls.outputInterval));
 	if (muls.outputInterval < 1) muls.outputInterval= muls.slices;
 
-
-
-	initMuls();  
+	// muls is initialized in its constructor.
+	//initMuls();  
 	muls.czOffset = 0.0; /* slize z-position offset in cartesian coords */
 	if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(muls.czOffset));
 
@@ -931,8 +935,8 @@ void readFile() {
 
 	if (!muls.tds) muls.avgRuns = 1;
 
-	muls.scanXStart = muls.cellDims[0]/2.0;
-	muls.scanYStart = muls.cellDims[1]/2.0;
+	muls.scanXStart = muls.cellDims[0]/2.0f;
+	muls.scanYStart = muls.cellDims[1]/2.0f;
 	muls.scanXN = 1;
 	muls.scanYN = 1;
 	muls.scanXStop = muls.scanXStart;
@@ -988,20 +992,20 @@ void readFile() {
 	muls.dV_V = 0.0;
 	muls.Cc = 0.0;
 	if (readparam("dE/E:",buf,1))
-		muls.dE_E = atof(buf);
+		muls.dE_E = static_cast<float_tt>(atof(buf));
 	if (readparam("dI/I:",buf,1))
-		muls.dI_I = atof(buf);
+		muls.dI_I = static_cast<float_tt>(atof(buf));
 	if (readparam("dV/V:",buf,1))
-		muls.dV_V = atof(buf);
+		muls.dV_V = static_cast<float_tt>(atof(buf));
 	if (readparam("Cc:",buf,1))
-		muls.Cc = 1e7*atof(buf);
+		muls.Cc = static_cast<float_tt>(1e7*atof(buf));
 
 
 	/* memorize dE_E0, and fill the array of well defined energy deviations */
 	dE_E0 = sqrt(muls.dE_E*muls.dE_E+
 		muls.dI_I*muls.dI_I+
 		muls.dV_V*muls.dV_V);
-	muls.dE_EArray = (float_tt *)malloc((muls.avgRuns+1)*sizeof(float_tt));
+	muls.dE_EArray = QSfVec(muls.avgRuns+1);//(float_tt *)malloc((muls.avgRuns+1)*sizeof(float_tt));
 	muls.dE_EArray[0] = 0.0;
 	/***********************************************************
 	* Statistical gaussian energy spread
@@ -1022,17 +1026,17 @@ void readFile() {
 	// serious bug in Visual C - dy comes out enormous.
 	//dy = sqrt((float_tt)pi)/((float_tt)2.0*(float_tt)(muls.avgRuns));
 	// using precalculated sqrt(pi):
-	dy = 1.772453850905/((float_tt)2.0*(float_tt)(muls.avgRuns));
-	dx = PI/((float_tt)(muls.avgRuns+1)*20);
+	dy = 1.772453850905f/(2.0f*(muls.avgRuns));
+	dx = static_cast<float_tt>(PI/((muls.avgRuns+1)*20.0f));
 	for (ix=1,x=0,y=0;ix<muls.avgRuns;x+=dx) {
 		y += exp(-x*x)*dx;
 		if (y>=ix*dy) {
-			muls.dE_EArray[ix++] = x*2*dE_E0/PI;
-			if (muls.printLevel > 2) printf("dE[%d]: %g eV\n",ix,muls.dE_EArray[ix-1]*muls.v0*1e3);
+			muls.dE_EArray[ix++] = static_cast<float_tt>(x*2*dE_E0/PI);
+			if (muls.printLevel > 2) printf("dE[%d]: %g eV\n",ix,muls.dE_EArray[ix-1]*muls.v0*1e3f);
 			if (ix < muls.avgRuns) {
 				muls.dE_EArray[ix] = -muls.dE_EArray[ix-1];
 				ix ++;
-				if (muls.printLevel > 2) printf("dE[%d]: %g eV\n",ix,muls.dE_EArray[ix-1]*muls.v0*1e3);
+				if (muls.printLevel > 2) printf("dE[%d]: %g eV\n",ix,muls.dE_EArray[ix-1]*muls.v0*1e3f);
 			}
 		}
 	}
@@ -1064,7 +1068,7 @@ void readFile() {
 		}
 		else {
 			sscanf(buf,"%g",&(muls.df0)); /* in nm */
-			muls.df0 = 10.0*muls.df0;       /* convert defocus to A */
+			muls.df0 = 10.0f*muls.df0;       /* convert defocus to A */
 			muls.Scherzer = (-(float)sqrt(1.5*muls.Cs*(wavelength(muls.v0)))==muls.df0);
 		}
 	}
@@ -1072,11 +1076,11 @@ void readFile() {
 	muls.astigMag = 0;
 	if (readparam("astigmatism:",buf,1)) sscanf(buf,"%g",&(muls.astigMag)); 
 	// convert to A from nm:
-	muls.astigMag = 10.0*muls.astigMag;
+	muls.astigMag = 10.0f*muls.astigMag;
 	muls.astigAngle = 0;
 	if (readparam("astigmatism angle:",buf,1)) sscanf(buf,"%g",&(muls.astigAngle)); 
 	// convert astigAngle from deg to rad:
-	muls.astigAngle *= PI/180.0;
+	muls.astigAngle *= static_cast<float_tt>(PI/180.0);
 
 	////////////////////////////////////////////////////////
 	// read in more aberrations:
@@ -1152,12 +1156,12 @@ void readFile() {
 	if (readparam("dwell time:",buf,1)) { 
 		sscanf(buf,"%g",&(muls.dwellTime)); /* in msec */
 	}
-	muls.electronScale = muls.beamCurrent*muls.dwellTime*MILLISEC_PICOAMP;
+	muls.electronScale = static_cast<float_tt>(muls.beamCurrent*muls.dwellTime*MILLISEC_PICOAMP);
 	//////////////////////////////////////////////////////////////////////
 
 	muls.sourceRadius = 0;
 	if (readparam("Source Size (diameter):",buf,1)) 
-		muls.sourceRadius = atof(buf)/2.0;
+		muls.sourceRadius = static_cast<float_tt>(atof(buf)/2.0);
 
 	if (readparam("smooth:",buf,1)) sscanf(buf,"%s",answer);
 	muls.ismoth = (tolower(answer[0]) == (int)'y');
@@ -1173,7 +1177,7 @@ void readFile() {
 	*/
 	muls.imageGamma = 1.0;
 	if (readparam("Display Gamma:",buf,1)) {
-		muls.imageGamma = atof(buf);
+		muls.imageGamma = static_cast<float_tt>(atof(buf));
 	}
 	muls.showProbe = 0;
 	if (readparam("show Probe:",buf,1)) {
@@ -1230,13 +1234,8 @@ void readFile() {
 				sscanf(buf,"%g %g %s %g %g",&(det.rInside),
 					&(det.rOutside), det.name, &(det.shiftX),&(det.shiftY));  
 
-#if FLOAT_PRECISION == 1
-				det.image = float2D(muls.scanXN,muls.scanYN,"ADFimag");
-				det.image2 = float2D(muls.scanXN,muls.scanYN,"ADFimag");
-#else
-				det.image = float_tt2D(muls.scanXN,muls.scanYN,"ADFimag");	
-				det.image2 = float_tt2D(muls.scanXN,muls.scanYN,"ADFimag");	
-#endif
+				det.image = QSfMat(muls.scanXN,muls.scanYN);
+				det.image2 = QSfMat(muls.scanXN,muls.scanYN);
 
 				//for (ix=0;ix<muls.scanXN;ix++) for (iy=0;iy < muls.scanYN; iy++)
 				//{
@@ -1264,7 +1263,7 @@ void readFile() {
 	if (readparam("tomo tilt:",buf,1)) { 
 		sscanf(buf,"%lf %s",&(muls.tomoTilt),answer); /* in mrad */
 		if (tolower(answer[0]) == 'd')
-			muls.tomoTilt *= 1000*PI/180.0;
+			muls.tomoTilt *= static_cast<float_tt>(1000*PI/180.0);
 	}
 	/************************************************************************
 	* Tomography Parameters:
@@ -1273,12 +1272,12 @@ void readFile() {
 		if (readparam("tomo start:",buf,1)) { 
 			sscanf(buf,"%lf %s",&(muls.tomoStart),answer); /* in mrad */
 			if (tolower(answer[0]) == 'd')
-				muls.tomoStart *= 1000*PI/180.0;
+				muls.tomoStart *= static_cast<float_tt>(1000*PI/180.0);
 		}
 		if (readparam("tomo step:",buf,1)) {
 			sscanf(buf,"%lf %s",&(muls.tomoStep),answer); /* in mrad */
 			if (tolower(answer[0]) == 'd')
-				muls.tomoStep *= 1000*PI/180.0;
+				muls.tomoStep *= static_cast<float_tt>(1000*PI/180.0);
 		}
 
 		if (readparam("tomo count:",buf,1))  
@@ -1286,7 +1285,7 @@ void readFile() {
 		if (readparam("zoom factor:",buf,1))  
 			sscanf(buf,"%lf",&(muls.zoomFactor));
 		if ((muls.tomoStep == 0) && (muls.tomoStep > 1))
-			muls.tomoStep = -2.0*muls.tomoStart/(float_tt)(muls.tomoCount - 1);
+			muls.tomoStep = -2.0f*muls.tomoStart/(float_tt)(muls.tomoCount - 1);
 	}
 	/***********************************************************************/
 
@@ -1338,8 +1337,8 @@ void readFile() {
 
 	if ((muls.mode == STEM) || (muls.mode == CBED)) {
 		/* we are assuming that there is enough atomic position data: */
-		muls.potOffsetX = muls.scanXStart - 0.5*muls.nx*muls.resolutionX;
-		muls.potOffsetY = muls.scanYStart - 0.5*muls.ny*muls.resolutionY;
+		muls.potOffsetX = muls.scanXStart - 0.5f*muls.nx*muls.resolutionX;
+		muls.potOffsetY = muls.scanYStart - 0.5f*muls.ny*muls.resolutionY;
 		/* adjust scanStop so that it coincides with a full pixel: */
 		muls.potNx = (int)((muls.scanXStop-muls.scanXStart)/muls.resolutionX);
 		muls.potNy = (int)((muls.scanYStop-muls.scanYStart)/muls.resolutionY);
@@ -1355,8 +1354,8 @@ void readFile() {
 		muls.potNy = muls.ny;
 		muls.potSizeX = muls.potNx*muls.resolutionX;
 		muls.potSizeY = muls.potNy*muls.resolutionY;
-		muls.potOffsetX = muls.scanXStart - 0.5*muls.potSizeX;
-		muls.potOffsetY = muls.scanYStart - 0.5*muls.potSizeY;
+		muls.potOffsetX = muls.scanXStart - 0.5f*muls.potSizeX;
+		muls.potOffsetY = muls.scanYStart - 0.5f*muls.potSizeY;
 	}  
 	/**************************************************************
 	* Check to see if the given scan parameters really fit in cell 
@@ -1388,15 +1387,15 @@ void readFile() {
 		if (muls.lbeams) {
 			while (readparam("beam:",buf,0)) muls.nbout++;  
 			printf("will record %d beams\n",muls.nbout);
-			muls.hbeam = (int*)malloc(muls.nbout*sizeof(int));
-			muls.kbeam = (int*)malloc(muls.nbout*sizeof(int));
+			muls.hbeam = QSiVec(muls.nbout);//(int*)malloc(muls.nbout*sizeof(int));
+			muls.kbeam = QSiVec(muls.nbout);//(int*)malloc(muls.nbout*sizeof(int));
 			/* now read in the list of detectors: */
 			resetParamFile();
 			for (i=0;i<muls.nbout;i++) {
 				if (!readparam("beam:",buf,0)) break;
 				muls.hbeam[i] = 0;
 				muls.kbeam[i] = 0;
-				sscanf(buf,"%d %d",muls.hbeam+i,muls.kbeam+i);
+				sscanf(buf,"%d %d",muls.hbeam[i],muls.kbeam[i]);
 				muls.hbeam[i] *= muls.nCellX;
 				muls.kbeam[i] *= muls.nCellY;
 
@@ -1424,23 +1423,25 @@ void readFile() {
 
 	potDimensions[0] = muls.potNx;
 	potDimensions[1] = muls.potNy;
+
+	muls.trans = QSVecOfcMat(muls.slices);
+	for (int slc=0; slc<muls.slices; slc++)
+		muls.trans[slc]=QScMat(muls.potNx,muls.potNy);
+
 #if FLOAT_PRECISION == 1
-	muls.trans = complex3Df(muls.slices,muls.potNx,muls.potNy,"trans");
 	// printf("allocated trans %d %d %d\n",muls.slices,muls.potNx,muls.potNy);
-	muls.fftPlanPotForw = fftwf_plan_many_dft(2,potDimensions, muls.slices,muls.trans[0][0], NULL,
-		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
+	muls.fftPlanPotForw = fftwf_plan_many_dft(2,potDimensions, muls.slices,(fftwf_complex*)muls.trans[0].data(), NULL,
+		1, muls.potNx*muls.potNy,(fftwf_complex*)muls.trans[0].data(), NULL,
 		1, muls.potNx*muls.potNy, FFTW_FORWARD, fftMeasureFlag);
-	muls.fftPlanPotInv = fftwf_plan_many_dft(2,potDimensions, muls.slices,muls.trans[0][0], NULL,
-		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
+	muls.fftPlanPotInv = fftwf_plan_many_dft(2,potDimensions, muls.slices,(fftwf_complex*)muls.trans[0].data(), NULL,
+		1, muls.potNx*muls.potNy,(fftwf_complex*)muls.trans[0].data(), NULL,
 		1, muls.potNx*muls.potNy, FFTW_BACKWARD, fftMeasureFlag);
 #else
-
-	muls.trans = complex3D(muls.slices,muls.potNx,muls.potNy,"trans");
-	muls.fftPlanPotForw = fftw_plan_many_dft(2,potDimensions, muls.slices,muls.trans[0][0], NULL,
-		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
+	muls.fftPlanPotForw = fftw_plan_many_dft(2,potDimensions, (fftw_complex*)muls.slices,muls.trans[0].data(), NULL,
+		1, muls.potNx*muls.potNy,(fftw_complex*)muls.trans[0].data(), NULL,
 		1, muls.potNx*muls.potNy, FFTW_FORWARD, fftMeasureFlag);
-	muls.fftPlanPotInv = fftw_plan_many_dft(2,potDimensions, muls.slices,muls.trans[0][0], NULL,
-		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
+	muls.fftPlanPotInv = fftw_plan_many_dft(2,potDimensions, muls.slices,(fftw_complex*)muls.trans[0].data(), NULL,
+		1, muls.potNx*muls.potNy,(fftw_complex*)muls.trans[0].data(), NULL,
 		1, muls.potNx*muls.potNy, FFTW_BACKWARD, fftMeasureFlag);
 #endif
 
@@ -1467,22 +1468,19 @@ void readFile() {
 * Important parameters: tomoStart, tomoStep, tomoCount, zoomFactor
 ***********************************************************************/
 void doTOMO() {
-	float_tt boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
-	float_tt mAx,mBy,mCz;
 	int ix,iy,iz,iTheta,i;
-	float_tt u[3],**Mm = NULL;
+	QSf3Vec u, mpos, boxMin, boxMax;
+	QSf3Mat Mm;
 	float_tt theta = 0;
-	atom *atoms = NULL;
+	std::vector<atom> atoms;
 	char cfgFile[64],stemFile[128],scriptFile[64],diffAnimFile[64];
 	FILE *fpScript,*fpDiffAnim;
 
-
 	Mm = muls.Mm;
-	atoms = (atom *)malloc(muls.natom*sizeof(atom));
+	//atoms = (atom *)malloc(muls.natom*sizeof(atom));
 
-	boxXmin = boxXmax = muls.cellDims[0]/2.0;
-	boxYmin = boxYmax = muls.cellDims[1]/2.0;
-	boxZmin = boxZmax = muls.c/2.0;
+	boxMin << muls.cellDims[0]/2.0f, muls.cellDims[1]/2.0f, muls.cellDims[2]/2.0f;;
+	boxMax = boxMin;
 
 	// For all tomography tilt angles:
 	for (iTheta = 0;iTheta < muls.tomoCount;iTheta++) {
@@ -1490,42 +1488,45 @@ void doTOMO() {
 		// Try different corners of the box, and see, how far they poke out.
 		for (ix=-1;ix<=1;ix++) for (iy=-1;iy<=1;iy++) for (iz=-1;iz<=1;iz++) {
 			// Make center of unit cell rotation center
-			u[0]=ix*muls.cellDims[0]/2; u[1]=iy*muls.cellDims[1]/2.0; u[2]=iz*muls.c/2.0;
+			u << ix*muls.cellDims[0]/2.0f, iy*muls.cellDims[1]/2.0f, iz*muls.cellDims[2]/2.0f;;
 
 			// rotate about y-axis
-			rotateVect(u,u,0,theta*1e-3,0);
+			rotateVect(u,u,0,theta*1e-3f,0);
 
 			// shift origin back to old (0,0,0):
-			u[0]+=muls.cellDims[0]/2; u[1]+=muls.cellDims[1]/2.0; u[2]+=muls.c/2.0;
+			u.array() += muls.cellDims/2;
+			//u[0]+=muls.cellDims[0]/2; u[1]+=muls.cellDims[1]/2.0f; u[2]+=muls.cellDims[2]/2.0f;
 
-			boxXmin = boxXmin>u[0] ? u[0] : boxXmin; boxXmax = boxXmax<u[0] ? u[0] : boxXmax; 
-			boxYmin = boxYmin>u[1] ? u[1] : boxYmin; boxYmax = boxYmax<u[1] ? u[1] : boxYmax; 
-			boxZmin = boxZmin>u[2] ? u[2] : boxZmin; boxZmax = boxZmax<u[2] ? u[2] : boxZmax; 
+			boxMin[0] = boxMin[0]>u[0] ? u[0] : boxMin[0]; boxMax[0] = boxMax[0]<u[0] ? u[0] : boxMax[0]; 
+			boxMin[1] = boxMin[1]>u[1] ? u[1] : boxMin[1]; boxMax[1] = boxMax[1]<u[1] ? u[1] : boxMax[1]; 
+			boxMin[2] = boxMin[2]>u[2] ? u[2] : boxMin[2]; boxMax[2] = boxMax[2]<u[2] ? u[2] : boxMax[2]; 
 
 		}
 	} /* for iTheta ... */
 
 	// find max. box size:
-	boxXmax -= boxXmin;
-	boxYmax -= boxYmin;
-	boxZmax -= boxZmin;
+	boxMax -= boxMin;
+	//boxMax[0] -= boxMin[0];
+	//boxMax[1] -= boxMin[1];
+	//boxMax[2] -= boxMin[2];
 	printf("Minimum box size for tomography tilt series: %g x %g x %gA, zoom Factor: %g\n",
-		boxXmax,boxYmax,boxZmax,muls.zoomFactor);
-	boxXmax /= muls.zoomFactor;
-	boxYmax = boxXmax*muls.cellDims[1]/muls.cellDims[0];
+		boxMax[0],boxMax[1],boxMax[2],muls.zoomFactor);
+	boxMax[0] /= muls.zoomFactor;
+	boxMax[1] = boxMax[0]*muls.cellDims[1]/muls.cellDims[0];
 
 	// boxMin will now be boxCenter:
-	boxXmin = 0.5*boxXmax;
-	boxYmin = 0.5*boxYmax;
-	boxZmin = 0.5*boxZmax;
+	boxMin = 0.5*boxMax;
+	//boxMin[0] = 0.5*boxMax[0];
+	//boxMin[1] = 0.5*boxMax[1];
+	//boxMin[2] = 0.5*boxMax[2];
 
 	// We have to save the original unit cell dimensions
-	mAx = muls.cellDims[0]; mBy = muls.cellDims[1]; mCz = muls.c;
-	muls.cellDims[0]=boxXmax; muls.cellDims[1]=boxYmax; muls.c=boxZmax;
+	mpos<< muls.cellDims[0], muls.cellDims[1], muls.cellDims[2];;
+	muls.cellDims[0]=boxMax[0]; muls.cellDims[1]=boxMax[1]; muls.cellDims[2]=boxMax[2];
 
 	printf("Will use box sizes: %g x %g x %gA (kept original aspect ratio). \n"
 		"Writing structure files now, please wait ...\n",
-		boxXmax,boxYmax,boxZmax);
+		boxMax[0],boxMax[1],boxMax[2]);
 
 	// open the script file and write the stem instructions in there
 	sprintf(scriptFile,"%s/run_tomo",muls.folder);
@@ -1552,13 +1553,14 @@ void doTOMO() {
 
 		// rotate the structure and write result to local atom array
 		for(i=0;i<(muls.natom);i++) {	
-			u[0] = muls.atoms[i].x - mAx/2.0; 
-			u[1] = muls.atoms[i].y - mBy/2.0; 
-			u[2] = muls.atoms[i].z - mCz/2.0; 
-			rotateVect(u,u,0,theta*1e-3,0);
-			atoms[i].x = u[0]+boxXmin;
-			atoms[i].y = u[1]+boxYmin; 
-			atoms[i].z = u[2]+boxZmin; 
+			u = (muls.atoms[i].pos - mpos.array()/2.0).matrix(); 
+			//u[1] = muls.atoms[i].y - mBy/2.0; 
+			//u[2] = muls.atoms[i].z - mCz/2.0; 
+			rotateVect(u,u,0,theta*1e-3f,0);
+			atoms[i].pos = u+boxMin;
+			//atoms[i].x = u[0]+boxMin[0];
+			//atoms[i].y = u[1]+boxMin[1]; 
+			//atoms[i].z = u[2]+boxMin[2]; 
 			atoms[i].Znum = muls.atoms[i].Znum;
 			atoms[i].occ = muls.atoms[i].occ;
 			atoms[i].dw = muls.atoms[i].dw;
@@ -1581,7 +1583,8 @@ void doTOMO() {
 		//	"./diff%03d.jpg\n\n",
 		//	(int)theta,muls.avgRuns,(int)theta,iTheta);
 	}
-	muls.cellDims[0] = mAx; muls.cellDims[1] = mBy; muls.c = mCz;
+	muls.cellDims = mpos;
+	//muls.cellDims[0] = mAx; muls.cellDims[1] = mBy; muls.cellDims[2] = mCz;
 	sprintf(stemFile,"copy fparams.dat %s/",muls.folder);
 	system(stemFile);
 
@@ -1619,9 +1622,6 @@ void doCBED() {
 	float_tt probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
 	float_tt t;
-	static float_tt **avgArray=NULL,**diffArray=NULL;
-	static float_tt *chisq = NULL;
-	static float_tt **avgPendelloesung = NULL;
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
@@ -1629,19 +1629,13 @@ void doCBED() {
 	static imageStruct *header = NULL;
 	imageStruct *header_read = NULL;
 
+	QSfMat avgArray(muls.nx,muls.ny), diffArray(muls.nx,muls.ny);
+	QSfVec chisq(muls.avgRuns);
+	QSfMat avgPendelloesung(muls.nbout,
+			muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv);
+
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
-	muls.chisq = chisq;
-
-	if (muls.lbeams) {
-		muls.pendelloesung = NULL;
-		if (avgPendelloesung == NULL) {
-			avgPendelloesung = float2D(muls.nbout,
-				muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-				"pendelloesung");
-		}    
-	}
 	probeCenterX = muls.scanXStart;
 	probeCenterY = muls.scanYStart;
 
@@ -1663,8 +1657,8 @@ void doCBED() {
 		* then also be adjusted, so that it is off-center
 		*/
 
-		probeOffsetX = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
-		probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
+		probeOffsetX = static_cast<float_tt>(muls.sourceRadius*gasdev(&iseed)*SQRT_2);
+		probeOffsetY = static_cast<float_tt>(muls.sourceRadius*gasdev(&iseed)*SQRT_2);
 		muls.scanXStart = probeCenterX+probeOffsetX;
 		muls.scanYStart = probeCenterY+probeOffsetY;
 		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
@@ -1672,10 +1666,10 @@ void doCBED() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"wave function");
+				0,std::vector<float_tt>(),"wave function");
 			header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
-			writeImage((void **)wave->wave,header,systStr);
+			writeComplexImage(wave->wave,header,systStr);
 			// writeImage(muls.wave,header,"wave->img");
 			// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave->img");
 			// system("showimage diff.img 2 &");
@@ -1728,7 +1722,8 @@ void doCBED() {
 			sscanf(buf,"%d %d",&muls.mulsRepeat1,&muls.mulsRepeat2);
 			for (i=0;i<(int)strlen(buf);i++) buf[i] = 0;
 			if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
-			sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+			muls.cin2 = muls.mulsRepeat1;
+			//sprintf(muls.cin2,"%d",muls.mulsRepeat1);
 
 
 			/***********************************************************
@@ -1739,13 +1734,8 @@ void doCBED() {
 				(oldMulsRepeat2 !=muls.mulsRepeat2))) {
 					oldMulsRepeat1 = muls.mulsRepeat1;
 					oldMulsRepeat2 = muls.mulsRepeat2;
-					if (muls.pendelloesung != NULL)
-						free(muls.pendelloesung[0]);
-					free(avgPendelloesung[0]);
-					muls.pendelloesung = NULL;
-					avgPendelloesung = float2D(muls.nbout,
-						muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-						"pendelloesung");
+					muls.pendelloesung.setZero();
+					avgPendelloesung.setZero();
 			}
 			/*********************************************************/
 
@@ -1760,7 +1750,7 @@ void doCBED() {
 				if (muls.scatFactor == CUSTOM)
 					make3DSlicesFT(&muls);
 				else
-					make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
+					make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
 				initSTEMSlices(&muls,muls.slices);
 			}
 
@@ -1778,8 +1768,8 @@ void doCBED() {
 					if (muls.scatFactor == CUSTOM)
 						make3DSlicesFT(&muls);
 					else
-						make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-					initSTEMSlices(&muls,muls.slices);
+						make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
+					initSTEMSlices(&muls, muls.slices);
 				}
 
 				timer = cputim();
@@ -1794,10 +1784,10 @@ void doCBED() {
 					if (header == NULL) 
 						header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
 						muls.resolutionX,muls.resolutionY,
-						0,NULL,"wave function");
+						0,std::vector<float_tt>(),"wave function");
 					header->t = wave->thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
-					writeImage((void **)wave->wave,header,systStr);
+					writeComplexImage(wave->wave,header,systStr);
 					// writeImage(muls.wave,header,"wave.img");
 					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
 					// system("showimage diff.img 2 &");
@@ -1819,20 +1809,15 @@ void doCBED() {
 		}
 		/*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
 
-		if (avgArray == NULL)
-			avgArray = float2D(muls.nx,muls.ny,"avgArray");
-		if (diffArray == NULL)
-			diffArray = float2D(muls.nx,muls.ny,"diffArray");
 		sprintf(avgName,"%s/diff.img",muls.folder);
 		// readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		header_read = readImage(diffArray,muls.nx,muls.ny,avgName);
 
 
 		if (muls.avgCount == 0) {
 			/* for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++)
 			avgArray(iy,ix) = diffArray(iy,ix); */
-			memcpy((void *)avgArray[0],(void *)diffArray[0],
-				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
+			avgArray = diffArray;
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
@@ -1862,21 +1847,21 @@ void doCBED() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
-				1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
+				1,std::vector<float_tt>(1,muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
 			else {
 				header->t = wave->thickness;
-				header->dx = 1.0/(muls.nx*muls.resolutionX);
-				header->dy = 1.0/(muls.ny*muls.resolutionY);
+				header->dx = 1.0f/(muls.nx*muls.resolutionX);
+				header->dy = 1.0f/(muls.ny*muls.resolutionY);
 				if (header->paramSize < 1) {
-					header->params = (float_tt*)malloc(2*sizeof(float_tt));
+					header->params = std::vector<float_tt>(2);
 					header->paramSize = 2;
 				}
 
 				header->params[0] = muls.tomoTilt;
-				header->params[1] = 1.0/wavelength(muls.v0);
+				header->params[1] = 1.0f/wavelength(muls.v0);
 				setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
 			}
-			writeRealImage((void **)avgArray,header,avgName,sizeof(float_tt));
+			writeRealImage(avgArray,header,avgName);
 
 			/* report the result on the web page */
 			// printf("Will write report now\n");
@@ -1934,7 +1919,7 @@ void doCBED() {
 				printf("Writing Pendelloesung data\n");
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+					fprintf(fp,"%g",iy*muls.cellDims[2]/((float)(muls.slices*muls.cellDiv)));
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
 						fprintf(fp,"\t%g",avgPendelloesung(iy,ix));
@@ -1972,32 +1957,25 @@ void doTEM() {
 	float_tt x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
 	float_tt t;
-	static float_tt **avgArray=NULL,**diffArray=NULL;
-	static float_tt *chisq = NULL;
-	static float_tt **avgPendelloesung = NULL;
-	static int oldMulsRepeat1 = 1;
-	static int oldMulsRepeat2 = 1;
-	static long iseed=0;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
+	QSfMat avgArray(muls.nx,muls.ny), diffArray(muls.nx,muls.ny);
+	QSfVec chisq;
+	int oldMulsRepeat1 = 1;
+	int oldMulsRepeat2 = 1;
+	long iseed=0;
+	imageStruct *header = NULL;
+	imageStruct *header_read = NULL;
 	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
-	static fftwf_complex **imageWave = NULL;
+	QScMat imageWave(muls.nx,muls.ny);
+	QSfMat avgPendelloesung(muls.nbout,
+			muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv);
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
-	muls.chisq = chisq;
+	muls.chisq = QSfVec(muls.avgRuns);
 	// muls.trans = 0;
 
-
-
 	if (muls.lbeams) {
-		muls.pendelloesung = NULL;
-		if (avgPendelloesung == NULL) {
-			avgPendelloesung = float2D(muls.nbout,
-				muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-				"pendelloesung");
-		}	  
+		muls.pendelloesung.setZero();
 	}
 
 	timerTot = 0; /* cputim();*/
@@ -2020,20 +1998,18 @@ void doTEM() {
 		//muls.nslic0 = 0;
 		// produce an incident plane wave:
 		if ((muls.btiltx == 0) && (muls.btilty == 0)) {
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				wave->wave(iy,ix)[0] = 1;	wave->wave(iy,ix)[1] = 0;
-			}
+			wave->wave.setConstant(std::complex<float_tt>(1,0));
 		}
 		else {
 			// produce a tilted wave function (btiltx,btilty):
-			ktx = 2.0*PI*sin(muls.btiltx)/wavelength(muls.v0);
-			kty = 2.0*PI*sin(muls.btilty)/wavelength(muls.v0);
+			ktx = static_cast<float_tt>(2.0*PI*sin(muls.btiltx)/wavelength(muls.v0));
+			kty = static_cast<float_tt>(2.0*PI*sin(muls.btilty)/wavelength(muls.v0));
 			for (ix=0;ix<muls.nx;ix++) {
 				x = muls.resolutionX*(ix-muls.nx/2);
 				for (iy=0;iy<muls.ny;iy++) {
 					y = muls.resolutionY*(ix-muls.nx/2);
-					wave->wave(iy,ix)[0] = (float)cos(ktx*x+kty*y);	
-					wave->wave(iy,ix)[1] = (float)sin(ktx*x+kty*y);
+					wave->wave(iy,ix) = std::complex<float_tt>(cos(ktx*x+kty*y),
+															   sin(ktx*x+kty*y));
 				}
 			}
 		}
@@ -2054,7 +2030,8 @@ void doTEM() {
 			for (i=0;i<(int)strlen(buf);i++)
 				buf[i] = 0;
 			if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
-			sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+			//sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+			muls.cin2 = muls.mulsRepeat1;
 			/***********************************************************
 			* make sure we have enough memory for the pendelloesung plot
 			*/
@@ -2063,12 +2040,7 @@ void doTEM() {
 				(oldMulsRepeat2 !=muls.mulsRepeat2))) {
 					oldMulsRepeat1 = muls.mulsRepeat1;
 					oldMulsRepeat2 = muls.mulsRepeat2;
-					if (muls.pendelloesung != NULL)  free(muls.pendelloesung[0]);
-					free(avgPendelloesung[0]);
-					muls.pendelloesung = NULL;
-					avgPendelloesung = float2D(muls.nbout,
-						muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-						"pendelloesung");
+					muls.pendelloesung.setZero();
 			}
 			/*********************************************************/
 
@@ -2081,8 +2053,8 @@ void doTEM() {
 			************************************************/
 			if (muls.equalDivs) {
 				if (muls.printLevel > 1) printf("found equal unit cell divisions\n");
-				make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-				initSTEMSlices(&muls,muls.slices);
+				make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
+				initSTEMSlices(&muls, muls.slices);
 			}
 
 			muls.saveFlag = 0;
@@ -2096,7 +2068,7 @@ void doTEM() {
 				******************************************************/
 				// if ((muls.tds) || (muls.nCellZ % muls.cellDiv != 0)) {
 				if (!muls.equalDivs) {
-					make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
+					make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
 					initSTEMSlices(&muls,muls.slices);
 				}
 
@@ -2120,21 +2092,20 @@ void doTEM() {
 					else setHeaderComment(header,"Exit face wave function for no TDS");
 					sprintf(systStr,"%s/wave.img",muls.folder);
 					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
-						ktx = -2.0*PI*sin(muls.btiltx)/wavelength(muls.v0);
-						kty = -2.0*PI*sin(muls.btilty)/wavelength(muls.v0);
+						ktx = static_cast<float_tt>(-2.0*PI*sin(muls.btiltx)/wavelength(muls.v0));
+						kty = static_cast<float_tt>(-2.0*PI*sin(muls.btilty)/wavelength(muls.v0));
 						for (ix=0;ix<muls.nx;ix++) {
 							x = muls.resolutionX*(ix-muls.nx/2);
 							for (iy=0;iy<muls.ny;iy++) {
 								y = muls.resolutionY*(ix-muls.nx/2);
-								wave->wave(iy,ix)[0] *= cos(ktx*x+kty*y);	
-								wave->wave(iy,ix)[1] *= sin(ktx*x+kty*y);
+								wave->wave(iy,ix) *= QScf(cos(ktx*x+kty*y), sin(ktx*x+kty*y));
 							}
 						}
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
 					}
 
 
-					writeImage((void **)wave->wave,header,systStr);
+					writeComplexImage(wave->wave,header,systStr);
 					//    system("showimage diff.img 2 &");
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
@@ -2147,8 +2118,7 @@ void doTEM() {
 					header->dy = muls.resolutionY;
 					header->complexFlag = 1;
 					header->paramSize = 9;
-					if (header->params == NULL)
-						header->params = (float_tt *)malloc(header->paramSize*sizeof(float_tt));
+					header->params = std::vector<float_tt>(9);
 					header->params[0] = muls.v0;  				// high voltage
 					header->params[1] = muls.Cs;				// spherical aberration
 					header->params[2] = muls.df0;				// defocus
@@ -2163,7 +2133,7 @@ void doTEM() {
 
 
 					setHeaderComment(header,"complex exit face Wave function");
-					writeImage((void **)wave->wave,header,systStr);
+					writeComplexImage(wave->wave,header,systStr);
 				}
 #endif 
 
@@ -2175,23 +2145,19 @@ void doTEM() {
 		// This means the wave function is used for nothing else than producing image(s)
 		// and diffraction patterns.
 		//////////////////////////////////////////////////////////////////////////////
-		if (avgArray == NULL)
-			avgArray = float2D(muls.nx,muls.ny,"avgArray");
-		if (diffArray == NULL) {
-			diffArray = float2D(muls.nx,muls.ny,"diffArray");
-			// memset(diffArray[0],0,muls.nx*muls.ny*sizeof(float));
-		}
+
 		// 	sprintf(avgName,"%s/diffAvg.img",muls.folder);
 		sprintf(avgName,"%s/diff.img",muls.folder);
 
 		//readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		header_read = readImage(diffArray,muls.nx,muls.ny,avgName);
 
 		if (muls.avgCount == 0) {
 			/***********************************************************
 			* Save the diffraction pattern
 			**********************************************************/	
-			memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
+			avgArray = diffArray;
+			//memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
@@ -2220,26 +2186,24 @@ void doTEM() {
 			* all the different defoci, inverse FFT and save each image.
 			* diffArray will be overwritten with the image.
 			**********************************************************/ 
-			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave(iy,ix)[0] = wave->wave(iy,ix)[0];
-				imageWave(iy,ix)[1] = wave->wave(iy,ix)[1];
+				imageWave(iy,ix) = wave->wave(iy,ix);
 			}
-			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+			fftwf_execute_dft(wave->fftPlanWaveInv,(fftwf_complex*)imageWave.data(),(fftwf_complex*)imageWave.data());
 			// get the amplitude squared:
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				diffArray(iy,ix) = imageWave(iy,ix)[0]*imageWave(iy,ix)[0]+imageWave(iy,ix)[1]*imageWave(iy,ix)[1];
+				diffArray(iy,ix) = imageWave(iy,ix).real()*imageWave(iy,ix).real()+imageWave(iy,ix).imag()*imageWave(iy,ix).imag();
 			}
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"Image");
+				0,std::vector<float_tt>(),"Image");
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
 			sprintf(avgName,"%s/image.img",muls.folder);
-			writeRealImage((void **)diffArray,header,avgName,sizeof(float_tt));
+			writeRealImage(diffArray,header,avgName);
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2259,9 +2223,9 @@ void doTEM() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"diffraction pattern");
+				0,std::vector<float_tt>(),"diffraction pattern");
 			header->t = wave->thickness;
-			writeRealImage((void **)avgArray,header,avgName,sizeof(float_tt));
+			writeRealImage(avgArray,header,avgName);
 
 
 			/* report the result on the web page */
@@ -2302,26 +2266,24 @@ void doTEM() {
 			* all the different defoci, inverse FFT and save each image.
 			* diffArray will be overwritten with the image.
 			**********************************************************/ 
-			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave(iy,ix)[0] = wave->wave(iy,ix)[0];
-				imageWave(iy,ix)[1] = wave->wave(iy,ix)[1];
+				imageWave(iy,ix) = wave->wave(iy,ix);
 			}
-			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+			fftwf_execute_dft(wave->fftPlanWaveInv,(fftwf_complex*)imageWave.data(),(fftwf_complex*)imageWave.data());
 
 			// save the amplitude squared:
 			sprintf(avgName,"%s/image.img",muls.folder); 
-			header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+			header_read = readImage(diffArray,muls.nx,muls.ny,avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				t = ((float_tt)muls.avgCount*diffArray(iy,ix)+
-					imageWave(iy,ix)[0]*imageWave(iy,ix)[0]+imageWave(iy,ix)[1]*imageWave(iy,ix)[1])/(float_tt)(muls.avgCount+1);
+					imageWave(iy,ix).real()*imageWave(iy,ix).real()+imageWave(iy,ix).imag()*imageWave(iy,ix).imag())/(float_tt)(muls.avgCount+1);
 				diffArray(iy,ix) = t;
 			}
 			header->t = wave->thickness;
 			setHeaderComment(header,"Image intensity");
-			writeRealImage((void **)diffArray,header,avgName,sizeof(float_tt));
+			writeRealImage(diffArray,header,avgName);
 			// End of Image writing (if avgCount > 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2343,7 +2305,7 @@ void doTEM() {
 				printf("Writing Pendelloesung data\n");
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+					fprintf(fp,"%g",iy*muls.cellDims[2]/((float)(muls.slices*muls.cellDiv)));
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
 						// store the AMPLITUDE:
@@ -2361,7 +2323,7 @@ void doTEM() {
 			else {
 				printf("Could not open file for pendelloesung plot\n");
 			}	
-		} /* end of if lbemas ... */		 
+		} /* end of if lbeams ... */		 
 		displayProgress(1);
 	} /* end of for muls.avgCount=0.. */  
 	delete(wave);
@@ -2380,15 +2342,17 @@ void doTEM() {
 void doSTEM() {
 	int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
 	float_tt timer, total_time=0;
-	char buf[BUF_LEN],avgName[256],systStr[256];
-	char jpgName[256], tifName[256];
-	float_tt xpos,ypos,t;
-	static float_tt **avgArray=NULL;
-	float_tt *chisq,collectedIntensity;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
-	float cztot;
-	int islice;
+	char buf[BUF_LEN];//,avgName[256],systStr[256];
+	std::string bufstr;
+	//char jpgName[256], tifName[256];
+	float_tt t;
+	static QSfMat avgArray;
+	QSfVec chisq;
+	float_tt collectedIntensity;
+	//static imageStruct *header = NULL;
+	//static imageStruct *header_read = NULL;
+	//float cztot;
+	//int islice;
 
 	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
 	//WAVEFUNC *wave = *(new WAVEFUNC(muls.nx,muls.ny));
@@ -2400,9 +2364,13 @@ void doSTEM() {
 		waves.push_back(new WAVEFUNC(muls.nx,muls.ny));
 	}
 
-	chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
+	CImageIO ioObject = new CImageIO(muls.nx, muls.ny, 0 /* thickness */, muls.resolutionX, muls.resolutionY,
+									0 /*paramSize*/, std::vector<float_tt>()/*params*/, ""/*comment*/);
+
+	//chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
 	// zero-out the chisq array
-	memset(chisq, 0, muls.avgRuns*sizeof(float_tt));
+	//memset(chisq, 0, muls.avgRuns*sizeof(float_tt));
+	chisq.setZero();
 	muls.chisq = chisq;
 	totalRuns = muls.avgRuns;
 	timer = cputim();
@@ -2470,7 +2438,8 @@ void doSTEM() {
 			for (i=0;i<(int)strlen(buf);i++) buf[i] = 0;
 			if (picts < 1) picts = 1;
 			muls.mulsRepeat2 = picts;
-			sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+			muls.cin2 = muls.mulsRepeat1;
+			//sprintf(muls.cin2,"%d",muls.mulsRepeat1);
 			/* if the unit cell is divided into slabs, we need to multiply
 			* picts by that number
 			*/
@@ -2513,8 +2482,8 @@ void doSTEM() {
 				*************************************************/
 				// default(none) forces us to specify all of the variables that are used in the parallel section.  
 				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
-#pragma omp parallel firstprivate(header, header_read) \
-	private(ix, iy, ixa, iya, wave, t, timer) \
+#pragma omp parallel firstprivate(ioObject) \
+	private(ix, iy, ixa, iya, wave, t, timer, buf, std::string) \
 	shared(pCount, picts, chisq, muls, collectedIntensity, total_time, waves) \
 	default(none)
 #pragma omp for
@@ -2546,7 +2515,8 @@ void doSTEM() {
 					else 
 					{
 						/* load incident wave function and then propagate it */
-						sprintf(wave->fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
+						sprintf(buf, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
+						wave->fileStart = std::string(buf);
 						readStartWave(&muls, wave);  /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
 						//muls.nslic0 = pCount;
@@ -2555,7 +2525,8 @@ void doSTEM() {
 					   and save exit wave function for this position 
 					   (done by runMulsSTEM), 
 					   but we need to define the file name */
-					sprintf(wave->fileout,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
+					sprintf(buf,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
+					wave->fileout = std::string(buf);
 					// TODO: modifying shared value from multiple threads?
 					muls.saveFlag = 1;
 
@@ -2591,7 +2562,8 @@ void doSTEM() {
 
 					if (pCount == picts-1)  /* if this is the last slice ... */
 					{
-						sprintf(wave->avgName,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
+						sprintf(buf,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
+						wave->avgName = std::string(buf);
 						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
 
 						if (muls.saveLevel > 0) 
@@ -2614,7 +2586,8 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
+								ioObject.ReadComplexImage(wave->avgArray, wave->avgName);
+								//header_read = readImage(wave->avgArray, muls.nx, muls.ny, wave->avgName.c_str());
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((float_tt)muls.avgCount * wave->avgArray(iya,ixa) +
 										wave->diffpat(iya,ixa)) / ((float_tt)(muls.avgCount + 1));
@@ -2628,13 +2601,16 @@ void doSTEM() {
 							* and convert it to jpg format 
 							*/
 							// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
-							if (header == NULL) 
-									header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-										muls.resolutionX,muls.resolutionY,
-										0,NULL,"diffraction pattern");
+							ioObject->SetThickness(wave->thickness);
+							ioObject->SetComment("Diffraction pattern");
+							//if (header == NULL) 
+							//		header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+							//			muls.resolutionX,muls.resolutionY,
+							//			0,std::vector<float_tt>(),"diffraction pattern");
 								// printf("Created header\n");
-							header->t = wave->thickness;
-							writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(float_tt));
+							//header->t = wave->thickness;
+							ioObject->WriteRealImage(wave->avgArray, wave->avgName);
+							//writeRealImage(wave->avgArray, header, wave->avgName.c_str());
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
@@ -2706,9 +2682,10 @@ void doSTEM() {
 	} /* end of for muls.avgCount=0..25 */
 
 	//free(chisq);
-	//for (int th=0; th<omp_get_num_threads(); th++)
-	//{
-	//	delete(waves[th]);
-	//}
+	delete(ioObject);
+	for (int th=0; th<omp_get_num_threads(); th++)
+	{
+		delete(waves[th]);
+	}
 }
 

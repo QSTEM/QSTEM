@@ -45,7 +45,6 @@ float_tt wavelength( float_tt kev );
 
 float_tt gasdev(long *idum);
 float_tt rangauss( unsigned long *iseed );
-int ReadfeTable(int scatFlag );
 float_tt sigma( float_tt kev );
 //void splinh( QSfVec &x, QSfVec &y, QSfMat &coeffs, int n);
 //void splinh( float_tt x[], float_tt y[],
@@ -56,9 +55,8 @@ float_tt ranflat( unsigned long *iseed );
 int parlay( const char c[], int islice[], int nsmax, int lmax,
 	    int *nslice, int fperr );
 /* long powerof2( long n ); */
-float_tt fe3D(int Z, float_tt q2,int tdsFlag, float_tt scale,int scatFlag);
 float_tt sfLUT(float_tt s,int atKind, MULS *muls);
-float_tt bicubic(float_tt **ff,int Nz, int Nx,float_tt z,float_tt x);
+float_tt bicubic(QSfMat ff,int Nz, int Nx,float_tt z,float_tt x);
 
 
 float_tt getTime();

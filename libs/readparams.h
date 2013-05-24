@@ -59,7 +59,7 @@ void setComment(char newComment);
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(char *title, char *parString,int wrapFlag);
+int readparam(const char *title, char *parString,int wrapFlag);
 
 
 /************************************************************

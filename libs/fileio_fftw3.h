@@ -5,6 +5,8 @@
 #include "stemtypes_fftw3.h"
 
 std::vector<atom> readUnitCell(int &natom,std::string fileName,MULS &muls,int handleVacancies);
+int phononDisplacement(QSf3Vec &u, MULS &muls, int id, int icx, int icy,
+                       int icz, int atomCount, float_tt dw, int maxAtom, int ZnumIndex);
 void replicateUnitCell(int ncoord,int &natom,MULS &muls,std::vector<atom> atoms,int handleVacancies);
 std::vector<atom> tiltBoxed(int ncoord,int &natom, MULS &muls,std::vector<atom> atoms,int handleVacancies);
 int writePDB(std::vector<atom> atoms,int natoms,std::string fileName,MULS &muls);
@@ -17,11 +19,10 @@ int writeCFGFractCubic(float_tt *pos,int *Znum,float_tt *dw,int natoms,char *fil
 //int readCubicCFG(float_tt **pos,float_tt **dw, int **Znum, float_tt *ax,float_tt *by,float_tt *cz,
 		 //float_tt ctiltx, float_tt ctilty);
 
-void writeSTEMinput(char* stemFile,char *cfgFile,MULS &muls);
+void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls);
 
 /* Helper functions for above functions: */
 int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
-int getZNumber(std::string element);
 int readCFGCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName);
 int readCSSRCellParams(MULS &muls, QSf3Mat &Mm, std::string fileName);
 

@@ -11,6 +11,7 @@
 #include "customslice.h"
 #include "fileio_fftw3.h"
 #include "comparators.h"
+#include "potentials.h"
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
@@ -27,9 +28,6 @@
 #define FTBOX_NZ 1024
 
 #define SQR(x) ((x)*(x))
-
-void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx, MULS *muls);
-
 
 void make3DSlicesFT(MULS *muls) {
 
@@ -68,7 +66,7 @@ void make3DSlicesFT(MULS *muls) {
   /******************************************
    * only needed during initialization: 
    */
-  fftw_plan plan;                   // fftw array
+  fftwf_plan plan;                   // fftw array
   int fftMeasureFlag = FFTW_ESTIMATE; // fftw plan needed for FFT
   QScMat pot;          // single atom potential box
   float_tt ax,cz;                        // real space size of FT box
@@ -81,7 +79,7 @@ void make3DSlicesFT(MULS *muls) {
   /**********************************************************
    * Initialization of parameter used in this function
    *********************************************************/
-  if (potLUT == NULL) {
+  //if (potLUT == NULL) {
     Nxp = muls->potNx;
     Nyp = muls->potNy;
     Nzp = muls->slices;
@@ -144,6 +142,7 @@ void make3DSlicesFT(MULS *muls) {
     // sfC[sfCSize-1] = 0.0;
 
     timer = getTime();
+	Potential *potObject = new Potential(muls);
     /*************************************************************
      * We will now calculate the real space potential for every
      * kind of atom used in this model
@@ -164,21 +163,22 @@ void make3DSlicesFT(MULS *muls) {
 				if (sz2r+sx2max*sx2 <=1.0) 
 				{  // enforce ellipse equation:
 					s = sqrt(sz2+sx2);
-					arg = TWOPI * (sx*(0.5f*ax)+sz*(0.5f*cz)); // place single atom in center of box
+					arg = static_cast<float_tt>(TWOPI * (sx*(0.5f*ax)+sz*(0.5f*cz))); // place single atom in center of box
 					ffr = cos(arg); ffi = sin(arg);	  
 					// all the s are actually q, therefore S = 0.5*q = 0.5*s:
-					pot(ix,iz).real() = sfLUT(0.5f*s,atKind,muls)*ffr;
-					pot(ix,iz).imag() = sfLUT(0.5f*s,atKind,muls)*ffi;
+					pot(ix,iz) = std::complex<float_tt>(potObject->SplineLookUp(atKind,0.5f*s)*ffr, 
+														potObject->SplineLookUp(atKind,0.5f*s)*ffi);
 				}      
 			}
 		}
       }
+	  delete(potObject);
 
       // new fftw3 code:
 	  // TODO: Define different plans for different data types.
-      plan = fftw_plan_dft_2d(Nz,Nx,(fftw_complex *)pot.data(),(fftw_complex *)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
-      fftw_execute(plan);
-      fftw_destroy_plan(plan);
+      plan = fftwf_plan_dft_2d(Nz,Nx,(fftwf_complex *)pot.data(),(fftwf_complex *)pot.data(),FFTW_BACKWARD,fftMeasureFlag);
+      fftwf_execute(plan);
+      fftwf_destroy_plan(plan);
       // old fftw2 code:
       // plan = fftw2d_create_plan(Nz,Nx,FFTW_BACKWARD,fftMeasureFlag | FFTW_IN_PLACE);  
       // fftwnd_one(plan, pot[0], NULL); 
@@ -211,13 +211,11 @@ void make3DSlicesFT(MULS *muls) {
 	}
       }
 
-      // plotVzr(pot,Nx,Nz,dX,muls);
-
       /* Now we need to integrate over z, if we only have a single slice
        */
       if (Nzp == 1) {
 	for (ix=0;ix<Nx;ix++) for (iz=1;iz<Nz;iz++)
-	  pot(ix,0).real() += pot(ix,iz).real(), pot(ix,0).imag() += pot(ix,iz).imag();	
+	  pot(ix,0) += pot(ix,iz);	
 	Nz = 1;
       }
       /* Now we will create a double array to hold the real valued potential as
@@ -225,9 +223,9 @@ void make3DSlicesFT(MULS *muls) {
        * and pre-integrate its values.
        * We are assuming that zOversample is always an odd number!
        */  
-      potLUT[atKind] = reduceAndExpand(pot,Nz,Nx,zOversample,&Nzl,&Nxl);      
+      potLUT[atKind] = reduceAndExpand(pot,Nz,Nx,zOversample,Nzl,Nxl);      
     } // end of for atKind ...
-  } // if potential == NULL
+  //} // if potential == NULL
   /*******************************************************************/
   
   /*******************************************************
@@ -270,8 +268,9 @@ void make3DSlicesFT(MULS *muls) {
 	      y = ((iy+0.5f)*dYp-atoms[j].pos[1]+pY*byp) + muls->potOffsetY;
 	      rxy2 = SQR(x)+SQR(y);
 	      r = sqrt(rxy2+SQR(z));
-	      if (r <=rcutoff[atKind]+dZp+dXp)    
-		muls->trans(ix,iz)[iy].real() += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0f,sqrt(rxy2)/dX+1.0f);
+	      if (r <=rcutoff[atKind]+dZp+dXp)
+			  // adding only to real value!
+		muls->trans[iz](iy,ix) += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0f,sqrt(rxy2)/dX+1.0f);
 	      //potential(iy,iz)[ix] += bicubic(potLUT[atKind],Nzl,Nxl,z/dZ+1.0,sqrt(rxy2)/dX+1.0);
 	    }      
 	  }
@@ -303,40 +302,16 @@ void make3DSlicesFT(MULS *muls) {
     for (iz=0;iz<Nzp;iz++) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
-      if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
-      header->comment = (char *)malloc(40);
-      sprintf(header->comment,"Projected Potential (%d slices)",muls->slices);       
-      header->commentSize = 45;
-      writeImage((void **)muls->trans[iz].data(),header,fileName);      
+	  if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,std::vector<float_tt>(),NULL);
+	  sprintf(buf,"Projected Potential (%d slices)",muls->slices);
+      header->comment = buf;
+      header->commentSize = (int)header->comment.length();
+      writeComplexImage(muls->trans[iz],header,fileName);      
     } 
   } /* end of if savePotential ... */
   
   printf("Calculation took %.1f sec, rc[0]: %gA\n",(getTime()-timer0),rcutoff[0]);
 }  // end of function
-
-
-/*********************************************************************
- * plotVzr(pot,Nx,Nz);
- ********************************************************************/
-void plotVzr(QScMat pot,int Nx,int Nz,float_tt dx,MULS *muls) {
-  FILE *fp;
-  int ix,iz;
-  char str[128];
-  float_tt p;
-
-  sprintf(str,"%s/vz.dat",muls->folder);
-  fp =fopen(str,"w");
- 
-  for (ix=Nx/2;ix<Nx;ix++) {
-    for (iz=0,p=0.0;iz<Nz;iz++) p += pot(ix,iz).real();	
-    // fprintf(fp,"%g %g %g\n",(ix-Nx/2)*dx,p,p*(ix-Nx/2)*dx);
-    fprintf(fp,"%g %g\n",(ix-Nx/2)*dx,p*(ix-Nx/2)*dx);
-  }
-
-  fclose(fp);
-  sprintf(str,"xmgr -nxy %s/vz.dat &",muls->folder);
-  system(str);
-}
 
 
 /******************************************************************
@@ -376,9 +351,9 @@ QSfMat reduceAndExpand(QScMat fc,int Nz,int Nx,int zOversample,int &fNz,int &fNx
   }
 
   if (Nz == 1) {
-    for (ix=0;ix<Nxm;ix++) ff(ix+1,0) = fc(ix+Nxm,0)[0];
+    for (ix=0;ix<Nxm;ix++) ff(ix+1,0) = fc(ix+Nxm,0).real();
     
-    ff(0,0) = 3.0*ff(1,0)-3.0*ff(2,0)+ff(3,0);
+    ff(0,0) = 3.0f*ff(1,0)-3.0f*ff(2,0)+ff(3,0);
     // ff(0,0) = ff(1,0)+(ff(1,0)-ff(2,0));
     return ff;
   }
@@ -386,7 +361,7 @@ QSfMat reduceAndExpand(QScMat fc,int Nz,int Nx,int zOversample,int &fNz,int &fNx
   for (iz=0;iz<Nzm;iz++) for (ix=0;ix<Nxm;ix++) { 
     for (j=-Ninteg ; j<=Ninteg;j++)
 	if ((iz+j+Nzm>=0) && (iz+j<Nzm))
-	  ff(ix+1,iz+1) += fc(ix+Nxm,iz+Nzm+j)[0];
+	  ff(ix+1,iz+1) += fc(ix+Nxm,iz+Nzm+j).real();
   }
   // zz(:,1) = 3*zz(:,2)-3*zz(:,3)+zz(:,4);
   // zz(1,2:ncols+1) = 3*arg1(1,:)-3*arg1(2,:)+arg1(3,:);
