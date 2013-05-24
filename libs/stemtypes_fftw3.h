@@ -52,8 +52,8 @@ typedef Matrix< float_tt, 3, 1> QSf3Vec;
 typedef Array<float_tt, 3, 1> QSf3Arr;
 typedef Matrix< int, Dynamic, 1> QSiVec;
 
-typedef std::vector<QScMat, Eigen::aligned_allocator<QScMat>> QSVecOfcMat;
-typedef std::vector<QSfMat, Eigen::aligned_allocator<QSfMat>> QSVecOffMat;
+typedef std::vector<QScMat, Eigen::aligned_allocator<QScMat> > QSVecOfcMat;
+typedef std::vector<QSfMat, Eigen::aligned_allocator<QSfMat> > QSVecOffMat;
 
 typedef std::complex<float_tt> QScf;
 

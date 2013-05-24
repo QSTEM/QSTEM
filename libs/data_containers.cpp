@@ -247,10 +247,10 @@ ElTable::ElTable()
 std::vector<float_tt> Potential::m_splinr;
 
 Potential::Potential() :
-m_splines(std::vector<AkimaSpline<float_tt,float_tt>>(NZMAX+1))
+m_splines(std::vector<AkimaSpline<float_tt,float_tt> >(NZMAX+1))
 {
 	m_splinr=std::vector<float_tt>(NRMAX);
-	m_splines=std::vector<AkimaSpline<float_tt,float_tt>>(NZMAX+1);
+	m_splines=std::vector<AkimaSpline<float_tt,float_tt> >(NZMAX+1);
 	float_tt dlnr = static_cast<float_tt>(log(RMAX/RMIN)/(NRMAX-1));
 	for( int i=0; i<NRMAX; i++)
 	{

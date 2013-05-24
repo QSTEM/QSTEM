@@ -299,7 +299,7 @@ class Potential
 	// a set of logarithmic r values
 	static std::vector<float_tt> m_splinr;
 	std::vector<int> m_knownZvalues;
-	std::vector<AkimaSpline<float_tt,float_tt>> m_splines;
+	std::vector<AkimaSpline<float_tt,float_tt> > m_splines;
 	bool m_tdsFlag;
 	int m_scatFlag;
 

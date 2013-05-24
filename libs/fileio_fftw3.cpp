@@ -54,7 +54,7 @@ float_tt chargeTable[MAX_MASS_INDEX];
 int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
 	std::vector<std::string> elTable = ElTable::Get();
   FILE *fp;
-  size_t j,i;
+  int j,i;
   std::string elem;
   float_tt ax,by,cz;
   
@@ -79,7 +79,7 @@ int writePDB(std::vector<atom> atoms,int natoms,char *fileName,MULS *muls) {
 
   for (j=0;j<natoms;j++) {
     elem = elTable[atoms[j].Znum];
-    fprintf(fp,"ATOM   %4d %s",j+1,elem);
+    fprintf(fp,"ATOM   %4d %s",j+1,elem.c_str());
     for (i=strlen(elem.c_str());i<13;i++)
       fprintf(fp," ");
     fprintf(fp,"1   ");
@@ -123,7 +123,7 @@ int writeCFG(std::vector<atom> atoms,int natoms,std::string fileName,MULS *muls)
   
   fp = fopen(fileName.c_str(), "w" );
   if( fp == NULL ) {
-    printf("Cannot open file %s\n",fileName);
+    printf("Cannot open file %s\n",fileName.c_str());
     return 0;
   }
   
