@@ -2349,8 +2349,8 @@ void doSTEM() {
 	static QSfMat avgArray;
 	QSfVec chisq;
 	float_tt collectedIntensity;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
+	//static imageStruct *header = NULL;
+	//static imageStruct *header_read = NULL;
 	//float cztot;
 	//int islice;
 
@@ -2363,6 +2363,9 @@ void doSTEM() {
 	{
 		waves.push_back(new WAVEFUNC(muls.nx,muls.ny));
 	}
+
+	CImageIO ioObject = new CImageIO(muls.nx, muls.ny, 0 /* thickness */, muls.resolutionX, muls.resolutionY,
+									0 /*paramSize*/, std::vector<float_tt>()/*params*/, ""/*comment*/);
 
 	//chisq = (float_tt *)malloc(muls.avgRuns*sizeof(float_tt));
 	// zero-out the chisq array
@@ -2479,7 +2482,7 @@ void doSTEM() {
 				*************************************************/
 				// default(none) forces us to specify all of the variables that are used in the parallel section.  
 				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
-#pragma omp parallel firstprivate(header, header_read) \
+#pragma omp parallel firstprivate(ioObject) \
 	private(ix, iy, ixa, iya, wave, t, timer, buf, std::string) \
 	shared(pCount, picts, chisq, muls, collectedIntensity, total_time, waves) \
 	default(none)
@@ -2583,7 +2586,8 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-								header_read = readImage(wave->avgArray, muls.nx, muls.ny, wave->avgName.c_str());
+								ioObject.ReadComplexImage(wave->avgArray, wave->avgName);
+								//header_read = readImage(wave->avgArray, muls.nx, muls.ny, wave->avgName.c_str());
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((float_tt)muls.avgCount * wave->avgArray(iya,ixa) +
 										wave->diffpat(iya,ixa)) / ((float_tt)(muls.avgCount + 1));
@@ -2597,13 +2601,16 @@ void doSTEM() {
 							* and convert it to jpg format 
 							*/
 							// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
-							if (header == NULL) 
-									header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-										muls.resolutionX,muls.resolutionY,
-										0,std::vector<float_tt>(),"diffraction pattern");
+							ioObject->SetThickness(wave->thickness);
+							ioObject->SetComment("Diffraction pattern");
+							//if (header == NULL) 
+							//		header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+							//			muls.resolutionX,muls.resolutionY,
+							//			0,std::vector<float_tt>(),"diffraction pattern");
 								// printf("Created header\n");
-							header->t = wave->thickness;
-							writeRealImage(wave->avgArray, header, wave->avgName.c_str());
+							//header->t = wave->thickness;
+							ioObject->WriteRealImage(wave->avgArray, wave->avgName);
+							//writeRealImage(wave->avgArray, header, wave->avgName.c_str());
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
@@ -2675,9 +2682,10 @@ void doSTEM() {
 	} /* end of for muls.avgCount=0..25 */
 
 	//free(chisq);
-	//for (int th=0; th<omp_get_num_threads(); th++)
-	//{
-	//	delete(waves[th]);
-	//}
+	delete(ioObject);
+	for (int th=0; th<omp_get_num_threads(); th++)
+	{
+		delete(waves[th]);
+	}
 }
 

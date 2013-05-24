@@ -884,7 +884,8 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 							//cols = iax1-iax0;
 							//rows = iay1-iay0;
 							//transPot = muls->trans[iAtomZ+iaz0].block(iay0,iax0,rows,cols);
-							for (iax=iax0; iax <= iax1; iax++) {
+							// TODO: (test) changed loop to be over < iax1, rather than <= iax1.
+							for (iax=iax0; iax < iax1; iax++) {
 								// potPtr = &(muls->trans[iAtomZ+iaz0][iax][iay0][0]);
 								// printf("access: %d %d %d (%d)\n",iAtomZ+iaz0,iax,iay0,(int)potPtr);							
 
@@ -892,8 +893,9 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 								// Computation of Radius must be made faster by using pre-calculated ddx
 								// and LUT for sqrt:
 								// use of sqrt slows down from 120sec to 180 sec.
+								// TODO: (test) changed loop to be over < iay1, rather than <= iay1.
 								x2 = iax*dx - atomX;  x2 *= x2;
-								for (iay=iay0; iay <= iay1; iay++) {
+								for (iay=iay0; iay < iay1; iay++) {
 									// printf("iax=%d, iay=%d\n",iax,iay); 
 									y2 = iay*dy - atomY;  y2 *= y2;
 									r = sqrt(x2+y2);
@@ -914,7 +916,8 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 #endif
 										iOffsZ *= potObject.GetNr();
 
-										for (iaz=iaz0; iaz <= iaz1; iaz++) {
+										// TODO: (test) changed loop to be over < iaz1, rather than <= iaz1.
+										for (iaz=iaz0; iaz < iaz1; iaz++) {
 											potVal = 0;
 											// iOffsZ = (int)(fabs(iAtomZ+iaz-atomZ/muls->sliceThickness)*potObject.GetNzSub()+0.5);
 											if (iOffsZ < 0) {
@@ -978,7 +981,10 @@ void make3DSlices(MULS *muls,int nlayer,std::string fileName,atom *center) {
 												}
 											} // if iOffsZ >=0
 											// this is probably slower than the old pointer method, but it's much easier to see what's going on.
-											muls->trans[iAtomZ+iaz0](iay,iax) += potVal;  // ptr = potPtr = muls->trans[...]
+											//muls->trans[iAtomZ+iaz0](iay,iax) += potVal;  // ptr = potPtr = muls->trans[...]
+											// 5/23/13 - switched order of coordinates.  Verify correctness - if wrong, array might be
+											//    declared as wrong size (or transposed)
+											muls->trans[iAtomZ+iaz0](iax,iay) += potVal;  // ptr = potPtr = muls->trans[...]
 
 											//ptr  += sliceStep;	// advance to the next slice
 
@@ -1409,9 +1415,9 @@ void probe(MULS *muls, WAVEFUNC *wave, float_tt dx, float_tt dy)
 	// float **pixr, **pixi;
 	float_tt  kx, ky, ky2,k2, ktheta2, ktheta, k2max, v0, wavlen,ax,by,x,y,
 		rx2, ry2,rx,ry, pi, scale, pixel,alpha,
-		df, df_eff, chi1, chi2,chi3, sum, chi, time,r,phi;
+		sum, chi, time,r,phi;
 	float_tt gaussScale = 0.05f;
-	float_tt envelope,delta,avgRes,edge;
+	float_tt delta,avgRes,edge;
 
 	// FILE *fp=NULL;
 
@@ -1779,11 +1785,14 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 	for( ilayer=0;  ilayer<nlayer; ilayer++ ) {     
 		timer2 = cputim();    
 		for( iy=0; iy<ny; iy++) for( ix=0; ix<nx; ix++) {
-			vz= muls->trans[ilayer](iy,ix).real()*scale;  // scale = lambda*gamma
+			// TODO: are these transposed?  Is the loop order proper for Eigen's memory layout?
+			//vz= muls->trans[ilayer](iy,ix).real()*scale;  // scale = lambda*gamma
+			vz= muls->trans[ilayer](ix,iy).real()*scale;  // scale = lambda*gamma
 			// include absorption:
 			// vzscale= exp(-(*muls).trans[ilayer][ix][iy][1]*scale);
 			/* printf("vz(%d %d) = %g\n",ix,iy,vz); */
-			muls->trans[ilayer](iy,ix) =  QScf(cos(vz), sin(vz));
+			//muls->trans[ilayer](iy,ix) =  QScf(cos(vz), sin(vz));
+			muls->trans[ilayer](ix,iy) =  QScf(cos(vz), sin(vz));
 		}
 	}
 
@@ -1812,10 +1821,12 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 				k2= ky2[iy] + kx2[ix];
 				if (k2 < k2max) {
 					nbeams++;
-					(*muls).trans[ilayer](iy,ix) *= fftScale;
+					//(*muls).trans[ilayer](iy,ix) *= fftScale;
+					(*muls).trans[ilayer](ix,iy) *= fftScale;
 				}
 				else {
-					(*muls).trans[ilayer](iy,ix) = QScf (0.0F, 0.0F);
+					//(*muls).trans[ilayer](iy,ix) = QScf (0.0F, 0.0F);
+					(*muls).trans[ilayer](ix,iy) = QScf (0.0F, 0.0F);
 				}	
 			}
 			/****************************/
@@ -2105,8 +2116,8 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 {
 	int i,ix,iy,ixs,iys,t;
 	float_tt k2;
-	float_tt intensity,scale,scaleCBED,scaleDiff,intensity_save;
-	char fileName[256],avgName[256]; 
+	float_tt intensity,scale,scaleDiff,intensity_save;
+	char avgName[256]; 
 	imageStruct *header = NULL;
 	imageStruct *diffHeader = NULL;
 #if USE_LOCAL_DIFF
