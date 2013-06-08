@@ -58,11 +58,7 @@ good energies: 327, 360,393,520 keV
 #include <sys/stat.h>
 // #include <stat.h>
 
-#ifdef _OPENMP
 #include <omp.h>
-#else
-#include <omp.h>
-#endif
 
 #include "memory_fftw3.h"	/* memory allocation routines */
 #include "readparams.h"
@@ -2828,14 +2824,6 @@ void doSTEM() {
 		} /* end of  while (readparam("sequence: ",buf,0)) */
 		// printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
-#ifndef WIN32
-		//add2STEMWebpage();
-		//    makeSTEMPendelloesungPlot();
-
-		/* remove the old diffraction pattern jpg files */
-		sprintf(systStr,"rm %s/diffAvg*_%d.jpg",muls.folder,muls.avgCount-1);
-		system(systStr);      
-#endif
 		/*************************************************************/
 
 		chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
@@ -2843,7 +2831,7 @@ void doSTEM() {
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-	free(chisq);
+        //	free(chisq);
 	for (int th=0; th<omp_get_num_threads(); th++)
 	{
 		delete(waves[th]);
