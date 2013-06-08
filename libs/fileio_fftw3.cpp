@@ -1758,18 +1758,18 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	nymin = nymax = (int)floor(b[0][1]-dy); 
 	nzmin = nzmax = (int)floor(b[0][2]-dz);
 	for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
-		a[0][0]=ix*muls->cubex; a[0][1]=iy*muls->cubey; a[0][2]=iz*muls->cubez;
+		a[0][0]=ix*muls->cubex-dx; a[0][1]=iy*muls->cubey-dy; a[0][2]=iz*muls->cubez-dz;
 
 		// matrixProduct(a,1,3,Mminv,3,3,b);
 		matrixProduct(Mminv,3,3,a,3,1,b);
 
 		// showMatrix(b,1,3,"b");
-		if (nxmin > (int)floor(b[0][0]-dx)) nxmin=(int)floor(b[0][0]-dx);
-		if (nxmax < (int)ceil( b[0][0]-dx)) nxmax=(int)ceil( b[0][0]-dx);
-		if (nymin > (int)floor(b[0][1]-dy)) nymin=(int)floor(b[0][1]-dy);
-		if (nymax < (int)ceil( b[0][1]-dy)) nymax=(int)ceil( b[0][1]-dy);
-		if (nzmin > (int)floor(b[0][2]-dz)) nzmin=(int)floor(b[0][2]-dz);
-		if (nzmax < (int)ceil( b[0][2]-dz)) nzmax=(int)ceil( b[0][2]-dz);	  
+		if (nxmin > (int)floor(b[0][0])) nxmin=(int)floor(b[0][0]);
+		if (nxmax < (int)ceil( b[0][0])) nxmax=(int)ceil( b[0][0]);
+		if (nymin > (int)floor(b[0][1])) nymin=(int)floor(b[0][1]);
+		if (nymax < (int)ceil( b[0][1])) nymax=(int)ceil( b[0][1]);
+		if (nzmin > (int)floor(b[0][2])) nzmin=(int)floor(b[0][2]);
+		if (nzmax < (int)ceil( b[0][2])) nzmax=(int)ceil( b[0][2]);	  
 	}
 
 	// nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;

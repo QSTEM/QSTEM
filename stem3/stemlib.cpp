@@ -2771,6 +2771,8 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 			{
 				// TODO (MCS 2013/04): this restructure probably broke this file saving - 
 				//   need to rewrite a function to save things for TEM/CBED?
+				// This used to call interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
+				interimWave(muls,wave,absolute_slice*(1+mRepeat)); 
 				collectIntensity(muls,wave,absolute_slice*(1+mRepeat));
 			}
 		} /* end for(islice...) */

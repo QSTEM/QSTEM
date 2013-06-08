@@ -24,11 +24,11 @@ QSTEM - image simulation for TEM/STEM/CBED
 5 kV: gaussian parameter: 11
 good energies: 327, 360,393,520 keV
 */
-#define VERSION 2.23
+#define VERSION 2.30
 #define VIB_IMAGE_TEST
 // #define VIB_IMAGE_TEST_CBED
 
-#ifndef WIN32
+#ifndef _WIN32
 #define UNIX 
 #endif
 /* #define USE_FFT_POT */
@@ -37,13 +37,13 @@ good energies: 327, 360,393,520 keV
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>
-#ifdef WIN32
+#ifdef _WIN32
 #if _DEBUG
 #include <crtdbg.h>
 #endif
 #endif
 #include <string.h>
-#ifndef WIN32
+#ifndef _WIN32
 #ifdef __cplusplus
 #include <cmath>
 #else
@@ -59,6 +59,8 @@ good energies: 327, 360,393,520 keV
 // #include <stat.h>
 
 #ifdef _OPENMP
+#include <omp.h>
+#else
 #include <omp.h>
 #endif
 
@@ -2355,6 +2357,7 @@ void doTEM() {
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+				// here, we apply the CTF:
 				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
 				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
 			}
@@ -2366,10 +2369,10 @@ void doTEM() {
 			if (header == NULL) 
 				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
 				muls.resolutionX,muls.resolutionY,
-				0,NULL,"Image");
+				0,NULL,"Wave intensity");
 			header->t = wave->thickness;
-			setHeaderComment(header,"Image intensity");
-			sprintf(avgName,"%s/image.img",muls.folder);
+			setHeaderComment(header,"Wave intensity");
+			sprintf(avgName,"%s/waveIntensity.img",muls.folder);
 			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
@@ -2830,8 +2833,8 @@ void doSTEM() {
 		//    makeSTEMPendelloesungPlot();
 
 		/* remove the old diffraction pattern jpg files */
-                //		sprintf(systStr,"rm %s/diffAvg*_%d.jpg",muls.folder,muls.avgCount-1);
-                //		system(systStr);      
+		sprintf(systStr,"rm %s/diffAvg*_%d.jpg",muls.folder,muls.avgCount-1);
+		system(systStr);      
 #endif
 		/*************************************************************/
 
@@ -2840,7 +2843,7 @@ void doSTEM() {
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-        //	free(chisq);
+	free(chisq);
 	for (int th=0; th<omp_get_num_threads(); th++)
 	{
 		delete(waves[th]);
