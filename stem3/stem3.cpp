@@ -2830,8 +2830,8 @@ void doSTEM() {
 		//    makeSTEMPendelloesungPlot();
 
 		/* remove the old diffraction pattern jpg files */
-		sprintf(systStr,"rm %s/diffAvg*_%d.jpg",muls.folder,muls.avgCount-1);
-		system(systStr);      
+                //		sprintf(systStr,"rm %s/diffAvg*_%d.jpg",muls.folder,muls.avgCount-1);
+                //		system(systStr);      
 #endif
 		/*************************************************************/
 
@@ -2840,7 +2840,7 @@ void doSTEM() {
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-	free(chisq);
+        //	free(chisq);
 	for (int th=0; th<omp_get_num_threads(); th++)
 	{
 		delete(waves[th]);
