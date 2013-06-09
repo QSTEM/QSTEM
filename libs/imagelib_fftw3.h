@@ -2,6 +2,8 @@
 #define IMAGELIB_H
 
 #include "stemtypes_fftw3.h"
+#include <vector>
+#include <string>
 
 /**************************************************************
  * Here is how to use the new image writing routines
@@ -37,36 +39,29 @@ class CImageIO {
   int m_dataSize;    // size of one data element in bytes (e.g. complex double: 16)
   int m_version;     // The version flag will later help to find out how to 
                    // distinguish between images produced by different versions of stem
-  float_tt m_t;        // thickness
-  float_tt m_dx,m_dy;    // size of one pixel
-  std::vector<float_tt> m_params;  // array for additional parameters
+  double m_t;        // thickness
+  double m_dx,m_dy;    // size of one pixel
+  std::vector<double> m_params;  // array for additional parameters
   std::string m_comment;   // comment of prev. specified length
+  char m_buf[200];  // General purpose temporary text buffer
 public:
-	CImageIO(int nx, int ny);
-	CImageIO(int nx, int ny, float_tt t, float_tt dx, float_tt dy,
-			  int paramSize, std::vector<float_tt> params, std::string comment);
+  CImageIO(int nx, int ny);
+  CImageIO(int nx, int ny, double t, double dx, double dy,
+           int paramSize, std::vector<double> params, std::string comment);
 
-	// Following functions write .img files, which will be deprecated in favor of HDF5 files.
-	void WriteRealImage(const QSfMat pix, const char *fileName);
-	void WriteComplexImage(const QScMat pix, const char *fileName);
-	void ReadRealImage(QSfMat &pix, const char *fileName);
-	void ReadComplexImage(QScMat &pix, const char *fileName);
-
-	void WriteImage( std::string fileName);
-
-	void SetComment(std::string comment);
-
-	// Following functions are placeholders for reading/writing done with HDF5.
-	template <typename Derived>
-	void WriteImage(const EigenBase<Derived> m, std::string name) {
-		
-	}
-
-	template <typename Derived>
-	void ReadImage(EigenBase<Derived>& m, std::string name) {
-		
-	}
-	
+  void WriteRealImage(const void **pix, const char *fileName);
+  void WriteComplexImage(const void **pix, const char *fileName);
+  // reads in the header; returns the byte offset at which we should start reading image data.
+  void ReadHeader(const char *fileName);
+  void ReadImage(void **pix, int nx, int ny, const char *fileName);
+  
+  void WriteImage( std::string fileName);
+        
+  void SetComment(std::string comment);
+  void SetThickness(double thickness);
+  void SetParameters(std::vector<double> params);
+private:
+  WriteData(void **pix, char *fileName);
 };
 
 #endif
