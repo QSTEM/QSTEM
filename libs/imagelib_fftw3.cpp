@@ -4,6 +4,8 @@
 #include <math.h>
 #include <time.h>
 
+#include <stdexcept>
+
 //#include "boost/shared_ptr.hpp"
 
 #include "stemtypes_fftw3.h"
@@ -24,7 +26,7 @@
 
 CImageIO::CImageIO(int nx, int ny) :
   m_headerSize(56),
-  m_params(std::vector<float_tt>()),
+  m_params(std::vector<double>()),
   m_paramSize(0),
   m_nx(nx),
   m_ny(ny),
@@ -36,8 +38,8 @@ CImageIO::CImageIO(int nx, int ny) :
 {
 };
 
-CImageIO::CImageIO(int nx, int ny, float_tt t, float_tt dx, float_tt dy,
-			  int paramSize, std::vector<float_tt> params, std::string comment) :
+CImageIO::CImageIO(int nx, int ny, double t, double dx, double dy,
+			  int paramSize, std::vector<double> params, std::string comment) :
 m_headerSize(56),
 m_params(params),
 m_paramSize(paramSize),
@@ -65,7 +67,7 @@ void CImageIO::WriteRealImage(const void **pix, const char *fileName) {
   WriteData(pix, fileName);
 }
 
-void CImageIO::WriteData(void **pix, char *fileName)
+void CImageIO::WriteData(const void **pix, const char *fileName)
 {
   FILE *fp;
 
@@ -82,7 +84,7 @@ void CImageIO::WriteData(void **pix, char *fileName)
   fwrite((void *)this,m_headerSize,1,fp);
   fwrite((void *)(&m_params[0]), sizeof(double), m_paramSize, fp);
   fwrite((void *)(m_comment.c_str()), 1, m_commentSize, fp);
-  if (fwrite(pix.data(),m_dataSize,(size_t)(m_nx*m_ny),fp) != m_nx*m_ny) {
+  if (fwrite(pix,m_dataSize,(size_t)(m_nx*m_ny),fp) != m_nx*m_ny) {
     printf("writeRealImage: Error while writing data to file %s\n",fileName);
     fclose(fp);
     exit(0);
@@ -100,13 +102,13 @@ void CImageIO::ReadHeader(const char *fileName)
   fread((void*)this, 1, 56, fp);
   if (m_paramSize>0)
     {
-      m_params=std::vector<double>(m_paramSize)
-      for (int i=0; i<m_paramSize; i++)
-        {
+      m_params=std::vector<double>(m_paramSize);
+      //for (int i=0; i<m_paramSize; i++)
+      //{
           fread((void *)&m_params[0],sizeof(double),m_paramSize,fp);
-        }
+          //}
     }
-  if (this->commentSize>0)
+  if (m_commentSize>0)
     {
       fread((void*)m_buf, 1, m_commentSize, fp);
       m_comment = std::string(m_buf);
@@ -143,7 +145,7 @@ void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName)
     {
       if ((m_nx != nx)||(m_ny != nx)) {
         sprintf(m_buf, "readImage: image size mismatch nx = %d (%d), ny = %d (%d)\n", m_nx,nx,m_ny,ny);
-        throw std::exception(m_buf);
+        throw std::runtime_error(std::string(m_buf));
       }
       
       // Seek to the location of the actual data
@@ -165,7 +167,7 @@ void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName)
                 fileName,nRead,nx*ny,feof(fp),ferror(fp),m_dataSize);
         fclose(fp);
         fp = NULL;
-        throw std::exception(m_buf);
+        throw std::runtime_error(std::string(m_buf));
       }
     }
     /* we will try three times to read this file. */
@@ -188,7 +190,7 @@ void CImageIO::SetThickness(double thickness)
   m_t = thickness;
 }
 
-void SetParameters(std::vector<double> params)
+void CImageIO::SetParameters(std::vector<double> params)
 {
   m_params=params;
 }

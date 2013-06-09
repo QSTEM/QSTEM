@@ -55,13 +55,13 @@ public:
   void ReadHeader(const char *fileName);
   void ReadImage(void **pix, int nx, int ny, const char *fileName);
   
-  void WriteImage( std::string fileName);
+  //void WriteImage( std::string fileName);
         
   void SetComment(std::string comment);
   void SetThickness(double thickness);
   void SetParameters(std::vector<double> params);
 private:
-  WriteData(void **pix, char *fileName);
+  void WriteData(const void **pix, const char *fileName);
 };
 
 #endif
