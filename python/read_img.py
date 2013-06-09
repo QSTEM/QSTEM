@@ -59,7 +59,7 @@ def binread2D(filename, printFlag=True):
 
         # read comments from file, if any exist:
         if (commentSize > 0):
-            comment = struct.unpack("%ds"%commentSize,f.read(commentSize))
+            comment = struct.unpack("%ds"%commentSize,f.read(commentSize))[0]
 
     if printFlag:
         print('binread2D %s: %d x %d pixels'%(filename,Nx,Ny))
