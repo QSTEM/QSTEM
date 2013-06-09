@@ -1,70 +1,7 @@
-/*
-QSTEM - image simulation for TEM/STEM/CBED
-    Copyright (C) 2000-2010  Christoph Koch
-	Copyright (C) 2010-2013  Christoph Koch, Michael Sarahan
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #ifndef IMAGELIB_H
 #define IMAGELIB_H
 
-// #include "fftw.h"
-// #include "floatdef.h"
 #include "stemtypes_fftw3.h"
-
-
-typedef struct imageStructType {
-  int headerSize;  // first byte of image will be size of image header (in bytes)
-                   // This is the size without the data and comment pointers!!!
-  int paramSize;   // number of additional parameters
-  int commentSize; // length of comment string
-  int nx,ny;
-  int complexFlag;
-  int dataSize;    // size of one data element in bytes (e.g. complex double: 16)
-  int version;     // The version flag will later help to find out how to 
-                   // distinguish between images produced by different versions of stem
-  double t;        // thickness
-  double dx,dy;    // size of one pixel
-  double *params;  // array for additional parameters
-  char *comment;   // comment of prev. specified length
-} imageStruct;
-
-
-void getImageHeader(imageStruct *header,FILE * fp);
-imageStruct *makeNewHeader(int nx,int ny);
-imageStruct *makeNewHeaderCompact(int cFlag,int nx,int ny,double t,double dx,double dy,
-				  int paramSize, double *params,char *comment); 
-void setHeaderComment(imageStruct *header, char *comment);
-  
-imageStruct *readImage(void ***pix,int nx,int ny,char *fileName);
-void writeImage(void **pix, imageStruct *header, char *fileName);
-void writeRealImage(void **pix, imageStruct *header, char *fileName, int dataSize);
-/*
-void writeRealImage(fftw_real **pix, int nx, int ny, float_t dx, 
-		   float_t dy, float_t t,char *fileName);
-*/
-
-void readRealImage(fftw_real **pix, int nx, int ny,real *dx, 
-		   real *dy, real *t, char *fileName);
-
-// old image I/O functions:
-// void readRealImage_old(fftw_real **pix, int nx, int ny,float_t *t, char *fileName);
-// void readImage_old(fftw_complex **pix, int nx, int ny,float_t *t, char *fileName);
-// void writeRealImage_old(fftw_real **pix, int nx, int ny, float_t t,char *fileName);
-// void writeImage_old(fftw_complex **pix, int nx, int ny, float_t t,char *fileName);
-
 
 /**************************************************************
  * Here is how to use the new image writing routines
@@ -89,5 +26,47 @@ void readRealImage(fftw_real **pix, int nx, int ny,real *dx,
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.]
  **************************************************************/
+
+class CImageIO {
+  int m_headerSize;  // first byte of image will be size of image header (in bytes)
+                   // This is the size without the data and comment pointers!!!
+  int m_paramSize;   // number of additional parameters
+  int m_commentSize; // length of comment string
+  int m_nx,m_ny;
+  int m_complexFlag;
+  int m_dataSize;    // size of one data element in bytes (e.g. complex double: 16)
+  int m_version;     // The version flag will later help to find out how to 
+                   // distinguish between images produced by different versions of stem
+  float_tt m_t;        // thickness
+  float_tt m_dx,m_dy;    // size of one pixel
+  std::vector<float_tt> m_params;  // array for additional parameters
+  std::string m_comment;   // comment of prev. specified length
+public:
+	CImageIO(int nx, int ny);
+	CImageIO(int nx, int ny, float_tt t, float_tt dx, float_tt dy,
+			  int paramSize, std::vector<float_tt> params, std::string comment);
+
+	// Following functions write .img files, which will be deprecated in favor of HDF5 files.
+	void WriteRealImage(const QSfMat pix, const char *fileName);
+	void WriteComplexImage(const QScMat pix, const char *fileName);
+	void ReadRealImage(QSfMat &pix, const char *fileName);
+	void ReadComplexImage(QScMat &pix, const char *fileName);
+
+	void WriteImage( std::string fileName);
+
+	void SetComment(std::string comment);
+
+	// Following functions are placeholders for reading/writing done with HDF5.
+	template <typename Derived>
+	void WriteImage(const EigenBase<Derived> m, std::string name) {
+		
+	}
+
+	template <typename Derived>
+	void ReadImage(EigenBase<Derived>& m, std::string name) {
+		
+	}
+	
+};
 
 #endif
