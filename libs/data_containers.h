@@ -22,11 +22,14 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include <vector>
 #include "stemtypes_fftw3.h"
+#include "imagelib_fftw3.h"
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
 class WAVEFUNC 
 {
+	// shared pointer to 
+	ImageIOPtr m_imageIO;
 public:
 	int iPosX,iPosY;      /* integer position of probe position array */
 	int nx, ny;			/* size of diffpat arrays */
@@ -38,6 +41,8 @@ public:
 	char avgName[512];
 	float_tt thickness;
 	float_tt intIntensity;
+	// These are not used for anything aside from when saving files.
+	float_tt resolutionX, resolutionY;
 
 #if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
@@ -49,11 +54,24 @@ public:
 
 public:
 	// initializing constructor:
-	WAVEFUNC(int nx, int ny);
+	WAVEFUNC(int nx, int ny, double resX, double resY);
 	// define a copy constructor to create new arrays
-	WAVEFUNC( WAVEFUNC& other );
+	//WAVEFUNC( WAVEFUNC& other );
 
 	void ZeroWave(void);
+	void WriteWave(const char *fileName, const char *comment="Wavefunction", 
+		std::vector<double>params = std::vector<double>());
+	void WriteDiffPat(const char *fileName, const char *comment="Diffraction Pattern",
+		std::vector<double>params = std::vector<double>());
+	void WriteAvgDiffPat(const char *fileName, const char *comment="Average Diffraction Pattern",
+		std::vector<double>params = std::vector<double>());
+	void WriteAvgArray(const char *fileName, const char *comment="Average Array",
+		std::vector<double>params = std::vector<double>());
+
+	void ReadWave(const char *fileName);
+	void ReadDiffPat(const char *fileName);
+	void ReadAvgDiffPat(const char *fileName);
+	void ReadAvgArray(const char *fileName);
 };
 
 class MULS {

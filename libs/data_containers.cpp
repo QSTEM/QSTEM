@@ -21,21 +21,24 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <string.h>
 #include "data_containers.h"
 
-WAVEFUNC::WAVEFUNC(int x, int y) :
+WAVEFUNC::WAVEFUNC(int x, int y, double resX, double resY) :
 detPosX(0),
 detPosY(0),
 iPosX(0),
 iPosY(0),
 thickness(0.0),
-nx(0),
-ny(0)
+nx(x),
+ny(y),
+resolutionX(resX),
+resolutionY(resY)
 {
 	char waveFile[256];
 	const char *waveFileBase = "mulswav";
-	nx = x;
-	ny = y;
 	diffpat = float2D(nx,ny,"diffpat");
 	avgArray = float2D(nx,ny,"avgArray");
+
+	m_imageIO=ImageIOPtr(new CImageIO(nx, ny, thickness, resolutionX, resolutionY));
+	
 
 #if FLOAT_PRECISION == 1
 	wave = complex2Df(nx, ny, "wave");
@@ -54,6 +57,7 @@ ny(0)
 	sprintf(fileStart,"mulswav.img");
 }
 
+/*
 WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 {
 	iPosX = other.iPosX;
@@ -67,6 +71,9 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 
 	nx = other.nx;
 	ny = other.ny;
+
+	resolutionX = other.resolutionX
+	resolutionY = other.resolutionY
 
 	diffpat = float2D(nx,ny,"diffpat");
 	avgArray = float2D(nx,ny,"avgArray");
@@ -83,9 +90,40 @@ WAVEFUNC::WAVEFUNC( WAVEFUNC& other )
 		fftMeasureFlag);
 #endif
 }
+*/
 
 // reset the wave's thickness
 void WAVEFUNC::ZeroWave(void)
 {
 
+}
+
+void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
+	std::vector<double>params)
+{
+	m_imageIO->SetComment(comment);
+	m_imageIO->SetResolution(resolutionX, resolutionY);
+	m_imageIO->SetParams(params);
+	m_imageIO->SetThickness(thickness);
+	m_imageIO->WriteComplexImage((const void**)wave, fileName);
+}
+
+void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
+	std::vector<double>params)
+{
+	m_imageIO->SetComment(comment);
+	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
+	m_imageIO->SetParams(params);
+	m_imageIO->SetThickness(thickness);
+	m_imageIO->WriteRealImage((const void**)diffpat, fileName);
+}
+
+void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
+	std::vector<double>params)
+{
+	m_imageIO->SetComment(comment);
+	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
+	m_imageIO->SetParams(params);
+	m_imageIO->SetThickness(thickness);
+	m_imageIO->WriteRealImage((const void**)avgArray, fileName);
 }
