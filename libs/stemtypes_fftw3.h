@@ -21,6 +21,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define STEMTYPES_H
 
 #include "memory_fftw3.h"
+#include "boost/shared_ptr.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision

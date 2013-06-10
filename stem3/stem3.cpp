@@ -1747,15 +1747,18 @@ void doCBED() {
 	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
 	real t;
-	static real **avgArray=NULL,**diffArray=NULL;
-	static double *chisq = NULL;
-	static real **avgPendelloesung = NULL;
-	static int oldMulsRepeat1 = 1;
-	static int oldMulsRepeat2 = 1;
-	static long iseed=0;
-	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
-	static imageStruct *header = NULL;
-	imageStruct *header_read = NULL;
+	// we'll use the ones on the wave instead of allocating these.
+	//real **avgArray=NULL,**diffArray=NULL;
+	double *chisq = NULL;
+	real **avgPendelloesung = NULL;
+	int oldMulsRepeat1 = 1;
+	int oldMulsRepeat2 = 1;
+	long iseed=0;
+	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY);
+	//static imageStruct *header = NULL;
+	//imageStruct *header_read = NULL;
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, t, muls.resolutionX, muls.resolutionY));
+	std::vector<double> params(2);
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
@@ -1797,13 +1800,14 @@ void doCBED() {
 		muls.scanYStart = probeCenterY+probeOffsetY;
 		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
 		if (muls.saveLevel > 2) {
-			if (header == NULL) 
-				header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
-				muls.resolutionX,muls.resolutionY,
-				0,NULL,"wave function");
-			header->t = 0;
+			//if (header == NULL) 
+				//header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
+				//muls.resolutionX,muls.resolutionY,
+				//0,NULL,"wave function");
+			//header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
-			writeImage((void **)wave->wave,header,systStr);
+			wave->WriteWave(systStr);
+			//writeImage((void **)wave->wave,header,systStr);
 			// writeImage(muls.wave,header,"wave->img");
 			// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave->img");
 			// system("showimage diff.img 2 &");
@@ -1919,13 +1923,14 @@ void doCBED() {
 
 				/***************** Only if Save level > 2: ****************/
 				if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
-					if (header == NULL) 
-						header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
-						muls.resolutionX,muls.resolutionY,
-						0,NULL,"wave function");
-					header->t = wave->thickness;
+					//if (header == NULL) 
+						//header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
+						//muls.resolutionX,muls.resolutionY,
+						//0,NULL,"wave function");
+					//header->t = wave->thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
-					writeImage((void **)wave->wave,header,systStr);
+					wave->WriteWave(systStr);
+					//writeImage((void **)wave->wave,header,systStr);
 					// writeImage(muls.wave,header,"wave.img");
 					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
 					// system("showimage diff.img 2 &");
@@ -1947,20 +1952,18 @@ void doCBED() {
 		}
 		/*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
 
-		if (avgArray == NULL)
-			avgArray = float2D(muls.nx,muls.ny,"avgArray");
-		if (diffArray == NULL)
-			diffArray = float2D(muls.nx,muls.ny,"diffArray");
 		sprintf(avgName,"%s/diff.img",muls.folder);
 		// readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
-
+		// TODO: Why are we reading in a DP at this point?  Do we have one yet?  
+		//     What happens if it isn't there?
+		//header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		wave->ReadDiffPat(avgName);
 
 		if (muls.avgCount == 0) {
 			/* for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++)
 			avgArray[ix][iy] = diffArray[ix][iy]; */
-			memcpy((void *)avgArray[0],(void *)diffArray[0],
-				(size_t)(muls.nx*muls.ny*sizeof(real)));
+			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],
+				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
@@ -1978,33 +1981,34 @@ void doCBED() {
 			/*      readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((real)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
-				avgArray[ix][iy] = t;
+				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
+					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
+				chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+				wave->avgArray[ix][iy] = t;
 
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
-			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-				1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
-				1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
-			else {
-				header->t = wave->thickness;
-				header->dx = 1.0/(muls.nx*muls.resolutionX);
-				header->dy = 1.0/(muls.ny*muls.resolutionY);
-				if (header->paramSize < 1) {
-					header->params = (double*)malloc(2*sizeof(double));
-					header->paramSize = 2;
-				}
+			//if (header == NULL) 
+				//header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+				//1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
+				//1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
+			//else {
+				//header->t = wave->thickness;
+				//header->dx = 1.0/(muls.nx*muls.resolutionX);
+				//header->dy = 1.0/(muls.ny*muls.resolutionY);
+				//if (header->paramSize < 1) {
+					//header->params = (double*)malloc(2*sizeof(double));
+					//header->paramSize = 2;
+				//}
 
-				header->params[0] = muls.tomoTilt;
-				header->params[1] = 1.0/wavelength(muls.v0);
-				setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
-			}
-			writeRealImage((void **)avgArray,header,avgName,sizeof(real));
+				params[0] = muls.tomoTilt;
+				params[1] = 1.0/wavelength(muls.v0);
+				//setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
+			//}
+			wave->WriteAvgArray(avgName,"Averaged Diffraction pattern, unit: 1/A",params);
+			//writeRealImage((void **)avgArray,header,avgName,sizeof(real));
 
 			/* report the result on the web page */
 			// printf("Will write report now\n");
@@ -2100,6 +2104,7 @@ void doTEM() {
 	double timer,timerTot;
 	double x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
+	char *comment;
 	real t;
 	static real **avgArray=NULL,**diffArray=NULL;
 	static double *chisq = NULL;
@@ -2107,8 +2112,9 @@ void doTEM() {
 	static int oldMulsRepeat1 = 1;
 	static int oldMulsRepeat2 = 1;
 	static long iseed=0;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
+	//static imageStruct *header = NULL;
+	//static imageStruct *header_read = NULL;
+	std::vector<double> params;
 	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
 	static fftwf_complex **imageWave = NULL;
 
@@ -2241,12 +2247,13 @@ void doTEM() {
 				/***************** FOR DEBUGGING ****************/		
 				if ((muls.avgCount == 0) && (muls.saveLevel >=0) && (pCount+1==muls.mulsRepeat2*muls.cellDiv)) {
 					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
+
 					if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
 					header->t = wave->thickness;
 					header->dx = muls.resolutionX;
 					header->dy = muls.resolutionY;
-					if (muls.tds) setHeaderComment(header,"Test wave function for run 0");
-					else setHeaderComment(header,"Exit face wave function for no TDS");
+					if (muls.tds) comment = "Test wave function for run 0";
+					else comment = "Exit face wave function for no TDS";
 					sprintf(systStr,"%s/wave.img",muls.folder);
 					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
 						ktx = -2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
@@ -2262,37 +2269,32 @@ void doTEM() {
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
 					}
 
-
-					writeImage((void **)wave->wave,header,systStr);
+					wave->WriteWave(systStr, comment);
+					//writeImage((void **)wave->wave,header,systStr);
 					//    system("showimage diff.img 2 &");
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
 				if ((muls.tds) && (muls.saveLevel > 2)) {
 					sprintf(systStr,"%s/wave_%d.img",muls.folder,muls.avgCount);
-					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,systStr);
-					if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
-					header->t = wave->thickness;
 					header->dx = muls.resolutionX;
 					header->dy = muls.resolutionY;
 					header->complexFlag = 1;
-					header->paramSize = 9;
-					if (header->params == NULL)
-						header->params = (double *)malloc(header->paramSize*sizeof(double));
-					header->params[0] = muls.v0;  				// high voltage
-					header->params[1] = muls.Cs;				// spherical aberration
-					header->params[2] = muls.df0;				// defocus
-					header->params[3] = muls.astigMag;			// astigmatism
-					header->params[4] = muls.astigAngle;	
-					header->params[5] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);	// focal spread
+					params = std::vector<double>(9);
+					params[0] = muls.v0;  				// high voltage
+					params[1] = muls.Cs;				// spherical aberration
+					params[2] = muls.df0;				// defocus
+					params[3] = muls.astigMag;			// astigmatism
+					params[4] = muls.astigAngle;	
+					params[5] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);	// focal spread
 					// printf("****  Cc = %f, dE_E = %f, Delta = %f ****\n",muls.Cc,muls.dV_V,muls.Cc * muls.dV_V);
-					header->params[6] = muls.alpha;				// illumination convergence angle
+					params[6] = muls.alpha;				// illumination convergence angle
 					// beam tilt:
-					header->params[7] = muls.btiltx;			// beam tilt in mrad
-					header->params[8] = muls.btilty;			// beam tilt in mrad
+					params[7] = muls.btiltx;			// beam tilt in mrad
+					params[8] = muls.btilty;			// beam tilt in mrad
+					
+					comment = "complex exit face Wave function";
 
-
-					setHeaderComment(header,"complex exit face Wave function");
-					writeImage((void **)wave->wave,header,systStr);
+					wave->WriteWave(systStr, comment, params);
 				}
 #endif 
 

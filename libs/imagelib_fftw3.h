@@ -4,6 +4,7 @@
 #include "stemtypes_fftw3.h"
 #include <vector>
 #include <string>
+#include "boost/shared_ptr.hpp"
 
 /**************************************************************
  * Here is how to use the new image writing routines
@@ -47,21 +48,25 @@ class CImageIO {
 public:
   CImageIO(int nx, int ny);
   CImageIO(int nx, int ny, double t, double dx, double dy,
-           int paramSize, std::vector<double> params, std::string comment);
+           std::vector<double> params=std::vector<double>(), 
+		   std::string comment="");
 
   void WriteRealImage(const void **pix, const char *fileName);
   void WriteComplexImage(const void **pix, const char *fileName);
   // reads in the header; returns the byte offset at which we should start reading image data.
   void ReadHeader(const char *fileName);
-  void ReadImage(void **pix, int nx, int ny, const char *fileName);
+  void ReadImage(void *pix, int nx, int ny, const char *fileName);
   
   //void WriteImage( std::string fileName);
         
   void SetComment(std::string comment);
   void SetThickness(double thickness);
-  void SetParameters(std::vector<double> params);
+  void SetParams(std::vector<double> params);
+  void SetResolution(double resX, double resY);
 private:
   void WriteData(const void **pix, const char *fileName);
 };
+
+typedef boost::shared_ptr<CImageIO> ImageIOPtr;
 
 #endif

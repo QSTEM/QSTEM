@@ -413,7 +413,9 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	static fftw_complex ***oldTrans = NULL;
 	static fftw_complex ***oldTrans0 = NULL;
 #endif
-	static imageStruct *header = NULL;
+	//static imageStruct *header = NULL;
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
+				muls->sliceThickness,muls->resolutionX,muls->resolutionY);
 	fftw_complex dPot;
 #if Z_INTERPOLATION
 	double ddz;
@@ -629,11 +631,12 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	if (muls->readPotential) {
 		for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
 			sprintf(buf,"%s/potential_%d.img",muls->folder,i);
-			header = readImage((void ***)&tempPot,0,0,buf);
+			imageIO->ReadImage((void *)tempPot,nx,ny,buf);
+			//header = readImage((void ***)&tempPot,0,0,buf);
 			// printf("%d: read potential with Nx=%d, Ny=%d\n",i,header->nx,header->ny);
-			if ((nx != header->nx) || (ny != header->ny))
-				printf("potential array size mismatch: (%d,%d) != (%d,%d)\n",
-				header->nx,header->ny,nx,ny);
+			//if ((nx != header->nx) || (ny != header->ny))
+				//printf("potential array size mismatch: (%d,%d) != (%d,%d)\n",
+				//header->nx,header->ny,nx,ny);
 			for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
 				(*muls).trans[j][ix][iy][0] = tempPot[ix][iy];
 				(*muls).trans[j][ix][iy][1] = 0.0;
@@ -1291,16 +1294,14 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 				printf("Saving (complex) potential layer %d to file %s (r: %g..%g)\n",iz,filename,ddx,ddy); 
 
 			// create header for complex file, if necessary:
-			if (header == NULL) header = makeNewHeaderCompact(1,muls->potNx,muls->potNy,
-				muls->sliceThickness,muls->resolutionX,muls->resolutionY,
-				0,NULL,NULL);
-			header->commentSize = 64;
-			header->t = muls->sliceThickness;
-			header->comment = (char *)malloc(header->commentSize);
-			memset(header->comment,0,header->commentSize);
-			sprintf(header->comment,"Projected Potential (slice %d)",iz);		 
-			header->complexFlag = 1;
-			writeImage((void **)muls->trans[iz],header,filename); 	 
+			//header->t = muls->sliceThickness;
+			imageIO->SetThickness(muls->sliceThickness);
+			//header->comment = (char *)malloc(header->commentSize);
+			//memset(header->comment,0,header->commentSize);
+			sprintf(buf,"Projected Potential (slice %d)",iz);		 
+			imageIO->SetComment(buf);
+			imageIO->WriteComplexImage((const void **)muls->trans[iz],filename);
+			//writeImage((void **)muls->trans[iz],header,filename); 	 
 		} // loop through all slices
 	} /* end of if savePotential ... */
 	if (muls->saveTotalPotential) {
@@ -1323,16 +1324,19 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		if (muls->printLevel >= 2)
 			printf("Saving total projected potential to file %s (r: %g..%g)\n",filename,ddx,ddy); 
 
-		if (header == NULL) header = makeNewHeaderCompact(0,muls->potNx,muls->potNy,
-			nlayer*muls->sliceThickness,muls->resolutionX,muls->resolutionY,
-			0,NULL,NULL);
-		header->commentSize = 64;
-		header->t = nlayer*muls->sliceThickness;
-		header->comment = (char *)malloc(header->commentSize);
-		memset(header->comment,0,header->commentSize);
-		header->complexFlag = 0;
-		sprintf(header->comment,"Projected Potential (sum of %d slices)",muls->slices);		 
-		writeRealImage((void **)tempPot,header,filename,sizeof(float)); 	 
+		//if (header == NULL) header = makeNewHeaderCompact(0,muls->potNx,muls->potNy,
+			//nlayer*muls->sliceThickness,muls->resolutionX,muls->resolutionY,
+			//0,NULL,NULL);
+		//header->commentSize = 64;
+		//header->t = nlayer*muls->sliceThickness;
+		imageIO->SetThickness(nlayer*muls->sliceThickness);
+		//header->comment = (char *)malloc(header->commentSize);
+		//memset(header->comment,0,header->commentSize);
+		//header->complexFlag = 0;
+		sprintf(buf,"Projected Potential (sum of %d slices)",muls->slices);
+		imageIO->SetComment(buf);
+		imageIO->WriteRealImage((const void **)tempPot, fileName);
+		//writeRealImage((void **)tempPot,header,filename,sizeof(float)); 	 
 	}
 
 } // end of make3DSlices
@@ -2836,33 +2840,30 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 
 ////////////////////////////////////////////////////////////////
-// save the current wave function at thisintermediate thickness:
+// save the current wave function at this intermediate thickness:
 void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 	int t;
-	static char fileName[256]; 
-	static imageStruct *header = NULL;
+	char fileName[256]; 
+	std::vector<double> params(9);
 
 	if ((slice < muls->slices*muls->cellDiv-1) && ((slice+1) % muls->outputInterval != 0)) return;
 
-	if (header == NULL) {
-		header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,
-			muls->resolutionX,muls->resolutionY,0,NULL, "wave function");
-	}
+	//if (header == NULL) {
+//		header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,
+	//		muls->resolutionX,muls->resolutionY,0,NULL, "wave function");
+	//}
 	t = (int)((slice)/muls->outputInterval);
-	header->t = wave->thickness;
 	// write the high tension, too:
-	header->paramSize = 9;
-	if (header->params == NULL)
-		header->params = (double *)malloc(header->paramSize*sizeof(double));
-	header->params[0] = muls->v0;  				// high voltage
-	header->params[1] = muls->Cs;				// spherical aberration
-	header->params[2] = muls->df0;				// defocus
-	header->params[3] = muls->astigMag;			// astigmatism
-	header->params[4] = muls->astigAngle;	
-	header->params[5] = muls->Cc * sqrt(muls->dE_E*muls->dE_E+muls->dV_V*muls->dV_V+muls->dI_I*muls->dI_I);	// focal spread
-	header->params[6] = muls->alpha;			// illumination convergence angle
-	header->params[7] = muls->btiltx;			// beam tilt in mrad
-	header->params[8] = muls->btilty;			// beam tilt in mrad
+	
+	params[0] = muls->v0;  				// high voltage
+	params[1] = muls->Cs;				// spherical aberration
+	params[2] = muls->df0;				// defocus
+	params[3] = muls->astigMag;			// astigmatism
+	params[4] = muls->astigAngle;	
+	params[5] = muls->Cc * sqrt(muls->dE_E*muls->dE_E+muls->dV_V*muls->dV_V+muls->dI_I*muls->dI_I);	// focal spread
+	params[6] = muls->alpha;			// illumination convergence angle
+	params[7] = muls->btiltx;			// beam tilt in mrad
+	params[8] = muls->btilty;			// beam tilt in mrad
 	// printf("###  Cc = %f, dE_E = %f, Delta = %f ###\n",muls->Cc,muls->dV_V,muls->Cc * muls->dV_V);
 
 	// produce the following filename:
@@ -2870,7 +2871,8 @@ void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 	// wave_thicknessIndex.img if tds is turned off
 	if (muls->tds) sprintf(fileName,"%s/wave_%d_%d.img",muls->folder,muls->avgCount,t);
 	else sprintf(fileName,"%s/wave_%d.img",muls->folder,t);
-	writeImage((void **)wave->wave,header,fileName);    
+	wave->WriteWave(fileName, "Wave Function", params);
+	//writeImage((void **)wave->wave,header,fileName);    
 }
 
 /********************************************************************
@@ -2891,8 +2893,8 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	real k2;
 	double intensity,scale,scaleCBED,scaleDiff,intensity_save;
 	char fileName[256],avgName[256]; 
-	imageStruct *header = NULL;
-	imageStruct *diffHeader = NULL;
+	//imageStruct *header = NULL;
+	//imageStruct *diffHeader = NULL;
 #if USE_LOCAL_DIFF
 	static float_tt **diffpat = NULL;
 #endif
@@ -2988,7 +2990,7 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	// write the diffraction pattern to disc in case we are working in CBED mode
 	if ((muls->mode == CBED) && (muls->saveLevel > 0)) {
 		sprintf(avgName,"%s/diff_%d.img",muls->folder,t);
-		diffHeader->t = slice*muls->sliceThickness;
+		//diffHeader->t = slice*muls->sliceThickness;
 #if USE_LOCAL_DIFF
 		// for (ix=0;ix<muls->nx*muls->ny;ix++) diffpat[0][ix] *= scaleCBED;
 		if (muls->avgCount == 0) {
@@ -3004,7 +3006,8 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 #else
 		// for (ix=0;ix<muls->nx*muls->ny;ix++) wave->diffpat[0][ix] *= scaleCBED;
 		if (muls->avgCount == 0) {
-			writeRealImage((void **)wave->diffpat,diffHeader,avgName,sizeof(real));
+			wave->WriteDiffPat(avgName);
+			//writeRealImage((void **)wave->diffpat,diffHeader,avgName,sizeof(real));
 		}
 		else {
 			readImage((void ***)(&diffpatAvg),muls->nx,muls->ny,avgName);
@@ -3095,16 +3098,17 @@ void saveSTEMImages(MULS *muls)
 	}
 }
 
-void readStartWave(MULS *muls, WAVEFUNC *wave) {
-	imageStruct *header = readImage((void ***)(&(wave->wave)),muls->nx,muls->ny,wave->fileStart);
-	// TODO: modifying shared value from multiple threads?
+void readStartWave(WAVEFUNC *wave) {
+	//imageStruct *header = readImage((void ***)(&(wave->wave)),wave->nx,wave->ny,wave->fileStart);
+	wave->ReadWave(wave->fileStart);
+	// TODO: move this to the ReadWave method of the wave class.
 	wave->thickness = header->t;
-	if (muls->nx != header->nx) {
+	if (wave->nx != header->nx) {
 		printf("Warning -> wrong image format (%d,%d) instead of (%d,%d)\n",
-			header->nx,header->ny,muls->nx,muls->ny);
+			header->nx,header->ny,wave->nx,wave->ny);
 		// TODO: modifying shared value from multiple threads?
-		muls->nx = header->nx;
-		muls->ny = header->ny;
+		wave->nx = header->nx;
+		wave->ny = header->ny;
 	}
 	//readImage_old((*muls).wave,(*muls).nx,(*muls).ny,&((*muls).thickness),(*muls).fileStart);
 }

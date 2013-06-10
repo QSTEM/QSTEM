@@ -39,10 +39,9 @@ CImageIO::CImageIO(int nx, int ny) :
 };
 
 CImageIO::CImageIO(int nx, int ny, double t, double dx, double dy,
-			  int paramSize, std::vector<double> params, std::string comment) :
+			  std::vector<double> params, std::string comment) :
 m_headerSize(56),
 m_params(params),
-m_paramSize(paramSize),
 m_nx(nx),
 m_ny(ny),
 m_version(VERSION),
@@ -126,7 +125,7 @@ void CImageIO::ReadHeader(const char *fileName)
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.
  ***********************************************************/
-void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName) 
+void CImageIO::ReadImage(void *pix, int nx, int ny, const char *fileName) 
 {
   FILE *fp;
   size_t nRead=0;
@@ -157,7 +156,7 @@ void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName)
       //   type of the data that it passed into this function.
       //   
       //   Complex data is determined/communicated by the m_complexFlag, which is read in the header.
-      nRead = fread((void *)pix, sizeof(m_dataSize),(size_t)(nx*ny),fp);
+      nRead = fread(pix, sizeof(m_dataSize),(size_t)(nx*ny),fp);
       if (nRead != nx*ny) 
       {
         freadError = 1;
@@ -190,7 +189,13 @@ void CImageIO::SetThickness(double thickness)
   m_t = thickness;
 }
 
-void CImageIO::SetParameters(std::vector<double> params)
+void CImageIO::SetResolution(double resX, double resY)
+{
+	m_dx = resX;
+	m_dy = resY;
+}
+
+void CImageIO::SetParams(std::vector<double> params)
 {
   m_params=params;
 }
