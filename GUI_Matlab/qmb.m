@@ -24,7 +24,7 @@ function varargout = qmb(varargin)
 
 % Edit the above text to modify the response to help qmb
 
-% Last Modified by GUIDE v2.5 31-Aug-2011 00:03:09
+% Last Modified by GUIDE v2.5 07-Sep-2012 13:45:28
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,7 @@ function qmb_OpeningFcn(hObject, eventdata, handles, varargin)
 
 % Choose default command line output for qmb
 handles.output = hObject;
+set(gcf,'Name','qstem model builder V2.3');
 handles.imageRotation = 0;
 handles.img = [];
 handles.imgRot = [];
@@ -64,6 +65,10 @@ handles.model_path = [];
 handles.grainCount = 0;
 handles.BoxX = 100;
 handles.BoxY = 100;
+handles.offsWp = [];
+handles.NwarpX = 0;
+handles.NwarpY = 0;
+
 
 grainIndex = 1;
 handles.grain{grainIndex}.TiltX = 0;
@@ -122,7 +127,7 @@ else
        img_path = fullfile(pathname, filename);
    end 
 end
-[p,name,ext,vsn] = fileparts(img_path);
+[p,name,ext] = fileparts(img_path);
 
 if strcmp(ext,'.img')
     [img,t,dx,dy] = binread2D(img_path);
@@ -350,6 +355,8 @@ if get(handles.checkbox_showLines,'Value')
         end
     end
 end
+% fprintf('Will display WP\n');
+displayWarpPoints(handles);
 hold off
 xlim(xlimits);
 ylim(ylimits);
@@ -396,7 +403,7 @@ pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
 
 function [chi2,p] = warpPositions(offsWp,wpX,wpY,handles,scale)
 
-p0  = handles.atomPos(:,1:2);        % original atom positions
+p0  = handles.atomPos(handles.indSel,1:2);        % original atom positions
 img = handles.imgRot;
 img = img-min(min(img));
 [Ny,Nx] = size(img);
@@ -439,74 +446,162 @@ if nargout > 1
 end
 
 
+function p = warpPositions_noCompare(offsWp,wpX,wpY,handles)
+
+p0  = handles.atomPos(handles.indSel,1:2);        % original atom positions
+NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
+NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
+
+
+% create offsets at atom positions
+Nwp = length(offsWp)/2;
+cOffsX = reshape(offsWp(1:Nwp),[NwarpY,NwarpX]);
+cOffsY = reshape(offsWp(Nwp+1:2*Nwp),[NwarpY,NwarpX]);
+
+if (Nwp < 9)
+    atomOffsX = interp2(wpX,wpY,cOffsX,p0(:,1),p0(:,2),'linear',0);
+    atomOffsY = interp2(wpX,wpY,cOffsY,p0(:,1),p0(:,2),'linear',0);
+else
+    atomOffsX = interp2(wpX,wpY,cOffsX,p0(:,1),p0(:,2),'cubic',0);
+    atomOffsY = interp2(wpX,wpY,cOffsY,p0(:,1),p0(:,2),'cubic',0);
+end
+% atomOffsY(find(isnan(atomOffsY))) = 0;
+% atomOffsX(find(isnan(atomOffsX))) = 0;
+
+% create image index pixels:
+p  = [atomOffsX, atomOffsY];        % warped atom position offsets
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Function which displays the reference points used for warping
+function displayWarpPoints(handles)
+if get(handles.radiobutton_Warp,'Value') && get(handles.checkbox_ShowWarpPoints,'Value') && ~isempty(handles.indSel)
+		hold on
+		NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
+		NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
+		Nwp = NwarpX*NwarpY;
+		if  (NwarpX ~= handles.NwarpX) || (NwarpY ~= handles.NwarpY) 
+			handles.NwarpX = NwarpX;
+			handles.NwarpY = NwarpY;
+			handles.offsWp = zeros(2*Nwp,1);
+			handles.atomPosUnWarped = handles.atomPos(handles.indSel,:);
+			% define the range
+			maxX = max(handles.atomPosUnWarped(:,1));
+			minX = min(handles.atomPosUnWarped(:,1));
+			maxY = max(handles.atomPosUnWarped(:,2));
+			minY = min(handles.atomPosUnWarped(:,2));
+			% define warping points:
+			[wpX,wpY] = meshgrid(minX+(maxX-minX)/(NwarpX-1)*[0:NwarpX-1],minY+(maxY-minY)/(NwarpY-1)*[0:NwarpY-1]);
+			handles.wpX = wpX;
+			handles.wpY = wpY;
+		end
+
+		
+		wpX = handles.wpX;
+		wpY = handles.wpY;
+		handles.NwarpX = NwarpX;
+		handles.NwarpY = NwarpY;
+		
+		ipointX = round(str2double(get(handles.edit_PointX,'String')));
+		ipointY = round(str2double(get(handles.edit_PointY,'String')));
+		if (ipointX < 1), ipointX = 1; end;
+		if (ipointX > NwarpX), ipointX = NwarpX; end;
+		if (ipointY < 1), ipointY = 1; end;
+		if (ipointY > NwarpY), ipointY = NwarpY; end;
+		set(handles.edit_PointX,'String',ipointX);
+		set(handles.edit_PointY,'String',ipointY);
+		
+		if ~isempty(handles.offsWp)
+			wpX = wpX+reshape(handles.offsWp(1:Nwp),[NwarpY,NwarpX]);
+			wpY = wpY+reshape(handles.offsWp(Nwp+1:2*Nwp),[NwarpY,NwarpX]);
+		end
+		plot(reshape(wpX,NwarpX*NwarpY,1),reshape(wpY,NwarpX*NwarpY,1),'+','MarkerSize',handles.atomSize,'Color',[0 0 1])
+		plot(wpX(1+NwarpY-ipointY,ipointX),wpY(1+NwarpY-ipointY,ipointX),'+','MarkerSize',handles.atomSize*1.3,'Color',[1 0 1])
+		hold off
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Function which translates the relative positions of the warping mesh to
+% the atom positions
+function handles = applyWarping(handles,deltaX,deltaY)
+NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
+NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
+Nwp = NwarpX*NwarpY;
+if (isempty(handles.offsWp)) || (NwarpX ~= handles.NwarpX) || (NwarpY ~= handles.NwarpY) || isempty(handles.atomPosUnWarped)
+	handles.NwarpX = NwarpX;
+	handles.NwarpY = NwarpY;
+	handles.offsWp = zeros(2*Nwp,1);
+	handles.atomPosUnWarped = handles.atomPos(handles.indSel,:);
+	% define the range
+	maxX = max(handles.atomPosUnWarped(:,1));
+	minX = min(handles.atomPosUnWarped(:,1));
+	maxY = max(handles.atomPosUnWarped(:,2));
+	minY = min(handles.atomPosUnWarped(:,2));
+	% define warping points:
+	[wpX,wpY] = meshgrid(minX+(maxX-minX)/(NwarpX-1)*[0:NwarpX-1],minY+(maxY-minY)/(NwarpY-1)*[0:NwarpY-1]);
+	handles.wpX = wpX;
+	handles.wpY = wpY;
+end
+wpX = handles.wpX;
+wpY = handles.wpY;
+	
+ipointX = round(str2double(get(handles.edit_PointX,'String')));
+ipointY = round(str2double(get(handles.edit_PointY,'String')));
+if (ipointX < 1), ipointX = 1; end; 
+if (ipointX > NwarpX), ipointX = NwarpX; end; 
+if (ipointY < 1), ipointY = 1; end; 
+if (ipointY > NwarpY), ipointY = NwarpY; end; 
+ipoint = sub2ind([NwarpX,NwarpY],1+NwarpY-ipointY,ipointX);
+	
+% Apply the shift of the currently selected warping node:	
+handles.offsWp(ipoint) = handles.offsWp(ipoint) +deltaX;
+handles.offsWp(Nwp+ipoint) = handles.offsWp(Nwp+ipoint) + deltaY;
+p = warpPositions_noCompare(handles.offsWp,wpX,wpY,handles);
+    
+% update atom positions:
+handles.atomPos(handles.indSel,1:2) = handles.atomPosUnWarped(:,1:2)+p;
+
 
 
 % --- Executes on button press in pushbutton_left.
 function pushbutton_left_Callback(hObject, eventdata, handles)
 
 distance = str2double(get(handles.edit_Distance,'String'));
+if isempty(handles.indSel)
+	handles.atomPosUnWarped = [];
+	return;
+end
 
 if get(handles.radiobutton_Warp,'Value')
-    NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
-    NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
-    ipoint = round(str2double(get(handles.edit_Point,'String')));
-    
-    % define warping points:
-    [wpX,wpY] = meshgrid(handles.maxX/(NwarpX-1)*[0:NwarpX-1],handles.maxY/(NwarpY-1)*[0:NwarpY-1]);
-    Nwp = prod(size(wpX));
-    if (ipoint > Nwp), ipoint = Nwp; end
-    if (ipoint < 1), ipoint = 1; end
-    
-    offsWp = zeros(2*Nwp,1);
-    offsWp(ipoint) = offsWp(ipoint) - distance;
-    % offsX = 5e3*reshape(offsWp(1:Nwp),[NwarpX,NwarpY])
-    % offsY = 5e3*reshape(offsWp(Nwp+1:2*Nwp),[NwarpX,NwarpY])
-    [chi2,p] = warpPositions(offsWp,wpX,wpY,handles,1);
-    fprintf('chi2=%g: %g .. %g, %g .. %g (%g, %g)\n',chi2,min(p(:,1)),max(p(:,1)),min(p(:,2)),max(p(:,2)),handles.imageDx,handles.imageDy);
-    
-    % update atom positions:
-    
-    handles.atomPos(:,1:2) = p;
+	% the following function shifts the current point to the left, i.e.
+	% by the vector (-distance,0)
+	handles = applyWarping(handles,-distance,0);
 else
     handles.atomPos(handles.indSel,1) = handles.atomPos(handles.indSel,1) - distance;
 end
 guidata(hObject, handles);
 pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
-
+% displayWarpPoints(handles);
 
 
 % --- Executes on button press in pushbutton_up.
 function pushbutton_up_Callback(hObject, eventdata, handles)
 
 distance = str2double(get(handles.edit_Distance,'String'));
+if isempty(handles.indSel)
+	handles.atomPosUnWarped = [];
+	return;
+end
 
 if get(handles.radiobutton_Warp,'Value')
-    NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
-    NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
-    ipoint = round(str2double(get(handles.edit_Point,'String')));
-    distance = str2double(get(handles.edit_Distance,'String'));
-    
-    % define warping points:
-    [wpX,wpY] = meshgrid(handles.maxX/(NwarpX-1)*[0:NwarpX-1],handles.maxY/(NwarpY-1)*[0:NwarpY-1]);
-    Nwp = prod(size(wpX));
-    if (ipoint > Nwp), ipoint = Nwp; end
-    if (ipoint < 1), ipoint = 1; end
-    
-    offsWp = zeros(2*Nwp,1);
-    offsWp(Nwp+ipoint) = offsWp(Nwp+ipoint) + distance;
-    % offsX = 5e3*reshape(offsWp(1:Nwp),[NwarpX,NwarpY])
-    % offsY = 5e3*reshape(offsWp(Nwp+1:2*Nwp),[NwarpX,NwarpY])
-    [chi2,p] = warpPositions(offsWp,wpX,wpY,handles,1);
-    fprintf('chi2=%g: %g .. %g, %g .. %g (%g, %g)\n',chi2,min(p(:,1)),max(p(:,1)),min(p(:,2)),max(p(:,2)),handles.imageDx,handles.imageDy);
-
-    % update atom positions:
-    
-    handles.atomPos(:,1:2) = p;
+	% the following function shifts the current point up, i.e.
+	% by the vector (0,distance)
+	handles = applyWarping(handles,0,distance);
 else
     handles.atomPos(handles.indSel,2) = handles.atomPos(handles.indSel,2) + distance;
 end
 guidata(hObject, handles);
 pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+% displayWarpPoints(handles);
 
 
 
@@ -514,65 +609,41 @@ pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
 function pushbutton_right_Callback(hObject, eventdata, handles)
 
 distance = str2double(get(handles.edit_Distance,'String'));
+if isempty(handles.indSel)
+	handles.atomPosUnWarped = [];
+	return;
+end
 
 if get(handles.radiobutton_Warp,'Value')
-    NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
-    NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
-    ipoint = round(str2double(get(handles.edit_Point,'String')));
-    
-    % define warping points:
-    [wpX,wpY] = meshgrid(handles.maxX/(NwarpX-1)*[0:NwarpX-1],handles.maxY/(NwarpY-1)*[0:NwarpY-1]);
-    Nwp = prod(size(wpX));
-    if (ipoint > Nwp), ipoint = Nwp; end
-    if (ipoint < 1), ipoint = 1; end
-    
-    offsWp = zeros(2*Nwp,1);
-    offsWp(ipoint) = offsWp(ipoint) + distance;
-    % offsX = 5e3*reshape(offsWp(1:Nwp),[NwarpX,NwarpY])
-    % offsY = 5e3*reshape(offsWp(Nwp+1:2*Nwp),[NwarpX,NwarpY])
-    [chi2,p] = warpPositions(offsWp,wpX,wpY,handles,1);
-    fprintf('chi2=%g: %g .. %g, %g .. %g (%g, %g)\n',chi2,min(p(:,1)),max(p(:,1)),min(p(:,2)),max(p(:,2)),handles.imageDx,handles.imageDy);
-    
-    % update atom positions:
-    
-    handles.atomPos(:,1:2) = p;
+	% the following function shifts the current point up, i.e.
+	% by the vector (0,distance)
+	handles = applyWarping(handles,distance,0);
 else
     handles.atomPos(handles.indSel,1) = handles.atomPos(handles.indSel,1) + distance;
 end
 guidata(hObject, handles);
 pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+% displayWarpPoints(handles);
 
 % --- Executes on button press in pushbutton_down.
 function pushbutton_down_Callback(hObject, eventdata, handles)
 
 distance = str2double(get(handles.edit_Distance,'String'));
+if isempty(handles.indSel)
+	handles.atomPosUnWarped = [];
+	return;
+end
 
 if get(handles.radiobutton_Warp,'Value')
-    NwarpX = round(str2double(get(handles.edit_WarpNx,'String')));
-    NwarpY = round(str2double(get(handles.edit_warpNy,'String')));
-    ipoint = round(str2double(get(handles.edit_Point,'String')));
-
-    % define warping points:
-    [wpX,wpY] = meshgrid(handles.maxX/(NwarpX-1)*[0:NwarpX-1],handles.maxY/(NwarpY-1)*[0:NwarpY-1]);
-    Nwp = prod(size(wpX));
-    if (ipoint > Nwp), ipoint = Nwp; end
-    if (ipoint < 1), ipoint = 1; end
-
-    offsWp = zeros(2*Nwp,1);
-    offsWp(Nwp+ipoint) = offsWp(Nwp+ipoint) - distance;
-    % offsX = 5e3*reshape(offsWp(1:Nwp),[NwarpX,NwarpY])
-    % offsY = 5e3*reshape(offsWp(Nwp+1:2*Nwp),[NwarpX,NwarpY])
-    [chi2,p] = warpPositions(offsWp,wpX,wpY,handles,1);
-    fprintf('chi2=%g: %g .. %g, %g .. %g (%g, %g)\n',chi2,min(p(:,1)),max(p(:,1)),min(p(:,2)),max(p(:,2)),handles.imageDx,handles.imageDy);
-
-    % update atom positions:
-
-    handles.atomPos(:,1:2) = p;
+	% the following function shifts the current point up, i.e.
+	% by the vector (0,distance)
+	handles = applyWarping(handles,0,-distance);
 else
     handles.atomPos(handles.indSel,2) = handles.atomPos(handles.indSel,2) - distance;
 end
 guidata(hObject, handles);
 pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+% displayWarpPoints(handles);
 
 
 
@@ -584,11 +655,12 @@ function pushbutton_DeleteColumn_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if isempty(handles.indSel)
+	handles.atomPosUnWarped = [];
    return
 end
 handles.atomPos(handles.indSel,4) = 0;
 handles.indSel = [];
-
+handles.offsWp = [];
 ind = find(handles.atomPos(:,4) > 0);
 handles.atomPos = handles.atomPos(ind,:);
 
@@ -611,6 +683,9 @@ pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
 function assign_ButtonDownFcn(src,eventdata,handles,hObject)
 persistent RbboxHandle
 
+handles.atomPosUnWarped = [];
+handles.offsWp = [];
+
 point1 = get(gca,'CurrentPoint');    % button down detected
 rbbox;                   % return figure units
 point2 = get(gca,'CurrentPoint');    % button up detected
@@ -631,7 +706,12 @@ y2 = p1(2)+offset(2);
 
 % determine selected atoms:
 % handles.indSel = [];
-handles.indSel = [handles.indSel; find((handles.atomPos(:,1) > x1) & (handles.atomPos(:,1) < x2) & (handles.atomPos(:,2) > y1) & (handles.atomPos(:,2) < y2))];
+if get(handles.checkbox_Sublattice,'Value')
+	Zsel = str2num(get(handles.edit_Zsublattice,'String'));
+	handles.indSel = [handles.indSel; find((handles.atomPos(:,1) > x1) & (handles.atomPos(:,1) < x2) & (handles.atomPos(:,2) > y1) & (handles.atomPos(:,2) < y2) & (handles.atomPos(:,4)==Zsel))];	
+else
+	handles.indSel = [handles.indSel; find((handles.atomPos(:,1) > x1) & (handles.atomPos(:,1) < x2) & (handles.atomPos(:,2) > y1) & (handles.atomPos(:,2) < y2))];
+end
 indSel = handles.indSel;
 % coords = handles.atomPos(indSel,:)
 guidata(hObject, handles);
@@ -698,6 +778,7 @@ function pushbutton_ForgetSelection_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles.indSel = [];
+handles.offsWp = [];
 fprintf('Selection deleted\n');
 guidata(hObject, handles);
 pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
@@ -921,6 +1002,54 @@ handles.grain{grainIndex}.boundX = boundX;
 handles.grain{grainIndex}.boundY = boundY;
 guidata(hObject, handles);
 pushbutton_constructSuperCell(hObject, eventdata, handles);
+
+
+% --- Executes on button press in pushbutton_SelectPolygon.
+function pushbutton_SelectPolygon_Callback(hObject, eventdata, handles)
+button = 1;
+count = 0;
+boundX = [];
+boundY = [];
+while (button == 1)
+    [x,y,button] = ginput(1);
+    if (button == 1)
+        boundX = [boundX;x];
+        boundY = [boundY;y];
+        if count > 0
+            l = line(boundX(count:count+1),boundY(count:count+1));
+            set(l,'LineWidth',2,'Color',[0 1 0]);
+        end
+        count = count+1;
+    else
+        if (count > 2)
+            boundX = [boundX;boundX(1)];
+            boundY = [boundY;boundY(1)];
+            l = line(boundX(count:count+1),boundY(count:count+1));
+            set(l,'LineWidth',2,'Color',[0 1 0]);
+        else
+           % if no boundary with more than 2 points has been defined, then
+           % abort this procedure.
+           boundX = [];
+           boundY = [];
+        end
+	end
+end
+if ~isempty(boundX)
+	if get(handles.checkbox_Sublattice,'Value')
+		Zsel = str2num(get(handles.edit_Zsublattice,'String'));
+		ind = find(handles.atomPos(:,4)==Zsel);
+		ind2 = find(inpolygon(handles.atomPos(ind,1),handles.atomPos(ind,2),boundX,boundY));
+		% fprintf('%d atoms with Z=%d\n',length(ind),Zsel);
+		handles.indSel = [handles.indSel; ind(ind2)];
+		% handles.indSel = [handles.indSel; find(inpolygon(handles.atomPos(:,1),handles.atomPos(:,2),boundX,boundY))];
+	else
+		handles.indSel = [handles.indSel; find(inpolygon(handles.atomPos(:,1),handles.atomPos(:,2),boundX,boundY))];
+	end
+end
+guidata(hObject, handles);
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
+
 
 
 % --- Executes on button press in pushbutton_Boundaries.
@@ -1441,6 +1570,11 @@ end
 
 
 function edit_WarpNx_Callback(hObject, eventdata, handles)
+handles.offsWp = [];
+handles.atomPosUnWarped = [];
+guidata(hObject,handles);
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
 
 % --- Executes during object creation, after setting all properties.
 function edit_WarpNx_CreateFcn(hObject, eventdata, handles)
@@ -1451,6 +1585,11 @@ end
 
 
 function edit_warpNy_Callback(hObject, eventdata, handles)
+handles.offsWp = [];
+handles.atomPosUnWarped = [];
+guidata(hObject,handles);
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
 
 % --- Executes during object creation, after setting all properties.
 function edit_warpNy_CreateFcn(hObject, eventdata, handles)
@@ -1459,10 +1598,11 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function edit_Point_Callback(hObject, eventdata, handles)
+function edit_PointX_Callback(hObject, eventdata, handles)
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
 
 % --- Executes during object creation, after setting all properties.
-function edit_Point_CreateFcn(hObject, eventdata, handles)
+function edit_PointX_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -1566,6 +1706,78 @@ pushbutton_UpdateModel_Callback(hObject, eventdata, handles)
 
 
 
+
+
+
+
+
+
+
+function edit_PointY_Callback(hObject, eventdata, handles)
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_PointY_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_PointY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox_ShowWarpPoints.
+function checkbox_ShowWarpPoints_Callback(hObject, eventdata, handles)
+if get(handles.checkbox_ShowWarpPoints,'Value')
+end
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
+
+
+
+
+% --- Executes when selected object is changed in uipanel3.
+function uipanel3_SelectionChangeFcn(hObject, eventdata, handles)
+handles.atomPosUnWarped = [];
+handles.offsWp = [];
+guidata(hObject,handles);
+pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
+
+% --- Executes on button press in checkbox_Sublattice.
+function checkbox_Sublattice_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox_Sublattice (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox_Sublattice
+
+
+
+function edit_Zsublattice_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Zsublattice (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_Zsublattice as text
+%        str2double(get(hObject,'String')) returns contents of edit_Zsublattice as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_Zsublattice_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Zsublattice (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 
 
