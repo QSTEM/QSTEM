@@ -316,7 +316,7 @@ void make3DSlicesFT(MULS *muls) {
     
   // save the potential file:
   if (muls->savePotential) {
-	imageIO = ImageIOPtr(new CImageIO(Nxp, Nyp, dZp, dXp, dYp);
+	imageIO = ImageIOPtr(new CImageIO(Nxp, Nyp, dZp, dXp, dYp));
     for (iz=0;iz<Nzp;iz++) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 

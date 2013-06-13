@@ -62,9 +62,10 @@ public:
   void SetComment(std::string comment);
   void SetThickness(double thickness);
   void SetParams(std::vector<double> params);
+  void SetParameter(int index, double value);
   void SetResolution(double resX, double resY);
 private:
-  void WriteData(const void **pix, const char *fileName);
+  void WriteData(const void *pix, const char *fileName);
 };
 
 typedef boost::shared_ptr<CImageIO> ImageIOPtr;

@@ -4,6 +4,8 @@
 #include <math.h>
 #include <time.h>
 
+#include <fstream>
+
 #include <stdexcept>
 
 //#include "boost/shared_ptr.hpp"
@@ -52,43 +54,70 @@ m_comment("")
 {
 };
 
-void CImageIO::WriteComplexImage(const void **pix, const char *fileName) {
+void CImageIO::WriteComplexImage(const void *pix, const char *fileName) {
   m_dataSize = 2*sizeof(float_tt);
   m_complexFlag = 1;
   
-  WriteData(pix, fileName);
+  WriteData((const void *)pix, fileName);
 }
 
-void CImageIO::WriteRealImage(const void **pix, const char *fileName) {
+void CImageIO::WriteRealImage(const void *pix, const char *fileName) {
   m_dataSize = sizeof(float_tt);
   m_complexFlag = 0;
   
-  WriteData(pix, fileName);
+  WriteData((const void *)pix, fileName);
 }
 
-void CImageIO::WriteData(const void **pix, const char *fileName)
+void CImageIO::WriteData(const void *pix, const char *fileName)
 {
-  FILE *fp;
+	//FILE *fp;
+	std::fstream file(fileName, std::ios::out|std::ios::binary);
 
-  // Sychronize lengths of comments and parameters
-  m_paramSize = m_params.size();
-  m_commentSize = m_comment.size();
+	// Sychronize lengths of comments and parameters
+	m_paramSize = m_params.size();
+	m_commentSize = m_comment.size();
 
-  if ((fp = fopen(fileName,"wb"))==NULL) {
-    printf("writeRealImage: Could open file %s for writing\n",fileName);
-    exit(0);
-  }
+	if(!file.is_open()) 
+	{
+		sprintf(m_buf,"WriteData: Could open file %s for writing\n",fileName);
+		throw std::runtime_error(m_buf);
+	}
 
-  // TODO: should we write each element individually for clarity?
-  fwrite((void *)this,m_headerSize,1,fp);
-  fwrite((void *)(&m_params[0]), sizeof(double), m_paramSize, fp);
-  fwrite((void *)(m_comment.c_str()), 1, m_commentSize, fp);
-  if (fwrite(pix,m_dataSize,(size_t)(m_nx*m_ny),fp) != m_nx*m_ny) {
-    printf("writeRealImage: Error while writing data to file %s\n",fileName);
-    fclose(fp);
-    exit(0);
-  }
-  fclose(fp);
+	// TODO: should we write each element individually for clarity?
+	// write the 56-byte header
+	file.write(reinterpret_cast<const char*>(this), 56);
+	//fwrite((void *)this,m_headerSize,1,fp);
+	/*
+	fwrite((void *)&m_headerSize, 4, 1, fp);
+	fwrite((void *)&m_paramSize, 4, 1, fp);
+	fwrite((void *)&m_commentSize, 4, 1, fp);
+	fwrite((void *)&m_nx, 4, 1, fp);
+	fwrite((void *)&m_ny, 4, 1, fp);
+	fwrite((void *)&m_complexFlag, 4, 1, fp);
+	fwrite((void *)&m_dataSize, 4, 1, fp);
+	fwrite((void *)&m_version, 4, 1, fp);
+	fwrite((void *)&m_t, 8, 1, fp);
+	fwrite((void *)&m_dx, 8, 1, fp);
+	 fwrite((void *)&m_dy, 8, 1, fp);
+	*/
+	if (m_paramSize>0)
+	{
+		//fwrite((void *)(&m_params[0]), sizeof(double), m_paramSize, fp);
+		file.write(reinterpret_cast<const char*>(&m_params[0]), m_paramSize*sizeof(double));
+	}
+	//fwrite((void *)(m_comment.c_str()), 1, m_commentSize, fp);
+	file.write(m_comment.c_str(), m_commentSize);
+	file.write(reinterpret_cast<const char*>(pix), m_nx*m_ny*m_dataSize);
+	//size_t pixWritten = fwrite(pix, m_dataSize,(size_t)(m_nx*m_ny),fp);
+	//if (fwrite(pix,m_dataSize,(size_t)(m_nx*m_ny),fp) != m_nx*m_ny) {
+	//if (pixWritten != m_nx*m_ny) {
+	//	sprintf(m_buf,"writeRealImage: Error while writing data to file %s\n",fileName);
+		//fclose(fp);
+		//file.close();
+		//throw std::runtime_error(m_buf);
+	//}
+	//fclose(fp);
+	file.close();
 }
 
 void CImageIO::ReadHeader(const char *fileName)
@@ -96,7 +125,8 @@ void CImageIO::ReadHeader(const char *fileName)
   FILE *fp;
   if ((fp = fopen(fileName,"rb"))==NULL)
   {
-      printf("Could not open file %s for reading header.\n",fileName);
+      sprintf(m_buf, "Could not open file %s for reading header.\n",fileName);
+	  throw std::runtime_error(m_buf);
   }
   fread((void*)this, 1, 56, fp);
   if (m_paramSize>0)
@@ -198,6 +228,14 @@ void CImageIO::SetResolution(double resX, double resY)
 void CImageIO::SetParams(std::vector<double> params)
 {
   m_params=params;
+}
+
+void CImageIO::SetParameter(int index, double value)
+{
+	if (index < m_params.size())
+		m_params[index] = value;
+	else
+		throw std::runtime_error("Tried to set out of bounds parameter.");
 }
 
 /* The pointers params and comment must either be initialized to NULL,

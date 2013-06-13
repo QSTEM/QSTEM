@@ -415,7 +415,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 #endif
 	//static imageStruct *header = NULL;
 	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
-				muls->sliceThickness,muls->resolutionX,muls->resolutionY);
+				muls->sliceThickness,muls->resolutionX,muls->resolutionY));
 	fftw_complex dPot;
 #if Z_INTERPOLATION
 	double ddz;
@@ -1974,7 +1974,7 @@ void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz) {
 * probePlot will create a file with the crossection of the electron 
 * probe.
 */
-void probePlot(MULS *muls, WAVEFUNC *wave) {
+void probePlot(MULS *muls, WavePtr wave) {
 	static char *plotFile = "probePlot.dat",systStr[32];
 	int ix, iy;
 	FILE *fp=NULL;
@@ -2178,7 +2178,7 @@ void probePlot(MULS *muls, WAVEFUNC *wave) {
 *********************************************/
 
 #define SMOOTH_EDGE 5 // make a smooth edge on AIS aperture over +/-SMOOTH_EDGE pixels
-void probe(MULS *muls, WAVEFUNC *wave, double dx, double dy)
+void probe(MULS *muls, WavePtr wave, double dx, double dy)
 {
 	// static char *plotFile = "probePlot.dat",systStr[32];
 	int ix, iy, nx, ny, ixmid, iymid;
@@ -2670,7 +2670,7 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 * waver, wavei are expected to contain incident wave function 
 * they will be updated at return
 *****************************************************************/
-int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
+int runMulsSTEM(MULS *muls, WavePtr wave) {
 	int printFlag = 0; 
 	int showEverySlice=1;
 	int islice,i,ix,iy,mRepeat;
@@ -2682,7 +2682,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 	char outStr[64];
 	double fftScale;
-	static imageStruct *header = NULL;
+	//static imageStruct *header = NULL;
 
 	printFlag = (muls->printLevel > 3);
 	fftScale = 1.0/(muls->nx*muls->ny);
@@ -2824,12 +2824,13 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 	}
 	if (muls->saveFlag) {
 		if ((muls->saveLevel > 1) || (muls->cellDiv > 1)) {
-			if (header == NULL) 
-				header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,muls->resolutionX,
-				muls->resolutionX,0,NULL,"wave function");
-			header->t = wave->thickness;
+			//if (header == NULL) 
+			//	header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,muls->resolutionX,
+			//	muls->resolutionX,0,NULL,"wave function");
+			//header->t = wave->thickness;
 //#pragma omp critical
-			writeImage((void **)wave->wave,header,wave->fileout);
+			//writeImage((void **)wave->wave,header,wave->fileout);
+			wave->WriteWave(wave->fileout);
 			// writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,(*muls).fileout);
 			if (printFlag)
 				printf("Created complex image file %s\n",(*wave).fileout);    
@@ -2841,7 +2842,7 @@ int runMulsSTEM(MULS *muls, WAVEFUNC *wave) {
 
 ////////////////////////////////////////////////////////////////
 // save the current wave function at this intermediate thickness:
-void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
+void interimWave(MULS *muls,WavePtr wave,int slice) {
 	int t;
 	char fileName[256]; 
 	std::vector<double> params(9);
@@ -2887,7 +2888,7 @@ void interimWave(MULS *muls,WAVEFUNC *wave,int slice) {
 // somehow overwriting the one that is created by detectorCollect.
 // One way to avoid this wouldb be to not call this function when 
 #define USE_LOCAL_DIFF 0
-void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice) 
+void collectIntensity(MULS *muls, WavePtr wave, int slice) 
 {
 	int i,ix,iy,ixs,iys,t;
 	real k2;
@@ -2901,7 +2902,7 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	float_tt **diffpatAvg = NULL;
 	int tCount = 0;
 
-	std::vector<std::vector<DETECTOR> > detectors;
+	std::vector<std::vector<DetectorPtr> > detectors;
 
 	scale = muls->electronScale/((double)(muls->nx*muls->ny)*(muls->nx*muls->ny));
 	// scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
@@ -2937,9 +2938,9 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	// Multiply each image by its number of averages and divide by it later again:
 	for (i=0;i<muls->detectorNum;i++) 
 	{
-		detectors[t][i].image[wave->detPosX][wave->detPosY]  *= detectors[t][i].Navg;	
-		detectors[t][i].image2[wave->detPosX][wave->detPosY] *= detectors[t][i].Navg;	
-		detectors[t][i].error = 0;
+		detectors[t][i]->image[wave->detPosX][wave->detPosY]  *= detectors[t][i]->Navg;	
+		detectors[t][i]->image2[wave->detPosX][wave->detPosY] *= detectors[t][i]->Navg;	
+		detectors[t][i]->error = 0;
 	}
 	/* add the intensities in the already 
 	fourier transformed wave function */
@@ -2958,26 +2959,26 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 			intensity *= scale;
 #endif
 			for (i=0;i<muls->detectorNum;i++) {
-				if ((k2 >= detectors[t][i].k2Inside) && (k2 <= detectors[t][i].k2Outside)) 
+				if ((k2 >= detectors[t][i]->k2Inside) && (k2 <= detectors[t][i]->k2Outside)) 
 				{
 					// detector in center of diffraction pattern:
-					if ((detectors[t][i].shiftX == 0) && (detectors[t][i].shiftY == 0)) 
+					if ((detectors[t][i]->shiftX == 0) && (detectors[t][i]->shiftY == 0)) 
 					{
-						detectors[t][i].image[wave->detPosX][wave->detPosY] += intensity;
+						detectors[t][i]->image[wave->detPosX][wave->detPosY] += intensity;
 						// misuse the error number for collecting this pixels raw intensity
-						detectors[t][i].error += intensity;
+						detectors[t][i]->error += intensity;
 					}
 					/* special case for shifted detectors: */		
 					else 
 					{
 						intensity_save = intensity;
-						ixs = (ix+(int)detectors[t][i].shiftX+muls->nx) % muls->nx;
-						iys = (iy+(int)detectors[t][i].shiftY+muls->ny) % muls->ny;	    
+						ixs = (ix+(int)detectors[t][i]->shiftX+muls->nx) % muls->nx;
+						iys = (iy+(int)detectors[t][i]->shiftY+muls->ny) % muls->ny;	    
 						intensity = scale * (wave->wave[ixs][iys][0]*wave->wave[ixs][iys][0]+
 							wave->wave[ixs][iys][1]*wave->wave[ixs][iys][1]);
-						detectors[t][i].image[wave->detPosX][wave->detPosY] += intensity;
+						detectors[t][i]->image[wave->detPosX][wave->detPosY] += intensity;
 						// repurpose the error number for collecting this pixels raw intensity
-						detectors[t][i].error += intensity;
+						detectors[t][i]->error += intensity;
 						/* restore intensity, so that it will not be shifted for the other detectors */
 						intensity = intensity_save;
 					}
@@ -3010,11 +3011,13 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 			//writeRealImage((void **)wave->diffpat,diffHeader,avgName,sizeof(real));
 		}
 		else {
-			readImage((void ***)(&diffpatAvg),muls->nx,muls->ny,avgName);
+			wave->ReadAvgArray(avgName);
+			//readImage((void ***)(&diffpatAvg),muls->nx,muls->ny,avgName);
 			for (ix=0;ix<muls->nx*muls->ny;ix++) {
-				diffpatAvg[0][ix] = (muls->avgCount*diffpatAvg[0][ix]+wave->diffpat[0][ix])/(muls->avgCount+1);
+				wave->avgArray[0][ix] = (muls->avgCount*wave->avgArray[0][ix]+wave->diffpat[0][ix])/(muls->avgCount+1);
 			}
-			writeRealImage((void **)diffpatAvg,diffHeader,avgName,sizeof(real));
+			wave->WriteAvgArray(avgName);
+			//writeRealImage((void **)diffpatAvg,diffHeader,avgName,sizeof(real));
 		}
 #endif
 	}
@@ -3022,11 +3025,11 @@ void collectIntensity(MULS *muls, WAVEFUNC *wave, int slice)
 	// Divide each image by its number of averages again:
 	for (i=0;i<muls->detectorNum;i++) {
 		// add intensity squared to image2 for this detector and pixel, then rescale:
-		detectors[t][i].image2[wave->detPosX][wave->detPosY] += detectors[t][i].error*detectors[t][i].error;
-		detectors[t][i].image2[wave->detPosX][wave->detPosY] /= detectors[t][i].Navg+1;	
+		detectors[t][i]->image2[wave->detPosX][wave->detPosY] += detectors[t][i]->error*detectors[t][i]->error;
+		detectors[t][i]->image2[wave->detPosX][wave->detPosY] /= detectors[t][i]->Navg+1;	
 
 		// do the rescaling for the average image:
-		detectors[t][i].image[wave->detPosX][wave->detPosY] /= detectors[t][i].Navg+1;	
+		detectors[t][i]->image[wave->detPosX][wave->detPosY] /= detectors[t][i]->Navg+1;	
 	}
 }
 
@@ -3039,8 +3042,8 @@ void saveSTEMImages(MULS *muls)
 	int i, ix, islice;
 	double intensity;
 	static char fileName[256]; 
-	imageStruct *header = NULL;
-	std::vector<DETECTOR> detectors;
+	//imageStruct *header = NULL;
+	std::vector<DetectorPtr> detectors;
 	float t;
 
 	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
@@ -3060,56 +3063,61 @@ void saveSTEMImages(MULS *muls)
 		detectors = muls->detectors[islice];
 		// write the output STEM images:
 		// This is done only after all pixels have completed, so that image is complete.
-		if (header == NULL) 
-		{
-			header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN, t,
-				(muls->scanXStop-muls->scanXStart)/(float)muls->scanXN,
-				(muls->scanYStop-muls->scanYStart)/(float)muls->scanYN,
-				0, NULL, "STEM image");
-			header->params = (double *)malloc((2+muls->scanXN*muls->scanYN)*sizeof(double));
-			header->paramSize = 2+muls->scanXN*muls->scanYN;
-		}
+		//if (header == NULL) 
+		//{
+		//	header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN, t,
+		//		(muls->scanXStop-muls->scanXStart)/(float)muls->scanXN,
+		//		(muls->scanYStop-muls->scanYStart)/(float)muls->scanYN,
+		//		0, NULL, "STEM image");
+		//	header->params = (double *)malloc((2+muls->scanXN*muls->scanYN)*sizeof(double));
+		////	header->paramSize = 2+muls->scanXN*muls->scanYN;
+		//}
 		for (i=0; i<muls->detectorNum; i++) 
 		{
 			// calculate the standard error for this image:
-			detectors[i].error = 0;
+			detectors[i]->error = 0;
 			intensity             = 0;
 			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
 			{
-				detectors[i].error += (detectors[i].image2[0][ix]-
-					detectors[i].image[0][ix] * detectors[i].image[0][ix]);
-				intensity += detectors[i].image[0][ix] * detectors[i].image[0][ix];
+				detectors[i]->error += (detectors[i]->image2[0][ix]-
+					detectors[i]->image[0][ix] * detectors[i]->image[0][ix]);
+				intensity += detectors[i]->image[0][ix] * detectors[i]->image[0][ix];
 			}
-			detectors[i].error /= intensity;
+			detectors[i]->error /= intensity;
 			if (islice <tCount)
-				sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i].name, islice);
+				sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i]->name, islice);
 			else
-				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i].name, islice);
-			header->t = t;
-			header->params[0] = (double)muls->avgCount+1;
-			header->params[1] = (double)detectors[i].error;
+				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i]->name, islice);
+			//header->t = t;
+			//header->params[0] = (double)muls->avgCount+1;
+			//header->params[1] = (double)detectors[i]->error;
+			detectors[i]->SetThickness(t);
+			detectors[i]->SetParameter(0, (double)muls->avgCount+1);
+			detectors[i]->SetParameter(1, (double)detectors[i]->error);
 
 			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
 			{
-				header->params[2+ix] = (double)detectors[i].image2[0][ix];
+				detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
+				//header->params[2+ix] = (double)detectors[i]->image2[0][ix];
 			}
-			writeRealImage((void **)detectors[i].image, header, fileName, sizeof(real));    
+			detectors[i]->WriteImage(fileName);
+			//writeRealImage((void **)detectors[i]->image, header, fileName, sizeof(real));    
 		}
 	}
 }
 
-void readStartWave(WAVEFUNC *wave) {
+void readStartWave(WavePtr wave) {
 	//imageStruct *header = readImage((void ***)(&(wave->wave)),wave->nx,wave->ny,wave->fileStart);
 	wave->ReadWave(wave->fileStart);
 	// TODO: move this to the ReadWave method of the wave class.
-	wave->thickness = header->t;
-	if (wave->nx != header->nx) {
-		printf("Warning -> wrong image format (%d,%d) instead of (%d,%d)\n",
-			header->nx,header->ny,wave->nx,wave->ny);
+	//wave->thickness = header->t;
+	//if (wave->nx != header->nx) {
+	//	printf("Warning -> wrong image format (%d,%d) instead of (%d,%d)\n",
+	//		header->nx,header->ny,wave->nx,wave->ny);
 		// TODO: modifying shared value from multiple threads?
-		wave->nx = header->nx;
-		wave->ny = header->ny;
-	}
+	//	wave->nx = header->nx;
+	//	wave->ny = header->ny;
+	//}
 	//readImage_old((*muls).wave,(*muls).nx,(*muls).ny,&((*muls).thickness),(*muls).fileStart);
 }
 
@@ -3331,7 +3339,7 @@ void showPotential(fftw_complex ***pot,int nz,int nx,int ny,double dx,double dy,
 * This function will write a data file with the pendeloesungPlot 
 * for selected beams
 ****************************************************************/
-void writeBeams(MULS *muls, WAVEFUNC *wave, int ilayer, int absolute_slice) {
+void writeBeams(MULS *muls, WavePtr wave, int ilayer, int absolute_slice) {
 	static char fileAmpl[32];
 	static char filePhase[32];
 	static char fileBeam[32];
@@ -3481,9 +3489,13 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 	static int nx,ny,nz;
 	static fftwf_complex **atPot = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
-	static fftwf_complex *ptr = NULL;
-	static char fileName[256];
+	//static imageStruct *header = NULL;
+
+	fftwf_complex *ptr = NULL;
+	char fileName[256];
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
+				muls->sliceThickness,muls->resolutionX/OVERSAMP_X,
+				muls->resolutionY/OVERSAMP_X));;
 #endif 
 	static double *splinb=NULL;
 	static double *splinc=NULL;
@@ -3652,16 +3664,18 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
 #if SHOW_SINGLE_POTENTIAL == 1
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nx,ny,0,muls->resolutionX/OVERSAMP_X,
-			muls->resolutionY/OVERSAMP_X,0,NULL,"potential");
-		header->dx = muls->resolutionX/OVERSAMP_X;
-		header->dy = muls->resolutionY/OVERSAMP_X;
+		//if (header == NULL) 
+			//header = makeNewHeaderCompact(1,nx,ny,0,muls->resolutionX/OVERSAMP_X,
+			//muls->resolutionY/OVERSAMP_X,0,NULL,"potential");
+		//header->dx = muls->resolutionX/OVERSAMP_X;
+		//header->dy = muls->resolutionY/OVERSAMP_X;
 		for (iz=0;iz<nz/OVERSAMP_Z;iz++) {
 			sprintf(fileName,"potential_%d_%d.img",Znum,iz);
-			header->t = iz;
+			imageIO->SetThickness(iz);
+			//header->t = iz;
 			ptr = &(atPot[Znum][iz*nx*ny]);
-			writeImage((void **)&ptr,header,fileName);
+			imageIO->WriteRealImage((const void **)ptr,fileName);
+			//writeImage((void **)&ptr,header,fileName);
 		}
 #endif    
 		if (muls->printLevel > 0)

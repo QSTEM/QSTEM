@@ -32,13 +32,13 @@ QSTEM - image simulation for TEM/STEM/CBED
  * with parameters given in muls
  *********************************************/
 // int probe(MULS *muls,double dx, double dy);
-void probe(MULS *muls, WAVEFUNC *wave, double dx, double dy);
-void probePlot(MULS *muls, WAVEFUNC *wave);
+void probe(MULS *muls, WavePtr wave, double dx, double dy);
+void probePlot(MULS *muls, WavePtr wave);
 
 void initSTEMSlices(MULS *muls, int nlayer);
-void interimWave(MULS *muls,WAVEFUNC *wave,int slice);
-void collectIntensity(MULS *muls, WAVEFUNC *wave, int slices);
-//void detectorCollect(MULS *muls, WAVEFUNC *wave);
+void interimWave(MULS *muls,WavePtr wave,int slice);
+void collectIntensity(MULS *muls, WavePtr wave, int slices);
+//void detectorCollect(MULS *muls, WavePtr wave);
 void saveSTEMImages(MULS *muls);
 
 void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center);
@@ -52,7 +52,7 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B);
 
 WAVEFUNC initWave(int nx, int ny);
-void readStartWave(MULS *muls, WAVEFUNC *wave);
+void readStartWave(WavePtr wave);
 /******************************************************************
  * runMulsSTEM() - do the multislice propagation in STEM mode
  *
@@ -60,14 +60,14 @@ void readStartWave(MULS *muls, WAVEFUNC *wave);
  * the will be updated at return
  *****************************************************************/
 int runMulsSTEM_old(MULS *muls,int lstart);
-int runMulsSTEM(MULS *muls, WAVEFUNC *wave);
+int runMulsSTEM(MULS *muls, WavePtr wave);
 void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz);
 void fft_normalize(void **array,int nx, int ny);
 void showPotential(fftw_complex ***pot,int nz,int nx,int ny,
 		   double dx,double dy,double dz);
 void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,
 			   double z,double B);
-void writeBeams(MULS *muls, WAVEFUNC *wave,int ilayer, int absolute_slice);
+void writeBeams(MULS *muls, WavePtr wave,int ilayer, int absolute_slice);
 
 /***********************************************************************************
  * old image read/write functions, may soon be outdated
