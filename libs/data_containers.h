@@ -58,7 +58,6 @@ public:
 	// define a copy constructor to create new arrays
 	//WAVEFUNC( WAVEFUNC& other );
 
-	void ZeroWave(void);
 	void WriteWave(const char *fileName, const char *comment="Wavefunction", 
 		std::vector<double>params = std::vector<double>());
 	void WriteDiffPat(const char *fileName, const char *comment="Diffraction Pattern",
