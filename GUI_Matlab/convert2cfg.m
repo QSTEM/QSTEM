@@ -5,7 +5,7 @@ if isequal(full_filename,0) || isequal(pathname,0)
     return;
 end
 
-[pathstr, oldfilename, ext, versn] = fileparts([pathname,full_filename]);
+[pathstr, oldfilename, ext] = fileparts([pathname,full_filename]);
 
 
 filename=fullfile(pathname,oldfilename);
@@ -18,20 +18,6 @@ atomName = ['H ','He','Li','Be','B ','C ','N ','O ','F ','Ne','Na','Mg','Al','Si
     'Fr','Ra','Ac','Th','Pa','U ','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No','Lr'];
 
 if (strcmp(ext,'.xyz') == 1)
-    %notice this is a cell array!
-    prompt={'Enter the shift in Z direction: '};
-    
-    %name of the dialog box
-    name='Get user Input';
-    
-    %number of lines visible for your input
-    numlines=1;
-    
-    %the default answer
-    defaultanswer={'0'};
-    
-    %creates the dialog box. the user input is stored into a cell array
-    z_shift=inputdlg(prompt,name,numlines,defaultanswer);
     
     %z_shift = input('Enter in the shift in Z direction: ');
     
@@ -58,11 +44,12 @@ if (strcmp(ext,'.xyz') == 1)
     end
 
     % natom_temp=textscan(fid,'%d',1)
-    buf = fgets(fid)
+    buf = fgets(fid);
     natom=sscanf(buf,'%d');
     
     % commentline=textscan(fid,'%s',1,'delimiter','CR')
-    commentline=fgets(fid)
+    commentline=fgets(fid);
+    fprintf('Comment: %s\n',commentline);
     
     for k1=1:natom
         % data(k1,:)=fscanf(fid,'%2c %f32 %f32 %f32',1);
@@ -75,19 +62,50 @@ if (strcmp(ext,'.xyz') == 1)
    
     
     % b=sortcell(data,1);       % sort the data according to atom type
+    shiftVect = -min([min(coords); zeros(1,3)]);
     
+    
+    prompt={'Enter the shift vector as "x y z": '};
+    name='Define coordinate offset';
+    numlines=1;
+    defaultanswer={sprintf('%.3f   %.3f   %.3f',shiftVect)};
+    
+    %creates the dialog box. the user input is stored into a cell array
+    z_shift=inputdlg(prompt,name,numlines,defaultanswer);
+    sv = sscanf(z_shift{1},'%f %f %f');
+    if ~isempty(sv), shiftVect(1) = sv(1); end
+    if length(sv) > 1, shiftVect(2) = sv(2); end
+    if length(sv) > 2, shiftVect(3) = sv(3); end
+
     
     % coords= cell2mat(b(:,2:4));
+    coords=coords+repmat(shiftVect,natom,1);
     
-    Mm=diag(max(coords)-min(coords)+str2num(z_shift{1})) ;
+    Mmd=max(coords)-min([coords; [0 0 0]]);
     % Mm = [7.461 0 0;-3.730 6.461 0; 0 0 5.15];
-    coords=coords-repmat(min(coords),natom,1);
+    Mmd(find(Mmd < 1)) = 1;
+
+    prompt={'Size of Super cell: '};
+    name='Define super cell size';
+    numlines=1;
+    defaultanswer={sprintf('%.3f   %.3f   %.3f',Mmd)};
+    
+    %creates the dialog box. the user input is stored into a cell array
+    cellSize=inputdlg(prompt,name,numlines,defaultanswer);
+    Mmd2 = sscanf(cellSize{1},'%f %f %f');
+    Mm = diag(Mmd);
+    if ~isempty(Mmd2), Mm(1,1) = Mmd2(1); end
+    if length(Mmd2) > 1, Mm(2,2) = Mmd2(2); end
+    if length(Mmd2) > 2, Mm(3,3) = Mmd2(3); end
     
     for k1=1:natom
         aType(k1)=(1+findstr(char(type(k1,1:2)),atomName))/2;
     end
-    writeCFG(filename,Mm,natom,aType,coords,[0 0 0],0);
-
+    if (writeCFG(filename,Mm,natom,aType,coords,[0 0 0],0))
+		msgbox(sprintf('Wrote cfg file %s.cfg',filename),'convert2cfg','modal');
+	else
+		msgbox(sprintf('Error creating cfg file %s.cfg',filename),'convert2cfg','modal');		
+	end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -111,7 +129,7 @@ if (strcmp(ext,'.xtl') == 1)
     alpha = unitCell(4)*pi/180;
     beta  = unitCell(5)*pi/180;
     gamma = unitCell(6)*pi/180;
-    fprintf('Found unit cell parameters: a=%f, b=%f, c=%f, alpha=%f, beta=%f, gamma=%f\n',a,b,c,alpha,beta,gamma);
+    fprintf('Found unit cell parameters: \na=%f, b=%f, c=%f, \nalpha=%f, beta=%f, gamma=%f\n',a,b,c,alpha,beta,gamma);
 
     % Now look for the atomic positions:
     while strncmp(fgets(fid),'ATOMS',5) == 0,    end
@@ -153,8 +171,11 @@ if (strcmp(ext,'.xtl') == 1)
         Mm(3,:) = H3.'*c/sqrt(sum(H3.^2));
         Mm(3,3) = abs(Mm(3,3));
     end
-    writeCFG(filename,Mm,natom,aType,coords,[0 0 0],1);
-
+    if (writeCFG(filename,Mm,natom,aType,coords,[0 0 0],1))
+		msgbox(sprintf('Wrote cfg file \n%s.cfg',filename),'convert2cfg','modal');
+	else
+		msgbox(sprintf('Error creating cfg file \n%s.cfg',filename),'convert2cfg','modal');		
+	end
 end
     
    
@@ -275,7 +296,7 @@ Y = X(ix,:);
 
 
 
-function writeCFG(filename,Mm,N,aType,coords,shift,mode)
+function success = writeCFG(filename,Mm,N,aType,coords,shift,mode)
 
 % function writeCFG(fileName,Mm,N,aType,coords,shift,mode)
 %
@@ -299,7 +320,7 @@ end
 %    mode = 1;
 %end
 
-
+success = 1;
 Mminv = inv(Mm);
 atomType = 0;
 name = ['H ','He','Li','Be','B ','C ','N ','O ','F ','Ne','Na','Mg','Al','Si','P ','S ','Cl',...
@@ -311,6 +332,10 @@ name = ['H ','He','Li','Be','B ','C ','N ','O ','F ','Ne','Na','Mg','Al','Si','P
 mass = 2*[1:length(name)];
 
 fid = fopen(strcat(filename,'.cfg'),'w');
+if (fid < 1)
+	success = 0;
+	return;
+end
 
 fprintf(fid,'Number of particles = %d\n',N);
 fprintf(fid,'A = 1.0 Angstrom (basic length-scale)\n');

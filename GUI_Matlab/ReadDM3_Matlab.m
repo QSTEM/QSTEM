@@ -100,6 +100,7 @@ ydim=double(output{4});
 zdim=double(output{5});
 if isempty(zdim)
     zdim = 1;
+	% [osx,osy] = size(output{6})
     m=reshape(output{6},xdim,ydim);
 else
     m=reshape(output{6},[xdim,ydim,zdim]);

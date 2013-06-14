@@ -379,8 +379,11 @@ switch handles.displayMode
             end
         end
         qArray2D = qArray2D*0.479/Mm(3,3);
-
-    case 8
+	case 8
+		% Displacement map
+		DisplacementParams(handles);
+		return;
+    case 9
         % Inelastic mean free path
         for j=1:Natom
             ix = round(coords(j,2)/dy)+1;

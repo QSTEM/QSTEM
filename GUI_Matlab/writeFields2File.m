@@ -144,6 +144,9 @@ fprintf(fid,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf(fid,'nx: %d		%% array size used for probe \n',handles.ProbeNx);
 fprintf(fid,'ny: %d     %% ny = nx, if not specified\n',handles.ProbeNy);
 fprintf(fid,'Cs: %f		%% Spherical abberation in mm\n',handles.C3);
+if ~isfield(handles,'C5')
+	handles.C5 = 0;
+end
 fprintf(fid,'C5: %f		%% C_5 abberation in mm\n',handles.C5);  
 fprintf(fid,'Cc: %f	    %% Chromatic abberation in mm\n',handles.Cc);
 fprintf(fid,'dV/V: %f	%% energy spread in eV (FWHM)\n',1e-3*handles.dE/handles.HighVoltage);

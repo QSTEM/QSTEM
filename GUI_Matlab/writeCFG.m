@@ -7,13 +7,14 @@
 % aType:      column vector of Z numbers
 % coords:     N x 3 matrix of atomic positions [x1 y1 z1; x2 y2 z2; ...]
 % shift:      can be used to define an offset to atomic positions (default
-%             is [0 0 0]
+%             is [0 0 0].  Will only be used of the atomic coordinates are
+%             cartesian.
 % mode:       0 = atom positions in coords are fractional coordinates
 %             1 = atom positions in coords are cartesian coordinates
 % DW:         Debye-Waller factor: this can be a single number or a vector
 %             with a separate value for each atom
 % charge:     vector with value of charge per atom
-function writeCFG(fileName,Mm,aType,coords,shift,mode,DW,charge)
+function success = writeCFG(fileName,Mm,aType,coords,shift,mode,DW,charge)
 
 if nargin < 5
     shift = [0 0 0];
@@ -21,6 +22,7 @@ end
 if nargin < 6
     mode = 1;
 end
+success = 1;
 N = size(coords,1);
 Mminv = inv(Mm);
 atomType = 0;
@@ -33,6 +35,10 @@ name = ['H ','He','Li','Be','B ','C ','N ','O ','F ','Ne','Na','Mg','Al','Si','P
 mass = 2*[1:length(name)];
 
 fid = fopen(fileName,'w');
+if (fid < 0)
+	success = 0;
+	return;
+end
 
 fprintf(fid,'Number of particles = %d\n',N);
 fprintf(fid,'A = 1.0 Angstrom (basic length-scale)\n');
@@ -59,7 +65,7 @@ for ix=1:N
         atomType = at;
     end
     if mode == 1
-        fprintf(fid,'%.5f %.5f %.5f',mod(coords(ix,:)*Mminv+shift,1));
+        fprintf(fid,'%.5f %.5f %.5f',mod((coords(ix,:)+shift)*Mminv,1));
     else
         fprintf(fid,'%.5f %.5f %.5f',coords(ix,:));        
     end    

@@ -19,7 +19,7 @@ occ = [];
 charge = [];
 Mm = eye(3);
 
-if (0)
+if (1)
     clear readCFG_mex
     [pathname,filen,ext] = fileparts(fileName);
     filename2 = [filen,ext];
