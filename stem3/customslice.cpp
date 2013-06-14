@@ -323,7 +323,7 @@ void make3DSlicesFT(MULS *muls) {
       //if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
       sprintf(buf,"Projected Potential (%d slices)",muls->slices);
 	  imageIO->SetComment(std::string(buf));
-	  imageIO->WriteComplexImage((const void **)muls->trans[iz], fileName);
+	  imageIO->WriteComplexImage((void **)muls->trans[iz], fileName);
       //writeImage((void **)muls->trans[iz],header,fileName);
     } 
   } /* end of if savePotential ... */

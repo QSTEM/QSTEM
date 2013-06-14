@@ -110,7 +110,7 @@ void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
 	m_imageIO->SetResolution(resolutionX, resolutionY);
 	m_imageIO->SetParams(params);
 	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteComplexImage((const void*)wave, fileName);
+	m_imageIO->WriteComplexImage((void **)wave, fileName);
 }
 
 void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
@@ -120,7 +120,7 @@ void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
 	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
 	m_imageIO->SetParams(params);
 	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteRealImage((const void*)diffpat, fileName);
+	m_imageIO->WriteRealImage((void**)diffpat, fileName);
 }
 
 void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
@@ -130,22 +130,22 @@ void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
 	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
 	m_imageIO->SetParams(params);
 	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteRealImage((const void*)avgArray, fileName);
+	m_imageIO->WriteRealImage((void **)avgArray, fileName);
 }
 
 void WAVEFUNC::ReadWave(const char *fileName)
 {
-	m_imageIO->ReadImage((void *)wave, nx, ny, fileName);
+	m_imageIO->ReadImage((void **)wave, nx, ny, fileName);
 }
 
 void WAVEFUNC::ReadDiffPat(const char *fileName)
 {
-	m_imageIO->ReadImage((void *)diffpat, nx, ny, fileName);
+	m_imageIO->ReadImage((void **)diffpat, nx, ny, fileName);
 }
 
 void WAVEFUNC::ReadAvgArray(const char *fileName)
 {
-	m_imageIO->ReadImage((void *)avgArray, nx, ny, fileName);
+	m_imageIO->ReadImage((void **)avgArray, nx, ny, fileName);
 }
 
 
@@ -169,7 +169,8 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
 
 void Detector::WriteImage(const char *fileName)
 {
-	m_imageIO->WriteRealImage((const void**)image, fileName);
+	m_imageIO->SetThickness(thickness);
+	m_imageIO->WriteRealImage((void **)image, fileName);
 }
 
 void Detector::SetThickness(float_tt t)

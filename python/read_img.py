@@ -20,6 +20,7 @@ import struct
 headerlength = 4;
 
 def binread2D(filename, printFlag=True):
+    comment=""
     # open the file and define the file ID (fid):
     f=open(filename,"rb")
     #with open(filename,'rb') as f:

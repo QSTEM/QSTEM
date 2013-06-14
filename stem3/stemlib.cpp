@@ -631,7 +631,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	if (muls->readPotential) {
 		for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
 			sprintf(buf,"%s/potential_%d.img",muls->folder,i);
-			imageIO->ReadImage((void *)tempPot,nx,ny,buf);
+			imageIO->ReadImage((void **)tempPot,nx,ny,buf);
 			//header = readImage((void ***)&tempPot,0,0,buf);
 			// printf("%d: read potential with Nx=%d, Ny=%d\n",i,header->nx,header->ny);
 			//if ((nx != header->nx) || (ny != header->ny))
@@ -1300,7 +1300,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			//memset(header->comment,0,header->commentSize);
 			sprintf(buf,"Projected Potential (slice %d)",iz);		 
 			imageIO->SetComment(buf);
-			imageIO->WriteComplexImage((const void **)muls->trans[iz],filename);
+			imageIO->WriteComplexImage((void **)muls->trans[iz],filename);
 			//writeImage((void **)muls->trans[iz],header,filename); 	 
 		} // loop through all slices
 	} /* end of if savePotential ... */
@@ -1335,7 +1335,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		//header->complexFlag = 0;
 		sprintf(buf,"Projected Potential (sum of %d slices)",muls->slices);
 		imageIO->SetComment(buf);
-		imageIO->WriteRealImage((const void **)tempPot, fileName);
+		imageIO->WriteRealImage((void **)tempPot, fileName);
 		//writeRealImage((void **)tempPot,header,filename,sizeof(float)); 	 
 	}
 
@@ -3091,6 +3091,7 @@ void saveSTEMImages(MULS *muls)
 			//header->t = t;
 			//header->params[0] = (double)muls->avgCount+1;
 			//header->params[1] = (double)detectors[i]->error;
+			detectors[i]->SetComment(detectors[i]->name);
 			detectors[i]->SetThickness(t);
 			detectors[i]->SetParameter(0, (double)muls->avgCount+1);
 			detectors[i]->SetParameter(1, (double)detectors[i]->error);
@@ -3674,7 +3675,7 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 			imageIO->SetThickness(iz);
 			//header->t = iz;
 			ptr = &(atPot[Znum][iz*nx*ny]);
-			imageIO->WriteRealImage((const void **)ptr,fileName);
+			imageIO->WriteRealImage((void **)ptr,fileName);
 			//writeImage((void **)&ptr,header,fileName);
 		}
 #endif    

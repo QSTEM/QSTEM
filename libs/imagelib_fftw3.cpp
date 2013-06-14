@@ -54,21 +54,21 @@ m_comment("")
 {
 };
 
-void CImageIO::WriteComplexImage(const void *pix, const char *fileName) {
+void CImageIO::WriteComplexImage(void **pix, const char *fileName) {
   m_dataSize = 2*sizeof(float_tt);
   m_complexFlag = 1;
   
-  WriteData((const void *)pix, fileName);
+  WriteData(pix, fileName);
 }
 
-void CImageIO::WriteRealImage(const void *pix, const char *fileName) {
+void CImageIO::WriteRealImage(void **pix, const char *fileName) {
   m_dataSize = sizeof(float_tt);
   m_complexFlag = 0;
   
-  WriteData((const void *)pix, fileName);
+  WriteData(pix, fileName);
 }
 
-void CImageIO::WriteData(const void *pix, const char *fileName)
+void CImageIO::WriteData(void **pix, const char *fileName)
 {
 	//FILE *fp;
 	std::fstream file(fileName, std::ios::out|std::ios::binary);
@@ -102,21 +102,10 @@ void CImageIO::WriteData(const void *pix, const char *fileName)
 	*/
 	if (m_paramSize>0)
 	{
-		//fwrite((void *)(&m_params[0]), sizeof(double), m_paramSize, fp);
 		file.write(reinterpret_cast<const char*>(&m_params[0]), m_paramSize*sizeof(double));
 	}
-	//fwrite((void *)(m_comment.c_str()), 1, m_commentSize, fp);
 	file.write(m_comment.c_str(), m_commentSize);
-	file.write(reinterpret_cast<const char*>(pix), m_nx*m_ny*m_dataSize);
-	//size_t pixWritten = fwrite(pix, m_dataSize,(size_t)(m_nx*m_ny),fp);
-	//if (fwrite(pix,m_dataSize,(size_t)(m_nx*m_ny),fp) != m_nx*m_ny) {
-	//if (pixWritten != m_nx*m_ny) {
-	//	sprintf(m_buf,"writeRealImage: Error while writing data to file %s\n",fileName);
-		//fclose(fp);
-		//file.close();
-		//throw std::runtime_error(m_buf);
-	//}
-	//fclose(fp);
+	file.write(reinterpret_cast<char*>(pix[0]), m_nx*m_ny*m_dataSize);
 	file.close();
 }
 
@@ -155,7 +144,7 @@ void CImageIO::ReadHeader(const char *fileName)
  * allocated for it, and its size will be returned in the header struct
  * members nx, and ny.
  ***********************************************************/
-void CImageIO::ReadImage(void *pix, int nx, int ny, const char *fileName) 
+void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName) 
 {
   FILE *fp;
   size_t nRead=0;
@@ -186,7 +175,7 @@ void CImageIO::ReadImage(void *pix, int nx, int ny, const char *fileName)
       //   type of the data that it passed into this function.
       //   
       //   Complex data is determined/communicated by the m_complexFlag, which is read in the header.
-      nRead = fread(pix, sizeof(m_dataSize),(size_t)(nx*ny),fp);
+      nRead = fread(pix[0], sizeof(m_dataSize),(size_t)(nx*ny),fp);
       if (nRead != nx*ny) 
       {
         freadError = 1;

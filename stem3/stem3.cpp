@@ -2525,6 +2525,7 @@ void doSTEM() {
 	//chisq = (double *)malloc(muls.avgRuns*sizeof(double));
 	// zero-out the chisq array
 	//memset(chisq, 0, muls.avgRuns*sizeof(double));
+	chisq = std::vector<double>(muls.avgRuns);
 	muls.chisq = chisq;
 	totalRuns = muls.avgRuns;
 	timer = cputim();
@@ -2745,9 +2746,12 @@ void doSTEM() {
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
 										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
-									#pragma omp atomic
-									chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
-										(wave->avgArray[ixa][iya]-t);
+									if (muls.avgCount>1)
+									{
+										#pragma omp atomic
+										chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
+											(wave->avgArray[ixa][iya]-t);
+									}
 									wave->avgArray[ixa][iya] = t;
 								}
 							}
@@ -2819,8 +2823,8 @@ void doSTEM() {
 		// printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
 		/*************************************************************/
-
-		chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+		if (muls.avgCount>1)
+			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 		muls.intIntensity = collectedIntensity/(muls.scanXN*muls.scanYN);
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
