@@ -264,6 +264,7 @@ float_tt **float2D( int nx, int ny, const char *message )
 	{
 		m[ix][iy] = 0.0f;
 	}
+	//memset(m, 0, sizeof(float_tt)*ny*nx);
 
 	return m;
 
@@ -390,6 +391,7 @@ double **double2D( int nx, int ny, const char *message )
 	{
 		m[ix][iy] = 0.0;
 	}
+	//memset(m, 0, sizeof(float_tt)*ny*nx);
 
 #ifdef PRINT_MESSAGE
 	printf("allocated memory for %s\n",message);

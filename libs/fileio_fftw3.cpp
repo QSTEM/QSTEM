@@ -661,7 +661,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
 int readDATCellParams(MULS *muls, double **Mm, char *fileName) {
-	int ncoord,i;
+	int ncoord;
 	char buf[256];
 	double a,b,c,alpha=90.0,beta=90.0,gamma=90.0;
 

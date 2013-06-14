@@ -21,6 +21,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define STEMTYPES_H
 
 #include "memory_fftw3.h"
+#include "boost/shared_ptr.hpp"
 
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
@@ -124,16 +125,5 @@ typedef struct atomBoxStruct {
   float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
 #endif
 } atomBox;
-
-typedef struct detectorStruct {
-  float_tt rInside,rOutside;
-  float_tt k2Inside,k2Outside;
-  char name[32];
-  float_tt **image;        // place for storing avg image = sum(data)/Navg
-  float_tt **image2;        // we will store sum(data.^2)/Navg 
-  float_tt error;  
-  float_tt shiftX,shiftY;
-  int Navg;
-} DETECTOR;
 
 #endif // STEMTYPES_H

@@ -72,17 +72,18 @@ void make3DSlicesFT(MULS *muls) {
    * static variables which are used every time:
    */
   // static float ***potential = NULL;         // array holding real space potential
-  static int Nxp,Nyp,Nzp;                   // size of potential array
-  static int Nx=FTBOX_NX, Nz=FTBOX_NX, Nxm,Nzm; // size and center of single atom potential box
-  static int Nxl,Nzl;                       // size of lookup array
-  static float axp, byp,czp,dXp,dYp,dZp;    // model dimensions and resolution
-  static double ***potLUT = NULL;           // potential lookup table for all atoms used
-  static int xOversample,zOversample;       // oversampling rate for x- and z-direction
-  static double *rcutoff = NULL;            // radius after which set potential to 0 (one for each atom)
-  static int divCount = 0;
-  static char buf[128];
-  static double dX,dZ;                      // real space resol. of FT box
-  static imageStruct *header = NULL;
+  int Nxp,Nyp,Nzp;                   // size of potential array
+  int Nx=FTBOX_NX, Nz=FTBOX_NX, Nxm,Nzm; // size and center of single atom potential box
+  int Nxl,Nzl;                       // size of lookup array
+  float axp, byp,czp,dXp,dYp,dZp;    // model dimensions and resolution
+  double ***potLUT = NULL;           // potential lookup table for all atoms used
+  int xOversample,zOversample;       // oversampling rate for x- and z-direction
+  double *rcutoff = NULL;            // radius after which set potential to 0 (one for each atom)
+  int divCount = 0;
+  char buf[128];
+  double dX,dZ;                      // real space resol. of FT box
+  //static imageStruct *header = NULL;
+  ImageIOPtr imageIO = ImageIOPtr();
   static char fileName[64];
 
 
@@ -315,14 +316,15 @@ void make3DSlicesFT(MULS *muls) {
     
   // save the potential file:
   if (muls->savePotential) {
+	imageIO = ImageIOPtr(new CImageIO(Nxp, Nyp, dZp, dXp, dYp));
     for (iz=0;iz<Nzp;iz++) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
-      if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
-      header->comment = (char *)malloc(40);
-      sprintf(header->comment,"Projected Potential (%d slices)",muls->slices);       
-      header->commentSize = 45;
-      writeImage((void **)muls->trans[iz],header,fileName);      
+      //if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
+      sprintf(buf,"Projected Potential (%d slices)",muls->slices);
+	  imageIO->SetComment(std::string(buf));
+	  imageIO->WriteComplexImage((void **)muls->trans[iz], fileName);
+      //writeImage((void **)muls->trans[iz],header,fileName);
     } 
   } /* end of if savePotential ... */
   

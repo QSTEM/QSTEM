@@ -545,16 +545,16 @@ void displayParams() {
 			0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
 		printf("* Number of detectors:  %d\n",muls.detectorNum);
 		for (i=0;i<muls.detectorNum;i++) {
-			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i].name);
-			for (j=0;j<14-strlen(muls.detectors[0][i].name);j++) printf(" ");
+			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i]->name);
+			for (j=0;j<14-strlen(muls.detectors[0][i]->name);j++) printf(" ");
 			printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
-				muls.detectors[0][i].rInside,
-				muls.detectors[0][i].rOutside,
-				muls.detectors[0][i].k2Inside,
-				muls.detectors[0][i].k2Outside);
-			if ((muls.detectors[0][i].shiftX != 0) ||(muls.detectors[0][i].shiftY != 0))
+				muls.detectors[0][i]->rInside,
+				muls.detectors[0][i]->rOutside,
+				muls.detectors[0][i]->k2Inside,
+				muls.detectors[0][i]->k2Outside);
+			if ((muls.detectors[0][i]->shiftX != 0) ||(muls.detectors[0][i]->shiftY != 0))
 				printf("*   center shifted:     dkx=%g, dky=%g\n",
-				muls.detectors[0][i].shiftX,muls.detectors[0][i].shiftY);
+				muls.detectors[0][i]->shiftX,muls.detectors[0][i]->shiftY);
 		}
 		printf("* Scan window:          (%g,%g) to (%g,%g)A, %d x %d = %d pixels\n",
 			muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
@@ -1347,40 +1347,25 @@ void readFile() {
 		//       save each of the thicknesses in memory, then save to disk afterwards.
 		for (int islice=0; islice<=tCount; islice++)
 		{
-			std::vector<DETECTOR> detectors;
+			std::vector<DetectorPtr> detectors;
 			resetParamFile();
 			while (readparam("detector:",buf,0)) {
-				DETECTOR det;
-				det.shiftX = 0.0;
-				det.shiftY = 0.0;
-				det.error = 0.0;
-				det.Navg = 0;
-				sscanf(buf,"%g %g %s %g %g",&(det.rInside),
-					&(det.rOutside), det.name, &(det.shiftX),&(det.shiftY));  
-
-#if FLOAT_PRECISION == 1
-				det.image = float2D(muls.scanXN,muls.scanYN,"ADFimag");
-				det.image2 = float2D(muls.scanXN,muls.scanYN,"ADFimag");
-#else
-				det.image = double2D(muls.scanXN,muls.scanYN,"ADFimag");	
-				det.image2 = double2D(muls.scanXN,muls.scanYN,"ADFimag");	
-#endif
-
-				//for (ix=0;ix<muls.scanXN;ix++) for (iy=0;iy < muls.scanYN; iy++)
-				//{
-					//det.image[ix][iy] = 0.0;
-					//det.image2[ix][iy] = 0.0;
-				//}
+				DetectorPtr det = DetectorPtr(new Detector(muls.scanXN, muls.scanYN, 
+					(muls.scanXStop-muls.scanXStart)/(float)muls.scanXN,
+					(muls.scanYStop-muls.scanYStart)/(float)muls.scanYN));
+				
+				sscanf(buf,"%g %g %s %g %g",&(det->rInside),
+					&(det->rOutside), det->name, &(det->shiftX),&(det->shiftY));  
 
 				/* determine v0 specific k^2 values corresponding to the angles */
-				det.k2Inside = 
-					(float)(sin(det.rInside*0.001)/(wavelength(muls.v0)));
-				det.k2Outside = 
-					(float)(sin(det.rOutside*0.001)/(wavelength(muls.v0)));
-				// printf("Detector %d: %f .. %f, lambda = %f (%f)\n",i,muls.detectors[i].k2Inside,muls.detectors[i].k2Outside,wavelength(muls.v0),muls.v0);
+				det->k2Inside = 
+					(float)(sin(det->rInside*0.001)/(wavelength(muls.v0)));
+				det->k2Outside = 
+					(float)(sin(det->rOutside*0.001)/(wavelength(muls.v0)));
+				// printf("Detector %d: %f .. %f, lambda = %f (%f)\n",i,muls.detectors[i]->k2Inside,muls.detectors[i]->k2Outside,wavelength(muls.v0),muls.v0);
 				/* calculate the squares of the ks */
-				det.k2Inside *= det.k2Inside;
-				det.k2Outside *= det.k2Outside;
+				det->k2Inside *= det->k2Inside;
+				det->k2Outside *= det->k2Outside;
 				detectors.push_back(det);
 			}
 			muls.detectors.push_back(detectors);
@@ -1746,20 +1731,24 @@ void doCBED() {
 	double timer,timerTot;
 	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
-	real t;
-	static real **avgArray=NULL,**diffArray=NULL;
-	static double *chisq = NULL;
-	static real **avgPendelloesung = NULL;
-	static int oldMulsRepeat1 = 1;
-	static int oldMulsRepeat2 = 1;
-	static long iseed=0;
-	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
-	static imageStruct *header = NULL;
-	imageStruct *header_read = NULL;
+	real t=0;
+	// we'll use the ones on the wave instead of allocating these.
+	//real **avgArray=NULL,**diffArray=NULL;
+	std::vector<double> chisq;
+	real **avgPendelloesung = NULL;
+	int oldMulsRepeat1 = 1;
+	int oldMulsRepeat2 = 1;
+	long iseed=0;
+	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY));
+	//static imageStruct *header = NULL;
+	//imageStruct *header_read = NULL;
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, t, muls.resolutionX, muls.resolutionY));
+	std::vector<double> params(2);
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	//chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	chisq = std::vector<double>(muls.avgRuns);
 	muls.chisq = chisq;
 
 	if (muls.lbeams) {
@@ -1797,13 +1786,14 @@ void doCBED() {
 		muls.scanYStart = probeCenterY+probeOffsetY;
 		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
 		if (muls.saveLevel > 2) {
-			if (header == NULL) 
-				header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
-				muls.resolutionX,muls.resolutionY,
-				0,NULL,"wave function");
-			header->t = 0;
+			//if (header == NULL) 
+				//header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
+				//muls.resolutionX,muls.resolutionY,
+				//0,NULL,"wave function");
+			//header->t = 0;
 			sprintf(systStr,"%s/wave_probe.img",muls.folder);
-			writeImage((void **)wave->wave,header,systStr);
+			wave->WriteWave(systStr);
+			//writeImage((void **)wave->wave,header,systStr);
 			// writeImage(muls.wave,header,"wave->img");
 			// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave->img");
 			// system("showimage diff.img 2 &");
@@ -1919,13 +1909,14 @@ void doCBED() {
 
 				/***************** Only if Save level > 2: ****************/
 				if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
-					if (header == NULL) 
-						header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
-						muls.resolutionX,muls.resolutionY,
-						0,NULL,"wave function");
-					header->t = wave->thickness;
+					//if (header == NULL) 
+						//header = makeNewHeaderCompact(1,muls.nx,muls.ny,wave->thickness,
+						//muls.resolutionX,muls.resolutionY,
+						//0,NULL,"wave function");
+					//header->t = wave->thickness;
 					sprintf(systStr,"%s/wave_final.img",muls.folder);
-					writeImage((void **)wave->wave,header,systStr);
+					wave->WriteWave(systStr);
+					//writeImage((void **)wave->wave,header,systStr);
 					// writeImage(muls.wave,header,"wave.img");
 					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
 					// system("showimage diff.img 2 &");
@@ -1947,20 +1938,18 @@ void doCBED() {
 		}
 		/*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
 
-		if (avgArray == NULL)
-			avgArray = float2D(muls.nx,muls.ny,"avgArray");
-		if (diffArray == NULL)
-			diffArray = float2D(muls.nx,muls.ny,"diffArray");
 		sprintf(avgName,"%s/diff.img",muls.folder);
 		// readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
-
+		// TODO: Why are we reading in a DP at this point?  Do we have one yet?  
+		//     What happens if it isn't there?
+		//header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		wave->ReadDiffPat(avgName);
 
 		if (muls.avgCount == 0) {
 			/* for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++)
 			avgArray[ix][iy] = diffArray[ix][iy]; */
-			memcpy((void *)avgArray[0],(void *)diffArray[0],
-				(size_t)(muls.nx*muls.ny*sizeof(real)));
+			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],
+				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
@@ -1978,33 +1967,34 @@ void doCBED() {
 			/*      readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((real)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
-				avgArray[ix][iy] = t;
+				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
+					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
+				chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+				wave->avgArray[ix][iy] = t;
 
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
-			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-				1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
-				1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
-			else {
-				header->t = wave->thickness;
-				header->dx = 1.0/(muls.nx*muls.resolutionX);
-				header->dy = 1.0/(muls.ny*muls.resolutionY);
-				if (header->paramSize < 1) {
-					header->params = (double*)malloc(2*sizeof(double));
-					header->paramSize = 2;
-				}
+			//if (header == NULL) 
+				//header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+				//1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY),
+				//1,&(muls.tomoTilt),"Averaged Diffraction pattern, unit: 1/A");
+			//else {
+				//header->t = wave->thickness;
+				//header->dx = 1.0/(muls.nx*muls.resolutionX);
+				//header->dy = 1.0/(muls.ny*muls.resolutionY);
+				//if (header->paramSize < 1) {
+					//header->params = (double*)malloc(2*sizeof(double));
+					//header->paramSize = 2;
+				//}
 
-				header->params[0] = muls.tomoTilt;
-				header->params[1] = 1.0/wavelength(muls.v0);
-				setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
-			}
-			writeRealImage((void **)avgArray,header,avgName,sizeof(real));
+				params[0] = muls.tomoTilt;
+				params[1] = 1.0/wavelength(muls.v0);
+				//setHeaderComment(header,"Averaged Diffraction pattern, unit: 1/A");
+			//}
+			wave->WriteAvgArray(avgName,"Averaged Diffraction pattern, unit: 1/A",params);
+			//writeRealImage((void **)avgArray,header,avgName,sizeof(real));
 
 			/* report the result on the web page */
 			// printf("Will write report now\n");
@@ -2082,7 +2072,7 @@ void doCBED() {
 		} /* end of if lbemas ... */
 		displayProgress(1);
 	} /* end of for muls.avgCount=0.. */
-	delete(wave);
+	//delete(wave);
 }
 /************************************************************************
 * End of doCBED()
@@ -2100,25 +2090,22 @@ void doTEM() {
 	double timer,timerTot;
 	double x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
+	char *comment;
 	real t;
-	static real **avgArray=NULL,**diffArray=NULL;
-	static double *chisq = NULL;
-	static real **avgPendelloesung = NULL;
-	static int oldMulsRepeat1 = 1;
-	static int oldMulsRepeat2 = 1;
-	static long iseed=0;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
-	WAVEFUNC *wave = new WAVEFUNC(muls.nx,muls.ny);
-	static fftwf_complex **imageWave = NULL;
+	real **avgPendelloesung = NULL;
+	int oldMulsRepeat1 = 1;
+	int oldMulsRepeat2 = 1;
+	long iseed=0;
+	std::vector<double> params;
+	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny,muls.resolutionX,muls.resolutionY));
+	fftwf_complex **imageWave = NULL;
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	std::vector<double> chisq = std::vector<double>(muls.avgRuns);
+	// TODO: this used to be a pointer - we need to make sure muls and this function are synced up.
 	muls.chisq = chisq;
 	// muls.trans = 0;
-
-
 
 	if (muls.lbeams) {
 		muls.pendelloesung = NULL;
@@ -2241,12 +2228,13 @@ void doTEM() {
 				/***************** FOR DEBUGGING ****************/		
 				if ((muls.avgCount == 0) && (muls.saveLevel >=0) && (pCount+1==muls.mulsRepeat2*muls.cellDiv)) {
 					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,"wave.img");
-					if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
-					header->t = wave->thickness;
-					header->dx = muls.resolutionX;
-					header->dy = muls.resolutionY;
-					if (muls.tds) setHeaderComment(header,"Test wave function for run 0");
-					else setHeaderComment(header,"Exit face wave function for no TDS");
+
+					//if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
+					//header->t = wave->thickness;
+					//header->dx = muls.resolutionX;
+					//header->dy = muls.resolutionY;
+					if (muls.tds) comment = "Test wave function for run 0";
+					else comment = "Exit face wave function for no TDS";
 					sprintf(systStr,"%s/wave.img",muls.folder);
 					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
 						ktx = -2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
@@ -2262,37 +2250,32 @@ void doTEM() {
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
 					}
 
-
-					writeImage((void **)wave->wave,header,systStr);
+					wave->WriteWave(systStr, comment);
+					//writeImage((void **)wave->wave,header,systStr);
 					//    system("showimage diff.img 2 &");
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
 				if ((muls.tds) && (muls.saveLevel > 2)) {
 					sprintf(systStr,"%s/wave_%d.img",muls.folder,muls.avgCount);
-					// writeImage_old(muls.wave,muls.nx,muls.ny,wave->thickness,systStr);
-					if (header == NULL) header = makeNewHeader(muls.nx,muls.ny);
-					header->t = wave->thickness;
-					header->dx = muls.resolutionX;
-					header->dy = muls.resolutionY;
-					header->complexFlag = 1;
-					header->paramSize = 9;
-					if (header->params == NULL)
-						header->params = (double *)malloc(header->paramSize*sizeof(double));
-					header->params[0] = muls.v0;  				// high voltage
-					header->params[1] = muls.Cs;				// spherical aberration
-					header->params[2] = muls.df0;				// defocus
-					header->params[3] = muls.astigMag;			// astigmatism
-					header->params[4] = muls.astigAngle;	
-					header->params[5] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);	// focal spread
+					//header->dx = muls.resolutionX;
+					//header->dy = muls.resolutionY;
+					//header->complexFlag = 1;
+					params = std::vector<double>(9);
+					params[0] = muls.v0;  				// high voltage
+					params[1] = muls.Cs;				// spherical aberration
+					params[2] = muls.df0;				// defocus
+					params[3] = muls.astigMag;			// astigmatism
+					params[4] = muls.astigAngle;	
+					params[5] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);	// focal spread
 					// printf("****  Cc = %f, dE_E = %f, Delta = %f ****\n",muls.Cc,muls.dV_V,muls.Cc * muls.dV_V);
-					header->params[6] = muls.alpha;				// illumination convergence angle
+					params[6] = muls.alpha;				// illumination convergence angle
 					// beam tilt:
-					header->params[7] = muls.btiltx;			// beam tilt in mrad
-					header->params[8] = muls.btilty;			// beam tilt in mrad
+					params[7] = muls.btiltx;			// beam tilt in mrad
+					params[8] = muls.btilty;			// beam tilt in mrad
+					
+					comment = "complex exit face Wave function";
 
-
-					setHeaderComment(header,"complex exit face Wave function");
-					writeImage((void **)wave->wave,header,systStr);
+					wave->WriteWave(systStr, comment, params);
 				}
 #endif 
 
@@ -2304,23 +2287,19 @@ void doTEM() {
 		// This means the wave function is used for nothing else than producing image(s)
 		// and diffraction patterns.
 		//////////////////////////////////////////////////////////////////////////////
-		if (avgArray == NULL)
-			avgArray = float2D(muls.nx,muls.ny,"avgArray");
-		if (diffArray == NULL) {
-			diffArray = float2D(muls.nx,muls.ny,"diffArray");
-			// memset(diffArray[0],0,muls.nx*muls.ny*sizeof(float));
-		}
+
 		// 	sprintf(avgName,"%s/diffAvg.img",muls.folder);
 		sprintf(avgName,"%s/diff.img",muls.folder);
 
 		//readRealImage_old(diffArray,muls.nx,muls.ny,&t,avgName);
-		header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		//header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+		wave->ReadDiffPat(avgName);
 
 		if (muls.avgCount == 0) {
 			/***********************************************************
 			* Save the diffraction pattern
 			**********************************************************/	
-			memcpy((void *)avgArray[0],(void *)diffArray[0],(size_t)(muls.nx*muls.ny*sizeof(real)));
+			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],(size_t)(muls.nx*muls.ny*sizeof(real)));
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
@@ -2360,16 +2339,17 @@ void doTEM() {
 			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 			// get the amplitude squared:
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				diffArray[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
+				wave->diffpat[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
 			}
-			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-				muls.resolutionX,muls.resolutionY,
-				0,NULL,"Wave intensity");
-			header->t = wave->thickness;
-			setHeaderComment(header,"Wave intensity");
+			//if (header == NULL) 
+			//	header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+			//	muls.resolutionX,muls.resolutionY,
+			//	0,NULL,"Wave intensity");
+			//header->t = wave->thickness;
+			//setHeaderComment(header,"Wave intensity");
 			sprintf(avgName,"%s/waveIntensity.img",muls.folder);
-			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
+			wave->WriteDiffPat(avgName, "Wave intensity");
+			//writeRealImage((void **)diffArray,header,avgName,sizeof(real));
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2378,20 +2358,21 @@ void doTEM() {
 			/* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*avgArray[ix][iy]+
-					diffArray[ix][iy])/((real)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (avgArray[ix][iy]-t)*(avgArray[ix][iy]-t);
-				avgArray[ix][iy] = t;
+				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
+					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
+				chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+				wave->avgArray[ix][iy] = t;
 			}
 			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
-			if (header == NULL) 
-				header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-				muls.resolutionX,muls.resolutionY,
-				0,NULL,"diffraction pattern");
-			header->t = wave->thickness;
-			writeRealImage((void **)avgArray,header,avgName,sizeof(real));
+			//if (header == NULL) 
+			//	header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+			//	muls.resolutionX,muls.resolutionY,
+			//	0,NULL,"diffraction pattern");
+			//header->t = wave->thickness;
+			wave->WriteAvgArray(avgName, "Diffraction pattern");
+			//writeRealImage((void **)avgArray,header,avgName,sizeof(real));
 
 
 			/* report the result on the web page */
@@ -2434,24 +2415,35 @@ void doTEM() {
 			**********************************************************/ 
 			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
+#if FLOAT_PRECISION == 1
 			fftwf_execute(wave->fftPlanWaveForw);
+#elif FLOAT_PRECISION == 2
+			fftw_execute(wave->fftPlanWaveForw);
+#endif
+
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
 				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
 			}
+#if FLOAT_PRECISION == 1
 			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+#elif FLOAT_PRECISION == 2
+			fftw_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+#endif
 
 			// save the amplitude squared:
 			sprintf(avgName,"%s/image.img",muls.folder); 
-			header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
+			wave->ReadDiffPat(avgName);
+			//header_read = readImage((void ***)(&diffArray),muls.nx,muls.ny,avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*diffArray[ix][iy]+
+				t = ((real)muls.avgCount*wave->diffpat[ix][iy]+
 					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(real)(muls.avgCount+1);
-				diffArray[ix][iy] = t;
+				wave->diffpat[ix][iy] = t;
 			}
-			header->t = wave->thickness;
-			setHeaderComment(header,"Image intensity");
-			writeRealImage((void **)diffArray,header,avgName,sizeof(real));
+			//header->t = wave->thickness;
+			//setHeaderComment(header,"Image intensity");
+			wave->WriteDiffPat(avgName, "Image intensity");
+			//writeRealImage((void **)diffArray,header,avgName,sizeof(real));
 			// End of Image writing (if avgCount > 0)
 			//////////////////////////////////////////////////////////////////////
 
@@ -2494,7 +2486,6 @@ void doTEM() {
 		} /* end of if lbemas ... */		 
 		displayProgress(1);
 	} /* end of for muls.avgCount=0.. */  
-	delete(wave);
 }
 /************************************************************************
 * end of doTEM
@@ -2514,25 +2505,27 @@ void doSTEM() {
 	char jpgName[256], tifName[256];
 	real xpos,ypos,t;
 	static real **avgArray=NULL;
-	double *chisq,collectedIntensity;
-	static imageStruct *header = NULL;
-	static imageStruct *header_read = NULL;
+	double collectedIntensity;
+	//static imageStruct *header = NULL;
+	//static imageStruct *header_read = NULL;
 	float cztot;
 	int islice;
+	std::vector<double> chisq;
 
 	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
 	//WAVEFUNC *wave = *(new WAVEFUNC(muls.nx,muls.ny));
-	std::vector<WAVEFUNC *> waves;
-	WAVEFUNC *wave;
+	std::vector<WavePtr> waves;
+	WavePtr wave;
 
 	for (int th=0; th<omp_get_max_threads(); th++)
 	{
-		waves.push_back(new WAVEFUNC(muls.nx,muls.ny));
+		waves.push_back(WavePtr(new WAVEFUNC(muls.nx, muls.ny, muls.resolutionX, muls.resolutionY)));
 	}
 
-	chisq = (double *)malloc(muls.avgRuns*sizeof(double));
+	//chisq = (double *)malloc(muls.avgRuns*sizeof(double));
 	// zero-out the chisq array
-	memset(chisq, 0, muls.avgRuns*sizeof(double));
+	//memset(chisq, 0, muls.avgRuns*sizeof(double));
+	chisq = std::vector<double>(muls.avgRuns);
 	muls.chisq = chisq;
 	totalRuns = muls.avgRuns;
 	timer = cputim();
@@ -2643,7 +2636,7 @@ void doSTEM() {
 				*************************************************/
 				// default(none) forces us to specify all of the variables that are used in the parallel section.  
 				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
-#pragma omp parallel firstprivate(header, header_read) \
+#pragma omp parallel \
 	private(ix, iy, ixa, iya, wave, t, timer) \
 	shared(pCount, picts, chisq, muls, collectedIntensity, total_time, waves) \
 	default(none)
@@ -2677,7 +2670,7 @@ void doSTEM() {
 					{
 						/* load incident wave function and then propagate it */
 						sprintf(wave->fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
-						readStartWave(&muls, wave);  /* this also sets the thickness!!! */
+						readStartWave(wave);  /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
 						//muls.nslic0 = pCount;
 					}
@@ -2748,13 +2741,17 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-								header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
+								wave->ReadAvgArray(wave->avgName);
+								//header_read = readImage((void ***)&(wave->avgArray), muls.nx, muls.ny, wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
 										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
-									#pragma omp atomic
-									chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
-										(wave->avgArray[ixa][iya]-t);
+									if (muls.avgCount>1)
+									{
+										#pragma omp atomic
+										chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
+											(wave->avgArray[ixa][iya]-t);
+									}
 									wave->avgArray[ixa][iya] = t;
 								}
 							}
@@ -2762,13 +2759,14 @@ void doSTEM() {
 							* and convert it to jpg format 
 							*/
 							// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
-							if (header == NULL) 
-									header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
-										muls.resolutionX,muls.resolutionY,
-										0,NULL,"diffraction pattern");
+							//if (header == NULL) 
+							//		header = makeNewHeaderCompact(0,muls.nx,muls.ny,wave->thickness,
+							//			muls.resolutionX,muls.resolutionY,
+							//			0,NULL,"diffraction pattern");
 								// printf("Created header\n");
-							header->t = wave->thickness;
-							writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
+							//header->t = wave->thickness;
+							wave->WriteAvgArray(wave->avgName);
+							//writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
 							}	
 							else {
 								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
@@ -2825,16 +2823,11 @@ void doSTEM() {
 		// printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
 		/*************************************************************/
-
-		chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+		if (muls.avgCount>1)
+			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 		muls.intIntensity = collectedIntensity/(muls.scanXN*muls.scanYN);
 		displayProgress(1);
 	} /* end of for muls.avgCount=0..25 */
 
-        //	free(chisq);
-	for (int th=0; th<omp_get_num_threads(); th++)
-	{
-		delete(waves[th]);
-	}
 }
 
