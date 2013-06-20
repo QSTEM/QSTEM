@@ -85,8 +85,7 @@ void CImageIO::WriteData(void **pix, const char *fileName)
 
 	// TODO: should we write each element individually for clarity?
 	// write the 56-byte header
-	file.write(reinterpret_cast<const char*>(this), 56);
-	//fwrite((void *)this,m_headerSize,1,fp);
+	file.write(reinterpret_cast<const char*>(this), m_headerSize);
 	/*
 	fwrite((void *)&m_headerSize, 4, 1, fp);
 	fwrite((void *)&m_paramSize, 4, 1, fp);
@@ -121,10 +120,7 @@ void CImageIO::ReadHeader(const char *fileName)
   if (m_paramSize>0)
     {
       m_params=std::vector<double>(m_paramSize);
-      //for (int i=0; i<m_paramSize; i++)
-      //{
-          fread((void *)&m_params[0],sizeof(double),m_paramSize,fp);
-          //}
+      fread((void *)&m_params[0],sizeof(double),m_paramSize,fp);
     }
   if (m_commentSize>0)
     {
@@ -135,15 +131,6 @@ void CImageIO::ReadHeader(const char *fileName)
   if (fp != NULL) fclose(fp);
 }
 
-/***********************************************************
- * This function will read an image.  It reuses the same header 
- * struct over and over.  Therefore, values must be copied from 
- * the header members before calling this function again.
- *
- * The image pointer may also be NULL, in which case memory will be
- * allocated for it, and its size will be returned in the header struct
- * members nx, and ny.
- ***********************************************************/
 void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName) 
 {
   FILE *fp;
@@ -226,35 +213,4 @@ void CImageIO::SetParameter(int index, double value)
 	else
 		throw std::runtime_error("Tried to set out of bounds parameter.");
 }
-
-/* The pointers params and comment must either be initialized to NULL,
- * or point to a valid memory region already, because the will be 
- * REALLOCed
- */
-/*
-void CImageIO::ReadImageHeader(FILE *fp) {
-  int hSize=sizeof(imageStruct);
-  char buf[200];
-
-  // reset the file pointer, just to make sure we are at the beginning
-  clearerr(fp);
-  fseek(fp,0,SEEK_SET);
-  
-  // first we will read in the fixed header of headerSize bytes
-  fread((void *)&hSize,sizeof(int),1,fp);
-  fseek(fp,0,SEEK_SET);
-  fread((void *)header,1,hSize,fp);
-  // read the additional parameters:
-  if (m_paramSize >0) {
-	  m_params = std::vector<float_tt>(m_paramSize);//(double *)realloc(header->params,header->paramSize*sizeof(double));
-	  fread((void *)(&m_params[0]),sizeof(float_tt),m_paramSize,fp);
-  }
-  // read the comment
-  if (m_commentSize>0) {
-    fread((void *)(buf),1,m_commentSize,fp);
-	m_comment = std::string(buf);
-  }
-  // printf("DataSize: %d, complex: %d\n",header->dataSize,header->complexFlag);
-}
-*/
 
