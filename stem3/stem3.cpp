@@ -1734,7 +1734,6 @@ void doCBED() {
 	real t=0;
 	// we'll use the ones on the wave instead of allocating these.
 	//real **avgArray=NULL,**diffArray=NULL;
-	std::vector<double> chisq;
 	real **avgPendelloesung = NULL;
 	int oldMulsRepeat1 = 1;
 	int oldMulsRepeat2 = 1;
@@ -1745,11 +1744,9 @@ void doCBED() {
 	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, t, muls.resolutionX, muls.resolutionY));
 	std::vector<double> params(2);
 
-	if (iseed == 0) iseed = -(long) time( NULL );
+	muls.chisq = std::vector<double>(muls.avgRuns);
 
-	//chisq = (double *)malloc(muls.avgRuns*sizeof(double));
-	chisq = std::vector<double>(muls.avgRuns);
-	muls.chisq = chisq;
+	if (iseed == 0) iseed = -(long) time( NULL );
 
 	if (muls.lbeams) {
 		muls.pendelloesung = NULL;
@@ -1965,15 +1962,15 @@ void doCBED() {
 		} // of if muls.avgCount == 0 ...
 		else {
 			/*      readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
-			chisq[muls.avgCount-1] = 0.0;
+			muls.chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
 					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+				muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
 				wave->avgArray[ix][iy] = t;
 
 			}
-			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			//if (header == NULL) 
@@ -2018,7 +2015,7 @@ void doCBED() {
 					printf("Sorry, could not open data file for averaging\n");
 				else {
 					for (ix =0;ix<muls.avgCount;ix++) {
-						fprintf(avgFp,"%d %g\n",ix+1,chisq[ix]);
+						fprintf(avgFp,"%d %g\n",ix+1,muls.chisq[ix]);
 					}
 					fclose(avgFp);
 				}
@@ -2102,10 +2099,7 @@ void doTEM() {
 
 	if (iseed == 0) iseed = -(long) time( NULL );
 
-	std::vector<double> chisq = std::vector<double>(muls.avgRuns);
-	// TODO: this used to be a pointer - we need to make sure muls and this function are synced up.
-	muls.chisq = chisq;
-	// muls.trans = 0;
+	muls.chisq=std::vector<double>(muls.avgRuns);
 
 	if (muls.lbeams) {
 		muls.pendelloesung = NULL;
@@ -2356,14 +2350,14 @@ void doTEM() {
 		} // of if muls.avgCount == 0 ...
 		else {
 			/* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
-			chisq[muls.avgCount-1] = 0.0;
+			muls.chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
 					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
-				chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+				muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
 				wave->avgArray[ix][iy] = t;
 			}
-			chisq[muls.avgCount-1] = chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
 			// writeRealImage_old(avgArray,muls.nx,muls.ny,wave->thickness,avgName);
 			//if (header == NULL) 
@@ -2388,7 +2382,7 @@ void doTEM() {
 				printf("Sorry, could not open data file for averaging\n");
 			else {
 				for (ix =0;ix<muls.avgCount;ix++) {
-					fprintf(avgFp,"%d %g\n",ix+1,chisq[ix]);
+					fprintf(avgFp,"%d %g\n",ix+1,muls.chisq[ix]);
 				}
 				fclose(avgFp);
 			}
@@ -2510,7 +2504,6 @@ void doSTEM() {
 	//static imageStruct *header_read = NULL;
 	float cztot;
 	int islice;
-	std::vector<double> chisq;
 
 	//waves = (WAVEFUNC *)malloc(muls.scanYN*muls.scanXN*sizeof(WAVEFUNC));
 	//WAVEFUNC *wave = *(new WAVEFUNC(muls.nx,muls.ny));
@@ -2522,11 +2515,7 @@ void doSTEM() {
 		waves.push_back(WavePtr(new WAVEFUNC(muls.nx, muls.ny, muls.resolutionX, muls.resolutionY)));
 	}
 
-	//chisq = (double *)malloc(muls.avgRuns*sizeof(double));
-	// zero-out the chisq array
-	//memset(chisq, 0, muls.avgRuns*sizeof(double));
-	chisq = std::vector<double>(muls.avgRuns);
-	muls.chisq = chisq;
+	muls.chisq = std::vector<double>(muls.avgRuns);
 	totalRuns = muls.avgRuns;
 	timer = cputim();
 
@@ -2638,7 +2627,7 @@ void doSTEM() {
 				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
 #pragma omp parallel \
 	private(ix, iy, ixa, iya, wave, t, timer) \
-	shared(pCount, picts, chisq, muls, collectedIntensity, total_time, waves) \
+	shared(pCount, picts, muls, collectedIntensity, total_time, waves) \
 	default(none)
 #pragma omp for
 				for (i=0; i < (muls.scanXN * muls.scanYN); i++)
@@ -2749,7 +2738,7 @@ void doSTEM() {
 									if (muls.avgCount>1)
 									{
 										#pragma omp atomic
-										chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
+										muls.chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
 											(wave->avgArray[ixa][iya]-t);
 									}
 									wave->avgArray[ixa][iya] = t;
@@ -2769,7 +2758,7 @@ void doSTEM() {
 							//writeRealImage((void **)wave->avgArray, header, wave->avgName, sizeof(real));
 							}	
 							else {
-								if (muls.avgCount > 0)	chisq[muls.avgCount-1] = 0.0;
+								if (muls.avgCount > 0)	muls.chisq[muls.avgCount-1] = 0.0;
 							}
 							/* make file names for tif and jpg files */
 							/* crop, resize, convert to jpg, delete tif file */	    
@@ -2791,14 +2780,14 @@ void doSTEM() {
 						  */
 
 					#pragma omp atomic
-					muls.complete_pixels+=1;
+					++muls.complete_pixels;
 
 					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) 
 					{
 						#pragma omp atomic
 						total_time += cputim()-timer;
 						printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
-							muls.complete_pixels, muls.scanYN*muls.scanYN, wave->intIntensity,
+							muls.complete_pixels, muls.scanXN*muls.scanYN, wave->intIntensity,
 							(total_time)/muls.complete_pixels);
 						timer=cputim();
 					}
