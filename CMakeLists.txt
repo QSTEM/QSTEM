@@ -15,6 +15,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
 find_package(fftw3 REQUIRED)
 
+find_package(Boost 1.35.0 REQUIRED)
+
+# Make boost headers available everywhere
+include_directories(${Boost_INCLUDE_DIRS})
+
 set (M_LIB "")
 
 if (UNIX)
@@ -37,6 +42,9 @@ endif(OPENMP)
 #set(CMAKE_CXX_FLAGS_DEBUG "-ggdb -static")
 #set(CMAKE_C_FLAGS_RELEASE "-O3 -static -Wall -march=native")
 #set(CMAKE_CXX_FLAGS_RELEASE "-O3 -static -Wall -march=native")
+
+# Squelch Visual studio's warnings about insecure functions - will replace these over time, but must maintain Linux compatibility.
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 # adds the libraries
 add_subdirectory(libs)

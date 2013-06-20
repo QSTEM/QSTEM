@@ -68,7 +68,7 @@ handles.binPath = '';
 
 
 handles           = readAllFields(hObject, eventdata, handles);
-set(gcf,'Name','qstem V2.15');
+set(gcf,'Name','qstem V2.3');
 handles.Mm        = eye(3);
 handles.Detectors = [70.0 200.0 0 0; 0.0 40.0 0 0];  % initialize 1: ADF, 2: BF 
 handles.atomPos   = [];
@@ -633,7 +633,7 @@ if ~(isequal(filename,0) || isequal(folder,0))
     % cmd = sprintf('cd "%s" & "%s" %s &',folder,fullfile(handles.binPath,'stem3.exe'),filename);
     systemStr = computer();
     switch systemStr
-        case 'PCWIN'
+        case {'PCWIN','PCWIN64'}
             cd(folder);
             cmd = sprintf('cd "%s" & stem3 %s &',folder,filename);
             system(cmd);
@@ -734,6 +734,7 @@ if handles.modeNum == 0  % if in TEM mode
     set(handles.edit_ProbeResolutionY,'String',handles.ProbeResolutionY);
     set(handles.pushbutton_ImageSim,'Visible','on');
     set(handles.pushbutton_MoreAberrations,'Visible','off');
+    set(handles.pushbutton_ImageSim,'Visible','on');
     % fprintf('in TEM mode ...\n');
 else
     set(handles.pushbutton_ImageSim,'Visible','off');
@@ -921,7 +922,7 @@ else
             coords(:,2:4) = repmat(rotationCenter,Ncoords,1)+(handles.Mrot*(coords(:,2:4)-repmat(rotationCenter,Ncoords,1)).').';
             % coords(:,2:4) = repmat(rotationCenter,Ncoords,1)+(coords(:,2:4)-repmat(rotationCenter,Ncoords,1))*(handles.Mrot.');
             % coords(:,2:4) = coords(:,2:4)-repmat(NcellPotOffset,Ncoords,1);
-        end
+		end
         coords(:,2:4) = coords(:,2:4)-repmat(NcellPotOffset-[handles.PotentialOffsetX,handles.PotentialOffsetY,0],Ncoords,1);
     else  % Box mode !!!  front view
         % msgbox('Box mode not implemented yet!');
@@ -1056,6 +1057,7 @@ pause(0.2)
 if handles.modeNum == 0
     set(handles.pushbutton_ImageSim,'Visible','on');
     set(handles.pushbutton_MoreAberrations,'Visible','off');
+    set(handles.pushbutton_ImageSim,'Visible','on');
     % fprintf('in TEM mode ...\n');
 else
     set(handles.pushbutton_ImageSim,'Visible','off');
@@ -1078,8 +1080,12 @@ end
 if (nargin < 4)
     askUser = 1;
 end
-[pathname, filename, ext] = fileparts(handles.posFileName);
-filename = [filename ext];
+if isfield(handles,'posFileName')
+	[pathname, filename, ext] = fileparts(handles.posFileName);
+	filename = [filename ext];
+else
+	askUser = 1;
+end
 if (askUser)
     if isfield(handles,'posFileName')
         [filename, pathname] = uigetfile({'*.cfg', 'CFG file (*.cfg)';...
@@ -2846,9 +2852,11 @@ set(handles.edit_Xstop,'String',sprintf('%.2f',p1(1)+offset(1)));
 set(handles.edit_Ystart,'String',sprintf('%.2f',p1(2)));
 set(handles.edit_Ystop,'String',sprintf('%.2f',p1(2)+offset(2)));
 
-if ~isempty(RbboxHandle)
-    set(RbboxHandle,'Visible','off');
-    RbboxHandle = [];
+if exist('RbboxHandle')
+	if ~isempty(RbboxHandle)
+		set(RbboxHandle,'Visible','off');
+		RbboxHandle = [];
+	end
 end
 
 axis manual
@@ -2903,7 +2911,9 @@ params = [handles.ProbeNx,handles.ProbeNy,handles.ProbeResolutionX,handles.Probe
 c = zeros(6,1);
 c(2) = 10*handles.Defocus;
 c(4) = 1e7*handles.C3;
-c(6) = 1e7*handles.C5;
+if isfield(handles,'C5')
+	c(6) = 1e7*handles.C5;
+end
 handles.phi(2,2) = handles.AstigAngle*pi/180;
 handles.a(2,2)   = 10*handles.AstigMag;
 
@@ -3065,10 +3075,11 @@ set(handles.edit_Ystart,'String',handles.Ystart);
 set(handles.edit_Ystop,'String',handles.Ystop);
 set(handles.edit_Ypixels,'String',handles.Ypixels);
 
-
 guidata(hObject, handles);
 handles = pushbutton_UpdateView_Callback(hObject, eventdata, handles);
 guidata(hObject, handles);
+% end of CBED Radiobutton Callback
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3179,6 +3190,7 @@ end
 set(handles.pushbutton_ImageSim,'Visible','on');
 
 handles = pushbutton_UpdateView_Callback(hObject, eventdata, handles);
+set(handles.pushbutton_ImageSim,'Visible','on');
 guidata(hObject, handles);
 % End of TEM Radiobutton Callback
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -24,7 +24,7 @@ function varargout = imageSim(varargin)
 
 % Edit the above text to modify the response to help imageSim
 
-% Last Modified by GUIDE v2.5 10-Nov-2011 20:42:53
+% Last Modified by GUIDE v2.5 09-Mar-2012 21:11:32
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -151,7 +151,7 @@ if get(handles.checkbox_IncludeHigherOrders,'Value')
                1/5*(handles.a(5,5).*cos(5*(phi-handles.phi(5,5)))+handles.a(5,3).*cos(3*(phi-handles.phi(5,3)))+handles.a(5,1).*cos(1*(phi-handles.phi(5,1)))).*(theta.^5)+...
                1/6*(handles.a(6,6).*cos(6*(phi-handles.phi(6,6)))+handles.a(6,4).*cos(4*(phi-handles.phi(6,4)))+handles.a(6,2).*cos(2*(phi-handles.phi(6,2)))+handles.c(6)).*(theta2.^3));
     ctf     = exp(-i*chi);    
-    
+    ctfc    = ctf;
     if (get(handles.checkboxConvAngle,'Value'))
         % I will use: [dchi(q)/dq]^2 = [dchi/d|q|]^2+[dchi/|q|dphi]^2
         % first let's compute the q-derivative (the division by lambda is removed in both cases):
@@ -174,7 +174,7 @@ else
                1/3*(handles.a(3,3).*cos(3*(phi-handles.phi(3,3)))+handles.a(3,1).*cos(1*(phi-handles.phi(3,1)))).*theta2.*theta+...
                1/4*(handles.c(4)).*(theta2.^2));
     ctf     = exp(-i*chi);    
-
+    ctfc    = ctf;
     % ctf = exp(-i*2*p_l*theta2.*(1/2*fa+1/3*coma3a.*theta+1/4*handles.Cs*theta2));
     if (get(handles.checkboxConvAngle,'Value'))
        dchi_dq = ((handles.a(2,2).*cos(2*(phi-handles.phi(2,2)))+handles.c(2)).*theta+...
@@ -193,8 +193,10 @@ end
 if (handles.ObjApertureTheta > 0)
     handles.ObjApertureEdge = 1e-3*str2num(get(handles.edit_ObjApertureEdge,'String'));
     ctf(find(theta >= (handles.ObjApertureTheta+handles.ObjApertureEdge))) = 0;
+    ctfc(find(theta >= (handles.ObjApertureTheta+handles.ObjApertureEdge))) = 0;
     ind = find((theta < (handles.ObjApertureTheta+handles.ObjApertureEdge)) & (theta > handles.ObjApertureTheta));
     ctf(ind) = 0.5*ctf(ind).*(1+cos(pi*(theta(ind)-handles.ObjApertureTheta)/handles.ObjApertureEdge));
+    ctfc(ind) = 0.5*ctfc(ind).*(1+cos(pi*(theta(ind)-handles.ObjApertureTheta)/handles.ObjApertureEdge));
     clear ind
 end
 
@@ -211,16 +213,27 @@ if (get(handles.checkboxDelta,'Value'))
     % figure; plot(handles.dkx*10*[-Nx/2:Nx/2-1],[fftshift(Espat(:,1)) fftshift(Etemp(:,1))]); pause(0.1);
     % Apply the damping envelopes as well:
     ctf = Etemp.*ctf;
+    ctfc = Etemp.*ctfc;
 end
 
 if (handles.TiltX ~= 0) || (handles.TiltY ~= 0)
     tx = round(handles.TiltX/(handles.lambda*handles.dkx));
     ty = round(handles.TiltY/(handles.lambda*handles.dky));
-    handles.Psi = ifft2(circshift(fft2(handles.wave),[ty tx]).*ctf);
+    if get(handles.radiobutton_QuasiCoherent,'Value')
+        handles.Psi = ifft2(circshift(fft2(handles.wave),[ty tx]).*ctf);
+    else
+        handles.Psi = ifft2(circshift(fft2(handles.wave),[ty tx]).*ctfc);     
+        handles.Espat = Espat;
+    end
 else
     tx = 0;
     ty = 0;
-    handles.Psi = ifft2(fft2(handles.wave).*ctf);
+    if get(handles.radiobutton_QuasiCoherent,'Value')
+        handles.Psi = ifft2(fft2(handles.wave).*ctf);
+    else
+        handles.Psi = ifft2(fft2(handles.wave).*ctfc);
+        handles.Espat = Espat;
+    end        
 end
 % handles.Cs*max(max(theta2)).^2
 
@@ -301,11 +314,20 @@ xl = get(handles.axesImage,'XLim');  yl = get(handles.axesImage,'YLim');    cla;
 if get(handles.radiobuttonImage,'Value')  
     % show the image
     simIm = abs(handles.Psi).^2;
+    if get(handles.radiobutton_FluxPreserving,'Value')
+        simIm = real(ifft2(fft2(simIm).*Espat));
+    end
     if get(handles.checkbox_Vibration,'Value')
         vib1 = (pi*handles.vibration_Axis1/(-log(0.5))).^2;
         vib2 = (pi*handles.vibration_Axis2/(-log(0.5))).^2;
         simIm = real(ifft2(fft2(simIm).*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
     end
+    if get(handles.checkbox_Counts,'Value')
+        cnts = str2double(get(handles.edit_ImgCounts,'String'));
+        simIm = cnts*simIm+sqrt(cnts*simIm).*randn(size(simIm));
+        simIm(find(simIm < 0)) = 0;
+    end
+    
     imagesc(handles.dx/10*[0:Nx-1],handles.dy/10*[0:Ny-1],simIm);
     title(sprintf('Image t=%.1f nm [%.4f .. %.4f]',0.1*handles.thickness,min(min(simIm)),max(max(simIm))));
 elseif get(handles.radiobutton_WaveAmplitude,'Value')
@@ -322,7 +344,18 @@ elseif get(handles.radiobutton_WavePhase,'Value')
     title(sprintf('Phase t=%.1f nm [%.4f .. %.4f]',0.1*handles.thickness,min(min(simIm)),max(max(simIm))));
 else
     % show the diffractogram
-    diffg = abs(fft2(abs(handles.Psi).^2));
+    simIm = abs(handles.Psi).^2;
+    if get(handles.checkbox_Counts,'Value')
+        cnts = str2double(get(handles.edit_ImgCounts,'String'));
+        simIm = cnts*simIm+sqrt(cnts*simIm).*randn(size(simIm));
+        simIm(find(simIm < 0)) = 0;
+    end
+
+    if get(handles.radiobutton_FluxPreserving,'Value')
+        diffg = abs(fft2(simIm).*Espat);
+    else
+        diffg = abs(fft2(simIm));
+    end
     if get(handles.checkbox_Vibration,'Value')
         vib1 = (pi*handles.vibration_Axis1/(-log(0.5))).^2;
         vib2 = (pi*handles.vibration_Axis2/(-log(0.5))).^2;
@@ -1010,8 +1043,17 @@ if get(handles.checkbox_Vibration,'Value')
 
     vib1 = (pi*handles.vibration_Axis1/(-log(0.5))).^2;
     vib2 = (pi*handles.vibration_Axis2/(-log(0.5))).^2;
-    img = real(ifft2(fft2(img).*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+    if get(handles.radiobutton_FluxPreserving,'Value')
+        img = real(ifft2(fft2(img).*handles.Espat.*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+    else
+        img = real(ifft2(fft2(img).*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+    end
+else
+    if get(handles.radiobutton_FluxPreserving,'Value')
+        img = real(ifft2(fft2(img).*handles.Espat));
+    end
 end
+
 
 
 if get(handles.checkbox_Sampling,'Value')
@@ -1024,8 +1066,19 @@ if get(handles.checkbox_Sampling,'Value')
     
     img2 = interp2(dx*[0:Nx-1],dy*[0:Ny-1].',img,xi,yi.','linear',0);
         
+    if get(handles.checkbox_Counts,'Value')
+        cnts = str2double(get(handles.edit_ImgCounts,'String'));
+        img2 = cnts*img2+sqrt(cnts*img2).*randn(size(img2));
+        img2(find(img2 < 0)) = 0;
+    end
+
     binwrite2D(img2,fullfile(pathname, filename),sampling,sampling,handles.thickness,0,0);
-else
+else    
+    if get(handles.checkbox_Counts,'Value')
+        cnts = str2double(get(handles.edit_ImgCounts,'String'));
+        img = cnts*img+sqrt(cnts*img).*randn(size(img));
+        img(find(img < 0)) = 0;
+    end
     binwrite2D(img,fullfile(pathname, filename),dx,dy,handles.thickness,0,0);
 end
 
@@ -1100,12 +1153,22 @@ for it = 0:Nthickness-1
             handles = updateImages(handles);
             % handles = guidata(hObject);
             img = abs(handles.Psi).^2;
+
             if get(handles.checkbox_Vibration,'Value')
                 vib1 = (pi*handles.vibration_Axis1/(-log(0.5))).^2;
                 vib2 = (pi*handles.vibration_Axis2/(-log(0.5))).^2;
-                img = real(ifft2(fft2(img).*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+                if get(handles.radiobutton_FluxPreserving,'Value')
+                    img = real(ifft2(fft2(img).*handles.Espat.*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));                    
+                else
+                    img = real(ifft2(fft2(img).*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+                end
+            else
+                if get(handles.radiobutton_FluxPreserving,'Value')
+                    img = real(ifft2(fft2(img).*handles.Espat));
+                end 
             end
 
+            
             % resample the image, if requested:
             if get(handles.checkbox_Sampling,'Value')
                 Nx2 = round((Nx-1)*dx/sampling)+1;
@@ -1142,6 +1205,12 @@ for it = 0:Nthickness-1
                         end
                     end
                 end
+                if get(handles.checkbox_Counts,'Value')
+                    cnts = str2double(get(handles.edit_ImgCounts,'String'));
+                    img2 = cnts*img2+sqrt(cnts*img2).*randn(size(img2));
+                    img2(find(img2 < 0)) = 0;
+                end
+
                 if (Ntds == 0)
                     binwrite2D(img2,fileName,sampling,sampling,handles.thickness,0,0);
                     
@@ -1153,6 +1222,12 @@ for it = 0:Nthickness-1
                    end
                 end
             else
+                if get(handles.checkbox_Counts,'Value')
+                    cnts = str2double(get(handles.edit_ImgCounts,'String'));
+                    img = cnts*img+sqrt(cnts*img).*randn(size(img));
+                    img(find(img < 0)) = 0;
+                end
+
                 if (handles.numWaves > 1)
                     idString = handles.waveNames{it+1};
                     idString = idString(6:end-4);
@@ -1215,6 +1290,26 @@ figure;
 if get(handles.radiobuttonImage,'Value')  
     % show the image
     simIm = abs(handles.Psi).^2;
+    if get(handles.checkbox_Vibration,'Value')
+        vib1 = (pi*handles.vibration_Axis1/(-log(0.5))).^2;
+        vib2 = (pi*handles.vibration_Axis2/(-log(0.5))).^2;
+        if get(handles.radiobutton_FluxPreserving,'Value')
+            simIm = real(ifft2(fft2(simIm).*handles.Espat.*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+        else
+            simIm = real(ifft2(fft2(simIm).*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)))));
+        end
+    else
+        if get(handles.radiobutton_FluxPreserving,'Value')
+            simIm = real(ifft2(fft2(simIm).*handles.Espat));
+        end
+    end
+    if get(handles.checkbox_Counts,'Value')
+        cnts = str2double(get(handles.edit_ImgCounts,'String'));
+        simIm = cnts*simIm+sqrt(cnts*simIm).*randn(size(simIm));
+        simIm(find(simIm < 0)) = 0;
+    end
+
+    
     imagesc(handles.dx/10*[0:Nx-1],handles.dy/10*[0:Ny-1],simIm);
     title(sprintf('Image t=%.1f nm [%.2f .. %.2f]',0.1*handles.thickness,min(min(simIm)),max(max(simIm))));
 elseif get(handles.radiobutton_WaveAmplitude,'Value')
@@ -1226,8 +1321,20 @@ elseif get(handles.radiobutton_WavePhase,'Value')
     imagesc(handles.dx/10*[0:Nx-1],handles.dy/10*[0:Ny-1],simIm);
     title(sprintf('Phase t=%.1f nm [%.2f .. %.2f]',0.1*handles.thickness,min(min(simIm)),max(max(simIm))));
 else
+    simIm = abs(handles.Psi).^2;
     % show the diffractogram
-    diffg = log(1+abs((fft2(abs(handles.Psi).^2))));
+    if get(handles.radiobutton_FluxPreserving,'Value')
+        diffg = abs(fft2(simIm).*Espat);
+    else
+        diffg = abs(fft2(simIm));
+    end
+    if get(handles.checkbox_Vibration,'Value')
+        vib1 = (pi*handles.vibration_Axis1/(-log(0.5))).^2;
+        vib2 = (pi*handles.vibration_Axis2/(-log(0.5))).^2;
+        diffg = diffg.*exp(-vib1*k2.*abs(cos(phi-handles.vibration_Angle))-vib2*k2.*abs(sin(phi-handles.vibration_Angle)));
+    end
+
+    diffg = log(1+diffg);
     diffg(1,1) = 0;
     imagesc(handles.dkx*10*[-Nx/2:Nx/2-1],handles.dky*10*[-Ny/2:Ny/2-1],fftshift(diffg));
     title('Diffractogram (log scale)');
@@ -1439,11 +1546,11 @@ if get(handles.checkbox_Sampling,'Value')
     if xi(end) > dx*(Nx-1), xi(end) = dx*(Nx-1); end;
     if yi(end) > dy*(Ny-1), yi(end) = dy*(Ny-1); end;
     
-    Psi2 = interp2(dx*[0:Nx-1],dy*[0:Ny-1].',Psi,xi,yi.','linear',0);
+    Psi2 = interp2(dx*[0:Nx-1],dy*[0:Ny-1].',handles.Psi,xi,yi.','linear',0);
         
     binwrite2D(Psi2,fullfile(pathname, filename),sampling,sampling,handles.thickness,0,0);
 else
-    binwrite2D(handles.Psi,fileName,dx,dy,handles.thickness,0,0);
+    binwrite2D(handles.Psi,fullfile(pathname, filename),dx,dy,handles.thickness,0,0);
 end
 
 
@@ -1646,6 +1753,45 @@ end
 
 % --- Executes on button press in checkbox_IncludeHigherOrders.
 function checkbox_IncludeHigherOrders_Callback(hObject, eventdata, handles)
+pushbuttonUpdate_Callback(hObject, eventdata, handles);
+
+
+
+
+
+function edit_ImgCounts_Callback(hObject, eventdata, handles)
+pushbuttonUpdate_Callback(hObject, eventdata, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_ImgCounts_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_ImgCounts (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox_Counts.
+function checkbox_Counts_Callback(hObject, eventdata, handles)
+pushbuttonUpdate_Callback(hObject, eventdata, handles);
+
+
+
+
+% --- Executes on button press in radiobutton_QuasiCoherent.
+function radiobutton_QuasiCoherent_Callback(hObject, eventdata, handles)
+pushbuttonUpdate_Callback(hObject, eventdata, handles);
+
+
+
+
+% --- Executes on button press in radiobutton_FluxPreserving.
+function radiobutton_FluxPreserving_Callback(hObject, eventdata, handles)
 pushbuttonUpdate_Callback(hObject, eventdata, handles);
 
 
