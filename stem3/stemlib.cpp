@@ -413,7 +413,6 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	static fftw_complex ***oldTrans = NULL;
 	static fftw_complex ***oldTrans0 = NULL;
 #endif
-	//static imageStruct *header = NULL;
 	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
 				muls->sliceThickness,muls->resolutionX,muls->resolutionY));
 	fftw_complex dPot;
@@ -632,11 +631,6 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
 			sprintf(buf,"%s/potential_%d.img",muls->folder,i);
 			imageIO->ReadImage((void **)tempPot,nx,ny,buf);
-			//header = readImage((void ***)&tempPot,0,0,buf);
-			// printf("%d: read potential with Nx=%d, Ny=%d\n",i,header->nx,header->ny);
-			//if ((nx != header->nx) || (ny != header->ny))
-				//printf("potential array size mismatch: (%d,%d) != (%d,%d)\n",
-				//header->nx,header->ny,nx,ny);
 			for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
 				(*muls).trans[j][ix][iy][0] = tempPot[ix][iy];
 				(*muls).trans[j][ix][iy][1] = 0.0;
@@ -1293,15 +1287,10 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			if (muls->printLevel >= 3)
 				printf("Saving (complex) potential layer %d to file %s (r: %g..%g)\n",iz,filename,ddx,ddy); 
 
-			// create header for complex file, if necessary:
-			//header->t = muls->sliceThickness;
 			imageIO->SetThickness(muls->sliceThickness);
-			//header->comment = (char *)malloc(header->commentSize);
-			//memset(header->comment,0,header->commentSize);
 			sprintf(buf,"Projected Potential (slice %d)",iz);		 
 			imageIO->SetComment(buf);
 			imageIO->WriteComplexImage((void **)muls->trans[iz],filename);
-			//writeImage((void **)muls->trans[iz],header,filename); 	 
 		} // loop through all slices
 	} /* end of if savePotential ... */
 	if (muls->saveTotalPotential) {
@@ -1323,20 +1312,10 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 #endif
 		if (muls->printLevel >= 2)
 			printf("Saving total projected potential to file %s (r: %g..%g)\n",filename,ddx,ddy); 
-
-		//if (header == NULL) header = makeNewHeaderCompact(0,muls->potNx,muls->potNy,
-			//nlayer*muls->sliceThickness,muls->resolutionX,muls->resolutionY,
-			//0,NULL,NULL);
-		//header->commentSize = 64;
-		//header->t = nlayer*muls->sliceThickness;
 		imageIO->SetThickness(nlayer*muls->sliceThickness);
-		//header->comment = (char *)malloc(header->commentSize);
-		//memset(header->comment,0,header->commentSize);
-		//header->complexFlag = 0;
 		sprintf(buf,"Projected Potential (sum of %d slices)",muls->slices);
 		imageIO->SetComment(buf);
 		imageIO->WriteRealImage((void **)tempPot, fileName);
-		//writeRealImage((void **)tempPot,header,filename,sizeof(float)); 	 
 	}
 
 } // end of make3DSlices
@@ -1356,7 +1335,7 @@ fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *
 	static fftwf_complex **atPot = NULL;
 	static fftwf_complex *temp = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	ImageIOPtr imageio = ImageIOPtr();
 	static fftwf_complex *ptr = NULL;
 	static char fileName[256];
 #endif 
@@ -1491,17 +1470,11 @@ fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *
 
 
 #if SHOW_SINGLE_POTENTIAL
+		imageio = ImageIOPtr(new CImageIO(nx, nz, dkz, dkx));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nz,nx,0,dkx,dky,0,NULL,"rec. space potential");
-		header->nx = nz;
-		header->ny = nx;
-		header->dx = dkz;
-		header->dy = dkx;
-
 		sprintf(fileName,"pot_rec_%d.img",Znum);
-		header->t = muls->sliceThickness;
-		writeImage((void **)&temp,header,fileName);
+		imageio->SetThickness(muls->sliceThickness);
+		imageio->WriteComplexImage((void**)temp, fileName);
 #endif	  
 		// This converts the 2D kx-kz  map of the scattering factor to a 2D real space map.
 		plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
@@ -1538,17 +1511,13 @@ fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
 #if SHOW_SINGLE_POTENTIAL
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nz/2,nx/2,0,muls->resolutionX/OVERSAMP_X,
-			muls->sliceThickness/nzPerSlice,0,NULL,"potential");
-		header->nx = nz/2;
-		header->ny = nx/2;
-		header->dx = muls->sliceThickness/nzPerSlice;
-		header->dy = muls->resolutionX/OVERSAMP_X;
-		header->t = nz*muls->sliceThickness/nzPerSlice;
+		imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, muls->sliceThickness/nzPerSlice, 
+			muls->resolutionX/OVERSAMP_X));
+		// This scattering factor agrees with Kirkland's scattering factor fe(q)
+		imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
 		sprintf(fileName,"potential_rz_%d.img",Znum);
 		ptr = atPot[Znum];
-		writeImage((void **)&ptr,header,fileName);   
+		imageio->WriteComplexImage((void**)ptr, fileName);
 #endif	  
 		if (muls->printLevel > 1) printf("Created 3D (r-z) %d x %d potential array for Z=%d (%d, B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
 			nx/2,nz/2,Znum,iKind,B,dkx,dky,dkz,izOffset);
@@ -1573,7 +1542,7 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 	static fftwf_complex **atPot = NULL;
 	static fftwf_complex *temp = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	ImageIOPtr imageio = ImageIOPtr();
 	static fftwf_complex *ptr = NULL;
 	static char fileName[256];
 #endif 
@@ -1707,15 +1676,11 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 
 
 #if SHOW_SINGLE_POTENTIAL
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nz,nx,0,dkx,dky,0,NULL,"rec. space potential");
-		header->nx = nz;
-		header->ny = nx;
-		header->dx = dkx;
-		header->dy = dkz;
-		sprintf(fileName,"pot_recOffs_%d.img",Znum);
-		header->t = muls->sliceThickness;
-		writeImage((void **)&temp,header,fileName);
+		imageio = ImageIOPtr(new CImageIO(nz, nx, dkx, dkz, std::vector<double>(), 
+			"rec. space potential"));
+		// This scattering factor agrees with Kirkland's scattering factor fe(q)
+		imageio->SetThickness(muls->sliceThickness);
+		imageio->WriteComplexImage((void**)temp, fileName);
 #endif	  
 
 		plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
@@ -1746,17 +1711,13 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 			atPot[Znum][ind3d][1] = 0;
 		}
 #if SHOW_SINGLE_POTENTIAL
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nz/2,nx/2,0,muls->resolutionX/OVERSAMP_X,
-			muls->sliceThickness/nzPerSlice,0,NULL,"potential");
-		header->nx = nz/2;
-		header->ny = nx/2;
-		header->dx = muls->resolutionX/OVERSAMP_X;
-		header->dy = muls->sliceThickness/nzPerSlice;
-		header->t = nz*muls->sliceThickness/nzPerSlice;
+		imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, muls->resolutionX/OVERSAMP_X, 
+		muls->sliceThickness/nzPerSlice));
+		// This scattering factor agrees with Kirkland's scattering factor fe(q)
+		imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
 		sprintf(fileName,"potentialOffs_rz_%d.img",Znum);
 		ptr = atPot[Znum];
-		writeImage((void **)&ptr,header,fileName);	 
+		imageio->WriteComplexImage((void**)ptr, fileName);
 #endif	  
 		if (muls->printLevel > 1) printf("Created 3D (r-z) %d x %d potential offset array for Z=%d (%d, B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
 			nx/2,nz/2,Znum,iKind,B,dkx,dky,dkz,izOffset);
@@ -1782,7 +1743,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 	static int nx,ny;
 	static fftwf_complex **atPot = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
-	static imageStruct *header = NULL;
+	ImageIOPtr imageio = ImageIOPtr();
 	static char fileName[256];
 #endif 
 	static double *splinb=NULL;
@@ -1849,20 +1810,6 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 					// multiply scattering factor with Debye-Waller factor:
 					// printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
 					f = seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s2))*exp(-s2*B*0.25);
-					/*
-					for (iz=1;iz<nx;iz++) {
-						s3 = 0.5*dkx*iz;
-						s3 = s3*s3+s2;
-						if (s3<kmax2) {
-							f += 2*seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s3))*exp(-s3*B*0.25);
-					} 
-						else break;
-					} 
-					
-					f *= 0.5*dkx;
-					*/
-					// phase	= kx*xPos + kz*zPos;
-					// phase = PI*(kx*muls->resolutionX*nx/(OVERSAMP_X)+ky*muls->resolutionY*ny/(OVERSAMP_X));
 					phase = PI*(kx*muls->resolutionX*nx+ky*muls->resolutionY*ny);
 					atPot[Znum][ind][0] = f*cos(phase);
 					atPot[Znum][ind][1] = f*sin(phase);
@@ -1870,12 +1817,11 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 			}
 		}
 #if SHOW_SINGLE_POTENTIAL == 1
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nx,ny,0,dkx,dky,0,NULL,"potential");
-		sprintf(fileName,"pot_rec_%d.img",Znum);
-		header->dx = dkx;
-		header->dy = dky;
-		writeImage((void **)&(atPot[Znum]),header,fileName);
+		imageio = ImageIOPtr(new CImageIO(nz, nx, dkx, dkz, std::vector<double>(), 
+		"potential"));
+		// This scattering factor agrees with Kirkland's scattering factor fe(q)
+		imageio->SetThickness(muls->sliceThickness);
+		imageio->WriteComplexImage((void**)atPot[Znum], fileName);
 #endif    
 		plan = fftwf_plan_dft_2d(nx,ny,atPot[Znum],atPot[Znum],FFTW_BACKWARD,FFTW_ESTIMATE);
 		fftwf_execute(plan);
@@ -1883,37 +1829,15 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 		for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
 				atPot[Znum][iy+ix*ny][0] *= dkx*dky*(OVERSAMP_X*OVERSAMP_X);  
 		}
-		/*
-		for (min = atPot[Znum][0][0],ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-			if (sqrt((double)((ix-nx/2)*(ix-nx/2)+(iy-ny/2)*(iy-ny/2))) > nx/2)
-				atPot[Znum][iy+ix*ny][0] = 0;
-			else {
-
-				// divide by unit cell area (volume, if in 3D):
-				atPot[Znum][iy+ix*ny][0] *= dkx*dky; //  / (OVERSAMP_X*OVERSAMP_X);  
-				if (atPot[Znum][iy+ix*ny][0] < 0) atPot[Znum][iy+ix*ny][0] = 0;
-				if (atPot[Znum][iy+ix*ny][0] < min) min = atPot[Znum][iy+ix*ny][0];
-			}
-			atPot[Znum][iy+ix*ny][1]= 0;
-		}
-		*/
-		/*
-		printf("Found minimum potential value of %g ... subtracting it from 2D potential.\n",min);
-		for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-			if (sqrt((double)((ix-nx/2)*(ix-nx/2)+(iy-ny/2)*(iy-ny/2))) <= nx/2)
-				atPot[Znum][iy+ix*ny][0] -= min;
-		}
-		*/
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
 #if SHOW_SINGLE_POTENTIAL == 1
-		if (header == NULL) 
-			header = makeNewHeaderCompact(1,nx,ny,0,muls->resolutionX/OVERSAMP_X,
-			muls->resolutionY/OVERSAMP_X,0,NULL,"potential");
-		header->dx = muls->resolutionX/OVERSAMP_X;
-		header->dy = muls->resolutionY/OVERSAMP_X;
-		sprintf(fileName,"potential_%d.img",Znum);
-		writeImage((void **)&(atPot[Znum]),header,fileName);
+		imageio = ImageIOPtr(new CImageIO(nx, ny, muls->resolutionX/OVERSAMP_X, 
+			muls->resolutionY/OVERSAMP_X, std::vector<double>(), "potential"));
+		// This scattering factor agrees with Kirkland's scattering factor fe(q)
+		imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
+		sprintf(fileName,"potential_%d.img",Znum)
+		imageio->WriteComplexImage((void**)atPot[Znum], fileName);
 #endif    
 		printf("Created 2D %d x %d potential array for Z=%d (%d, B=%g A^2)\n",nx,ny,Znum,iKind,B);
 	}
@@ -1968,183 +1892,6 @@ void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz) {
 		if (result != 1)
 			printf("\ncould not write output file %s\n",outFile);
 }
-
-
-/*******************************************************
-* probePlot will create a file with the crossection of the electron 
-* probe.
-*/
-void probePlot(MULS *muls, WavePtr wave) {
-	static char *plotFile = "probePlot.dat",systStr[32];
-	int ix, iy;
-	FILE *fp=NULL;
-	double dx,dy,Imax;
-
-
-	dx = (*muls).resolutionX*(*muls).nx/2.0;
-	dy = (*muls).resolutionY*(*muls).ny/2.0;
-
-	probe(muls,wave,dx,dy);
-
-	iy = (*muls).ny/2;
-	if ((fp = fopen(plotFile,"w")) == NULL)
-		return;
-
-
-	/****************************************************
-	* write the header to the file:
-	***************************************************/
-	fprintf(fp,"# ACE/gr parameter file\n"
-		"#\n"
-		"@with g0\n"
-		"@g0 on\n"
-		"@g0 label off\n"
-		"@g0 hidden false\n"
-		"@g0 type xy\n"
-		"@    world xmin %g\n"
-		"@    world xmax %g\n"
-		"@    world ymin 0\n"
-		"@    world ymax %g\n"
-		"@    stack world 0, 0, 0, 0 tick 0, 0, 0, 0\n"
-		"@    view xmin 0.42000\n"
-		"@    view xmax 0.630000\n"
-		"@    view ymin 0.350000\n"
-		"@    view ymax 0.650000\n"
-		"@    title \"Incident probe intensity\"\n"
-		"@    title font 0\n"
-		"@    title size 1.250000\n"
-		"@    title color 4\n"
-		"@    title linewidth 2\n"
-		"@    subtitle \"dE: %.2feV df: %dA    \"\n"
-		"@    subtitle font 4\n"
-		"@    subtitle size 1.000000\n"
-		"@    subtitle color 1\n"
-		"@    subtitle linewidth 1\n"
-		"@    s2 linestyle 1\n"
-		"@    s2 linewidth 3\n"
-		"@    s2 color 3\n"
-		"@    xaxis  tick on\n"
-		"@    xaxis  tick major 5\n"
-		"@    xaxis  tick minor 1\n"
-		"@    xaxis  tick offsetx 0.000000\n"
-		"@    xaxis  tick offsety 0.000000\n"
-		"@    xaxis  label \"distance from probe center [A]\"\n"
-		"@    xaxis  label layout para\n"
-		"@    xaxis  label place auto\n"
-		"@    xaxis  label char size 1.000000\n"
-		"@    xaxis  label font 0\n"
-		"@    xaxis  label color 1\n"
-		"@    xaxis  label linewidth 2\n"
-		"@    xaxis  ticklabel on\n"
-		"@    xaxis  ticklabel type auto\n"
-		"@    xaxis  ticklabel prec 5\n"
-		"@    xaxis  ticklabel format general\n"
-		"@    xaxis  ticklabel append \"\"\n"
-		"@    xaxis  ticklabel prepend \"\"\n"
-		"@    xaxis  ticklabel layout horizontal\n"
-		"@    xaxis  ticklabel place on ticks\n"
-		"@    xaxis  ticklabel skip 0\n"
-		"@    xaxis  ticklabel stagger 0\n"
-		"@    xaxis  ticklabel op bottom\n"
-		"@    xaxis  ticklabel sign normal\n"
-		"@    xaxis  ticklabel start type spec\n"
-		"@    xaxis  ticklabel start %d\n"
-		"@    xaxis  ticklabel stop type auto\n"
-		"@    xaxis  ticklabel stop 0.000000\n"
-		"@    xaxis  ticklabel char size 1.000000\n"
-		"@    xaxis  ticklabel font 0\n"
-		"@    xaxis  ticklabel color 1\n"
-		"@    xaxis  ticklabel linewidth 2\n"
-		"@    xaxis  tick major on\n"
-		"@    xaxis  tick minor on\n"
-		"@    xaxis  tick default 6\n"
-		"@    xaxis  tick in\n"
-		"@    xaxis  tick major color 1\n"
-		"@    xaxis  tick major linewidth 2\n"
-		"@    xaxis  tick major linestyle 1\n"
-		"@    xaxis  tick minor color 1\n"
-		"@    xaxis  tick minor linewidth 2\n"
-		"@    xaxis  tick minor linestyle 1\n"
-		"@    xaxis  tick log off\n"
-		"@    yaxis  tick on\n"
-		"@    yaxis  tick major %d\n"
-		"@    yaxis  tick minor %d\n"
-		"@    yaxis  tick offsetx 0.000000\n"
-		"@    yaxis  tick offsety 0.000000\n"
-		"@    yaxis  label \"intensity [normailzed]\"\n"
-		"@    yaxis  label layout para\n"
-		"@    yaxis  label place auto\n"
-		"@    yaxis  label char size 1.000000\n"
-		"@    yaxis  label font 0\n"
-		"@    yaxis  label color 1\n"
-		"@    yaxis  label linewidth 2\n"
-		"@    yaxis  ticklabel on\n"
-		"@    yaxis  ticklabel type auto\n"
-		"@    yaxis  ticklabel prec 5\n"
-		"@    yaxis  ticklabel format general\n"
-		"@    yaxis  ticklabel append \"\"\n"
-		"@    yaxis  ticklabel prepend \"\"\n"
-		"@    yaxis  ticklabel layout horizontal\n"
-		"@    yaxis  ticklabel place on ticks\n"
-		"@    yaxis  ticklabel skip 0\n"
-		"@    yaxis  ticklabel stagger 0\n"
-		"@    yaxis  ticklabel op left\n"
-		"@    yaxis  ticklabel sign normal\n"
-		"@    yaxis  ticklabel start type auto\n"
-		"@    yaxis  ticklabel start 0.000000\n"
-		"@    yaxis  ticklabel stop type auto\n"
-		"@    yaxis  ticklabel stop 0.000000\n"
-		"@    yaxis  ticklabel char size 1.000000\n"
-		"@    yaxis  ticklabel font 0\n"
-		"@    yaxis  ticklabel color 1\n"
-		"@    yaxis  ticklabel linewidth 2\n"
-		"@    yaxis  tick major on\n"
-		"@    yaxis  tick minor on\n" 
-		"@    yaxis  tick major color 1\n"
-		"@    yaxis  tick major linewidth 2\n"
-		"@    yaxis  tick major linestyle 1\n"
-		"@    yaxis  tick minor color 1\n"
-		"@    yaxis  tick minor linewidth 2\n"
-		"@    yaxis  tick minor linestyle 1\n"
-		"@    frame on\n"
-		"@    frame type 0\n"
-		"@    frame linestyle 1\n"
-		"@    frame linewidth 3\n"
-		"@    frame color 1\n"
-		"@    frame fill off\n"
-		"@    frame background color 7\n"
-		"@WITH G0\n"
-		"@G0 ON\n"
-		"@TARGET S2\n"
-		"@TYPE xy\n",
-		-dx,dx,
-		(Imax=(*wave).wave[(*muls).nx/2][iy][0]*(*wave).wave[(*muls).nx/2][iy][0]+
-		(*wave).wave[(*muls).nx/2][iy][1]*(*wave).wave[(*muls).nx/2][iy][1]),
-		(*muls).dE_E*(*muls).v0*1.0e3,(int)((*muls).Cc*(*muls).dE_E),
-		-(int)(dx/5)*5,
-		50,10);
-	for (ix=0;ix<(*muls).nx;ix++) {
-		fprintf(fp,"%g",(*muls).resolutionX*ix-dx);
-		fprintf(fp,"\t%g\n",
-			(*wave).wave[ix][iy][0]*(*wave).wave[ix][iy][0]+
-			(*wave).wave[ix][iy][1]*(*wave).wave[ix][iy][1]);
-	}
-	fclose(fp);
-        // MCS Commented 07/2010    
-	//sprintf(systStr,"grbatch -printfile probePlot.ps %s",plotFile);
-	//system(systStr);
-	/*
-	sprintf(systStr,"convert probePlot.ps -crop 28x35% "
-	"-rotate 90 %s/probePlot_%d.jpg; rm probePlot.ps",
-	(*muls).folder,(*muls).avgCount);
-	*/
-	//sprintf(systStr,"convert probePlot.ps -crop 50x35+150+250%% "
-	//	"-rotate 90 %s/probePlot_%d.jpg",
-	//	(*muls).folder,(*muls).avgCount);
-	//system(systStr);
-
-}
-
 
 
 /**********************************************
@@ -2419,48 +2166,6 @@ void probe(MULS *muls, WavePtr wave, double dx, double dy)
 
 }  /* end probe() */
 
-/*
-WAVEFUNC initWave(int nx, int ny) {
-	char waveFile[256];
-	const char *waveFileBase = "mulswav";
-	WAVEFUNC wave;
-	wave.detPosX=0;
-	wave.detPosY=0;
-	wave.iPosX=0;
-	wave.iPosY=0;
-	wave.diffpat=float2D(nx,ny,"diffpat");
-	wave.avgArray = float2D(nx,ny,"avgArray");
-
-#if FLOAT_PRECISION == 1
-	wave.wave = complex2Df(nx, ny, "wave");
-	wave.fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave.wave[0],wave.wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
-	wave.fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave.wave[0],wave.wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
-#else
-	wave.wave = complex2D(nx, ny, "wave");
-	wave.fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave.wave[0],wave.wave[0],FFTW_FORWARD,
-		fftMeasureFlag);
-	wave.fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave.wave[0],wave.wave[0],FFTW_BACKWARD,
-		fftMeasureFlag);
-#endif
-
-	//muls.cin2 = NULL;  muls.fileout = NULL; muls.fileStart = NULL;
-	//muls.cin2		= realloc(muls.cin2,256*sizeof(char));
-	//muls.fileout	= realloc(muls.fileout,256*sizeof(char));
-	//muls.fileStart	= realloc(muls.fileStart,256*sizeof(char));
-		
-	if ((wave.fileout == NULL) || (wave.fileStart == NULL)) {
-		printf("Could not allocate string arrays fileout, and fileStart \n");
-		exit(0);
-	}
-
-	sprintf(waveFile,"%s.img",waveFileBase);
-	strcpy(wave.fileout,waveFile);
-	sprintf(wave.fileStart,"mulswav.img");
-
-	return wave;
-}
-*/
-
 /**************************************************************
 * The imaginary part of the trans arrays is already allocated
 * The projected potential is already located in trans[][][][0]
@@ -2580,16 +2285,8 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 #else
 		fftw_execute(muls->fftPlanPotForw);
 #endif
-		// old code: fftwnd_one((*muls).fftPlanPotForw, (*muls).trans[ilayer][0], NULL);
 		time2 = cputim()-timer2;
-		//     printf("%g sec used for 1st set of FFTs\n",time2);
-		/*      
-		if ((*muls).savePotential) {
-		sprintf(filename,"%s/%s%drr.img",muls->folder,(*muls).fileBase,ilayer);
-		printf("Saving potential layer %d to file %s\n",ilayer,filename); 
-		writeImage_old((*muls).trans[ilayer],(*muls).potNx,(*muls).potNy,0,filename);
-		} 
-		*/    
+		//     printf("%g sec used for 1st set of FFTs\n",time2);  
 		for( ilayer=0;  ilayer<nlayer; ilayer++ ) {     
 			for( ix=0; ix<nx; ix++) for( iy=0; iy<ny; iy++) {
 				k2= ky2[iy] + kx2[ix];
@@ -2603,14 +2300,6 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 					(*muls).trans[ilayer][ix][iy][1] = 0.0F;
 				}	
 			}
-			/****************************/
-			/*
-			if ((*muls).savePotential) {
-			sprintf(filename,"%s/%s%dr.img",muls->folder,(*muls).fileBase,ilayer);
-			printf("Saving potential layer %d to file %s\n",ilayer,filename); 
-			writeImage_old((*muls).trans[ilayer],(*muls).potNx,(*muls).potNy,0,filename);
-			}
-			*/      
 		}  /* end for(ilayer=... */
 		timer2 = cputim();    
 		// old code: fftwnd_one((*muls).fftPlanPotInv, (*muls).trans[ilayer][0], NULL);
@@ -2623,17 +2312,6 @@ void initSTEMSlices(MULS *muls, int nlayer) {
 	}  /* end of ... if bandlimittrans */
 	time1 = cputim()-timer1;
 
-
-	/*
-	sprintf(filename,"%s/%s%drr.img",muls->folder,(*muls).fileBase,ilayer);
-	printf("Saving potential layer %d to file %s\n",ilayer,filename); 
-	*/
-	/*
-	writeImage_old((*muls).trans[0],(*muls).potNx,(*muls).potNy,0,"wave_0.img");
-	writeImage_old((*muls).trans[1],(*muls).potNx,(*muls).potNy,0,"wave_1.img");
-	system("showimage wave_0.img");
-	system("showimage wave_1.img");
-	*/
 	if (muls->printLevel > 1) {
 		if ((*muls).bandlimittrans) {
 			printf("%g sec used for making phase grating, %g sec for %d FFTs.\n",
@@ -2682,7 +2360,6 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 
 	char outStr[64];
 	double fftScale;
-	//static imageStruct *header = NULL;
 
 	printFlag = (muls->printLevel > 3);
 	fftScale = 1.0/(muls->nx*muls->ny);
@@ -2824,14 +2501,7 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 	}
 	if (muls->saveFlag) {
 		if ((muls->saveLevel > 1) || (muls->cellDiv > 1)) {
-			//if (header == NULL) 
-			//	header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,muls->resolutionX,
-			//	muls->resolutionX,0,NULL,"wave function");
-			//header->t = wave->thickness;
-//#pragma omp critical
-			//writeImage((void **)wave->wave,header,wave->fileout);
 			wave->WriteWave(wave->fileout);
-			// writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,(*muls).fileout);
 			if (printFlag)
 				printf("Created complex image file %s\n",(*wave).fileout);    
 		}
@@ -2849,10 +2519,6 @@ void interimWave(MULS *muls,WavePtr wave,int slice) {
 
 	if ((slice < muls->slices*muls->cellDiv-1) && ((slice+1) % muls->outputInterval != 0)) return;
 
-	//if (header == NULL) {
-//		header = makeNewHeaderCompact(1,muls->nx,muls->ny,wave->thickness,
-	//		muls->resolutionX,muls->resolutionY,0,NULL, "wave function");
-	//}
 	t = (int)((slice)/muls->outputInterval);
 	// write the high tension, too:
 	
@@ -2873,7 +2539,6 @@ void interimWave(MULS *muls,WavePtr wave,int slice) {
 	if (muls->tds) sprintf(fileName,"%s/wave_%d_%d.img",muls->folder,muls->avgCount,t);
 	else sprintf(fileName,"%s/wave_%d.img",muls->folder,t);
 	wave->WriteWave(fileName, "Wave Function", params);
-	//writeImage((void **)wave->wave,header,fileName);    
 }
 
 /********************************************************************
@@ -2884,21 +2549,12 @@ void interimWave(MULS *muls,WavePtr wave,int slice) {
 * muls->slices*muls->cellDiv/muls->outputInterval 
 * There are muls->detectorNum different detectors
 *******************************************************************/
-// If we use store the current diffraction pattern in wave-diffpat we are 
-// somehow overwriting the one that is created by detectorCollect.
-// One way to avoid this wouldb be to not call this function when 
-#define USE_LOCAL_DIFF 0
 void collectIntensity(MULS *muls, WavePtr wave, int slice) 
 {
 	int i,ix,iy,ixs,iys,t;
 	real k2;
 	double intensity,scale,scaleCBED,scaleDiff,intensity_save;
 	char fileName[256],avgName[256]; 
-	//imageStruct *header = NULL;
-	//imageStruct *diffHeader = NULL;
-#if USE_LOCAL_DIFF
-	static float_tt **diffpat = NULL;
-#endif
 	float_tt **diffpatAvg = NULL;
 	int tCount = 0;
 
@@ -2907,10 +2563,6 @@ void collectIntensity(MULS *muls, WavePtr wave, int slice)
 	scale = muls->electronScale/((double)(muls->nx*muls->ny)*(muls->nx*muls->ny));
 	// scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
 	scaleDiff = 1.0/sqrt((double)(muls->nx*muls->ny));
-
-	#if USE_LOCAL_DIFF
-		if (diffpat == NULL) diffpat = float2D(muls->nx,muls->ny,"diffraction pattern");
-	#endif
 
 	tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
@@ -2951,13 +2603,8 @@ void collectIntensity(MULS *muls, WavePtr wave, int slice)
 			k2 = muls->kx2[ix]+muls->ky2[iy];
 			intensity = (wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
 				wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
-#if USE_LOCAL_DIFF
-			diffpat[(ix+muls->nx/2)%muls->nx][(iy+muls->ny/2)%muls->ny] = intensity*scaleDiff;
-			intensity *= scale;
-#else
 			wave->diffpat[(ix+muls->nx/2)%muls->nx][(iy+muls->ny/2)%muls->ny] = intensity*scaleDiff;
 			intensity *= scale;
-#endif
 			for (i=0;i<muls->detectorNum;i++) {
 				if ((k2 >= detectors[t][i]->k2Inside) && (k2 <= detectors[t][i]->k2Outside)) 
 				{
@@ -2991,35 +2638,17 @@ void collectIntensity(MULS *muls, WavePtr wave, int slice)
 	// write the diffraction pattern to disc in case we are working in CBED mode
 	if ((muls->mode == CBED) && (muls->saveLevel > 0)) {
 		sprintf(avgName,"%s/diff_%d.img",muls->folder,t);
-		//diffHeader->t = slice*muls->sliceThickness;
-#if USE_LOCAL_DIFF
-		// for (ix=0;ix<muls->nx*muls->ny;ix++) diffpat[0][ix] *= scaleCBED;
-		if (muls->avgCount == 0) {
-			writeRealImage((void **)diffpat,diffHeader,avgName,sizeof(real));
-		}
-		else {
-			readImage((void ***)(&diffpatAvg),muls->nx,muls->ny,avgName);
-			for (ix=0;ix<muls->nx*muls->ny;ix++) {
-				diffpatAvg[0][ix] = (muls->avgCount*diffpatAvg[0][ix]+diffpat[0][ix])/(muls->avgCount+1);
-			}
-			writeRealImage((void **)diffpatAvg,diffHeader,avgName,sizeof(real));
-		}
-#else
 		// for (ix=0;ix<muls->nx*muls->ny;ix++) wave->diffpat[0][ix] *= scaleCBED;
 		if (muls->avgCount == 0) {
 			wave->WriteDiffPat(avgName);
-			//writeRealImage((void **)wave->diffpat,diffHeader,avgName,sizeof(real));
 		}
 		else {
 			wave->ReadAvgArray(avgName);
-			//readImage((void ***)(&diffpatAvg),muls->nx,muls->ny,avgName);
 			for (ix=0;ix<muls->nx*muls->ny;ix++) {
 				wave->avgArray[0][ix] = (muls->avgCount*wave->avgArray[0][ix]+wave->diffpat[0][ix])/(muls->avgCount+1);
 			}
 			wave->WriteAvgArray(avgName);
-			//writeRealImage((void **)diffpatAvg,diffHeader,avgName,sizeof(real));
 		}
-#endif
 	}
 
 	// Divide each image by its number of averages again:
@@ -3059,19 +2688,9 @@ void saveSTEMImages(MULS *muls)
 		{
 			t = muls->slices*muls->cellDiv*muls->sliceThickness;
 		}
-		//t = (islice+1)*muls->sliceThickness;
 		detectors = muls->detectors[islice];
 		// write the output STEM images:
 		// This is done only after all pixels have completed, so that image is complete.
-		//if (header == NULL) 
-		//{
-		//	header = makeNewHeaderCompact(0,muls->scanXN,muls->scanYN, t,
-		//		(muls->scanXStop-muls->scanXStart)/(float)muls->scanXN,
-		//		(muls->scanYStop-muls->scanYStart)/(float)muls->scanYN,
-		//		0, NULL, "STEM image");
-		//	header->params = (double *)malloc((2+muls->scanXN*muls->scanYN)*sizeof(double));
-		////	header->paramSize = 2+muls->scanXN*muls->scanYN;
-		//}
 		for (i=0; i<muls->detectorNum; i++) 
 		{
 			// calculate the standard error for this image:
@@ -3088,9 +2707,6 @@ void saveSTEMImages(MULS *muls)
 				sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i]->name, islice);
 			else
 				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i]->name, islice);
-			//header->t = t;
-			//header->params[0] = (double)muls->avgCount+1;
-			//header->params[1] = (double)detectors[i]->error;
 			detectors[i]->SetComment(detectors[i]->name);
 			detectors[i]->SetThickness(t);
 			detectors[i]->SetParameter(0, (double)muls->avgCount+1);
@@ -3099,27 +2715,14 @@ void saveSTEMImages(MULS *muls)
 			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
 			{
 				detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
-				//header->params[2+ix] = (double)detectors[i]->image2[0][ix];
 			}
 			detectors[i]->WriteImage(fileName);
-			//writeRealImage((void **)detectors[i]->image, header, fileName, sizeof(real));    
 		}
 	}
 }
 
 void readStartWave(WavePtr wave) {
-	//imageStruct *header = readImage((void ***)(&(wave->wave)),wave->nx,wave->ny,wave->fileStart);
 	wave->ReadWave(wave->fileStart);
-	// TODO: move this to the ReadWave method of the wave class.
-	//wave->thickness = header->t;
-	//if (wave->nx != header->nx) {
-	//	printf("Warning -> wrong image format (%d,%d) instead of (%d,%d)\n",
-	//		header->nx,header->ny,wave->nx,wave->ny);
-		// TODO: modifying shared value from multiple threads?
-	//	wave->nx = header->nx;
-	//	wave->ny = header->ny;
-	//}
-	//readImage_old((*muls).wave,(*muls).nx,(*muls).ny,&((*muls).thickness),(*muls).fileStart);
 }
 
 
@@ -3185,13 +2788,6 @@ void propagate_slow(void **w,int nx, int ny,MULS *muls)
 		k2max = nx/(2.0F*ax);
 		if (ny/(2.0F*by) < k2max ) k2max = ny/(2.0F*by);
 		k2max = 2.0/3.0 * k2max;
-		/*
-		printf("Propagator bandwidth limited to a real "
-		"space resolution of %f Angstroms\n",1.0F/k2max);
-		printf("   (= %.2f mrad)  for symmetrical anti-aliasing "
-		"dz=%g\n",
-		wavlen*k2max*1000.0F,dz);
-		*/
 		// TODO: modifying shared value from multiple threads?
 		k2max = k2max*k2max;
 		(*muls).kx2=kx2;
@@ -3603,21 +3199,6 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 			}
 		}
 
-
-		/*
-		#ifdef SHOW_SINGLE_POTENTIAL
-		if (header == NULL) 
-		header = makeNewHeaderCompact(1,nx,ny,0,dkx,dky,0,NULL,"potential");
-		header->dx = dkx;
-		header->dy = dky;
-		for (iz=0;iz<nz;iz++) {
-		sprintf(fileName,"pot_rec_%d_%d.img",Znum,iz);
-		header->t = iz;
-		ptr = &(atPot[Znum][iz*nx*ny]);
-		writeImage((void **)&ptr,header,fileName);
-		}
-		#endif    
-		*/
 		plan = fftwf_plan_dft_3d(nz,nx,ny,atPot[Znum],atPot[Znum],FFTW_BACKWARD,FFTW_ESTIMATE);
 		fftwf_execute(plan);
 		fftwf_destroy_plan(plan);
@@ -3665,18 +3246,11 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
 #if SHOW_SINGLE_POTENTIAL == 1
-		//if (header == NULL) 
-			//header = makeNewHeaderCompact(1,nx,ny,0,muls->resolutionX/OVERSAMP_X,
-			//muls->resolutionY/OVERSAMP_X,0,NULL,"potential");
-		//header->dx = muls->resolutionX/OVERSAMP_X;
-		//header->dy = muls->resolutionY/OVERSAMP_X;
 		for (iz=0;iz<nz/OVERSAMP_Z;iz++) {
 			sprintf(fileName,"potential_%d_%d.img",Znum,iz);
 			imageIO->SetThickness(iz);
-			//header->t = iz;
 			ptr = &(atPot[Znum][iz*nx*ny]);
 			imageIO->WriteRealImage((void **)ptr,fileName);
-			//writeImage((void **)&ptr,header,fileName);
 		}
 #endif    
 		if (muls->printLevel > 0)
