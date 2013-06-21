@@ -9,13 +9,14 @@ project(qstem)
 set (stem3_VERSION_MAJOR 2)
 set (stem3_VERSION_MINOR 30)
 
-set (EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/")
+#set (EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
 find_package(fftw3 REQUIRED)
 
-find_package(Boost 1.35.0 COMPONENTS unit_test_framework REQUIRED)
+find_package(Boost 1.35.0)
 
 # Make boost headers available everywhere
 include_directories(${Boost_INCLUDE_DIRS})
@@ -52,7 +53,7 @@ add_subdirectory(stem3)
 add_subdirectory(gbmaker)
 add_subdirectory(qscRg12)
 add_subdirectory(tests)
- 
+
 enable_testing ()
 add_test (NAME TestLibs COMMAND test_libs)
 #add_test (NAME TestStem3 COMMAND test_stem3)

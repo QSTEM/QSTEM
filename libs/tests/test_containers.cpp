@@ -1,23 +1,25 @@
-#define BOOST_TEST_MODULE Hello
 #include <boost/test/unit_test.hpp>
- 
+
+//#define BOOST_TEST_MODULE "TestContainers"
+//#define BOOST_TEST_DYN_LINK
+//#include <boost/test/unit_test.hpp>
+
 int add(int i, int j)
 {
     return i + j;
 }
  
+//BOOST_AUTO_TEST_SUITE(Maths)
+ 
 BOOST_AUTO_TEST_CASE(universeInOrder)
 {
     BOOST_CHECK(add(2, 2) == 4);
 }
+//BOOST_AUTO_TEST_SUITE_END( )
 
 /*
-#define BOOST_TEST_MODULE "TestContainers"
-//#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-//#include "data_containers.h"
+#include "data_containers.h"
 #include <iostream>
-
 
 struct WaveFixture {
     WaveFixture() 
@@ -43,20 +45,6 @@ struct DetectorFixture {
     DetectorPtr det;
 };
 
-
-int add(int i, int j)
-{
-    return i + j;
-}
- 
-BOOST_AUTO_TEST_SUITE(Maths)
- 
-BOOST_AUTO_TEST_CASE(universeInOrder)
-{
-    BOOST_CHECK(add(2, 2) == 4);
-}
-BOOST_AUTO_TEST_SUITE_END( )
-
 BOOST_FIXTURE_TEST_SUITE (TestWave, WaveFixture) // name of the test suite is wavetest
 
 BOOST_AUTO_TEST_CASE (testArrayAllocation)
@@ -65,23 +53,6 @@ BOOST_AUTO_TEST_CASE (testArrayAllocation)
   BOOST_CHECK(wave->diffpat != NULL);
   BOOST_CHECK(wave->avgArray != NULL);
   BOOST_CHECK(wave->wave != NULL);
-}
-
-
-BOOST_AUTO_TEST_CASE (testArrayAllocation)
-{
-  // Check array allocation
-
-  //BOOST_CHECK(wave->diffpat != NULL);
-  //BOOST_CHECK(wave->avgArray != NULL);
-  //BOOST_CHECK(wave->wave != NULL);
-}
-
-BOOST_AUTO_TEST_CASE (test2)
-{
-  mystring s;
-  s.setbuffer("hello world");
-  BOOST_REQUIRE_EQUAL ('h', s[0]); // basic test 
 }
 
 // Test image saving

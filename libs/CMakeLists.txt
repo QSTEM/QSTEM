@@ -13,5 +13,3 @@ FILE(GLOB STEM3_LIBS_H_FILES "${CMAKE_SOURCE_DIR}/libs/*.h")
 
 set (qstem_libs_src ${STEM3_LIBS_C_FILES} ${STEM3_LIBS_H_FILES})
 add_library(qstem_libs STATIC ${qstem_libs_src})
-
- 
