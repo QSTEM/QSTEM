@@ -11,6 +11,7 @@ set (stem3_VERSION_MINOR 30)
 
 #set (EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
@@ -18,8 +19,8 @@ find_package(fftw3 REQUIRED)
 
 find_package(Boost 1.35.0)
 
-# Make boost headers available everywhere
-include_directories(${Boost_INCLUDE_DIRS})
+# Make boost, fftw3, and our headers available to all projects
+include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")
 
 set (M_LIB "")
 
