@@ -27,11 +27,11 @@ FILE(GLOB GBMAKER_TEST_HEADERS "${CMAKE_SOURCE_DIR}/gbmaker/tests/*.h")
 FILE(GLOB GBMAKER_TEST_FILES "${CMAKE_SOURCE_DIR}/gbmaker/tests/*.cpp")
 
 #debugging - no QSTEM libraries at all.
-add_executable(test_libs test_main.cpp ${LIB_TEST_FILES})
-target_link_libraries(test_libs ${Boost_LIBRARIES})
+#add_executable(test_libs test_main.cpp ${LIB_TEST_FILES})
+#target_link_libraries(test_libs ${Boost_LIBRARIES})
 
-#add_executable(test_libs ${LIB_TEST_FILES} ${LIB_TEST_HEADERS} ${QSTEM_LIB_HEADERS})
-#target_link_libraries(test_libs qstem_libs ${FFTW3_LIBS} ${FFTW3F_LIBS} ${Boost_LIBRARIES})
+add_executable(test_libs test_main.cpp ${LIB_TEST_FILES} ${LIB_TEST_HEADERS} ${QSTEM_LIB_HEADERS})
+target_link_libraries(test_libs qstem_libs ${FFTW3_LIBS} ${FFTW3F_LIBS} ${Boost_LIBRARIES})
 
 
 #add_executable(test_stem3 test_main.cpp  ${STEM3_TEST_FILES} ${STEM3_TEST_HEADERS} ${STEM3_HEADERS} ${QSTEM_LIB_HEADERS})

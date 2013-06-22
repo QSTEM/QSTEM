@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_USER_MAKE_RULES_OVERRIDE
-	${CMAKE_SOURCE_DIR}/cmake/Modules/c_flag_overrides.cmake)
-set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX
-	${CMAKE_SOURCE_DIR}/cmake/Modules/cxx_flag_overrides.cmake)
+#set(CMAKE_USER_MAKE_RULES_OVERRIDE
+	#${CMAKE_SOURCE_DIR}/cmake/Modules/c_flag_overrides.cmake)
+#set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX
+#	${CMAKE_SOURCE_DIR}/cmake/Modules/cxx_flag_overrides.cmake)
 
 project(qstem)
 set (stem3_VERSION_MAJOR 2)
