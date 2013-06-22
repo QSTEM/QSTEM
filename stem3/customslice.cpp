@@ -82,7 +82,6 @@ void make3DSlicesFT(MULS *muls) {
   int divCount = 0;
   char buf[128];
   double dX,dZ;                      // real space resol. of FT box
-  //static imageStruct *header = NULL;
   ImageIOPtr imageIO = ImageIOPtr();
   static char fileName[64];
 
@@ -193,10 +192,6 @@ void make3DSlicesFT(MULS *muls) {
       plan = fftw_plan_dft_2d(Nz,Nx,pot[0],pot[0],FFTW_BACKWARD,fftMeasureFlag);
       fftw_execute(plan);
       fftw_destroy_plan(plan);
-      // old fftw2 code:
-      // plan = fftw2d_create_plan(Nz,Nx,FFTW_BACKWARD,fftMeasureFlag | FFTW_IN_PLACE);  
-      // fftwnd_one(plan, pot[0], NULL); 
-      // fftwnd_destroy_plan(plan); 
     
       /* see L.M. Peng, Micron 30, p. 625 (1999) for details on the scale factor
        * so that pot is the true electrostatic potential. 
@@ -292,15 +287,7 @@ void make3DSlicesFT(MULS *muls) {
 	    }      
 	  }
 	}
-      }
-      /*
-      if (j % 40 == 0) 
-	if (getTime()-timer >= 10) {
-	  timer += 10.0;
-	  printf("%2d%% (%d sec)\n",(int)(100.0*(double)(j)/((double)muls->natom)),
-		 (int)(getTime()-timer0));
-	}
-      */      
+      }     
       
       if (j % 100 == 0) {
 	if ((t=getTime() - timer) >= 10) {
@@ -320,11 +307,9 @@ void make3DSlicesFT(MULS *muls) {
     for (iz=0;iz<Nzp;iz++) {
       sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
-      //if (header == NULL) header = makeNewHeaderCompact(1,Nxp,Nyp,dZp,dXp,dYp,0,NULL,NULL);
       sprintf(buf,"Projected Potential (%d slices)",muls->slices);
 	  imageIO->SetComment(std::string(buf));
 	  imageIO->WriteComplexImage((void **)muls->trans[iz], fileName);
-      //writeImage((void **)muls->trans[iz],header,fileName);
     } 
   } /* end of if savePotential ... */
   

@@ -9,30 +9,27 @@
 /**************************************************************
  * Here is how to use the new image writing routines
  *
- * static imageStruct *header = NULL;
+ * ImageIOPtr imageio = ImageIOPtr(new CImageIO(nx,ny))
  *
- * if (header == NULL) header = makeNewHeaderCompact(cFlag,Nx,Ny,t,dx,dy,0,NULL,comment);
- * writeImage(cimage,header,filename);
- * or : writeRealImage(rimage,header,filename,sizeof(float));
+ * imageIO->WriteRealImage((void**)real_image,filename);
+ * imageIO->WriteComplexImage((void**)complex_image,filename);
  *
  **************************************************************
  * Reading an image works like this:
  * 
- * imageStruct *header;
- * header = readImage((void ***)(&pix),nx,ny,fileName);
+ * ImageIOPtr imageio = ImageIOPtr(new CImageIO(nx,ny))
+ * imageio->ReadImage((void **)pix,nx,ny,fileName);
  *
- * [This function will read an image.  It reuses the same header 
- * struct over and over.  Therefore, values must be copied from 
- * the header members before calling this function again.
- *
- * The image pointer may also be NULL, in which case memory will be
- * allocated for it, and its size will be returned in the header struct
- * members nx, and ny.]
+ * Note that header parameters are persistent on any object.  You
+ *   should use the various Set* functions to set parameters as
+ *   necessary.  You should not need to read values from this class - 
+ *   only set them.  They will be recorded to any file saved from this
+ *   this object.
  **************************************************************/
 
 class CImageIO {
   int m_headerSize;  // first byte of image will be size of image header (in bytes)
-                   // This is the size without the data and comment pointers!!!
+                   // This is the size without the data, parameters, and comment!!!
   int m_paramSize;   // number of additional parameters
   int m_commentSize; // length of comment string
   int m_nx,m_ny;
@@ -53,8 +50,6 @@ public:
 
   void WriteRealImage(void **pix, const char *fileName);
   void WriteComplexImage(void **pix, const char *fileName);
-  // reads in the header; returns the byte offset at which we should start reading image data.
-  void ReadHeader(const char *fileName);
   void ReadImage(void **pix, int nx, int ny, const char *fileName);
   
   //void WriteImage( std::string fileName);
@@ -66,6 +61,8 @@ public:
   void SetResolution(double resX, double resY);
 private:
   void WriteData(void **pix, const char *fileName);
+  // reads in the header; returns the byte offset at which we should start reading image data.
+  void ReadHeader(const char *fileName);
 };
 
 typedef boost::shared_ptr<CImageIO> ImageIOPtr;
