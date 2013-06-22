@@ -55,7 +55,19 @@ add_subdirectory(gbmaker)
 add_subdirectory(qscRg12)
 add_subdirectory(tests)
 
-enable_testing ()
+# this enables the RUN_TEST target, which runs tests, but doesn't give much info.
+#enable_testing ()
 add_test (NAME TestLibs COMMAND test_libs)
 #add_test (NAME TestStem3 COMMAND test_stem3)
 #add_test (NAME TestGBMaker COMMAND test_gbmaker)
+
+# helpful custom target for verbose CTest output from: 
+# http://stackoverflow.com/questions/16158091/cmake-setting-an-environmental-variable-for-ctest-or-otherwise-getting-failed
+if (CMAKE_CONFIGURATION_TYPES)
+    add_custom_target(run_tests COMMAND ${CMAKE_CTEST_COMMAND} 
+        --force-new-ctest-process --output-on-failure 
+        --build-config "$<CONFIGURATION>")
+else()
+    add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} 
+        --force-new-ctest-process --output-on-failure)
+endif()

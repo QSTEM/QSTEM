@@ -17,6 +17,24 @@ BOOST_AUTO_TEST_CASE(universeInOrder)
 
 BOOST_AUTO_TEST_SUITE_END( )
 
+BOOST_AUTO_TEST_SUITE(Maths1)
+ 
+BOOST_AUTO_TEST_CASE(universeInOrder)
+{
+    BOOST_CHECK(add(2, 2) == 4);
+}
+
+BOOST_AUTO_TEST_SUITE_END( )
+
+BOOST_AUTO_TEST_SUITE(Maths2)
+ 
+BOOST_AUTO_TEST_CASE(universeInOrder)
+{
+    BOOST_CHECK(add(2, 2) == 5);
+}
+
+BOOST_AUTO_TEST_SUITE_END( )
+
 
 struct WaveFixture {
     WaveFixture() 
