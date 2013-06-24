@@ -62,12 +62,6 @@ resolutionY(resY)
 	sprintf(fileStart,"mulswav.img");
 }
 
-// reset the wave's thickness
-void WAVEFUNC::ZeroWave(void)
-{
-
-}
-
 void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
 	std::vector<double>params)
 {
