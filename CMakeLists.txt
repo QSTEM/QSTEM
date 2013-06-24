@@ -19,7 +19,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 					
 find_package(fftw3 REQUIRED)
 
-find_package(Boost 1.35.0)
+find_package(Boost 1.35.0 REQUIRED)
 
 # Make boost, fftw3, and our headers available to all projects
 include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")
