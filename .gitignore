@@ -42,4 +42,6 @@ CMakeCache.txt
 
 # img results from debug testing
 *.img
-
+# but include the ones from any testing directory
+#    these are for the unit tests.
+!/tests/data/*.img
