@@ -9,6 +9,7 @@ Code ported from Christoph Koch's MATLAB original.
 import numpy as np
 from traits.api import HasTraits, Dict, Float, Tuple, Int, Property, \
      cached_property, Array
+from matplotlib.pyplot import imshow
 
 class probe(HasTraits):
     # TODO: might these be better as numpy arrays (or recarrays?)
@@ -45,6 +46,20 @@ class probe(HasTraits):
         self.d = d #sampling in real space
         self.alpha=alpha
 
+    def print_description(self):
+        print "Voltage: %d"%self.HT
+        print "Array size (pixels): %d"%self.N
+        print "Real space pixel size (A): %.5f"%self.d
+        print "Convergence angle (mrad): %.2f"%self.alpha
+        print "Aberration amplitudes: "
+        # self.a is a numpy structured array.  Turn it into
+        #   a dictionary so the keys get printed with the values.
+        names = self.a.dtype.names 
+        a=[dict(zip(names, record)) for record in self.a]
+        print a
+        print "Aberration angles: "
+        print self.phi
+
     def set_coefficient(self, a_dict=None, phi_dict=None, name=None, amplitude=0, rotation=0):
         if a_dict is not None:
             self.a = a_dict
@@ -60,10 +75,24 @@ class probe(HasTraits):
     def set_scherzer_defocus(self):
         self.a['a20'] = -np.sign(self.a['a40'])*np.sqrt(1.5*np.abs(
             self.a['a40'])*self.wavelength(self.HT))
+
+    def propagate(self, potential_slice):
+        """
+        Propagate this probe wavefunction through the given potential slice
+
+        Input: a complex numpy array that is the same size as the probe's
+               wavefunction array
+
+        Output: none, but alters this probe's wavefunction array in place.
+        """
+        pass
         
     # this is a numpy recarray because we want to broadcast
     #   the scaling step.
     def get_template_a(self):
+        """
+        Get the numpy structured array for 
+        """
         a=np.zeros(1, self._get_a_dtype())
         a['20']=-60  # defocus: -60 nm
         a['40']=1000 # C3/spherical aberration: 1000 um
@@ -88,15 +117,17 @@ class probe(HasTraits):
     def plot_real_space_amplitude(self):
         from numpy.fft import ifft2, fftshift, ifftshift
         
-        plt.imshow(fftshift(np.abs(ifft2(ifftshift(self.array)))),
-                   extent=[0,self.d*self.N,0,self.d*self.N]);
+        imshow(fftshift(np.abs(ifft2(ifftshift(self.array)))),
+                   extent=[-self.dk/2*self.N,self.dk/2*self.N,
+                             -self.dk/2*self.N,self.dk/2*self.N]);
             #else
                 #imagesc(d*(-N/2+[0:N-1]),d*(-N/2+[0:N-1]),fftshift(angle(ifft2(ifftshift(probe)))));
                 
-    def plot_phase_amplitude(self):
+    def plot_reciprocal_space_amplitude(self):
         #if get(handles.radiobutton_Amplitude,'Value')
-        plt.imshow(abs(self.array),
-                   extent = [0,self.dk*self.N,0,self.dk*self.N]);
+        imshow(abs(self.array),
+                   extent = [-self.dk/2*self.N,self.dk/2*self.N,
+                             -self.dk/2*self.N,self.dk/2*self.N]);
             #else
                 #imagesc(dkx*(-Nx/2+[0:Nx-1]),dky*(-Ny/2+[0:Ny-1]),angle(probe));
             
@@ -111,9 +142,11 @@ class probe(HasTraits):
                          '60', '62', '64', '66'], 
                 'formats':['f8']*14}    
         
-    # translate from "reasonable" values from, say, a UI,
-    #    into uniform units for the computation of chi
     def _get_scaled_amplitudes(self):
+        """
+        translate from "reasonable" values from, say, a UI,
+        into uniform units for the computation of chi
+        """
         scaled_a = self.a.copy().view(np.float64)
         scales =np.array([10, 10,           #a_2x
                           10, 10,             #a_3x
@@ -126,22 +159,39 @@ class probe(HasTraits):
     
     @cached_property
     def _get_qmax(self):
+        """
+        TODO: define this
+        qmax is 
+        """
         return np.sin(self.alpha/1000)/self.wavelength
 
     @cached_property
     def _get_ktheta(self):
+        """
+        TODO: define this comment
+        ktheta is 
+        """
         return np.arcsin(np.sqrt(self.kx2+self.ky2)*self.wavelength)
     
     @cached_property
     def _get_kphi(self):
+        """
+        kphi is
+        """
         return np.arctan2(self.ky,self.kx)
     
     @cached_property
     def _get_ktm(self):
+        """
+        ktm is
+        """
         return np.arcsin(self.qmax*self.wavelength)
 
     @cached_property
     def _get_kx(self):
+        """
+        kx is
+        """
         N = self.N
         tilt_x = self.tilt_x
         tilt_y = self.tilt_y
@@ -151,6 +201,9 @@ class probe(HasTraits):
     
     @cached_property
     def _get_ky(self):
+        """
+        ky is 
+        """
         N = self.N
         tilt_x = self.tilt_x
         tilt_y = self.tilt_y
@@ -160,6 +213,9 @@ class probe(HasTraits):
 
     @cached_property
     def _get_dk(self):
+        """
+        dk is resolution in reciprocal space
+        """
         return 1.0/(self.N*self.d)
 
     @cached_property
@@ -177,6 +233,9 @@ class probe(HasTraits):
     # in Angstroem
     @cached_property
     def _get_wavelength ( self ):
+        """
+        Computes relativistic wavelength according to stored HT
+        """
         emass = 510.99906;   # electron rest mass in keV
         hc = 12.3984244;     # h*c
         ht = self.HT
@@ -184,6 +243,9 @@ class probe(HasTraits):
     
     @cached_property
     def _get_chi(self):
+        """
+        returns the aberration function
+        """
         a=self._get_scaled_amplitudes()
         phi=self.phi
         kphi=self.kphi
@@ -199,12 +261,17 @@ class probe(HasTraits):
         
     @cached_property
     def _get_array(self):
+        """
+        returns the probe wavefunction array.  This function ultimately
+        depends on every other function/value.
+        """
         arr = np.zeros((self.N,self.N),dtype=np.complex);
         # MATLAB: probe(find(ktheta < ktm)) = 1;
         arr[self.ktheta<self.ktm] = 1+1j
         Nedge = 2;
         dEdge = Nedge/(self.qmax/self.dk);  # fraction of aperture radius that will be smoothed
-        # MATLAB: ind = find((ktheta/ktm > 1-dEdge) & (ktheta/ktm < 1+dEdge));
+        # some fancy indexing: pull out array elements that are within
+        #    our smoothing edges
         ind = np.bitwise_and((self.ktheta/self.ktm > (1-dEdge)),
                              (self.ktheta/self.ktm < (1+dEdge)))
         arr[ind] = 0.5*(1-np.sin(np.pi/(2*dEdge)*(self.ktheta[ind]/self.ktm-1)));
@@ -216,4 +283,4 @@ class probe(HasTraits):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
     p = probe()
-    plt.imshow(p.array.real)
+    plt.plot_real_space_amplitude()
