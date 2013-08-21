@@ -9,6 +9,7 @@ Code ported from Christoph Koch's MATLAB original.
 import numpy as np
 from traits.api import HasTraits, Dict, Float, Tuple, Int, Property, \
      cached_property, Array
+from matplotlib.pyplot import imshow
 
 class probe(HasTraits):
     # TODO: might these be better as numpy arrays (or recarrays?)
@@ -44,6 +45,20 @@ class probe(HasTraits):
         self.N = N #number of real space pixels
         self.d = d #sampling in real space
         self.alpha=alpha
+
+    def print_description(self):
+        print "Voltage: %d"%self.HT
+        print "Array size (pixels): %d"%self.N
+        print "Real space pixel size (A): %.5f"%self.d
+        print "Convergence angle (mrad): %.2f"%self.alpha
+        print "Aberration amplitudes: "
+        names = self.a.dtype.names 
+        a=[dict(zip(names, record)) for record in self.a] 
+        print a
+        print "Aberration angles: "
+        print self.phi
+        return ""
+
 
     def set_coefficient(self, a_dict=None, phi_dict=None, name=None, amplitude=0, rotation=0):
         if a_dict is not None:
@@ -88,15 +103,17 @@ class probe(HasTraits):
     def plot_real_space_amplitude(self):
         from numpy.fft import ifft2, fftshift, ifftshift
         
-        plt.imshow(fftshift(np.abs(ifft2(ifftshift(self.array)))),
-                   extent=[0,self.d*self.N,0,self.d*self.N]);
+        imshow(fftshift(np.abs(ifft2(ifftshift(self.array)))),
+                   extent=[-self.dk/2*self.N,self.dk/2*self.N,
+                             -self.dk/2*self.N,self.dk/2*self.N]);
             #else
                 #imagesc(d*(-N/2+[0:N-1]),d*(-N/2+[0:N-1]),fftshift(angle(ifft2(ifftshift(probe)))));
                 
-    def plot_phase_amplitude(self):
+    def plot_reciprocal_space_amplitude(self):
         #if get(handles.radiobutton_Amplitude,'Value')
-        plt.imshow(abs(self.array),
-                   extent = [0,self.dk*self.N,0,self.dk*self.N]);
+        imshow(abs(self.array),
+                   extent = [-self.dk/2*self.N,self.dk/2*self.N,
+                             -self.dk/2*self.N,self.dk/2*self.N]);
             #else
                 #imagesc(dkx*(-Nx/2+[0:Nx-1]),dky*(-Ny/2+[0:Ny-1]),angle(probe));
             
@@ -159,16 +176,16 @@ class probe(HasTraits):
                                (-N/2.+np.arange(N))+tilt_y)[1]    
 
     @cached_property
-    def _get_dk(self):
-        return 1.0/(self.N*self.d)
-
-    @cached_property
     def _get_kx2(self):
         return self.kx**2
     
     @cached_property
     def _get_ky2(self):
         return self.ky**2    
+
+    @cached_property
+    def _get_dk(self):
+        return 1.0/(self.N*self.d)
 
     @cached_property
     def _get_k2(self):
@@ -216,4 +233,4 @@ class probe(HasTraits):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
     p = probe()
-    plt.imshow(p.array.real)
+    plt.plot_real_space_amplitude()
