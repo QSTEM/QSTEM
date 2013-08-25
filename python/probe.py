@@ -227,6 +227,10 @@ class probe(HasTraits):
         return self.ky**2    
 
     @cached_property
+    def _get_dk(self):
+        return 1.0/(self.N*self.d)
+
+    @cached_property
     def _get_k2(self):
         return self.kx2+self.ky2
 
