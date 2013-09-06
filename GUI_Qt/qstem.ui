@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1165</width>
+    <width>1136</width>
     <height>770</height>
    </rect>
   </property>
@@ -27,8 +27,21 @@
        <string>Model:</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="MatplotlibWidget" name="mplwidget">
+       <item row="2" column="0">
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>540</width>
+           <height>120</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="0">
+        <widget class="MatplotlibWidget" name="mplwidget" native="true">
          <property name="sizePolicy">
           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
            <horstretch>0</horstretch>
@@ -43,20 +56,7 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <spacer name="verticalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>540</width>
-           <height>120</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <layout class="QGridLayout" name="gridLayout_3">
          <item row="0" column="5">
           <widget class="QGroupBox" name="groupBox_3">
@@ -251,7 +251,7 @@
          </item>
         </layout>
        </item>
-       <item row="3" column="0">
+       <item row="4" column="0">
         <widget class="QGroupBox" name="groupBox_6">
          <property name="title">
           <string>Model Parameters</string>
@@ -288,7 +288,7 @@
                </spacer>
               </item>
               <item>
-               <widget class="QLabel" name="label_6">
+               <widget class="QLabel" name="SizeXLabel">
                 <property name="font">
                  <font>
                   <weight>75</weight>
@@ -301,7 +301,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="Nx_2">
+               <widget class="QSpinBox" name="SampleSizeX">
                 <property name="minimum">
                  <number>1</number>
                 </property>
@@ -311,7 +311,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="label_7">
+               <widget class="QLabel" name="SizeYLabel">
                 <property name="font">
                  <font>
                   <weight>75</weight>
@@ -324,14 +324,14 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="Ny_2">
+               <widget class="QSpinBox" name="SampleSizeY">
                 <property name="minimum">
                  <number>1</number>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLabel" name="label_8">
+               <widget class="QLabel" name="SizeZLabel">
                 <property name="font">
                  <font>
                   <weight>75</weight>
@@ -344,7 +344,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="Nz_2">
+               <widget class="QSpinBox" name="SampleSizeZ">
                 <property name="minimum">
                  <number>1</number>
                 </property>
@@ -372,14 +372,14 @@
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_10">
                <item>
-                <widget class="QRadioButton" name="radioButton">
+                <widget class="QRadioButton" name="BoxSizeRadio">
                  <property name="text">
                   <string>BoxSize</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QRadioButton" name="radioButton_2">
+                <widget class="QRadioButton" name="NCellsRadio">
                  <property name="layoutDirection">
                   <enum>Qt::LeftToRight</enum>
                  </property>
@@ -432,7 +432,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QDoubleSpinBox" name="Nx_4"/>
+             <widget class="QDoubleSpinBox" name="SampleTiltX"/>
             </item>
             <item>
              <widget class="QLabel" name="label_16">
@@ -448,7 +448,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QDoubleSpinBox" name="Ny_4"/>
+             <widget class="QDoubleSpinBox" name="SampleTiltY"/>
             </item>
             <item>
              <widget class="QLabel" name="label_17">
@@ -464,7 +464,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QDoubleSpinBox" name="Nz_4"/>
+             <widget class="QDoubleSpinBox" name="SampleTiltZ"/>
             </item>
             <item>
              <spacer name="horizontalSpacer_2">
@@ -486,7 +486,7 @@
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_37">
                <item>
-                <widget class="QRadioButton" name="radioButton_9">
+                <widget class="QRadioButton" name="SampleTiltDegreesRadio">
                  <property name="text">
                   <string>Degrees</string>
                  </property>
@@ -496,7 +496,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QRadioButton" name="radioButton_10">
+                <widget class="QRadioButton" name="SampleTiltRadiansRadio">
                  <property name="text">
                   <string>Radians</string>
                  </property>
@@ -658,6 +658,16 @@
          </layout>
         </widget>
        </item>
+       <item row="0" column="0">
+        <widget class="QWidget" name="PlotArea" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>256</width>
+           <height>256</height>
+          </size>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -708,9 +718,9 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
-        <widget class="QWidget" name="page">
+        <widget class="QWidget" name="STEM">
          <layout class="QHBoxLayout" name="horizontalLayout_15">
           <item>
            <widget class="QGroupBox" name="groupBox">
@@ -944,7 +954,7 @@
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="page_2">
+        <widget class="QWidget" name="TEM">
          <layout class="QHBoxLayout" name="horizontalLayout_14">
           <item>
            <widget class="QGroupBox" name="groupBox_9">
@@ -1118,7 +1128,7 @@
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="page_3">
+        <widget class="QWidget" name="CBED">
          <layout class="QHBoxLayout" name="horizontalLayout_18">
           <item>
            <widget class="QGroupBox" name="groupBox_8">
@@ -1318,18 +1328,6 @@
        <string>Microscope Parameters:</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="4">
-        <widget class="QSpinBox" name="spinBox_16"/>
-       </item>
-       <item row="1" column="4">
-        <widget class="QSpinBox" name="spinBox_17"/>
-       </item>
-       <item row="2" column="4">
-        <widget class="QSpinBox" name="spinBox_18"/>
-       </item>
-       <item row="4" column="4">
-        <widget class="QSpinBox" name="spinBox_19"/>
-       </item>
        <item row="0" column="3">
         <widget class="QLabel" name="label_33">
          <property name="text">
@@ -1463,27 +1461,22 @@
          </property>
         </widget>
        </item>
-       <item row="10" column="4">
-        <widget class="QSpinBox" name="spinBox_20"/>
-       </item>
-       <item row="9" column="4">
-        <widget class="QSpinBox" name="spinBox_21"/>
-       </item>
-       <item row="6" column="4">
-        <widget class="QSpinBox" name="spinBox_22"/>
-       </item>
-       <item row="5" column="4">
-        <widget class="QSpinBox" name="spinBox_23"/>
-       </item>
        <item row="1" column="7">
         <widget class="QPushButton" name="pushButton_5">
          <property name="text">
-          <string>Set Scherzer</string>
+          <string>Set Scherzer Defocus</string>
          </property>
         </widget>
        </item>
        <item row="3" column="4">
-        <widget class="QDoubleSpinBox" name="doubleSpinBox_5"/>
+        <widget class="QDoubleSpinBox" name="Cs">
+         <property name="maximum">
+          <double>200000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>1.500000000000000</double>
+         </property>
+        </widget>
        </item>
        <item row="2" column="7">
         <layout class="QHBoxLayout" name="horizontalLayout_23">
@@ -1495,7 +1488,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QDoubleSpinBox" name="doubleSpinBox_6"/>
+          <widget class="QDoubleSpinBox" name="AstigmatismAngle"/>
          </item>
          <item>
           <widget class="QLabel" name="label_53">
@@ -1516,7 +1509,7 @@
        <item row="4" column="7">
         <layout class="QHBoxLayout" name="horizontalLayout_24">
          <item>
-          <widget class="QCheckBox" name="checkBox">
+          <widget class="QCheckBox" name="TDSCheck">
            <property name="text">
             <string>TDS</string>
            </property>
@@ -1533,9 +1526,15 @@
           </widget>
          </item>
          <item>
-          <widget class="QSpinBox" name="spinBox_24">
+          <widget class="QSpinBox" name="TDSRuns">
            <property name="enabled">
             <bool>false</bool>
+           </property>
+           <property name="maximum">
+            <number>30000</number>
+           </property>
+           <property name="value">
+            <number>30</number>
            </property>
           </widget>
          </item>
@@ -1551,7 +1550,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QDoubleSpinBox" name="doubleSpinBox_7"/>
+          <widget class="QDoubleSpinBox" name="EnergySpread">
+           <property name="value">
+            <double>0.300000000000000</double>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="label_56">
@@ -1572,7 +1575,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QDoubleSpinBox" name="doubleSpinBox_8"/>
+          <widget class="QDoubleSpinBox" name="BeamTiltX"/>
          </item>
          <item>
           <widget class="QLabel" name="label_58">
@@ -1593,7 +1596,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QDoubleSpinBox" name="doubleSpinBox_9"/>
+          <widget class="QDoubleSpinBox" name="BeamTiltY"/>
          </item>
          <item>
           <widget class="QLabel" name="label_60">
@@ -1670,6 +1673,58 @@
          </item>
         </widget>
        </item>
+       <item row="9" column="4">
+        <widget class="QDoubleSpinBox" name="Brightness">
+         <property name="maximum">
+          <double>1000000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>1.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="4">
+        <widget class="QDoubleSpinBox" name="DwellTime">
+         <property name="maximum">
+          <double>100000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>30.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="4">
+        <widget class="QDoubleSpinBox" name="Temperature"/>
+       </item>
+       <item row="5" column="4">
+        <widget class="QDoubleSpinBox" name="Cc"/>
+       </item>
+       <item row="1" column="4">
+        <widget class="QDoubleSpinBox" name="Defocus"/>
+       </item>
+       <item row="0" column="4">
+        <widget class="QDoubleSpinBox" name="Voltage">
+         <property name="maximum">
+          <double>200000.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>200.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="4">
+        <widget class="QDoubleSpinBox" name="Astigmatism"/>
+       </item>
+       <item row="6" column="4">
+        <widget class="QDoubleSpinBox" name="ConvergenceAngle">
+         <property name="maximum">
+          <double>300.000000000000000</double>
+         </property>
+         <property name="value">
+          <double>15.000000000000000</double>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -1729,7 +1784,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="spinBox_11"/>
+               <widget class="QSpinBox" name="DetectorInnerAngle"/>
               </item>
              </layout>
             </item>
@@ -1743,7 +1798,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="spinBox_10"/>
+               <widget class="QSpinBox" name="DetectorOuterAngle"/>
               </item>
              </layout>
             </item>
@@ -1764,7 +1819,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="spinBox_8"/>
+               <widget class="QSpinBox" name="DetectorOffsetX"/>
               </item>
              </layout>
             </item>
@@ -1778,7 +1833,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSpinBox" name="spinBox_9"/>
+               <widget class="QSpinBox" name="DetectorOffsetY"/>
               </item>
              </layout>
             </item>
@@ -1799,7 +1854,7 @@
            </layout>
           </item>
           <item row="0" column="1">
-           <widget class="MatplotlibWidget" name="mplwidget_2"/>
+           <widget class="MatplotlibWidget" name="mplwidget_2" native="true"/>
           </item>
          </layout>
         </widget>
@@ -1819,8 +1874,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1165</width>
-     <height>22</height>
+     <width>1136</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1899,8 +1954,56 @@
      <y>43</y>
     </hint>
     <hint type="destinationlabel">
-     <x>1152</x>
-     <y>69</y>
+     <x>1125</x>
+     <y>128</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>TDSCheck</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>TDSRuns</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>846</x>
+     <y>576</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1066</x>
+     <y>572</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>BoxSizeRadio</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>SizeXLabel</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>422</x>
+     <y>556</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>136</x>
+     <y>558</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>BoxSizeRadio</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>SizeYLabel</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>420</x>
+     <y>546</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>207</x>
+     <y>537</y>
     </hint>
    </hints>
   </connection>
