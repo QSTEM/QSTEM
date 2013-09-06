@@ -1467,10 +1467,9 @@ fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *
 		} // for iz ...
 
 
-
-
 #if SHOW_SINGLE_POTENTIAL
-		imageio = ImageIOPtr(new CImageIO(nx, nz, dkz, dkx));
+		// 0 thickness
+		imageio = ImageIOPtr(new CImageIO(nz, nx, 0, dkz, dkx));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
 		sprintf(fileName,"pot_rec_%d.img",Znum);
 		imageio->SetThickness(muls->sliceThickness);
@@ -1511,7 +1510,7 @@ fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
 #if SHOW_SINGLE_POTENTIAL
-		imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, muls->sliceThickness/nzPerSlice, 
+		imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, 0, muls->sliceThickness/nzPerSlice, 
 			muls->resolutionX/OVERSAMP_X));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
 		imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
@@ -1676,7 +1675,7 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 
 
 #if SHOW_SINGLE_POTENTIAL
-		imageio = ImageIOPtr(new CImageIO(nz, nx, dkx, dkz, std::vector<double>(), 
+		imageio = ImageIOPtr(new CImageIO(nz, nx, 0, dkx, dkz, std::vector<double>(), 
 			"rec. space potential"));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
 		imageio->SetThickness(muls->sliceThickness);
@@ -1711,7 +1710,7 @@ fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub
 			atPot[Znum][ind3d][1] = 0;
 		}
 #if SHOW_SINGLE_POTENTIAL
-		imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, muls->resolutionX/OVERSAMP_X, 
+		imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, 0, muls->resolutionX/OVERSAMP_X, 
 		muls->sliceThickness/nzPerSlice));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
 		imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
@@ -1817,7 +1816,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 			}
 		}
 #if SHOW_SINGLE_POTENTIAL == 1
-		imageio = ImageIOPtr(new CImageIO(nz, nx, dkx, dkz, std::vector<double>(), 
+		imageio = ImageIOPtr(new CImageIO(ny, nx, 0, dkx, dky, std::vector<double>(), 
 		"potential"));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
 		imageio->SetThickness(muls->sliceThickness);
@@ -1832,11 +1831,11 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 		// make sure we don't produce negative potential:
 		// if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
 #if SHOW_SINGLE_POTENTIAL == 1
-		imageio = ImageIOPtr(new CImageIO(nx, ny, muls->resolutionX/OVERSAMP_X, 
+		imageio = ImageIOPtr(new CImageIO(nx, ny, 0, muls->resolutionX/OVERSAMP_X, 
 			muls->resolutionY/OVERSAMP_X, std::vector<double>(), "potential"));
 		// This scattering factor agrees with Kirkland's scattering factor fe(q)
-		imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
-		sprintf(fileName,"potential_%d.img",Znum)
+		//imageio->SetThickness(nz*muls->sliceThickness/nzPerSlice);
+		sprintf(fileName,"potential_%d.img",Znum);
 		imageio->WriteComplexImage((void**)atPot[Znum], fileName);
 #endif    
 		printf("Created 2D %d x %d potential array for Z=%d (%d, B=%g A^2)\n",nx,ny,Znum,iKind,B);
