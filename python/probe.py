@@ -153,6 +153,10 @@ class probe(HasTraits):
         }
 
     def get_physical_extent(self):
+        return [-self.d/2*self.N,self.d/2*self.N,
+                 -self.d/2*self.N,self.d/2*self.N]
+
+    def get_reciprocal_extent(self):
         return [-self.dk/2*self.N,self.dk/2*self.N,
                  -self.dk/2*self.N,self.dk/2*self.N]
 
