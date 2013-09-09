@@ -24,7 +24,6 @@ class probe(HasTraits):
     tilt_y = Float(0)
     N=Int(200) # the realspace number of pixels
     d=Float(0.05) # the sampling in real space
-    """
     dk = Property(depends_on = ['N','d'], cached=True)
     wavelength = Property(depends_on = 'HT', cached=True)
     kx = Property(depends_on = ['dk','tilt_x'], 
@@ -57,6 +56,7 @@ class probe(HasTraits):
     # the aberration function value
     chi = Property
     array = Property
+    """
     debug = Bool(False)
     
     def __init__(self, HT=200, N=400, d=0.05, alpha=15, debug=False):
