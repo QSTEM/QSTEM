@@ -54,6 +54,8 @@ def get_cell_box(filename):
     f.close()
     stripped_box_dims = box_re.findall(txt)
     for dim in stripped_box_dims:
+        # keep it iff dimensions match - these are where
+        #   the cell parameters are stored.
         if dim[0]==dim[1]:
             celldims[int(dim[0])-1]=float(dim[2])
     return celldims
