@@ -1,0 +1,21 @@
+# This regex is designed to capture 3 things:
+- the atomic number entry
+- the chemical symbol
+- the block of text containing the atomic coordinate, DW-factor, occ, and charge entries
+
+# find atomic number at beginning of line, followed by symbol:
+^([\d]+)\s*\n([A-Za-z]{1,2})\s*\n
+
+# match everything after the start, but don't be greedy (stop before consuming absolutely everything):
+(.*?)
+
+# termination:
+# either match the start of a new atom (without consuming it, with the ?= lookahead assertion),
+#    or the end of the string/file (\Z):
+(?=^\d+\s*\n\s*\w+\s*\n|\Z)
+
+# In combination:
+(\d+)\s*\n([A-Za-z]{1,2})\s*\n (.*?) (?=\d+\s*\n\s*[A-Za-z]{1,2}\s*\n|\Z)
+
+# in Python, need to make sure that '.' matches newlines also in order to grab multiple lines:
+e = re.compile("(\d+)\s*\n([A-Za-z]{1,2})\s*\n(.*?)(?=\d+\s*\n\s*[A-Za-z]{1,2}\s*\n|\Z)", flags=re.M|re.S)
