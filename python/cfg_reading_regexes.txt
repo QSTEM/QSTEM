@@ -1,3 +1,17 @@
+#############
+For reading cell dimensions:
+
+Extract the two numbers in the parenthesis, and the floating point number that follows.
+H0\((\d),(\d)\) = (\d+\.\d+)\s*
+
+You won't get matches for indices that don't have entries - this RE requires that a decimal point be present.
+Thus, all of the entries that are simply 0 are skipped.  Still, you should later check the returned results and keep
+only those in which the first two indices are identical.
+
+
+
+#############
+For reading the atomic coordinates:
 # This regex is designed to capture 3 things:
 - the atomic number entry
 - the chemical symbol
@@ -19,3 +33,5 @@
 
 # in Python, need to make sure that '.' matches newlines also in order to grab multiple lines:
 e = re.compile("(\d+)\s*\n([A-Za-z]{1,2})\s*\n(.*?)(?=\d+\s*\n\s*[A-Za-z]{1,2}\s*\n|\Z)", flags=re.M|re.S)
+
+
