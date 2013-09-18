@@ -22,7 +22,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 import numpy as np
 from traits.api import HasTraits, Dict, Float, Tuple, Int, Property, \
      cached_property, Array, Bool, on_trait_change
-import readCfg
+from fileio import readCfg
 import copy
 
 class SampleModel(HasTraits):
@@ -100,7 +100,7 @@ class SampleModel(HasTraits):
                 
     def _tiltCell(self, x, y, z):
         from numpy import cos, sin
-        transformed_elements={}
+        transformed_elements=copy.copy(self.duplicated_elements)
         
         Rx = np.array([[1,0,0],
                        [0, cos(x), -sin(x)],
@@ -112,7 +112,7 @@ class SampleModel(HasTraits):
                        [sin(z), cos(z),0],
                        [0, 0, 1]])
         for key in self.duplicated_elements.keys():
-            transformed_elements[key]=self.duplicated_elements[key].dot(Rx).dot(Ry).dot(Rz)
+            transformed_elements[key][:,:3]=self.duplicated_elements[key][:,:3].dot(Rx).dot(Ry).dot(Rz)
         return transformed_elements
             
     def _get_element_arrays(self):
