@@ -27,7 +27,7 @@ from pyface.util.guisupport import get_app_qt4, start_event_loop_qt4
 
 from models.sample_chaco import SamplePlotter
 
-class PlotWindow(QtGui.QMainWindow,main_window.Ui_MainWindow):
+class QSTEM_UI(QtGui.QMainWindow,main_window.Ui_MainWindow):
     """
     hwl is inherited from both QtGui.QDialog and hw.Ui_Dialog
     """
@@ -35,27 +35,24 @@ class PlotWindow(QtGui.QMainWindow,main_window.Ui_MainWindow):
         """
         Initialization of the class. Call the __init__ for the super classes
         """
-        super(PlotWindow,self).__init__(parent)
+        super(QSTEM_UI,self).__init__(parent)
         self.setupUi(self)
-        self.plotter=SamplePlotter(self)
-        self.plotter.loadCfg("SrTiO3.cfg")
-        self.plotter._update_coordinates()
-        self.plotter.top_plot()
-        self.plotLayout.addWidget(self.plotter.widget)
-        self.plotWidget=self.plotter.widget
-        self.plotWidget.show()
-        #self.connectActions()
+        self.sample=SamplePlotter(self)
+        self.plotLayout.addWidget(self.sample.widget)
+        self.sampleWidget=self.sample.widget
+        self.sampleWidget.show()
+        self.connectActions()
 
     def main(self):
         self.show()
 
-        '''
-        def connectActions(self):
+    def connectActions(self):
         """
         Connect the user interface controls to the logic
         """
-        self.cmdWrite.clicked.connect(self.myprint)      
+        self.LoadModel.clicked.connect(self.sample.load_file)
 
+        '''
         def myprint(self):
         """
         Even handler for the pushButton click
@@ -64,10 +61,12 @@ class PlotWindow(QtGui.QMainWindow,main_window.Ui_MainWindow):
         self.txtEdit.setText('This')
         self.lblShow.setText('is a test')
         '''
+        
+    
 if __name__=='__main__':
     #app = QtGui.QApplication(sys.argv)
     app = get_app_qt4()
-    gui = PlotWindow()
+    gui = QSTEM_UI()
     gui.main()
     start_event_loop_qt4(app)
     #sys.exit(app.exec_())
