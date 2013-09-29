@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DetectorConfig</class>
- <widget class="QDockWidget" name="DetectorConfig">
+ <class>DockWidget</class>
+ <widget class="QDockWidget" name="DockWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,8 +10,11 @@
     <height>206</height>
    </rect>
   </property>
+  <property name="features">
+   <set>QDockWidget::DockWidgetClosable|QDockWidget::DockWidgetMovable</set>
+  </property>
   <property name="windowTitle">
-   <string>Detector Config</string>
+   <string>Detectors</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout">

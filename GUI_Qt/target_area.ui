@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TargetConfigDockWidget</class>
- <widget class="QDockWidget" name="TargetConfigDockWidget">
+ <class>DockWidget</class>
+ <widget class="QDockWidget" name="DockWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Target Area</string>
+   <string>Simulation Type/Target Area</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout">

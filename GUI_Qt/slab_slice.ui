@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SliceConfig</class>
- <widget class="QDockWidget" name="SliceConfig">
+ <class>DockWidget</class>
+ <widget class="QDockWidget" name="DockWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,8 +10,11 @@
     <height>278</height>
    </rect>
   </property>
+  <property name="features">
+   <set>QDockWidget::DockWidgetClosable|QDockWidget::DockWidgetMovable</set>
+  </property>
   <property name="windowTitle">
-   <string>Slab/Slice Configuration</string>
+   <string>Slab/Slice</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <layout class="QGridLayout" name="gridLayout">
