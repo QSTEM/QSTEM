@@ -172,3 +172,35 @@ void Detector::SetComment(const char *comment)
 {
 	m_imageIO->SetComment(comment);
 }
+
+
+MULS::MULS():
+  cubex(0), cubey(0), cubez(0),
+  printLevel(2),
+  saveLevel(0),
+  lpartl(0),
+  atomRadius(5.0),
+  saveFlag(0),
+  sigmaf(0),
+  dfdelt(0),
+  acmax(0),
+  acmin(0),
+  aobj(0),
+  Cs(0),
+  aAIS(0),
+  tomoTilt(0),
+  tomoStart(0),
+  tomoStep(0),
+  tomoCount(0),
+  trans(NULL),
+  cz(NULL),
+  normHolog(0),
+  gaussianProp(0),
+  kx(NULL), kx2(NULL), ky(NULL), ky2(NULL),
+  pendelloesung(NULL),
+  onlyFresnel(NULL),
+  showPhaseplate(NULL),
+  czOffset(NULL)
+{
+
+}

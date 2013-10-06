@@ -15,8 +15,6 @@
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"	/* memory allocation routines */
 
-#include "data_IO/data_writers.hpp"
-
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>

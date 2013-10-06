@@ -184,56 +184,15 @@ void initMuls() {
 
 	slices = muls.slices;
 
-	/* general setup: */
-	muls.lpartl = 0;
-
-	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
-
-	for (sCount =0;sCount<slices;sCount++)
+       	for (sCount =0;sCount<slices;sCount++)
 		muls.cin2[sCount] = 'a'+sCount;
 	for (sCount = slices;sCount < NCINMAX;sCount++)
 		muls.cin2[sCount] = 0;
 	muls.nlayer = slices;
-	muls.saveFlag = 0;
-
-	muls.sigmaf = 0;
-	muls.dfdelt = 0;
-	muls.acmax = 0;
-	muls.acmin = 0;
-	muls.aobj = 0;
-	muls.Cs = 0;
-	muls.aAIS = 0;
-	// muls.areaAIS = 1.0;
-
-	// Tomography parameters:
-	muls.tomoTilt = 0;
-	muls.tomoStart = 0;
-	muls.tomoStep = 0;
-	muls.tomoCount = 0;  // indicate: NO Tomography simulation.
-
-	/* make multislice read the inout files and assign transr and transi: */
-	muls.trans = NULL;
-	muls.cz = NULL;  // (float_tt *)malloc(muls.slices*sizeof(float_tt));
-
-	muls.onlyFresnel = 0;
-	muls.showPhaseplate = 0;
-	muls.czOffset = 0;  /* defines the offset for the first slice in 
-						fractional coordinates        */
-	muls.normHolog = 0;
-	muls.gaussianProp = 0;
-
-
-	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
+	
+       	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
 	for (i=0;i<NPARAM;i++)
 		muls.sparam[i] = 0.0;
-	muls.kx = NULL;
-	muls.kx2= NULL;
-	muls.ky = NULL;
-	muls.ky2= NULL;
-
-	/****************************************************/
-	/* copied from slicecell.c                          */
-	muls.pendelloesung = NULL;
 }
 
 int DirExists(char *filename) { 
