@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include <stdexcept>
+#include <map>
 
 //#include "boost/shared_ptr.hpp"
 
@@ -30,7 +31,7 @@
 
 CImageIO::CImageIO(int nx, int ny, std::string extension) :
   m_headerSize(56),
-  m_params(std::vector<double>()),
+  m_params(std::map<std::string, double>()),
   m_paramSize(0),
   m_nx(nx),
   m_ny(ny),
@@ -40,11 +41,11 @@ CImageIO::CImageIO(int nx, int ny, std::string extension) :
   m_dy(1.0),
   m_comment("")
 {
-  m_imageWriter = GetImageWriter(extension);
+  m_imageWriter = GetDataWriter(extension);
 };
 
 CImageIO::CImageIO(int nx, int ny, double t, double dx, double dy,
-                   std::vector<double> params, std::string comment, std::string extension) :
+                   std::map<std::string, double> params, std::string comment, std::string extension) :
 m_headerSize(56),
 m_params(params),
 m_nx(nx),
@@ -59,7 +60,7 @@ m_comment("")
 };
 
 void CImageIO::WriteComplexImage(void **pix, const char *fileName) {
-  m_imageWriter->WriteComplexImage((std::complex<float_tt> **)pix, GetShapeVector(), std::string(fileName),
+  m_imageWriter->WriteComplexImage((complex_tt **)pix, GetShapeVector(), std::string(fileName),
                                    std::vector<ulong>(), m_comment, m_params, GetResolutionVector());
 }
 
@@ -71,6 +72,7 @@ void CImageIO::WriteRealImage(void **pix, const char *fileName) {
 void CImageIO::ReadHeader(const char *fileName)
 {
   FILE *fp;
+  std::vector<double> params;
   if ((fp = fopen(fileName,"rb"))==NULL)
   {
       sprintf(m_buf, "Could not open file %s for reading header.\n",fileName);
@@ -79,8 +81,8 @@ void CImageIO::ReadHeader(const char *fileName)
   fread((void*)this, 1, 56, fp);
   if (m_paramSize>0)
     {
-      m_params=std::vector<double>(m_paramSize);
-      fread((void *)&m_params[0],sizeof(double),m_paramSize,fp);
+      params=std::vector<double>(m_paramSize);
+      fread((void *)&params[0],sizeof(double),m_paramSize,fp);
     }
   if (m_commentSize>0)
     {
@@ -161,11 +163,17 @@ void CImageIO::SetResolution(double resX, double resY)
 	m_dy = resY;
 }
 
-void CImageIO::SetParams(std::vector<double> params)
+void CImageIO::SetParams(std::map<std::string, double> &params)
 {
   m_params=params;
 }
 
+void CImageIO::SetParameter(std::string key, double value)
+{
+  m_params[key] = value;
+}
+
+/*
 void CImageIO::SetParameter(int index, double value)
 {
 	if (index < m_params.size())
@@ -173,8 +181,9 @@ void CImageIO::SetParameter(int index, double value)
 	else
 		throw std::runtime_error("Tried to set out of bounds parameter.");
 }
+*/
 
-std::vector<ulong> CImageIO::GetResolutionVector()
+std::vector<ulong> CImageIO::GetShapeVector()
 {
   std::vector<ulong> size(2, ulong());
   size[0]=m_nx;
@@ -182,9 +191,9 @@ std::vector<ulong> CImageIO::GetResolutionVector()
   return size;
 }
 
-std::vector<ulong> CImageIO::GetResolutionVector()
+std::vector<float_tt> CImageIO::GetResolutionVector()
 {
-  std::vector<ulong> size(2, ulong());
+  std::vector<float_tt> size(2, float_tt());
   size[0]=m_dx;
   size[1]=m_dy;
   return size;

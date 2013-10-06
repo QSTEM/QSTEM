@@ -91,9 +91,21 @@ float_tt ***float3D( int nx, int ny,int nz, const char *message );
 double **double2D( int nx, int ny, const char *message );
 
 complex_tt  **complex2D(int nx, int ny, const char *message);
+fftw_complex **complex2Dd(int nx, int ny, const char *message);
 complex_tt  ***complex3D(int nx, int ny,int nz, const char *message);
+fftw_complex  ***complex3Dd(int nx, int ny,int nz, const char *message);
 
 void **any2D( int nx, int ny,int size, const char *message );
 void ***any3D( int nx, int ny,int nz,int size, const char *message );
 
 #endif
+
+
+
+
+
+
+
+
+
+

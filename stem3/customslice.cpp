@@ -89,7 +89,11 @@ void make3DSlicesFT(MULS *muls) {
   /******************************************
    * only needed during initialization: 
    */
+#if FLOAT_PRECISION == 1
+  fftwf_plan plan;                   // fftw array
+#else
   fftw_plan plan;                   // fftw array
+#endif
   int fftMeasureFlag = FFTW_ESTIMATE; // fftw plan needed for FFT
   complex_tt **pot = NULL;          // single atom potential box
   float ax,cz;                        // real space size of FT box
@@ -189,9 +193,16 @@ void make3DSlicesFT(MULS *muls) {
       }
 
       // new fftw3 code:
+#if FLOAT_PRECISION == 1
+      plan = fftwf_plan_dft_2d(Nz,Nx,pot[0],pot[0],FFTW_BACKWARD,fftMeasureFlag);
+      fftwf_execute(plan);
+      fftwf_destroy_plan(plan);
+#else
       plan = fftw_plan_dft_2d(Nz,Nx,pot[0],pot[0],FFTW_BACKWARD,fftMeasureFlag);
       fftw_execute(plan);
       fftw_destroy_plan(plan);
+#endif
+      
     
       /* see L.M. Peng, Micron 30, p. 625 (1999) for details on the scale factor
        * so that pot is the true electrostatic potential. 

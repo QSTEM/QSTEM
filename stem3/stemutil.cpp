@@ -247,7 +247,7 @@ double vzatomLUT(int Z, double r,int tdsFlag,int scatFlag)
 /*
 void saveSTEMimages(MULS *muls) {
   int i,ix,iy,nx,ny,npix;
-  real rmin,rmax,x;
+  float_tt rmin,rmax,x;
   float param[NPARAM];
   char fileName[32],datetime[32];
   static float **image=NULL;
@@ -323,10 +323,10 @@ void saveSTEMimages(MULS *muls) {
     param[pXCTILT] = (*muls).ctiltx;
     param[pYCTILT] = (*muls).ctiltx;
     param[pENERGY] = (*muls).v0;
-    param[pDX] = ((*muls).scanXStop-(*muls).scanXStart)/(real)nx;
-    param[pDY] = ((*muls).scanYStop-(*muls).scanYStart)/(real)ny;
-    param[pWAVEL] = (real)wavelength((*muls).v0);
-    param[pNSLICES] = (real)((*muls).nslic0);
+    param[pDX] = ((*muls).scanXStop-(*muls).scanXStart)/(float_tt)nx;
+    param[pDY] = ((*muls).scanYStop-(*muls).scanYStart)/(float_tt)ny;
+    param[pWAVEL] = (float_tt)wavelength((*muls).v0);
+    param[pNSLICES] = (float_tt)((*muls).nslic0);
     param[pDEFOCUS] = (*muls).df0;
     param[pOAPERT] = 0.0;
     param[pCS] = (*muls).Cs;
@@ -1526,7 +1526,7 @@ int atomCompare(const void *atom1,const void *atom2) {
 	  (((*(atom *)atom1).z > (*(atom *)atom2).z) ? 1 : -1));
   */
   /* Use the fact that z is the first element in the atom struct */
-  return ((*(real *)atom1 == *(real *)atom2) ? 0 : 
-	  ((*(real *)atom1 > *(real *)atom2) ? 1 : -1)); 
+  return ((*(float_tt *)atom1 == *(float_tt *)atom2) ? 0 : 
+	  ((*(float_tt *)atom1 > *(float_tt *)atom2) ? 1 : -1)); 
 }
 

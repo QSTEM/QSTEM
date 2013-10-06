@@ -1961,9 +1961,9 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 	char buf[NCMAX], *str,element[16];
 	FILE *fp;
-	real alpha,beta,gamma;
+	float_tt alpha,beta,gamma;
 	int ncoord,ncx,ncy,ncz,icx,icy,icz;
-	real dw,occ,dx,dy,dz,r;
+	float_tt dw,occ,dx,dy,dz,r;
 	int spaceGrp,i,count,j,type;
 	static atom *atoms = NULL;
 	char s1[32],s2[32],s3[32],dummy[32];
@@ -2002,9 +2002,9 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 		* check angles, of cssr file (must be 90 degrees)
 		*************************************************************/
 		str = strchr(buf,'9');
-		alpha = (real)atof(str++);
-		beta = (real)atof(strchr(str++,'9'));
-		gamma = (real)atof(strchr(str,'9'));
+		alpha = (float_tt)atof(str++);
+		beta = (float_tt)atof(strchr(str++,'9'));
+		gamma = (float_tt)atof(strchr(str,'9'));
 		muls->cAlpha = alpha;
 		muls->cBeta  = beta;
 		muls->cGamma = gamma;
@@ -2056,12 +2056,12 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 		* This cannot work yet - please check !!!
 		*************************************************************/
 		str = buf;
-		muls->ax = (real)atof(str);
-		muls->by = (real)atof(str = strtok(buf," \t"));
-		muls->c  = (real)atof(str = strtok(buf," \t"));
-		alpha = (real)atof(str = strtok(buf," \t"));
-		beta = (real)atof(str = strtok(buf," \t"));
-		gamma = (real)atof(str = strtok(buf," \t"));
+		muls->ax = (float_tt)atof(str);
+		muls->by = (float_tt)atof(str = strtok(buf," \t"));
+		muls->c  = (float_tt)atof(str = strtok(buf," \t"));
+		alpha = (float_tt)atof(str = strtok(buf," \t"));
+		beta = (float_tt)atof(str = strtok(buf," \t"));
+		gamma = (float_tt)atof(str = strtok(buf," \t"));
 		muls->cAlpha = alpha;
 		muls->cBeta  = beta;
 		muls->cGamma = gamma;

@@ -9,3 +9,5 @@ FILE(GLOB STEM3_LIBS_H_FILES "${CMAKE_SOURCE_DIR}/libs/*.hpp")
 
 set (qstem_libs_src ${STEM3_LIBS_C_FILES} ${STEM3_LIBS_H_FILES})
 add_library(qstem_libs ${qstem_libs_src})
+
+add_subdirectory(file_IO)

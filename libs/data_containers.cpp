@@ -35,13 +35,9 @@ resolutionY(resY)
 {
 	char waveFile[256];
 	const char *waveFileBase = "mulswav";
-#if FLOAT_PRECISION == 1
+
 	diffpat = float2D(nx,ny,"diffpat");
 	avgArray = float2D(nx,ny,"avgArray");
-#else
-	diffpat = double2D(nx,ny,"diffpat");
-	avgArray = double2D(nx,ny,"avgArray");
-#endif
 
 	m_imageIO=ImageIOPtr(new CImageIO(nx, ny, thickness, resolutionX, resolutionY));
 	
@@ -62,7 +58,7 @@ resolutionY(resY)
 }
 
 void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
-	std::vector<double>params)
+                         std::map<std::string, double>params)
 {
 	m_imageIO->SetComment(comment);
 	m_imageIO->SetResolution(resolutionX, resolutionY);
@@ -72,7 +68,7 @@ void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
 }
 
 void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
-	std::vector<double>params)
+                            std::map<std::string, double>params)
 {
 	m_imageIO->SetComment(comment);
 	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
@@ -82,7 +78,7 @@ void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
 }
 
 void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
-	std::vector<double>params)
+                             std::map<std::string, double>params)
 {
 	m_imageIO->SetComment(comment);
 	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
@@ -115,14 +111,10 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
   Navg(0),
   thickness(0)
 {
-#if FLOAT_PRECISION == 1
-	image = float2D(nx,ny,"ADFimag");
-	image2 = float2D(nx,ny,"ADFimag");
-#else
-	image = double2D(nx,ny,"ADFimag");	
-	image2 = double2D(nx,ny,"ADFimag");	
-#endif
-	m_imageIO=ImageIOPtr(new CImageIO(nx, ny, thickness, resX, resY, std::vector<double>(2+nx*ny), "STEM image"));
+  image = float2D(nx,ny,"ADFimag");
+  image2 = float2D(nx,ny,"ADFimag");
+
+  m_imageIO=ImageIOPtr(new CImageIO(nx, ny, thickness, resX, resY, std::map<std::string, double>(), "STEM image"));
 }
 
 void Detector::WriteImage(const char *fileName)
@@ -136,12 +128,12 @@ void Detector::SetThickness(float_tt t)
 	thickness=t;
 }
 
-void Detector::SetParameter(int index, double value)
+void Detector::SetParameter(std::string key, double value)
 {
-	m_imageIO->SetParameter(index, value);
+	m_imageIO->SetParameter(key, value);
 }
 
-void Detector::SetParams(std::vector<double> params)
+ void Detector::SetParams(std::map<std::string, double> &params)
 {
 	m_imageIO->SetParams(params);
 }

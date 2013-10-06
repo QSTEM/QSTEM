@@ -44,12 +44,12 @@ public:
 	// These are not used for anything aside from when saving files.
 	float_tt resolutionX, resolutionY;
 
+	complex_tt  **wave; /* complex wave function */
+
 #if FLOAT_PRECISION == 1
 	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
-	fftwf_complex  **wave; /* complex wave function */
 #else
 	fftw_plan fftPlanWaveForw,fftPlanWaveInv;
-	fftw_complex  **wave; /* complex wave function */
 #endif
 
 public:
@@ -59,11 +59,11 @@ public:
 	//WAVEFUNC( WAVEFUNC& other );
 
 	void WriteWave(const char *fileName, const char *comment="Wavefunction", 
-		std::vector<double>params = std::vector<double>());
+		std::map<std::string, double>params = std::map<std::string, double>());
 	void WriteDiffPat(const char *fileName, const char *comment="Diffraction Pattern",
-		std::vector<double>params = std::vector<double>());
+		std::map<std::string, double>params = std::map<std::string, double>());
 	void WriteAvgArray(const char *fileName, const char *comment="Average Array",
-		std::vector<double>params = std::vector<double>());
+		std::map<std::string, double>params = std::map<std::string, double>());
 
 	void ReadWave(const char *fileName);
 	void ReadDiffPat(const char *fileName);
@@ -88,8 +88,8 @@ public:
 public:
 	Detector(int nx, int ny, float_tt resX, float_tt resY);
 	void WriteImage(const char *fileName);
-	void SetParams(std::vector<double> params);
-	void SetParameter(int index, double value);
+	void SetParams(std::map<std::string, double> &params);
+	void SetParameter(std::string key, double value);
 	void SetThickness(float_tt t);
 	void SetComment(const char *comment);
 	float_tt error;
@@ -109,22 +109,18 @@ public:
   int saveLevel;
   int complete_pixels;  //the number of pixels completed so far
 
+  complex_tt ***trans;
+
 #if FLOAT_PRECISION == 1
   fftwf_plan fftPlanPotInv,fftPlanPotForw;
-  // wave moved to probeStruct
-  //fftwf_complex  **wave; /* complex wave function */
-  fftwf_complex ***trans;
 #else
   fftw_plan fftPlanPotInv,fftPlanPotForw;
-  // wave moved to probeStruct
-  //fftw_complex  **wave; /* complex wave function */
-  fftw_complex ***trans;
 #endif
 
-  real **diffpat;
-  real czOffset;
-  real xOffset;
-  real yOffset;
+  float_tt **diffpat;
+  float_tt czOffset;
+  float_tt xOffset;
+  float_tt yOffset;
   
   char cin2[1024];				/* stacking sequence */
   char fileBase[512];

@@ -3,6 +3,7 @@
 
 #include "stemtypes_fftw3.hpp"
 #include <vector>
+#include <map>
 #include <string>
 #include "boost/shared_ptr.hpp"
 #include "file_IO/output_interface.hpp"
@@ -40,14 +41,14 @@ class CImageIO {
                    // distinguish between images produced by different versions of stem
   double m_t;        // thickness
   double m_dx,m_dy;    // size of one pixel
-  std::vector<double> m_params;  // array for additional parameters
+  std::map<std::string, double> m_params;  // array for additional parameters
   std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
   DataWriterPtr m_imageWriter;
 public:
   CImageIO(int nx, int ny, std::string extension=".img");
   CImageIO(int nx, int ny, double t, double dx, double dy,
-           std::vector<double> params=std::vector<double>(), 
+           std::map<std::string, double> params=std::map<std::string, double>(), 
            std::string comment="", std::string extension=".img");
 
   void WriteRealImage(void **pix, const char *fileName);
@@ -58,17 +59,26 @@ public:
         
   void SetComment(std::string comment);
   void SetThickness(double thickness);
-  void SetParams(std::vector<double> params);
-  void SetParameter(int index, double value);
+  void SetParams(std::map<std::string, double> &params);
+  //void SetParameter(int index, double value);
+  void SetParameter(std::string key, double value);
   void SetResolution(double resX, double resY);
 private:
   void WriteData(void **pix, const char *fileName);
   // reads in the header; returns the byte offset at which we should start reading image data.
   void ReadHeader(const char *fileName);
-  std::vector<ulong> GetResolutionVector();
   std::vector<ulong> GetShapeVector();
+  std::vector<float_tt> GetResolutionVector();
+
 };
 
 typedef boost::shared_ptr<CImageIO> ImageIOPtr;
 
 #endif
+
+
+
+
+
+
+

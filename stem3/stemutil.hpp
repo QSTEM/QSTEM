@@ -64,7 +64,7 @@ atom *readCFGUnitCell(int *natom,char *fileName,MULS *muls);
 
 double v3DatomLUT(int iz,double r,int tdsFlag,int scatFlag);
 double vzatomLUT( int Z, double r ,int tdsFlag,int scatFlag);
-double v3DzatomLUT(int Znum, real r2D, real z);  // real
+double v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // real
 
 double wavelength( double kev );
 double v3Datom(int Z, double r,int tdsFlag,int scatFlag);

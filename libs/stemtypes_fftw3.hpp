@@ -20,7 +20,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef STEMTYPES_H
 #define STEMTYPES_H
 
-#include "memory_fftw3.hpp"
 #include "boost/shared_ptr.hpp"
 
 ////////////////////////////////////////////////////////////////////////
@@ -52,15 +51,11 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
-#define fftw_real float
-#define complex_tt fftwf_complex
-#define float_tt  float
-#define real      float
+typedef fftwf_complex complex_tt;
+typedef float float_tt;
 #else  // FLOAT_PRECISION
-#define fftw_real double
-#define complex_tt fftw_complex
-#define float_tt  double
-#define real      double
+typedef fftw_complex complex_tt;
+typedef double float_tt;
 #endif  // FLOAT_PRECISION
 ////////////////////////////////////////////////////////////////
 

@@ -81,9 +81,9 @@ MULS muls;
 int fftMeasureFlag = FFTW_ESTIMATE;
 extern char *elTable;
 
-void makeAnotation(real **pict,int nx,int ny,char *text);
+void makeAnotation(float_tt **pict,int nx,int ny,char *text);
 void initMuls();
-void writeIntPix(char *outFile,real **pict,int nx,int ny);
+void writeIntPix(char *outFile,float_tt **pict,int nx,int ny);
 void runMuls(int lstart);
 void saveLineScan(int run);
 void readBeams(FILE *fp);
@@ -213,7 +213,7 @@ void initMuls() {
 
 	/* make multislice read the inout files and assign transr and transi: */
 	muls.trans = NULL;
-	muls.cz = NULL;  // (real *)malloc(muls.slices*sizeof(real));
+	muls.cz = NULL;  // (float_tt *)malloc(muls.slices*sizeof(float_tt));
 
 	muls.onlyFresnel = 0;
 	muls.showPhaseplate = 0;
@@ -1475,8 +1475,8 @@ void readFile() {
 
 	potDimensions[0] = muls.potNx;
 	potDimensions[1] = muls.potNy;
+	muls.trans = complex3D(muls.slices,muls.potNx,muls.potNy,"trans");
 #if FLOAT_PRECISION == 1
-	muls.trans = complex3Df(muls.slices,muls.potNx,muls.potNy,"trans");
 	// printf("allocated trans %d %d %d\n",muls.slices,muls.potNx,muls.potNy);
 	muls.fftPlanPotForw = fftwf_plan_many_dft(2,potDimensions, muls.slices,muls.trans[0][0], NULL,
 		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
@@ -1485,8 +1485,6 @@ void readFile() {
 		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
 		1, muls.potNx*muls.potNy, FFTW_BACKWARD, fftMeasureFlag);
 #else
-
-	muls.trans = complex3D(muls.slices,muls.potNx,muls.potNy,"trans");
 	muls.fftPlanPotForw = fftw_plan_many_dft(2,potDimensions, muls.slices,muls.trans[0][0], NULL,
 		1, muls.potNx*muls.potNy,muls.trans[0][0], NULL,
 		1, muls.potNx*muls.potNy, FFTW_FORWARD, fftMeasureFlag);
@@ -1662,14 +1660,14 @@ void doCBED() {
 	double timer,timerTot;
 	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
-	real t=0;
-	real **avgPendelloesung = NULL;
+	float_tt t=0;
+	float_tt **avgPendelloesung = NULL;
 	int oldMulsRepeat1 = 1;
 	int oldMulsRepeat2 = 1;
 	long iseed=0;
 	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY));
 	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, t, muls.resolutionX, muls.resolutionY));
-	std::vector<double> params(2);
+	std::map<std::string, double> params;
 
 	muls.chisq = std::vector<double>(muls.avgRuns);
 
@@ -1855,17 +1853,17 @@ void doCBED() {
 		else {
 			muls.chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
-					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
+				t = ((float_tt)muls.avgCount*wave->avgArray[ix][iy]+
+					wave->diffpat[ix][iy])/((float_tt)(muls.avgCount+1));
 				muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
 				wave->avgArray[ix][iy] = t;
 
 			}
 			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
 			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
-			params[0] = muls.tomoTilt;
-			params[1] = 1.0/wavelength(muls.v0);
-			wave->WriteAvgArray(avgName,"Averaged Diffraction pattern, unit: 1/A",params);
+                        params["Tilt"] = muls.tomoTilt;
+                        params["1/Wavelength"] = 1.0/wavelength(muls.v0);
+                        wave->WriteAvgArray(avgName,"Averaged Diffraction pattern, unit: 1/A",params);
 
 			muls.storeSeries = 1;
 			if (muls.saveLevel == 0)	muls.storeSeries = 0;
@@ -1899,8 +1897,8 @@ void doCBED() {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
 						avgPendelloesung[ix][iy] = 
-							((real)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(real)(muls.avgCount+1);
+							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
+							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
 					}
 				}
 			}
@@ -1956,12 +1954,12 @@ void doTEM() {
 	double x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
 	char *comment;
-	real t;
-	real **avgPendelloesung = NULL;
+	float_tt t;
+	float_tt **avgPendelloesung = NULL;
 	int oldMulsRepeat1 = 1;
 	int oldMulsRepeat2 = 1;
 	long iseed=0;
-	std::vector<double> params;
+	std::map<std::string, double> params;
 	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny,muls.resolutionX,muls.resolutionY));
 	fftwf_complex **imageWave = NULL;
 
@@ -2111,20 +2109,16 @@ void doTEM() {
 #ifdef VIB_IMAGE_TEST  // doTEM
 				if ((muls.tds) && (muls.saveLevel > 2)) {
 					sprintf(systStr,"%s/wave_%d.img",muls.folder,muls.avgCount);
-					params = std::vector<double>(9);
-					params[0] = muls.v0;  				// high voltage
-					params[1] = muls.Cs;				// spherical aberration
-					params[2] = muls.df0;				// defocus
-					params[3] = muls.astigMag;			// astigmatism
-					params[4] = muls.astigAngle;	
-					params[5] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);	// focal spread
-					// printf("****  Cc = %f, dE_E = %f, Delta = %f ****\n",muls.Cc,muls.dV_V,muls.Cc * muls.dV_V);
-					params[6] = muls.alpha;				// illumination convergence angle
-					// beam tilt:
-					params[7] = muls.btiltx;			// beam tilt in mrad
-					params[8] = muls.btilty;			// beam tilt in mrad
-					
-					comment = "complex exit face Wave function";
+                                        params["HT"] = muls.v0;
+                                        params["Cs"] = muls.Cs;
+                                        params["Defocus"] = muls.df0;
+                                        params["Astigmatism Magnitude"] = muls.astigMag;
+                                        params["Astigmatism Angle"] = muls.astigAngle;
+                                        params["Focal Spread"] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);
+                                        params["Convergence Angle"] = muls.alpha;
+                                        params["Beam Tilt X"] = muls.btiltx;
+                                        params["Beam Tilt Y"] = muls.btilty;
+                                        comment = "complex exit face Wave function";
 
 					wave->WriteWave(systStr, comment, params);
 				}
@@ -2147,7 +2141,7 @@ void doTEM() {
 			/***********************************************************
 			* Save the diffraction pattern
 			**********************************************************/	
-			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],(size_t)(muls.nx*muls.ny*sizeof(real)));
+			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
 			sprintf(avgName,"diffAvg_%d.img",muls.avgCount+1);
@@ -2175,7 +2169,7 @@ void doTEM() {
 			* all the different defoci, inverse FFT and save each image.
 			* diffArray will be overwritten with the image.
 			**********************************************************/ 
-			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
+			if (imageWave == NULL) imageWave = complex2D(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 			fftwf_execute(wave->fftPlanWaveForw);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
@@ -2198,8 +2192,8 @@ void doTEM() {
 			/* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
 			muls.chisq[muls.avgCount-1] = 0.0;
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*wave->avgArray[ix][iy]+
-					wave->diffpat[ix][iy])/((real)(muls.avgCount+1));
+				t = ((float_tt)muls.avgCount*wave->avgArray[ix][iy]+
+					wave->diffpat[ix][iy])/((float_tt)(muls.avgCount+1));
 				muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
 				wave->avgArray[ix][iy] = t;
 			}
@@ -2225,8 +2219,8 @@ void doTEM() {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					for (ix=0;ix<muls.nbout;ix++) {
 						avgPendelloesung[ix][iy] = 
-							((real)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(real)(muls.avgCount+1);
+							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
+							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
 					}
 				}
 			}
@@ -2237,7 +2231,7 @@ void doTEM() {
 			* all the different defoci, inverse FFT and save each image.
 			* diffArray will be overwritten with the image.
 			**********************************************************/ 
-			if (imageWave == NULL) imageWave = complex2Df(muls.nx,muls.ny,"imageWave");
+			if (imageWave == NULL) imageWave = complex2D(muls.nx,muls.ny,"imageWave");
 			// multiply wave (in rec. space) with transfer function and write result to imagewave
 #if FLOAT_PRECISION == 1
 			fftwf_execute(wave->fftPlanWaveForw);
@@ -2259,8 +2253,8 @@ void doTEM() {
 			sprintf(avgName,"%s/image.img",muls.folder); 
 			wave->ReadDiffPat(avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((real)muls.avgCount*wave->diffpat[ix][iy]+
-					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(real)(muls.avgCount+1);
+				t = ((float_tt)muls.avgCount*wave->diffpat[ix][iy]+
+					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(muls.avgCount+1);
 				wave->diffpat[ix][iy] = t;
 			}
 			wave->WriteDiffPat(avgName, "Image intensity");
@@ -2320,8 +2314,8 @@ void doSTEM() {
 	int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
 	double timer, total_time=0;
 	char buf[BUF_LEN];
-	real t;
-	static real **avgArray=NULL;
+	float_tt t;
+	static float_tt **avgArray=NULL;
 	double collectedIntensity;
 
 	std::vector<WavePtr> waves;
@@ -2507,8 +2501,8 @@ void doSTEM() {
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
 								wave->ReadAvgArray(wave->avgName);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
-									t = ((real)muls.avgCount * wave->avgArray[ixa][iya] +
-										wave->diffpat[ixa][iya]) / ((real)(muls.avgCount + 1));
+									t = ((float_tt)muls.avgCount * wave->avgArray[ixa][iya] +
+										wave->diffpat[ixa][iya]) / ((float_tt)(muls.avgCount + 1));
 									if (muls.avgCount>1)
 									{
 										#pragma omp atomic

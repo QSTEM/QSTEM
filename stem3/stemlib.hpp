@@ -72,9 +72,9 @@ void writeBeams(MULS *muls, WavePtr wave,int ilayer, int absolute_slice);
 /***********************************************************************************
  * old image read/write functions, may soon be outdated
  */
-void readRealImage_old(fftw_real **pix, int nx, int ny, real *t, char *fileName);
-void readImage_old(complex_tt **pix, int nx, int ny, real *t, char *fileName);
-void writeRealImage_old(fftw_real **pix, int nx, int ny, real t,char *fileName);
-void writeImage_old(complex_tt **pix, int nx, int ny, real t,char *fileName);
+void readRealImage_old(float_tt **pix, int nx, int ny, float_tt *t, char *fileName);
+void readImage_old(complex_tt **pix, int nx, int ny, float_tt *t, char *fileName);
+void writeFloat_TtImage_old(float_tt **pix, int nx, int ny, float_tt t,char *fileName);
+void writeImage_old(complex_tt **pix, int nx, int ny, float_tt t,char *fileName);
 
 #endif /* STEMLIB_H */
