@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 #include "boost/shared_ptr.hpp"
-#include "file_IO/output_interface.hpp"
+#include "data_IO/data_writers.hpp"
 
 /**************************************************************
  * Here is how to use the new image writing routines
