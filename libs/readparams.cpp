@@ -31,7 +31,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>
 #include <string.h>
-#include "readparams.h"
+#include "readparams.hpp"
 
 #define COMMENT '%'
 #define PAR_BUF_LEN 1024

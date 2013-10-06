@@ -1,7 +1,7 @@
 #ifndef IMAGELIB_H
 #define IMAGELIB_H
 
-#include "stemtypes_fftw3.h"
+#include "stemtypes_fftw3.hpp"
 #include <vector>
 #include <string>
 #include "boost/shared_ptr.hpp"

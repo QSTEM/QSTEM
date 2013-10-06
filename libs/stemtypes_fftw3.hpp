@@ -20,7 +20,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef STEMTYPES_H
 #define STEMTYPES_H
 
-#include "memory_fftw3.h"
+#include "memory_fftw3.hpp"
 #include "boost/shared_ptr.hpp"
 
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define PICO_AMPERE (1e-12/ELECTRON_CHARGE)
 #define MILLISEC_PICOAMP (1e-3*PICO_AMPERE)
 
-// #include "floatdef.h"
+// #include "floatdef.hpp"
 #include "fftw3.h"
 
 ////////////////////////////////////////////////////////////////

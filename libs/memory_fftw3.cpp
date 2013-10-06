@@ -20,7 +20,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <stdlib.h>
 #include <stdio.h>
 #include "fftw3.h"
-#include "memory_fftw3.h"
+#include "memory_fftw3.hpp"
  
 #ifndef WIN32
 #include <stdint.h>

@@ -51,16 +51,16 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include <omp.h>
 
-#include "memory_fftw3.h"	/* memory allocation routines */
-#include "readparams.h"
-#include "imagelib_fftw3.h"
-#include "fileio_fftw3.h"
-#include "matrixlib.h"
-#include "stemlib.h"
-#include "stemutil.h"
-// #include "weblib.h"
-#include "customslice.h"
-#include "data_containers.h"
+#include "memory_fftw3.hpp"	/* memory allocation routines */
+#include "readparams.hpp"
+#include "imagelib_fftw3.hpp"
+#include "fileio_fftw3.hpp"
+#include "matrixlib.hpp"
+#include "stemlib.hpp"
+#include "stemutil.hpp"
+// #include "weblib.hpp"
+#include "customslice.hpp"
+#include "data_containers.hpp"
 
 #define NCINMAX 1024
 #define NPARAM	64    /* number of parameters */

@@ -20,8 +20,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef STEMUTIL_H
 #define STEMUTIL_H
 
-#include "data_containers.h"
-#include "stemtypes_fftw3.h"
+#include "data_containers.hpp"
+#include "stemtypes_fftw3.hpp"
 
 #define pNPIX		0   /* number of pix 1 for real and 2 for complex */
 #define	pRMAX		1	/* maximum value of the real part of the image */

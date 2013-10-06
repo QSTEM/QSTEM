@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "data_containers.h"
+#include "data_containers.hpp"
 #include <iostream>
 
 struct WaveFixture {

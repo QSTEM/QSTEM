@@ -20,8 +20,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef MATRIXLIB_H
 #define MATRIXLIB_H
 
-#include "stemtypes_fftw3.h"
-#include "data_containers.h"
+#include "stemtypes_fftw3.hpp"
+#include "data_containers.hpp"
 
 #define PI 3.1415926535898
 #define PI180 1.7453292519943e-2

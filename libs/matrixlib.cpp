@@ -21,11 +21,11 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <stdlib.h>
 #include <string.h>
 #include <math.h> 
-#include "matrixlib.h"
-#include "stemtypes_fftw3.h"
-// #include "stemlib.h"
-#include "memory_fftw3.h"
-// #include "nrutil.h" 
+#include "matrixlib.hpp"
+#include "stemtypes_fftw3.hpp"
+// #include "stemlib.hpp"
+#include "memory_fftw3.hpp"
+// #include "nrutil.hpp" 
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */

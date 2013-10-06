@@ -20,8 +20,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef FILEIO_H
 #define FILEIO_H
 
-#include "data_containers.h"
-#include "stemtypes_fftw3.h"
+#include "data_containers.hpp"
+#include "stemtypes_fftw3.hpp"
 
 atom *readUnitCell(int *natom,char *fileName,MULS *muls,int handleVacancies);
 void replicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVacancies);

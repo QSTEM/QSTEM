@@ -19,7 +19,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include "stdio.h"
 #include <string.h>
-#include "data_containers.h"
+#include "data_containers.hpp"
 
 WAVEFUNC::WAVEFUNC(int x, int y, float_tt resX, float_tt resY) :
 detPosX(0),

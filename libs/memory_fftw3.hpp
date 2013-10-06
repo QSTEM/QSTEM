@@ -22,7 +22,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 // #include <stdlib.h>
 #include <stdio.h>
-// #include "floatdef.h"
+// #include "floatdef.hpp"
 #include "fftw3.h"
 
 #ifndef float_tt

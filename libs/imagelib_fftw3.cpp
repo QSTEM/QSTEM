@@ -10,9 +10,9 @@
 
 //#include "boost/shared_ptr.hpp"
 
-#include "stemtypes_fftw3.h"
-#include "imagelib_fftw3.h"
-#include "memory_fftw3.h"	/* memory allocation routines */
+#include "stemtypes_fftw3.hpp"
+#include "imagelib_fftw3.hpp"
+#include "memory_fftw3.hpp"	/* memory allocation routines */
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */

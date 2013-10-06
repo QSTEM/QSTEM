@@ -23,14 +23,14 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <math.h>
 #include <time.h>
 
-#include "stemlib.h"
-#include "memory_fftw3.h"	/* memory allocation routines */
-#include "stemutil.h"
-// #include "tiffsubs.h"
-#include "imagelib_fftw3.h"
-#include "fileio_fftw3.h"
-// #include "floatdef.h"
-// #include "imagelib.h"
+#include "stemlib.hpp"
+#include "memory_fftw3.hpp"	/* memory allocation routines */
+#include "stemutil.hpp"
+// #include "tiffsubs.hpp"
+#include "imagelib_fftw3.hpp"
+#include "fileio_fftw3.hpp"
+// #include "floatdef.hpp"
+// #include "imagelib.hpp"
 
 
 #define _CRTDBG_MAP_ALLOC
@@ -89,7 +89,7 @@ const double pid2=2*PI;
 // - scatPar[N_ELEM][N_SF] and
 // - scatParOffs[N_ELEM][N_SF]
 // and also define N_SF and N_ELEM:
-#include "scatfactsRez.h"
+#include "scatfactsRez.hpp"
 #else
 
 #define N_SF 30

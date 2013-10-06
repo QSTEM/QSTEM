@@ -29,13 +29,13 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <ctype.h>
 
 
-#include "floatdef.h"
-#include "stemtypes_fftw3.h"
-#include "memory_fftw3.h"	/* memory allocation routines */
-// #include "../lib/tiffsubs.h"
-#include "readparams.h"
-#include "matrixlib.h"
-#include "fileio_fftw3.h"
+#include "floatdef.hpp"
+#include "stemtypes_fftw3.hpp"
+#include "memory_fftw3.hpp"	/* memory allocation routines */
+// #include "../lib/tiffsubs.hpp"
+#include "readparams.hpp"
+#include "matrixlib.hpp"
+#include "fileio_fftw3.hpp"
 
 #define NAME_BUF_LEN 64
 #define CRYSTALLINE 0

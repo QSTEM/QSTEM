@@ -29,15 +29,15 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <sys/time.h>
 #endif
 
-#include "stemlib.h"
-#include "stemutil.h"
-#include "memory_fftw3.h"	/* memory allocation routines */
-// #include "tiffsubs.h"
-#include "matrixlib.h"
-#include "readparams.h"
-#include "fileio_fftw3.h"
-// #include "fileio.h"
-// #include "floatdef.h"
+#include "stemlib.hpp"
+#include "stemutil.hpp"
+#include "memory_fftw3.hpp"	/* memory allocation routines */
+// #include "tiffsubs.hpp"
+#include "matrixlib.hpp"
+#include "readparams.hpp"
+#include "fileio_fftw3.hpp"
+// #include "fileio.hpp"
+// #include "floatdef.hpp"
 
 // #define WRITEK
 
