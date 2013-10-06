@@ -53,16 +53,14 @@ QSTEM - image simulation for TEM/STEM/CBED
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
 #define fftw_real float
-#ifndef float_tt
+#define complex_tt fftwf_complex
 #define float_tt  float
-#endif
 #define real      float
 #else  // FLOAT_PRECISION
 #define fftw_real double
-#ifndef float_tt
-#define float_tt  float
-#endif
-#define real      float
+#define complex_tt fftw_complex
+#define float_tt  double
+#define real      double
 #endif  // FLOAT_PRECISION
 ////////////////////////////////////////////////////////////////
 
@@ -117,13 +115,8 @@ typedef struct atomBoxStruct {
   int nx,ny,nz;
   float_tt dx,dy,dz;
   double B;
-#if FLOAT_PRECISION == 1
-  fftwf_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
+  complex_tt ***potential;   /* 3D array containg 1st quadrant of real space potential */
   float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
-#else
-  fftw_complex ***potential;   /* 3D array containg 1st quadrant of real space potential */
-  float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
-#endif
 } atomBox;
 
 #endif // STEMTYPES_H

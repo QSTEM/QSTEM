@@ -366,10 +366,10 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 	int ix,iy,idd; // iz;
 	static FILE *fpPhonon = NULL;
 	static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
-	static float *massPrim;   // masses for every atom in primitive basis
-	static float **omega;     // array of eigenvalues for every k-vector 
-	static fftwf_complex ***eigVecs;  // array of eigenvectors for every k-vector
-	static float **kVecs;     // array for Nk 3-dim k-vectors
+	static float_tt *massPrim;   // masses for every atom in primitive basis
+	static float_tt **omega;     // array of eigenvalues for every k-vector 
+	static complex_tt ***eigVecs;  // array of eigenvectors for every k-vector
+	static float_tt **kVecs;     // array for Nk 3-dim k-vectors
 	static double **q1=NULL, **q2=NULL;
 	int ik,lambda,icoord; // Ncells, nkomega;
 	double kR,kRi,kRr,wobble;
@@ -515,7 +515,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 																				 * omega is given in THz, but the 2pi-factor
 																				 * is still there, i.e. f=omega/2pi
 																				 */
-								   eigVecs = complex3Df(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
+								   eigVecs = complex3D(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
 								   for (ix=0;ix<Nk;ix++) {
 									   fread(kVecs[ix],sizeof(float),3,fpPhonon);  // k-vector
 									   for (iy=0;iy<3*Ns;iy++) {

@@ -1500,7 +1500,7 @@ void readFile() {
 		printf("Memory for transmission function (%d x %d x %d) allocated and plans initiated\n",muls.slices,muls.potNx,muls.potNy);
 
 
-	// printf("%d %d %d %d\n",muls.nx,muls.ny,sizeof(fftw_complex),(int)(&muls.wave[2][2])-(int)(&muls.wave[2][1]));
+	// printf("%d %d %d %d\n",muls.nx,muls.ny,sizeof(complex_tt),(int)(&muls.wave[2][2])-(int)(&muls.wave[2][1]));
 
 
 } /* end of readFile() */

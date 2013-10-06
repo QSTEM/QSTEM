@@ -407,29 +407,37 @@ double **double2D( int nx, int ny, const char *message )
 	make space for m[0...(nx-1)][0..(ny-1)]
 
 */
-fftw_complex **complex2D( int nx, int ny, const char *message)
+complex_tt **complex2D( int nx, int ny, const char *message)
 {
-  fftw_complex **m;
+  complex_tt **m;
   int i;
   
-  m = (fftw_complex**) fftw_malloc( nx * sizeof(fftw_complex*) ); 
+#if FLOAT_PRECISION == 1
+   m = (complex_tt**) fftwf_malloc( nx * sizeof(complex_tt*) ); 
+#else
+  m = (complex_tt**) fftw_malloc( nx * sizeof(complex_tt*) ); 
+#endif
   if( m == NULL ) {
     printf("float2D cannot allocate pointers, size=%d: %s\n",
 	   nx, message );
     exit(0);
   }
   
-  m[0] = (fftw_complex*) fftw_malloc( ny *nx* sizeof(fftw_complex) );
+#if FLOAT_PRECISION==1
+  m[0] = (complex_tt*) fftwf_malloc( ny *nx* sizeof(complex_tt) );
+#else  
+  m[0] = (complex_tt*) fftw_malloc( ny *nx* sizeof(complex_tt) );
+#endif
   if( m[0] == NULL ){
     printf("float2D cannot allocate arrays, size=%d: %s\n",
 	   ny*nx, message );
     exit(0);
   }
   for (i=1; i<nx; i++){
-    m[i] = (fftw_complex*)(&m[0][i*ny]);
+    m[i] = (complex_tt*)(&m[0][i*ny]);
   }
 #ifdef PRINT_MESSAGE
-  printf("allocated memory for %s (fftw_complex) = %d\n",message,(int)m);
+  printf("allocated memory for %s (complex_tt) = %d\n",message,(int)m);
 #endif
   
   return m;
@@ -443,6 +451,7 @@ fftw_complex **complex2D( int nx, int ny, const char *message)
 	make space for m[0...(nx-1)][0..(ny-1)]
 
 */
+/*
 fftwf_complex **complex2Df( int nx, int ny, const char *message)
 {	fftwf_complex **m;
 	int i;
@@ -468,8 +477,8 @@ fftwf_complex **complex2Df( int nx, int ny, const char *message)
 #endif
 
 	return m;
-
-}  /* end complex2Df() */
+}
+*/  /* end complex2Df() */
 
 /*---------------------------- complex3D() -------------------------------*/
 /*

@@ -13,8 +13,11 @@
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"	/* memory allocation routines */
+<<<<<<< Updated upstream
+=======
 
 #include "file_IO/data_writers.hpp"
+>>>>>>> Stashed changes
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */

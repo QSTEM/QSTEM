@@ -26,7 +26,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 //#endif /* __cplusplus */
 
 void make3DSlicesFT(MULS *muls);
-double **reduceAndExpand(fftw_complex **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx);
+double **reduceAndExpand(complex_tt **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx);
 
 //#ifdef __cplusplus
 //}

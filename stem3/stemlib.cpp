@@ -147,7 +147,7 @@ double scatPar[N_ELEM][N_SF] = {{0.0000,0.0500,0.1000,0.1500,0.2000,0.2500,0.300
 * x,y,z = real space position (in A)
 * B = Debye-Waller factor, B=8 pi^2 <u^2>
 ***************************************************************************/
-void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,double z,double B) {
+void atomBoxLookUp(complex_tt *vlu,MULS *muls,int Znum,double x,double y,double z,double B) {
 	static int boxNx,boxNy,boxNz;
 	static double dx,dy,dz,ddx,ddy,ddz;
 	static atomBox *aBox = NULL;
@@ -156,7 +156,7 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 	// static int avgSteps,maxSteps,stepCount,maxStepCount;
 	static double maxRadius2;
 	static char fileName[256],systStr[256];
-	static fftw_complex sum;
+	static complex_tt sum;
 	static int tZ, tnx, tny, tnz, tzOversample;  
 	static double tdx, tdy, tdz, tv0, tB;
 	FILE *fp;
@@ -270,7 +270,7 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 				(size_t)(boxNx*boxNy*boxNz),fp);	
 #else
 			aBox[Znum].potential = complex3D(boxNz,boxNx,boxNy,"atomBox");
-			numRead = fread(aBox[Znum].potential[0][0],sizeof(fftw_complex),
+			numRead = fread(aBox[Znum].potential[0][0],sizeof(complex_tt),
 				(size_t)(boxNx*boxNy*boxNz),fp);	
 #endif
 		}
@@ -410,12 +410,12 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	static fftwf_complex ***oldTrans = NULL;
 	static fftwf_complex ***oldTrans0 = NULL;
 #else
-	static fftw_complex ***oldTrans = NULL;
-	static fftw_complex ***oldTrans0 = NULL;
+	static complex_tt ***oldTrans = NULL;
+	static complex_tt ***oldTrans0 = NULL;
 #endif
 	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
 				muls->sliceThickness,muls->resolutionX,muls->resolutionY));
-	fftw_complex dPot;
+	complex_tt dPot;
 #if Z_INTERPOLATION
 	double ddz;
 #endif
@@ -432,7 +432,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 #if FLOAT_PRECISION == 1
 		oldTrans0 = (fftwf_complex ***)fftw_malloc(nlayer * sizeof(fftwf_complex**));
 #else
-		oldTrans0 = (fftw_complex ***)fftw_malloc(nlayer * sizeof(fftw_complex**));
+		oldTrans0 = (complex_tt ***)fftw_malloc(nlayer * sizeof(complex_tt**));
 #endif
 		for (i=0;i<nlayer;i++) {
 			// printf("%d %d\n",i,(int)(muls->trans));
@@ -645,7 +645,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		muls->slices*muls->potNx*muls->potNy*sizeof(fftwf_complex));
 #else
 	memset((void *)&(muls->trans[0][0][0][0]),0,
-		muls->slices*muls->potNx*muls->potNy*sizeof(fftw_complex));
+		muls->slices*muls->potNx*muls->potNy*sizeof(complex_tt));
 #endif
 	nyAtBox   = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionY);
 	nxyAtBox  = nyAtBox*(2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX));
@@ -1845,7 +1845,7 @@ fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B) {
 #undef PHI_SCALE
 #undef SHOW_SINGLE_POTENTIAL
 
-void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz) {
+void writePix(char *outFile,complex_tt **pict,MULS *muls,int iz) {
 	real *sparam;
 	real rmin,rmax;
 	int i,j, result;
@@ -2414,7 +2414,7 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 #else
 			fftw_execute(wave->fftPlanWaveInv);
 #endif
-			// old code: fftwnd_one((*muls).fftPlanInv,(fftw_complex *)wave[0][0], NULL);
+			// old code: fftwnd_one((*muls).fftPlanInv,(complex_tt *)wave[0][0], NULL);
 			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
 
 			/*
@@ -2740,13 +2740,8 @@ void propagate_slow(void **w,int nx, int ny,MULS *muls)
 	static real *kx2,*ky2;
 	static real *kx,*ky;
 	static real k2max=0,wavlen;
-#if FLOAT_PRECISION == 1
-	fftwf_complex **wave;
-	wave = (fftwf_complex **)w;
-#else
-	fftw_complex **wave;
-	wave = (fftw_complex **)w;
-#endif
+	complex_tt **wave;
+	wave = (complex_tt **)w;
 
 	ax = (*muls).resolutionX*nx;
 	by = (*muls).resolutionY*ny;
@@ -2839,15 +2834,11 @@ only waver,i will be changed by this routine
 void transmit(void **wave, void **trans,int nx, int ny,int posx,int posy) {
 	int ix, iy;
 	double wr, wi, tr, ti;
-#if FLOAT_PRECISION == 1
-	fftwf_complex **w, **t;
-	w = (fftwf_complex **)wave;
-	t = (fftwf_complex **)trans;
-#else
-	fftw_complex **w,**t;
-	w = (fftw_complex **)wave;
-	t = (fftw_complex **)trans;
-#endif
+
+	complex_tt **w,**t;
+	w = (complex_tt **)wave;
+	t = (complex_tt **)trans;
+
 	/*  trans += posx; */
 	for( ix=0; ix<nx; ix++) for( iy=0; iy<ny; iy++) {
 		wr = w[ix][iy][0];
@@ -2862,13 +2853,9 @@ void transmit(void **wave, void **trans,int nx, int ny,int posx,int posy) {
 void fft_normalize(void **array,int nx, int ny) {
 	int ix,iy;
 	double fftScale;
-#if FLOAT_PRECISION == 1
-	fftwf_complex **carray;
-	carray = (fftwf_complex **)array;
-#else
-	fftw_complex **carray;
-	carray = (fftw_complex **)array;
-#endif
+
+        complex_tt **carray;
+	carray = (complex_tt **)array;
 
 	fftScale = 1.0/(double)(nx*ny);
 	for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
@@ -3086,8 +3073,6 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 	static fftwf_complex **atPot = NULL;
 #if SHOW_SINGLE_POTENTIAL == 1
 	//static imageStruct *header = NULL;
-
-	fftwf_complex *ptr = NULL;
 	char fileName[256];
 	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
 				muls->sliceThickness,muls->resolutionX/OVERSAMP_X,
@@ -3137,7 +3122,7 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 		} 
 		kmax2 *= kmax2;
 
-		atPot = (fftwf_complex **)malloc((NZMAX+1)*sizeof(fftwf_complex *));
+		atPot = (complex_tt **)malloc((NZMAX+1)*sizeof(complex_tt *));
 		for (ix=0;ix<=NZMAX;ix++) atPot[ix] = NULL;
 	}
 	// initialize this atom, if it has not been done yet:
@@ -3162,9 +3147,9 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 
 		// setup cubic spline interpolation:
 		splinh(scatPar[0],scatPar[iKind],splinb,splinc,splind,30);
-
-		atPot[Znum] = (fftwf_complex*)fftwf_malloc(nx*ny*nz*sizeof(fftwf_complex));
-		memset(atPot[Znum],0,nx*ny*nz*sizeof(fftwf_complex));
+                // TODO: handle multiple precision possibility (need fftwmalloc?)
+		atPot[Znum] = (complex_tt*)fftwf_malloc(nx*ny*nz*sizeof(complex_tt));
+		memset(atPot[Znum],0,nx*ny*nz*sizeof(complex_tt));
 		kzmax    = dkz*nz/2.0; 
 		kzborder = dkz*(nz/(2*OVERSAMP_Z) -1); 
 		for (iz=0;iz<nz;iz++) {

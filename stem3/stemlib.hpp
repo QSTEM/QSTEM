@@ -61,11 +61,11 @@ void readStartWave(WavePtr wave);
  *****************************************************************/
 int runMulsSTEM_old(MULS *muls,int lstart);
 int runMulsSTEM(MULS *muls, WavePtr wave);
-void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz);
+void writePix(char *outFile,complex_tt **pict,MULS *muls,int iz);
 void fft_normalize(void **array,int nx, int ny);
-void showPotential(fftw_complex ***pot,int nz,int nx,int ny,
+void showPotential(complex_tt ***pot,int nz,int nx,int ny,
 		   double dx,double dy,double dz);
-void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,
+void atomBoxLookUp(complex_tt *vlu,MULS *muls,int Znum,double x,double y,
 			   double z,double B);
 void writeBeams(MULS *muls, WavePtr wave,int ilayer, int absolute_slice);
 
@@ -73,8 +73,8 @@ void writeBeams(MULS *muls, WavePtr wave,int ilayer, int absolute_slice);
  * old image read/write functions, may soon be outdated
  */
 void readRealImage_old(fftw_real **pix, int nx, int ny, real *t, char *fileName);
-void readImage_old(fftw_complex **pix, int nx, int ny, real *t, char *fileName);
+void readImage_old(complex_tt **pix, int nx, int ny, real *t, char *fileName);
 void writeRealImage_old(fftw_real **pix, int nx, int ny, real t,char *fileName);
-void writeImage_old(fftw_complex **pix, int nx, int ny, real t,char *fileName);
+void writeImage_old(complex_tt **pix, int nx, int ny, real t,char *fileName);
 
 #endif /* STEMLIB_H */

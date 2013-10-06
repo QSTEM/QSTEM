@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "boost/shared_ptr.hpp"
+#include "file_IO/output_interface.hpp"
 
 /**************************************************************
  * Here is how to use the new image writing routines
@@ -42,11 +43,12 @@ class CImageIO {
   std::vector<double> m_params;  // array for additional parameters
   std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
+  DataWriterPtr m_imageWriter;
 public:
-  CImageIO(int nx, int ny);
+  CImageIO(int nx, int ny, std::string extension=".img");
   CImageIO(int nx, int ny, double t, double dx, double dy,
            std::vector<double> params=std::vector<double>(), 
-		   std::string comment="");
+           std::string comment="", std::string extension=".img");
 
   void WriteRealImage(void **pix, const char *fileName);
   void WriteComplexImage(void **pix, const char *fileName);
@@ -63,6 +65,8 @@ private:
   void WriteData(void **pix, const char *fileName);
   // reads in the header; returns the byte offset at which we should start reading image data.
   void ReadHeader(const char *fileName);
+  std::vector<ulong> GetResolutionVector();
+  std::vector<ulong> GetShapeVector();
 };
 
 typedef boost::shared_ptr<CImageIO> ImageIOPtr;

@@ -50,7 +50,7 @@ const double pi     = 3.14159265358979;
 const double twopi  = 6.28318530717959;
 const double fourpi = 12.56637061435917;
 
-void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls);
+void plotVzr(complex_tt **pot,int Nx,int Nz,double dx,MULS *muls);
 
 
 void make3DSlicesFT(MULS *muls) {
@@ -91,7 +91,7 @@ void make3DSlicesFT(MULS *muls) {
    */
   fftw_plan plan;                   // fftw array
   int fftMeasureFlag = FFTW_ESTIMATE; // fftw plan needed for FFT
-  fftw_complex **pot = NULL;          // single atom potential box
+  complex_tt **pot = NULL;          // single atom potential box
   float ax,cz;                        // real space size of FT box
   double dsX,dsZ;                     // rec. space size of FT box
   double sx,sz,sx2,sz2,sz2r;
@@ -169,7 +169,7 @@ void make3DSlicesFT(MULS *muls) {
      * kind of atom used in this model
      ************************************************************/
     for (atKind = 0; atKind<muls->atomKinds;atKind++) { 
-      memset(pot[0],0,sizeof(fftw_complex)*Nz*Nx);
+      memset(pot[0],0,sizeof(complex_tt)*Nz*Nx);
 
       for (iz=0;iz<Nz;iz++) {
 	sz = (iz < Nzm ? iz : iz-Nz)*dsZ, sz2 = SQR(sz), sz2r = sz2max*sz2;
@@ -248,7 +248,7 @@ void make3DSlicesFT(MULS *muls) {
     printf("make3DSlicesFT: Error, trans not allocated!\n");
     exit(0);
   }
-  memset(muls->trans[0][0],0,Nzp*Nxp*Nyp*sizeof(fftw_complex));
+  memset(muls->trans[0][0],0,Nzp*Nxp*Nyp*sizeof(complex_tt));
   if (muls->cz == NULL) muls->cz = float1D(Nzp,"cz");
   for (i=0;i<Nzp;i++) muls->cz[i] = muls->sliceThickness;  					
   
@@ -320,7 +320,7 @@ void make3DSlicesFT(MULS *muls) {
 /*********************************************************************
  * plotVzr(pot,Nx,Nz);
  ********************************************************************/
-void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls) {
+void plotVzr(complex_tt **pot,int Nx,int Nz,double dx,MULS *muls) {
   FILE *fp;
   int ix,iz;
   char str[128];
@@ -356,7 +356,7 @@ void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls) {
  * zz(:,ncols+2) = 3*zz(:,ncols+1)-3*zz(:,ncols)+zz(:,ncols-1);
  * nrows = nrows+2; ncols = ncols+2;
  ******************************************************************/
-double **reduceAndExpand(fftw_complex **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx) {
+double **reduceAndExpand(complex_tt **fc,int Nz,int Nx,int zOversample,int *fNz,int *fNx) {
   double **ff;
   int ix,iz,j,nx,nz,Ninteg,Nxm,Nzm;
 

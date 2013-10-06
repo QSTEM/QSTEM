@@ -25,10 +25,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 // #include "floatdef.hpp"
 #include "fftw3.h"
 
-#ifndef float_tt
-#define float_tt float
-#endif
-
+#include "stemtypes_fftw3.hpp"
 
 /*---------------------------- float1D() -------------------------------*/
 /*
@@ -93,10 +90,8 @@ float ***float32_3D( int nx, int ny,int nz, const char *message );
 float_tt ***float3D( int nx, int ny,int nz, const char *message );
 double **double2D( int nx, int ny, const char *message );
 
-fftw_complex  **complex2D(int nx, int ny, const char *message);
-fftwf_complex **complex2Df(int nx, int ny, const char *message);  // single precision
-fftw_complex  ***complex3D(int nx, int ny,int nz, const char *message);
-fftwf_complex ***complex3Df(int nx, int ny,int nz, const char *message); // single precision
+complex_tt  **complex2D(int nx, int ny, const char *message);
+complex_tt  ***complex3D(int nx, int ny,int nz, const char *message);
 
 void **any2D( int nx, int ny,int size, const char *message );
 void ***any3D( int nx, int ny,int nz,int size, const char *message );
