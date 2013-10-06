@@ -6,8 +6,12 @@ CImgOutput::CImgOutput() : CBinaryOutput(),
 {
 }
 
+CImgOutput::~CImgOutput()
+{
+}
+
 void CImgOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shape, std::string label, 
-                                     std::vector<ulong> indices, std::string comment,
+                                     std::vector<ulong> position, std::string comment,
                                      std::map<std::string, double> parameters, std::vector<float_tt> resolution)
 {
   ulong dataSize = 2*sizeof(float_tt);
@@ -16,36 +20,37 @@ void CImgOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shape, 
       resolution = std::vector<float_tt>(shape.size(),1);
     }
   
-  WriteData((void **)data, true, shape, dataSize, label, indices, parameters, resolution);
+  WriteData((void **)data, true, dataSize, shape, label, position, comment, parameters, resolution);
 }
 
 void CImgOutput::WriteRealImage(float_tt **data, std::vector<ulong> shape, std::string label, 
-                                  std::vector<ulong> indices, std::string comment,
+                                  std::vector<ulong> position, std::string comment,
                                   std::map<std::string, double> parameters, std::vector<float_tt> resolution)
 {
-  dataSize = sizeof(float_tt);
+  ulong dataSize = sizeof(float_tt);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1);
     }
   
-  WriteData((void **)data, false, shape, dataSize, label, indices, parameters, resolution);
+  WriteData((void **)data, false, dataSize, shape, label, position, comment, parameters, resolution);
 }
 
-void CImgOutput::WriteData(float_tt **pix, bool is_complex, ulong dataSize, std::vector<ulong> shape, 
-                             std::string label, std::vector<ulong> indices, std::string comment,
+void CImgOutput::WriteData(void **pix, bool is_complex, ulong dataSize, std::vector<ulong> shape, 
+                             std::string label, std::vector<ulong> position, std::string comment,
                              std::map<std::string, double> parameters, std::vector<float_tt> resolution)
 {
   //FILE *fp;
   std::stringstream filename;
+  char buf[200];
   filename<<label;
-  for (ulong idx=0; idx<indices.size(); idx++)
+  for (ulong idx=0; idx<position.size(); idx++)
     {
       filename<<"_"<<idx;
     }
   filename<<".img";
 
-  std::fstream file(filename, std::ios::out|std::ios::binary);
+  std::fstream file(filename.str().c_str(), std::ios::out|std::ios::binary);
 
   // Sychronize lengths of comments and parameters
   size_t paramSize = parameters.size();
@@ -55,11 +60,12 @@ void CImgOutput::WriteData(float_tt **pix, bool is_complex, ulong dataSize, std:
   //    Hardcode version?  Things aren't going to change anymore...
 
   size_t commentSize = comment.size();
+  double thickness = parameters["Thickness"];
 
   if(!file.is_open()) 
     {
-      sprintf(m_buf,"WriteData: Could open file %s for writing\n",fileName);
-      throw std::runtime_error(m_buf);
+      sprintf(buf,"WriteData: Could open file %s for writing\n",filename.str().c_str());
+      throw std::runtime_error(buf);
     }
 
   file.write(reinterpret_cast <const char*> (&m_headerSize), 4);
@@ -67,8 +73,8 @@ void CImgOutput::WriteData(float_tt **pix, bool is_complex, ulong dataSize, std:
   file.write(reinterpret_cast <const char*> (&commentSize), 4);
   file.write(reinterpret_cast <const char*> (&shape[0]), 4);
   file.write(reinterpret_cast <const char*> (&shape[1]), 4);
-  file.write(reinterpret_cast <const char*> (&(int)complexFlag), 4);
-  file.write(reinterpret_cast <const char*> (&(int)dataSize), 4);
+  file.write(reinterpret_cast <const char*> ((int)is_complex), 4);
+  file.write(reinterpret_cast <const char*> ((int)dataSize), 4);
   file.write(reinterpret_cast <const char*> (&m_version), 4);
   file.write(reinterpret_cast <const char*> (&thickness), 8);
   file.write(reinterpret_cast <const char*> (&resolution[0]), 8);

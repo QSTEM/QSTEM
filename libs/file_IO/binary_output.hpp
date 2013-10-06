@@ -20,42 +20,42 @@ public:
   CBinaryOutput();
   ~CBinaryOutput();
   virtual void WriteRealVolume(float_tt *data, std::vector<ulong> shape, std::string label, 
-                               std::vector<ulong> indices=std::vector<ulong>(), std::string comment=std::string(),
+                               std::vector<ulong> position=std::vector<ulong>(), std::string comment=std::string(),
                                std::map<std::string, double> parameters=std::map<std::string, double>(),
                                std::vector<float_tt> resolution=std::vector<float_tt>());
   virtual void WriteComplexVolume(complex_tt *data, std::vector<ulong> shape, std::string label, 
-                           std::vector<ulong> indices=std::vector<ulong>(), std::string comment=std::string(),
+                           std::vector<ulong> position=std::vector<ulong>(), std::string comment=std::string(),
                            std::map<std::string, double> parameters=std::map<std::string, double>(),
                            std::vector<float_tt> resolution=std::vector<float_tt>());
   virtual void WriteRealImage(float_tt **data, std::vector<ulong> shape, std::string label, 
-                              std::vector<ulong> indices=std::vector<ulong>(), std::string comment=std::string(),
+                              std::vector<ulong> position=std::vector<ulong>(), std::string comment=std::string(),
                               std::map<std::string, double> parameters=std::map<std::string, double>(),
                               std::vector<float_tt> resolution=std::vector<float_tt>());
   virtual void WriteComplexImage(complex_tt **data, std::vector<ulong> shape, std::string label, 
-                                 std::vector<ulong> indices=std::vector<ulong>(), std::string comment=std::string(),
+                                 std::vector<ulong> position=std::vector<ulong>(), std::string comment=std::string(),
                                  std::map<std::string, double> parameters=std::map<std::string, double>(),
                                  std::vector<float_tt> resolution=std::vector<float_tt>());
 
   /*
-  virtual void WriteRealImage(QSfMat data, std::string label, std::vector<ulong> indices=std::vector<ulong>(), 
+  virtual void WriteRealImage(QSfMat data, std::string label, std::vector<ulong> position=std::vector<ulong>(), 
                       std::map<std::string, double> parameters=std::map<std::string, double>());
-  virtual void WriteComplexImage(QScMat data, std::string label, std::vector<ulong> indices=std::vector<ulong>(), 
+  virtual void WriteComplexImage(QScMat data, std::string label, std::vector<ulong> position=std::vector<ulong>(), 
                          std::map<std::string, double> parameters=std::map<std::string, double>());
   */
 protected:
   virtual void DescribeFile(std::vector<ulong> shape, ulong element_size, std::string label, 
-                            std::vector<ulong> indices=std::vector<ulong>(), std::string comment="", 
+                            std::vector<ulong> position=std::vector<ulong>(), std::string comment="", 
                             std::map<std::string, double> parameters=std::map<std::string, double>(),
                             std::vector<float_tt> resolution=std::vector<float_tt>());
 
   template <typename dtype>
   void WriteBlob(dtype *data, std::vector<ulong> shape, std::string label, 
-                   std::vector<ulong> indices=std::vector<ulong>(), 
+                   std::vector<ulong> position=std::vector<ulong>(), 
                    std::map<std::string, double> parameters=std::map<std::string, double>())
     {
       std::stringstream filename;
       filename<<label;
-      for (ulong idx=0; idx<indices.size(); idx++)
+      for (ulong idx=0; idx<position.size(); idx++)
         {
           filename<<"_"<<idx;
         }

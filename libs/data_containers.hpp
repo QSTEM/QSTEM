@@ -53,21 +53,27 @@ public:
 #endif
 
 public:
-	// initializing constructor:
-	WAVEFUNC(int nx, int ny, float_tt resX, float_tt resY);
-	// define a copy constructor to create new arrays
-	//WAVEFUNC( WAVEFUNC& other );
+  // initializing constructor:
+  WAVEFUNC(int nx, int ny, float_tt resX, float_tt resY);
+  // define a copy constructor to create new arrays
+  //WAVEFUNC( WAVEFUNC& other );
 
-	void WriteWave(const char *fileName, const char *comment="Wavefunction", 
-		std::map<std::string, double>params = std::map<std::string, double>());
-	void WriteDiffPat(const char *fileName, const char *comment="Diffraction Pattern",
-		std::map<std::string, double>params = std::map<std::string, double>());
-	void WriteAvgArray(const char *fileName, const char *comment="Average Array",
-		std::map<std::string, double>params = std::map<std::string, double>());
+  void SetWavePosition(ulong posX, ulong posY);
+  std::vector<ulong> GetPositionVector();
 
-	void ReadWave(const char *fileName);
-	void ReadDiffPat(const char *fileName);
-	void ReadAvgArray(const char *fileName);
+  void WriteWave(const char *fileName, const char *comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>());
+  void WriteDiffPat(const char *fileName, const char *comment="Diffraction Pattern",
+                    std::map<std::string, double>params = std::map<std::string, double>());
+  void WriteAvgArray(const char *fileName, const char *comment="Average Array",
+                     std::map<std::string, double>params = std::map<std::string, double>());
+
+  void ReadWave(const char *fileName);
+  void ReadWave(const char *fileName, ulong posX, ulong posY);
+  void ReadDiffPat(const char *fileName);
+  void ReadDiffPat(const char *fileName, ulong posX, ulong posY);
+  void ReadAvgArray(const char *fileName);
+  void ReadAvgArray(const char *fileName, ulong posX, ulong posY);
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;

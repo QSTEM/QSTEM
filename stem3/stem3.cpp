@@ -2420,7 +2420,8 @@ void doSTEM() {
 					iy = i % muls.scanYN;
 
 					wave = waves[omp_get_thread_num()];
-							
+                                        wave->SetWavePosition(ix, iy);
+
 					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
 
 					/* if this is run=0, create the inc. probe wave function */
@@ -2435,9 +2436,9 @@ void doSTEM() {
                                           
 					else 
 					{
-						/* load incident wave function and then propagate it */
-						sprintf(wave->fileStart, "%s/mulswav_%d_%d.img", muls.folder, ix, iy);
-						readStartWave(wave);  /* this also sets the thickness!!! */
+        					/* load incident wave function and then propagate it */
+						sprintf(wave->fileStart, "%s/mulswav", muls.folder);
+                                                wave->ReadWave(wave->fileStart); /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
 						//muls.nslic0 = pCount;
 					}
@@ -2445,7 +2446,7 @@ void doSTEM() {
 					   and save exit wave function for this position 
 					   (done by runMulsSTEM), 
 					   but we need to define the file name */
-					sprintf(wave->fileout,"%s/mulswav_%d_%d.img",muls.folder,ix,iy);
+					sprintf(wave->fileout,"%s/mulswav",muls.folder);
 					muls.saveFlag = 1;
 
 					wave->iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/
@@ -2462,8 +2463,6 @@ void doSTEM() {
 					}
 
 					// MCS - update the probe wavefunction with its position
-					wave->detPosX=ix;
-					wave->detPosY=iy;
 
 					runMulsSTEM(&muls,wave); 
 
@@ -2480,7 +2479,7 @@ void doSTEM() {
 
 					if (pCount == picts-1)  /* if this is the last slice ... */
 					{
-						sprintf(wave->avgName,"%s/diffAvg_%d_%d.img",muls.folder,ix,iy);
+						sprintf(wave->avgName,"%s/diffAvg",muls.folder);
 						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
 
 						if (muls.saveLevel > 0) 
@@ -2499,7 +2498,7 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-								wave->ReadAvgArray(wave->avgName);
+                                                          wave->ReadAvgArray(wave->avgName, ix, iy);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((float_tt)muls.avgCount * wave->avgArray[ixa][iya] +
 										wave->diffpat[ixa][iya]) / ((float_tt)(muls.avgCount + 1));

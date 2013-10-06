@@ -51,8 +51,10 @@ public:
            std::map<std::string, double> params=std::map<std::string, double>(), 
            std::string comment="", std::string extension=".img");
 
-  void WriteRealImage(void **pix, const char *fileName);
-  void WriteComplexImage(void **pix, const char *fileName);
+  void WriteRealImage(void **pix, const char *fileName, 
+                      std::vector<ulong> position=std::vector<ulong>());
+  void WriteComplexImage(void **pix, const char *fileName,
+                         std::vector<ulong> position=std::vector<ulong>());
   void ReadImage(void **pix, int nx, int ny, const char *fileName);
   
   //void WriteImage( std::string fileName);

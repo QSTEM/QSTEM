@@ -2726,10 +2726,6 @@ void saveSTEMImages(MULS *muls)
 	}
 }
 
-void readStartWave(WavePtr wave) {
-	wave->ReadWave(wave->fileStart);
-}
-
 
 /******************************************************************
 * propagate_slow() 

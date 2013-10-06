@@ -1,8 +1,16 @@
 #include "binary_output.hpp"
 
+CBinaryOutput::CBinaryOutput() : IDataWriter()
+{
+}
+
+CBinaryOutput::~CBinaryOutput()
+{
+}
+
 void CBinaryOutput::DescribeFile(std::vector<ulong> shape, ulong element_size, 
                                  std::string label, 
-                                 std::vector<ulong> indices, 
+                                 std::vector<ulong> position, 
                                  std::string comment, std::map<std::string, double> parameters,
                                  std::vector<float_tt> resolution)
 {
@@ -10,7 +18,7 @@ void CBinaryOutput::DescribeFile(std::vector<ulong> shape, ulong element_size,
   std::stringstream filename;
   std::map<std::string, double>::iterator param;
   filename<<label;
-  for (ulong idx=0; idx<indices.size(); idx++)
+  for (ulong idx=0; idx<position.size(); idx++)
     {
       filename<<"_"<<idx;
     }
@@ -36,76 +44,76 @@ void CBinaryOutput::DescribeFile(std::vector<ulong> shape, ulong element_size,
 }
 
 void CBinaryOutput::WriteRealVolume(float_tt *data, std::vector<ulong> shape, std::string label,
-                                    std::vector<ulong> indices, std::string comment, 
+                                    std::vector<ulong> position, std::string comment, 
                                     std::map<std::string, double> parameters,
                                     std::vector<float_tt> resolution)
 {
-  WriteBlob(data, shape, label, indices, parameters);
+  WriteBlob(data, shape, label, position, parameters);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1.0);
     }
-  DescribeFile(shape, sizeof(float_tt), label, indices, comment, parameters, resolution);
+  DescribeFile(shape, sizeof(float_tt), label, position, comment, parameters, resolution);
 }
 
 void CBinaryOutput::WriteComplexVolume(complex_tt *data, std::vector<ulong> shape, std::string label, 
-                                       std::vector<ulong> indices, std::string comment, 
+                                       std::vector<ulong> position, std::string comment, 
                                        std::map<std::string, double> parameters,
                                        std::vector<float_tt> resolution)
 {
-  WriteBlob(data, shape, label, indices, parameters);
+  WriteBlob(data, shape, label, position, parameters);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1.0);
     }
-  DescribeFile(shape, sizeof(complex_tt), label, indices, comment, parameters, resolution);
+  DescribeFile(shape, sizeof(complex_tt), label, position, comment, parameters, resolution);
 }
 
 void CBinaryOutput::WriteRealImage(float_tt **data, std::vector<ulong> shape, std::string label, 
-                                   std::vector<ulong> indices, std::string comment, 
+                                   std::vector<ulong> position, std::string comment, 
                                    std::map<std::string, double> parameters,
                                    std::vector<float_tt> resolution)
 {
-  WriteBlob(data[0], shape, label, indices, parameters);
+  WriteBlob(data[0], shape, label, position, parameters);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1.0);
     }
-  DescribeFile(shape, sizeof(float_tt), label, indices, comment, parameters);
+  DescribeFile(shape, sizeof(float_tt), label, position, comment, parameters);
 }
 
 void CBinaryOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shape, std::string label, 
-                                      std::vector<ulong> indices, std::string comment,
+                                      std::vector<ulong> position, std::string comment,
                                       std::map<std::string, double> parameters,
                                       std::vector<float_tt> resolution)
 {
-  WriteBlob(data[0], shape, label, indices, parameters);
+  WriteBlob(data[0], shape, label, position, parameters);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1);
     }
-  DescribeFile(shape, sizeof(complex_tt), label, indices, comment, parameters);
+  DescribeFile(shape, sizeof(complex_tt), label, position, comment, parameters);
 }
 
 /*
-void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<ulong> indices, 
+void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<ulong> position, 
                     std::map<std::string, double> parameters)
 {
   std::vector<ulong> shape(2);
   shape[0] = data.cols;
   shape[1] = data.rows;
-  WriteBlob((float_tt *)data.data(), shape, label, indices, parameters);
-  DescribeFile(shape, label, indices, parameters);
+  WriteBlob((float_tt *)data.data(), shape, label, position, parameters);
+  DescribeFile(shape, label, position, parameters);
 }
 
 
-void CBinaryOutput::WriteComplexImage(QScMat data, std::string label, std::vector<ulong> indices, 
+void CBinaryOutput::WriteComplexImage(QScMat data, std::string label, std::vector<ulong> position, 
                        std::map<std::string, double> parameters)
 {
   std::vector<ulong> shape(2);
   shape[0] = data.cols;
   shape[1] = data.rows;
-  WriteBlob((std::complex<float_tt> *)data.data(), shape, label, indices, parameters);
-  DescribeFile(shape, label, indices, parameters);
+  WriteBlob((std::complex<float_tt> *)data.data(), shape, label, position, parameters);
+  DescribeFile(shape, label, position, parameters);
 }
 */
