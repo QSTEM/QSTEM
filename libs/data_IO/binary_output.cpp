@@ -8,9 +8,9 @@ CBinaryOutput::~CBinaryOutput()
 {
 }
 
-void CBinaryOutput::DescribeFile(std::vector<ulong> shape, ulong element_size, 
+void CBinaryOutput::DescribeFile(std::vector<unsigned long> shape, unsigned long element_size, 
                                  std::string label, 
-                                 std::vector<ulong> position, 
+                                 std::vector<unsigned long> position, 
                                  std::string comment, std::map<std::string, double> parameters,
                                  std::vector<float_tt> resolution)
 {
@@ -18,7 +18,7 @@ void CBinaryOutput::DescribeFile(std::vector<ulong> shape, ulong element_size,
   std::stringstream filename;
   std::map<std::string, double>::iterator param;
   filename<<label;
-  for (ulong idx=0; idx<position.size(); idx++)
+  for (unsigned long idx=0; idx<position.size(); idx++)
     {
       filename<<"_"<<idx;
     }
@@ -43,8 +43,8 @@ void CBinaryOutput::DescribeFile(std::vector<ulong> shape, ulong element_size,
   outputFile.close();
 }
 
-void CBinaryOutput::WriteRealVolume(float_tt *data, std::vector<ulong> shape, std::string label,
-                                    std::vector<ulong> position, std::string comment, 
+void CBinaryOutput::WriteRealVolume(float_tt *data, std::vector<unsigned long> shape, std::string label,
+                                    std::vector<unsigned long> position, std::string comment, 
                                     std::map<std::string, double> parameters,
                                     std::vector<float_tt> resolution)
 {
@@ -56,8 +56,8 @@ void CBinaryOutput::WriteRealVolume(float_tt *data, std::vector<ulong> shape, st
   DescribeFile(shape, sizeof(float_tt), label, position, comment, parameters, resolution);
 }
 
-void CBinaryOutput::WriteComplexVolume(complex_tt *data, std::vector<ulong> shape, std::string label, 
-                                       std::vector<ulong> position, std::string comment, 
+void CBinaryOutput::WriteComplexVolume(complex_tt *data, std::vector<unsigned long> shape, std::string label, 
+                                       std::vector<unsigned long> position, std::string comment, 
                                        std::map<std::string, double> parameters,
                                        std::vector<float_tt> resolution)
 {
@@ -69,8 +69,8 @@ void CBinaryOutput::WriteComplexVolume(complex_tt *data, std::vector<ulong> shap
   DescribeFile(shape, sizeof(complex_tt), label, position, comment, parameters, resolution);
 }
 
-void CBinaryOutput::WriteRealImage(float_tt **data, std::vector<ulong> shape, std::string label, 
-                                   std::vector<ulong> position, std::string comment, 
+void CBinaryOutput::WriteRealImage(float_tt **data, std::vector<unsigned long> shape, std::string label, 
+                                   std::vector<unsigned long> position, std::string comment, 
                                    std::map<std::string, double> parameters,
                                    std::vector<float_tt> resolution)
 {
@@ -82,8 +82,8 @@ void CBinaryOutput::WriteRealImage(float_tt **data, std::vector<ulong> shape, st
   DescribeFile(shape, sizeof(float_tt), label, position, comment, parameters);
 }
 
-void CBinaryOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shape, std::string label, 
-                                      std::vector<ulong> position, std::string comment,
+void CBinaryOutput::WriteComplexImage(complex_tt **data, std::vector<unsigned long> shape, std::string label, 
+                                      std::vector<unsigned long> position, std::string comment,
                                       std::map<std::string, double> parameters,
                                       std::vector<float_tt> resolution)
 {
@@ -96,10 +96,10 @@ void CBinaryOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shap
 }
 
 /*
-void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<ulong> position, 
+void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<unsigned long> position, 
                     std::map<std::string, double> parameters)
 {
-  std::vector<ulong> shape(2);
+  std::vector<unsigned long> shape(2);
   shape[0] = data.cols;
   shape[1] = data.rows;
   WriteBlob((float_tt *)data.data(), shape, label, position, parameters);
@@ -107,10 +107,10 @@ void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<u
 }
 
 
-void CBinaryOutput::WriteComplexImage(QScMat data, std::string label, std::vector<ulong> position, 
+void CBinaryOutput::WriteComplexImage(QScMat data, std::string label, std::vector<unsigned long> position, 
                        std::map<std::string, double> parameters)
 {
-  std::vector<ulong> shape(2);
+  std::vector<unsigned long> shape(2);
   shape[0] = data.cols;
   shape[1] = data.rows;
   WriteBlob((std::complex<float_tt> *)data.data(), shape, label, position, parameters);

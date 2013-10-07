@@ -10,11 +10,11 @@ CImgOutput::~CImgOutput()
 {
 }
 
-void CImgOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shape, std::string label, 
-                                     std::vector<ulong> position, std::string comment,
+void CImgOutput::WriteComplexImage(complex_tt **data, std::vector<unsigned long> shape, std::string label, 
+                                     std::vector<unsigned long> position, std::string comment,
                                      std::map<std::string, double> parameters, std::vector<float_tt> resolution)
 {
-  ulong dataSize = 2*sizeof(float_tt);
+  unsigned long dataSize = 2*sizeof(float_tt);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1);
@@ -23,11 +23,11 @@ void CImgOutput::WriteComplexImage(complex_tt **data, std::vector<ulong> shape, 
   WriteData((void **)data, true, dataSize, shape, label, position, comment, parameters, resolution);
 }
 
-void CImgOutput::WriteRealImage(float_tt **data, std::vector<ulong> shape, std::string label, 
-                                  std::vector<ulong> position, std::string comment,
+void CImgOutput::WriteRealImage(float_tt **data, std::vector<unsigned long> shape, std::string label, 
+                                  std::vector<unsigned long> position, std::string comment,
                                   std::map<std::string, double> parameters, std::vector<float_tt> resolution)
 {
-  ulong dataSize = sizeof(float_tt);
+  unsigned long dataSize = sizeof(float_tt);
   if (resolution == std::vector<float_tt>())
     {
       resolution = std::vector<float_tt>(shape.size(),1);
@@ -36,15 +36,15 @@ void CImgOutput::WriteRealImage(float_tt **data, std::vector<ulong> shape, std::
   WriteData((void **)data, false, dataSize, shape, label, position, comment, parameters, resolution);
 }
 
-void CImgOutput::WriteData(void **pix, bool is_complex, ulong dataSize, std::vector<ulong> shape, 
-                             std::string label, std::vector<ulong> position, std::string comment,
+void CImgOutput::WriteData(void **pix, bool is_complex, unsigned long dataSize, std::vector<unsigned long> shape, 
+                             std::string label, std::vector<unsigned long> position, std::string comment,
                              std::map<std::string, double> parameters, std::vector<float_tt> resolution)
 {
   //FILE *fp;
   std::stringstream filename;
   char buf[200];
   filename<<label;
-  for (ulong idx=0; idx<position.size(); idx++)
+  for (unsigned long idx=0; idx<position.size(); idx++)
     {
       filename<<"_"<<idx;
     }

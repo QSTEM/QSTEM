@@ -57,12 +57,12 @@ m_comment("")
   m_imageWriter=GetDataWriter(extension);
 };
 
-void CImageIO::WriteComplexImage(void **pix, const char *fileName, std::vector<ulong> position) {
+void CImageIO::WriteComplexImage(void **pix, const char *fileName, std::vector<unsigned long> position) {
   m_imageWriter->WriteComplexImage((complex_tt **)pix, GetShapeVector(), std::string(fileName),
                                    position, m_comment, m_params, GetResolutionVector());
 }
 
-void CImageIO::WriteRealImage(void **pix, const char *fileName, std::vector<ulong> position) {
+void CImageIO::WriteRealImage(void **pix, const char *fileName, std::vector<unsigned long> position) {
   m_imageWriter->WriteRealImage((float_tt **)pix, GetShapeVector(), std::string(fileName),
                                 position, m_comment, m_params, GetResolutionVector());
 }
@@ -181,9 +181,9 @@ void CImageIO::SetParameter(int index, double value)
 }
 */
 
-std::vector<ulong> CImageIO::GetShapeVector()
+std::vector<unsigned long> CImageIO::GetShapeVector()
 {
-  std::vector<ulong> size(2, ulong());
+  std::vector<unsigned long> size(2, unsigned long());
   size[0]=m_nx;
   size[1]=m_ny;
   return size;

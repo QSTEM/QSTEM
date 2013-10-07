@@ -52,9 +52,9 @@ public:
            std::string comment="", std::string extension=".img");
 
   void WriteRealImage(void **pix, const char *fileName, 
-                      std::vector<ulong> position=std::vector<ulong>());
+                      std::vector<unsigned long> position=std::vector<unsigned long>());
   void WriteComplexImage(void **pix, const char *fileName,
-                         std::vector<ulong> position=std::vector<ulong>());
+                         std::vector<unsigned long> position=std::vector<unsigned long>());
   void ReadImage(void **pix, int nx, int ny, const char *fileName);
   
   //void WriteImage( std::string fileName);
@@ -69,7 +69,7 @@ private:
   void WriteData(void **pix, const char *fileName);
   // reads in the header; returns the byte offset at which we should start reading image data.
   void ReadHeader(const char *fileName);
-  std::vector<ulong> GetShapeVector();
+  std::vector<unsigned long> GetShapeVector();
   std::vector<float_tt> GetResolutionVector();
 
 };

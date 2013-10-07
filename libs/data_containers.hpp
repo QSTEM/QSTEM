@@ -58,8 +58,8 @@ public:
   // define a copy constructor to create new arrays
   //WAVEFUNC( WAVEFUNC& other );
 
-  void SetWavePosition(ulong posX, ulong posY);
-  std::vector<ulong> GetPositionVector();
+  void SetWavePosition(unsigned long posX, unsigned long posY);
+  std::vector<unsigned long> GetPositionVector();
 
   void WriteWave(const char *fileName, const char *comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());
@@ -69,11 +69,11 @@ public:
                      std::map<std::string, double>params = std::map<std::string, double>());
 
   void ReadWave(const char *fileName);
-  void ReadWave(const char *fileName, ulong posX, ulong posY);
+  void ReadWave(const char *fileName, unsigned long posX, unsigned long posY);
   void ReadDiffPat(const char *fileName);
-  void ReadDiffPat(const char *fileName, ulong posX, ulong posY);
+  void ReadDiffPat(const char *fileName, unsigned long posX, unsigned long posY);
   void ReadAvgArray(const char *fileName);
-  void ReadAvgArray(const char *fileName, ulong posX, ulong posY);
+  void ReadAvgArray(const char *fileName, unsigned long posX, unsigned long posY);
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;
@@ -108,6 +108,8 @@ typedef boost::shared_ptr<Detector> DetectorPtr;
 
 class MULS {
 public:
+	MULS();
+	~MULS();
   int mode;                             /* determine the mode that this program runs in
 					 * can be STEM, TEM, CBED ... */
   int printLevel;                       /* Flag indicating how much output should appear

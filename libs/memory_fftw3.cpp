@@ -526,14 +526,14 @@ complex_tt ***complex3D( int nx, int ny,int nz, const char *message)
   complex_tt ***m;
   int i,j;
   
-  m = (complex_tt***)fftw_alloc_complex( nx * sizeof(complex_tt**) ); 
+  m = (complex_tt***)fftw_malloc( nx * sizeof(complex_tt**) ); 
   if( m == NULL ) {
     printf("complex3D cannot allocate pointers, size=%d: %s\n",
 	   nx, message );
     exit(0);
   }
   for (i=0;i<nx;i++) {
-    m[i] = (complex_tt**)fftwf_malloc(ny*sizeof(complex_tt*));
+    m[i] = (complex_tt**)fftw_malloc(ny*sizeof(complex_tt*));
     if (m[i] == NULL) {
       printf("complex3D cannot allocate pointers (stage2), "
 	     "size=%d: %s\n",ny, message );
@@ -541,7 +541,7 @@ complex_tt ***complex3D( int nx, int ny,int nz, const char *message)
     }
   }
   
-  m[0][0] = (complex_tt*) fftwf_malloc(nz*ny*nx* sizeof(complex_tt) );
+  m[0][0] = (complex_tt*) fftw_malloc(nz*ny*nx* sizeof(complex_tt) );
   if( m[0][0] == NULL ){
     printf("complex3D cannot allocate consecutive memory %d MB (for array %s)\n",
 	    nz*ny*nx* sizeof(complex_tt)/(1024*1024),message);

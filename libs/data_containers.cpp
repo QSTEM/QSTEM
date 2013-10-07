@@ -57,9 +57,9 @@ resolutionY(resY)
 	sprintf(fileStart,"mulswav.img");
 }
 
-std::vector<ulong> WAVEFUNC::GetPositionVector()
+std::vector<unsigned long> WAVEFUNC::GetPositionVector()
 {
-  std::vector<ulong> position(2, ulong());
+  std::vector<unsigned long> position(2, unsigned long());
   position[0]=detPosX;
   position[1]=detPosY;
   return position;
@@ -95,7 +95,7 @@ void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
 	m_imageIO->WriteRealImage((void **)avgArray, fileName, GetPositionVector());
 }
 
-void WAVEFUNC::SetWavePosition(ulong posX, ulong posY)
+void WAVEFUNC::SetWavePosition(unsigned long posX, unsigned long posY)
 {
   detPosX=posX;
   detPosY=posY;
@@ -106,7 +106,7 @@ void WAVEFUNC::ReadWave(const char *fileName)
   m_imageIO->ReadImage((void **)wave, nx, ny, fileName);
 }
 
-void WAVEFUNC::ReadWave(const char *fileName, ulong positionx, ulong positiony)
+void WAVEFUNC::ReadWave(const char *fileName, unsigned long positionx, unsigned long positiony)
 {
   ReadWave(fileName);
   SetWavePosition(positionx, positiony);
@@ -117,7 +117,7 @@ void WAVEFUNC::ReadDiffPat(const char *fileName)
   m_imageIO->ReadImage((void **)diffpat, nx, ny, fileName);
 }
 
-void WAVEFUNC::ReadDiffPat(const char *fileName, ulong positionx, ulong positiony)
+void WAVEFUNC::ReadDiffPat(const char *fileName, unsigned long positionx, unsigned long positiony)
 {
   ReadDiffPat(fileName);
   SetWavePosition(positionx, positiony);
@@ -128,7 +128,7 @@ void WAVEFUNC::ReadAvgArray(const char *fileName)
   m_imageIO->ReadImage((void **)avgArray, nx, ny, fileName);
 }
 
-void WAVEFUNC::ReadAvgArray(const char *fileName, ulong positionx, ulong positiony)
+void WAVEFUNC::ReadAvgArray(const char *fileName, unsigned long positionx, unsigned long positiony)
 {
   ReadAvgArray(fileName);
   SetWavePosition(positionx, positiony);
