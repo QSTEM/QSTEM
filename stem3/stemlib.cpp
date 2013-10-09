@@ -407,8 +407,7 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	static complex_tt ***oldTrans = NULL;
 	static complex_tt ***oldTrans0 = NULL;
 #endif
-	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy,
-				muls->sliceThickness,muls->resolutionX,muls->resolutionY));
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy));
 	complex_tt dPot;
 #if Z_INTERPOLATION
 	double ddz;
@@ -416,6 +415,9 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 #if USE_Q_POT_OFFSETS
 	fftwf_complex	*atPotOffsPtr;
 #endif
+
+        // parameters to be saved to output files (e.g. thickness)
+        std::map<std::string, double> params;
 
 	if (muls->trans == NULL) {
 		printf("Severe error: trans-array not allocated - exit!\n");
@@ -622,15 +624,17 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	* read the potential that has been created externally!
 	*/
 	if (muls->readPotential) {
-		for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
-			sprintf(buf,"%s/potential_%d.img",muls->folder,i);
-			imageIO->ReadImage((void **)tempPot,nx,ny,buf);
-			for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-				(*muls).trans[j][ix][iy][0] = tempPot[ix][iy];
-				(*muls).trans[j][ix][iy][1] = 0.0;
-			}
-		}
-		return;
+          std::vector<unsigned> slice(1);
+          for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
+            slice[0]=i;
+            sprintf(buf,"%s/potential",muls->folder);
+            imageIO->ReadImage((void **)tempPot,buf, slice);
+            for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
+                (*muls).trans[j][ix][iy][0] = tempPot[ix][iy];
+                (*muls).trans[j][ix][iy][1] = 0.0;
+              }
+          }
+          return;
 	}
 
 	// reset the potential to zero:  
@@ -1281,10 +1285,9 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			if (muls->printLevel >= 3)
 				printf("Saving (complex) potential layer %d to file %s (r: %g..%g)\n",iz,filename,ddx,ddy); 
 
-			imageIO->SetThickness(muls->sliceThickness);
+                        params["Thickness"]=muls->sliceThickness;
 			sprintf(buf,"Projected Potential (slice %d)",iz);		 
-			imageIO->SetComment(buf);
-			imageIO->WriteComplexImage((void **)muls->trans[iz],filename);
+			imageIO->WriteComplexImage((void **)muls->trans[iz],filename, params, std::string(buf));
 		} // loop through all slices
 	} /* end of if savePotential ... */
 	if (muls->saveTotalPotential) {
@@ -1300,16 +1303,15 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			if (ddx>potVal) ddx = potVal; 
 		}
 #ifndef WIN32
-		sprintf(filename,"%s/%sProj.img",muls->folder,muls->fileBase);	
+		sprintf(filename,"%s/%sProj",muls->folder,muls->fileBase);	
 #else
-		sprintf(filename,"%s\\%sProj.img",muls->folder,muls->fileBase);	
+		sprintf(filename,"%s\\%sProj",muls->folder,muls->fileBase);	
 #endif
 		if (muls->printLevel >= 2)
 			printf("Saving total projected potential to file %s (r: %g..%g)\n",filename,ddx,ddy); 
-		imageIO->SetThickness(nlayer*muls->sliceThickness);
+                params["Thickness"]=muls->sliceThickness;
 		sprintf(buf,"Projected Potential (sum of %d slices)",muls->slices);
-		imageIO->SetComment(buf);
-		imageIO->WriteRealImage((void **)tempPot, fileName);
+		imageIO->WriteRealImage((void **)tempPot, fileName, params, std::string(buf));
 	}
 
 } // end of make3DSlices
@@ -2676,6 +2678,7 @@ void saveSTEMImages(MULS *muls)
 	//imageStruct *header = NULL;
 	std::vector<DetectorPtr> detectors;
 	float t;
+        std::map<std::string, double> params;
 
 	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
@@ -2706,13 +2709,12 @@ void saveSTEMImages(MULS *muls)
 			}
 			detectors[i]->error /= intensity;
 			if (islice <tCount)
-				sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i]->name, islice);
+				sprintf(fileName,"%s/%s_%d", muls->folder, detectors[i]->name, islice);
 			else
-				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i]->name, islice);
-			detectors[i]->SetComment(detectors[i]->name);
-			detectors[i]->SetThickness(t);
-                        detectors[i]->SetParameter("Runs Averaged", (double)muls->avgCount+1);
-                        detectors[i]->SetParameter("Error", (double)detectors[i]->error);
+				sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name, islice);
+                        params["Thickness"]=t;
+                        params["Runs Averaged"]=(double)muls->avgCount+1;
+                        params["Error"]=(double)detectors[i]->error;
 
                         // TODO: why is this here?  It's a second image.  Why aren't we just saving another image?
                         /*
@@ -2721,7 +2723,7 @@ void saveSTEMImages(MULS *muls)
 				detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
 			}
                         */
-			detectors[i]->WriteImage(fileName);
+			detectors[i]->WriteImage(fileName, detectors[i]->name, params);
 		}
 	}
 }

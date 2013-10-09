@@ -569,7 +569,7 @@ void readFile() {
 	int i,ix;
 	int potDimensions[2];
 	long ltime;
-	unsigned long iseed;
+	unsigned iseed;
 	double dE_E0,x,y,dx,dy;
 	const double pi=3.1415926535897;
 
@@ -1625,8 +1625,10 @@ void doCBED() {
 	int oldMulsRepeat2 = 1;
 	long iseed=0;
 	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY));
-	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, t, muls.resolutionX, muls.resolutionY));
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny));
 	std::map<std::string, double> params;
+        params["dx"]=muls.resolutionX;
+        params["dy"]=muls.resolutionY;
 
 	muls.chisq = std::vector<double>(muls.avgRuns);
 

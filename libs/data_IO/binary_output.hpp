@@ -19,43 +19,42 @@ class CBinaryOutput : public IDataWriter
 public:
   CBinaryOutput();
   ~CBinaryOutput();
-  virtual void WriteRealVolume(float_tt *data, std::vector<unsigned long> shape, std::string label, 
-                               std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                               std::map<std::string, double> parameters=std::map<std::string, double>(),
-                               std::vector<float_tt> resolution=std::vector<float_tt>());
-  virtual void WriteComplexVolume(complex_tt *data, std::vector<unsigned long> shape, std::string label, 
-                           std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                           std::map<std::string, double> parameters=std::map<std::string, double>(),
-                           std::vector<float_tt> resolution=std::vector<float_tt>());
-  virtual void WriteRealImage(float_tt **data, std::vector<unsigned long> shape, std::string label, 
-                              std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                              std::map<std::string, double> parameters=std::map<std::string, double>(),
-                              std::vector<float_tt> resolution=std::vector<float_tt>());
-  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned long> shape, std::string label, 
-                                 std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                                 std::map<std::string, double> parameters=std::map<std::string, double>(),
-                                 std::vector<float_tt> resolution=std::vector<float_tt>());
+  virtual void WriteRealVolume(float_tt *data, std::vector<unsigned> shape, std::string label, 
+                               std::vector<unsigned> position=std::vector<unsigned>(), 
+                               std::string comment=std::string(),
+                               std::map<std::string, double> parameters=std::map<std::string, double>());
+  virtual void WriteComplexVolume(complex_tt *data, std::vector<unsigned> shape, std::string label, 
+                                  std::vector<unsigned> position=std::vector<unsigned>(), 
+                                  std::string comment=std::string(),
+                                  std::map<std::string, double> parameters=std::map<std::string, double>());
+  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
+                              std::vector<unsigned> position=std::vector<unsigned>(), 
+                              std::string comment=std::string(),
+                              std::map<std::string, double> parameters=std::map<std::string, double>());
+  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label, 
+                                 std::vector<unsigned> position=std::vector<unsigned>(), 
+                                 std::string comment=std::string(),
+                                 std::map<std::string, double> parameters=std::map<std::string, double>());
 
   /*
-  virtual void WriteRealImage(QSfMat data, std::string label, std::vector<unsigned long> position=std::vector<unsigned long>(), 
+  virtual void WriteRealImage(QSfMat data, std::string label, std::vector<unsigned> position=std::vector<unsigned>(), 
                       std::map<std::string, double> parameters=std::map<std::string, double>());
-  virtual void WriteComplexImage(QScMat data, std::string label, std::vector<unsigned long> position=std::vector<unsigned long>(), 
+  virtual void WriteComplexImage(QScMat data, std::string label, std::vector<unsigned> position=std::vector<unsigned>(), 
                          std::map<std::string, double> parameters=std::map<std::string, double>());
   */
 protected:
-  virtual void DescribeFile(std::vector<unsigned long> shape, unsigned long element_size, std::string label, 
-                            std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment="", 
-                            std::map<std::string, double> parameters=std::map<std::string, double>(),
-                            std::vector<float_tt> resolution=std::vector<float_tt>());
+  virtual void DescribeFile(std::vector<unsigned> shape, unsigned element_size, std::string label, 
+                            std::vector<unsigned> position=std::vector<unsigned>(), std::string comment="", 
+                            std::map<std::string, double> parameters=std::map<std::string, double>());
 
   template <typename dtype>
-  void WriteBlob(dtype *data, std::vector<unsigned long> shape, std::string label, 
-                   std::vector<unsigned long> position=std::vector<unsigned long>(), 
+  void WriteBlob(dtype *data, std::vector<unsigned> shape, std::string label, 
+                   std::vector<unsigned> position=std::vector<unsigned>(), 
                    std::map<std::string, double> parameters=std::map<std::string, double>())
     {
       std::stringstream filename;
       filename<<label;
-      for (unsigned long idx=0; idx<position.size(); idx++)
+      for (unsigned idx=0; idx<position.size(); idx++)
         {
           filename<<"_"<<idx;
         }
@@ -66,7 +65,7 @@ protected:
           throw std::runtime_error("WriteBlob: Could not open file for writing.");
         }
 
-      unsigned long ndata=1;
+      unsigned ndata=1;
       for (int dim=0; dim<shape.size(); dim++) ndata*=shape[dim];
       file.write(reinterpret_cast<const char*>(data),ndata*sizeof(dtype));
       file.close();

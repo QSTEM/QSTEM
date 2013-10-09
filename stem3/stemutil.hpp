@@ -71,7 +71,7 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag);
 double vzatom( int Z, double radius,int tdsFlag,int scatFlag);
 
 double gasdev(long *idum);
-double rangauss( unsigned long *iseed );
+double rangauss( unsigned *iseed );
 int ReadfeTable(int scatFlag );
 int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
 int getZNumber(char *element);
@@ -80,7 +80,7 @@ void splinh( double x[], double y[],
 	     double b[], double c[], double d[], int n);
 double seval( double *x, double *y, double *b, double *c,
 	     double *d, int n, double x0 );
-double ranflat( unsigned long *iseed );
+double ranflat( unsigned *iseed );
 int parlay( const char c[], int islice[], int nsmax, int lmax,
 	    int *nslice, int fperr );
 /* long powerof2( long n ); */

@@ -314,13 +314,15 @@ void make3DSlicesFT(MULS *muls) {
     
   // save the potential file:
   if (muls->savePotential) {
-	imageIO = ImageIOPtr(new CImageIO(Nxp, Nyp, dZp, dXp, dYp));
+    std::map<std::string, double> params;
+    params["dx"] = dXp;
+    params["dy"] = dYp;
+    imageIO = ImageIOPtr(new CImageIO(Nxp, Nyp));
     for (iz=0;iz<Nzp;iz++) {
-      sprintf(fileName,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
+      sprintf(fileName,"%s/%s%d",muls->folder,muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
       sprintf(buf,"Projected Potential (%d slices)",muls->slices);
-	  imageIO->SetComment(std::string(buf));
-	  imageIO->WriteComplexImage((void **)muls->trans[iz], fileName);
+      imageIO->WriteComplexImage((void **)muls->trans[iz], fileName, params, std::string(buf));
     } 
   } /* end of if savePotential ... */
   

@@ -763,9 +763,9 @@ double cputim()
   
   added log(0) test 10-jan-1998 E. Kirkland
 */
-double rangauss( unsigned long *iseed )
+double rangauss( unsigned *iseed )
 {
-  double ranflat( unsigned long* );
+  double ranflat( unsigned* );
   double x1, x2, y;
   static double tpi=2.0*3.141592654;
   
@@ -1099,9 +1099,9 @@ double seval( double *x, double *y, double *b, double *c,
   the 'Magic Numbers' are from 
   Numerical Recipes 2nd edit pg. 285
 */
-double ranflat( unsigned long *iseed )
+double ranflat( unsigned *iseed )
 {
-  static unsigned long a=1366, c=150889L, m=714025L;
+  static unsigned a=1366, c=150889L, m=714025L;
   
   *iseed = ( a * (*iseed) + c ) % m;
   

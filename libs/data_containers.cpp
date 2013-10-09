@@ -23,15 +23,15 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "memory_fftw3.hpp"
 
 WAVEFUNC::WAVEFUNC(int x, int y, float_tt resX, float_tt resY) :
-detPosX(0),
-detPosY(0),
-iPosX(0),
-iPosY(0),
-thickness(0.0),
-nx(x),
-ny(y),
-resolutionX(resX),
-resolutionY(resY)
+  m_position(std::vector<unsigned>()),
+  iPosX(0),
+  iPosY(0),
+  thickness(0.0),
+  nx(x),
+  ny(y),
+  resolutionX(resX),
+  resolutionY(resY),
+  m_params(std::map<std::string, double>())
 {
 	char waveFile[256];
 	const char *waveFileBase = "mulswav";
@@ -39,7 +39,8 @@ resolutionY(resY)
 	diffpat = float2D(nx,ny,"diffpat");
 	avgArray = float2D(nx,ny,"avgArray");
 
-	m_imageIO=ImageIOPtr(new CImageIO(nx, ny, thickness, resolutionX, resolutionY));
+        // TODO: need to pass file extension through to this constructor
+	m_imageIO=ImageIOPtr(new CImageIO(nx, ny));
 	
 	wave = complex2D(nx, ny, "wave");
 #if FLOAT_PRECISION == 1
@@ -52,86 +53,88 @@ resolutionY(resY)
 		fftMeasureFlag);
 #endif
 
-	sprintf(waveFile,"%s.img",waveFileBase);
+	sprintf(waveFile,"%s",waveFileBase);
 	strcpy(fileout,waveFile);
-	sprintf(fileStart,"mulswav.img");
+	sprintf(fileStart,"mulswav");
 }
 
-std::vector<unsigned long> WAVEFUNC::GetPositionVector()
+std::vector<unsigned> WAVEFUNC::GetPositionVector()
 {
-  std::vector<unsigned long> position(2, unsigned long());
-  position[0]=detPosX;
-  position[1]=detPosY;
-  return position;
+  return m_position;
 }
 
 void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
                          std::map<std::string, double>params)
 {
-	m_imageIO->SetComment(comment);
-	m_imageIO->SetResolution(resolutionX, resolutionY);
-	m_imageIO->SetParams(params);
-	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteComplexImage((void **)wave, fileName, GetPositionVector());
+  params["dx"]=resolutionX;
+  params["dy"]=resolutionY;
+  params["Thickness"]=thickness;
+  m_imageIO->WriteComplexImage((void **)wave, fileName, params, std::string(comment), GetPositionVector());
 }
 
 void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
-                            std::map<std::string, double>params)
+                            std::map<std::string, double> params)
 {
-	m_imageIO->SetComment(comment);
-	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
-	m_imageIO->SetParams(params);
-	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteRealImage((void**)diffpat, fileName, GetPositionVector());
+  params["dx"]=1.0/(nx*resolutionX);
+  params["dy"]=1.0/(ny*resolutionY);
+  params["Thickness"]=thickness;
+  m_imageIO->WriteRealImage((void **)diffpat, fileName, params, std::string(comment), GetPositionVector());
 }
 
-void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
-                             std::map<std::string, double>params)
+  void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment, 
+                               std::map<std::string, double> params)
 {
-	m_imageIO->SetComment(comment);
-	m_imageIO->SetResolution(1.0/(nx*resolutionX), 1.0/(ny*resolutionY));
-	m_imageIO->SetParams(params);
-	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteRealImage((void **)avgArray, fileName, GetPositionVector());
+  params["dx"]=1.0/(nx*resolutionX);
+  params["dy"]=1.0/(ny*resolutionY);
+  params["Thickness"]=thickness;
+  m_imageIO->WriteRealImage((void **)avgArray, fileName, params, std::string(comment), GetPositionVector());
 }
 
-void WAVEFUNC::SetWavePosition(unsigned long posX, unsigned long posY)
+void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
 {
-  detPosX=posX;
-  detPosY=posY;
+  if (m_position==std::vector<unsigned>())
+    {
+      m_position.push_back(posX);
+      m_position.push_back(posY);
+    }
+  else
+    {
+      m_position[0]=posX;
+      m_position[1]=posY;
+    }
 }
 
 void WAVEFUNC::ReadWave(const char *fileName)
 {
-  m_imageIO->ReadImage((void **)wave, nx, ny, fileName);
+  m_imageIO->ReadImage((void **)wave, fileName, GetPositionVector());
 }
 
-void WAVEFUNC::ReadWave(const char *fileName, unsigned long positionx, unsigned long positiony)
+void WAVEFUNC::ReadWave(const char *fileName, unsigned positionx, unsigned positiony)
 {
-  ReadWave(fileName);
   SetWavePosition(positionx, positiony);
+  ReadWave(fileName);
 }
 
 void WAVEFUNC::ReadDiffPat(const char *fileName)
 {
-  m_imageIO->ReadImage((void **)diffpat, nx, ny, fileName);
+  m_imageIO->ReadImage((void **)diffpat, fileName, GetPositionVector());
 }
 
-void WAVEFUNC::ReadDiffPat(const char *fileName, unsigned long positionx, unsigned long positiony)
+void WAVEFUNC::ReadDiffPat(const char *fileName, unsigned positionx, unsigned positiony)
 {
-  ReadDiffPat(fileName);
   SetWavePosition(positionx, positiony);
+  ReadDiffPat(fileName);
 }
 
 void WAVEFUNC::ReadAvgArray(const char *fileName)
 {
-  m_imageIO->ReadImage((void **)avgArray, nx, ny, fileName);
+  m_imageIO->ReadImage((void **)avgArray, fileName, GetPositionVector());
 }
 
-void WAVEFUNC::ReadAvgArray(const char *fileName, unsigned long positionx, unsigned long positiony)
+void WAVEFUNC::ReadAvgArray(const char *fileName, unsigned positionx, unsigned positiony)
 {
-  ReadAvgArray(fileName);
   SetWavePosition(positionx, positiony);
+  ReadAvgArray(fileName);
 }
 
 Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
@@ -143,34 +146,20 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
 {
   image = float2D(nx,ny,"ADFimag");
   image2 = float2D(nx,ny,"ADFimag");
-
-  m_imageIO=ImageIOPtr(new CImageIO(nx, ny, thickness, resX, resY, std::map<std::string, double>(), "STEM image"));
+  
+  // TODO: need way of passing file formats into constructor here
+  m_imageIO=ImageIOPtr(new CImageIO(nx, ny));
 }
 
-void Detector::WriteImage(const char *fileName)
+    void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params)
 {
-	m_imageIO->SetThickness(thickness);
-	m_imageIO->WriteRealImage((void **)image, fileName);
+  
+  m_imageIO->WriteRealImage((void **)image, fileName, params, std::string(comment));
 }
 
 void Detector::SetThickness(float_tt t)
 {
-	thickness=t;
-}
-
-void Detector::SetParameter(std::string key, double value)
-{
-	m_imageIO->SetParameter(key, value);
-}
-
- void Detector::SetParams(std::map<std::string, double> &params)
-{
-	m_imageIO->SetParams(params);
-}
-
-void Detector::SetComment(const char *comment)
-{
-	m_imageIO->SetComment(comment);
+  thickness=t;
 }
 
 

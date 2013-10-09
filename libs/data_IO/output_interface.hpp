@@ -9,26 +9,26 @@
 class IDataWriter
 {
 public:
-  virtual void WriteRealVolume(float_tt *data, std::vector<unsigned long> shape, std::string label, 
-                               std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                               std::map<std::string, double> parameters=std::map<std::string, double>(),
-                               std::vector<float_tt> resolution=std::vector<float_tt>())=0;
-  virtual void WriteComplexVolume(complex_tt *data, std::vector<unsigned long> shape, std::string label, 
-                                  std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                                  std::map<std::string, double> parameters=std::map<std::string, double>(),
-                                  std::vector<float_tt> resolution=std::vector<float_tt>())=0;
-  virtual void WriteRealImage(float_tt **data, std::vector<unsigned long> shape, std::string label, 
-                              std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                              std::map<std::string, double> parameters=std::map<std::string, double>(),
-                              std::vector<float_tt> resolution=std::vector<float_tt>())=0;
-  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned long> shape, std::string label, 
-                                 std::vector<unsigned long> position=std::vector<unsigned long>(), std::string comment=std::string(),
-                                 std::map<std::string, double> parameters=std::map<std::string, double>(),
-                                 std::vector<float_tt> resolution=std::vector<float_tt>())=0;
+  virtual void WriteRealVolume(float_tt *data, std::vector<unsigned> shape, std::string label, 
+                               std::vector<unsigned> position=std::vector<unsigned>(), 
+                               std::string comment=std::string(),
+                               std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+  virtual void WriteComplexVolume(complex_tt *data, std::vector<unsigned> shape, std::string label, 
+                                  std::vector<unsigned> position=std::vector<unsigned>(), 
+                                  std::string comment=std::string(),
+                                  std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
+                              std::vector<unsigned> position=std::vector<unsigned>(), 
+                              std::string comment=std::string(),
+                              std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label, 
+                                 std::vector<unsigned> position=std::vector<unsigned>(), 
+                                 std::string comment=std::string(),
+                                 std::map<std::string, double> parameters=std::map<std::string, double>())=0;
   /*
-  virtual void WriteRealFile(QSfMat &data, std::string label, std::vector<unsigned long> &position=std::vector<unsigned long>(), 
+  virtual void WriteRealFile(QSfMat &data, std::string label, std::vector<unsigned> &position=std::vector<unsigned>(), 
                              std::map<std::string, double> &parameters=std::map<std::string, double>())=0;
-  virtual void WriteComplexFile(QScMat &data, std::string label, std::vector<unsigned long> &position=std::vector<unsigned long>(), 
+  virtual void WriteComplexFile(QScMat &data, std::string label, std::vector<unsigned> &position=std::vector<unsigned>(), 
                                 std::map<std::string, double> &parameters=std::map<std::string, double>())=0;
   */
 };

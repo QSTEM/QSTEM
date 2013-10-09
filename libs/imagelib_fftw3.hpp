@@ -6,7 +6,7 @@
 #include <map>
 #include <string>
 #include "boost/shared_ptr.hpp"
-#include "data_IO/data_writers.hpp"
+#include "data_IO/data_io_factories.hpp"
 
 /**************************************************************
  * Here is how to use the new image writing routines
@@ -30,48 +30,95 @@
  **************************************************************/
 
 class CImageIO {
-  int m_headerSize;  // first byte of image will be size of image header (in bytes)
-                   // This is the size without the data, parameters, and comment!!!
-  int m_paramSize;   // number of additional parameters
-  int m_commentSize; // length of comment string
   int m_nx,m_ny;
-  int m_complexFlag;
-  int m_dataSize;    // size of one data element in bytes (e.g. complex double: 16)
-  int m_version;     // The version flag will later help to find out how to 
-                   // distinguish between images produced by different versions of stem
-  double m_t;        // thickness
-  double m_dx,m_dy;    // size of one pixel
-  std::map<std::string, double> m_params;  // array for additional parameters
-  std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
   DataWriterPtr m_imageWriter;
+  DataReaderPtr m_imageReader;
 public:
-  CImageIO(int nx, int ny, std::string extension=".img");
-  CImageIO(int nx, int ny, double t, double dx, double dy,
-           std::map<std::string, double> params=std::map<std::string, double>(), 
-           std::string comment="", std::string extension=".img");
+  CImageIO(int nx, int ny, std::string input_extension=".img", 
+           std::string output_extension=".img");
 
   void WriteRealImage(void **pix, const char *fileName, 
-                      std::vector<unsigned long> position=std::vector<unsigned long>());
-  void WriteComplexImage(void **pix, const char *fileName,
-                         std::vector<unsigned long> position=std::vector<unsigned long>());
-  void ReadImage(void **pix, int nx, int ny, const char *fileName);
-  
-  //void WriteImage( std::string fileName);
-        
-  void SetComment(std::string comment);
-  void SetThickness(double thickness);
-  void SetParams(std::map<std::string, double> &params);
-  //void SetParameter(int index, double value);
-  void SetParameter(std::string key, double value);
-  void SetResolution(double resX, double resY);
-private:
-  void WriteData(void **pix, const char *fileName);
-  // reads in the header; returns the byte offset at which we should start reading image data.
-  void ReadHeader(const char *fileName);
-  std::vector<unsigned long> GetShapeVector();
-  std::vector<float_tt> GetResolutionVector();
+                      std::map<std::string, double> &params,
+                      std::string comment, 
+                      std::vector<unsigned> position=std::vector<unsigned>());
+  // If you want to add a comment, but no parameters
+  inline void WriteRealImage(void **pix, const char *fileName, std::string comment,
+                             std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::map<std::string, double> params;
+    WriteRealImage(pix, fileName, params, comment, position);
+  }
+  // If you want to add parameters, but no comment
+  inline void WriteRealImage(void **pix, const char *fileName, std::map<std::string, double> &params,
+                               std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    WriteRealImage(pix, fileName, params, "", position);
+  }  
+  // If you don't care about parameters or comment, use this simplified overload:
+  inline void WriteRealImage(void **pix, const char *fileName, 
+                        std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::map<std::string, double> params;
+    WriteRealImage(pix, fileName, params, "", position);
+  }
 
+
+  void WriteComplexImage(void **pix, const char *fileName,
+                         std::map<std::string, double> &params,
+                         std::string comment,
+                         std::vector<unsigned> position=std::vector<unsigned>());
+  
+  // If you want to add a comment, but no parameters
+  inline void WriteComplexImage(void **pix, const char *fileName, std::string comment,
+                             std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::map<std::string, double> params;
+    WriteComplexImage(pix, fileName, params, comment, position);
+  }
+  // If you want to add parameters, but no comment
+  inline void WriteComplexImage(void **pix, const char *fileName, std::map<std::string, double> &params,
+                               std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    WriteComplexImage(pix, fileName, params, "", position);
+  }  
+  // If you don't care about parameters or comment, use this simplified overload:
+  inline void WriteComplexImage(void **pix, const char *fileName, 
+                        std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::map<std::string, double> params;
+    WriteComplexImage(pix, fileName, params, "", position);
+  }
+
+
+  void ReadImage(void **pix, const char *fileName, std::map<std::string, double> &params,
+                 std::string &comment,
+                 std::vector<unsigned> position=std::vector<unsigned>());
+  // If you don't care about parameters, this reads the data without you passing them in.
+  inline void ReadImage(void **pix, const char *fileName, std::string &comment,
+                        std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::map<std::string, double> params;
+    ReadImage(pix, fileName, params, comment, position);
+  }
+  // If you want the parameters, but don't care about the comment
+  inline void ReadImage(void **pix, const char *fileName, std::map<std::string, double> &params,
+                        std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::string comment;
+    ReadImage(pix, fileName, params, comment, position);
+  }
+  // If you don't care about comment or parameters
+  inline void ReadImage(void **pix, const char *fileName,
+                        std::vector<unsigned> position=std::vector<unsigned>())
+  {
+    std::map<std::string, double> params;
+    std::string comment;
+    ReadImage(pix, fileName, params, comment, position);
+  }
+  
+private:
+  std::vector<unsigned> GetShapeVector();
 };
 
 typedef boost::shared_ptr<CImageIO> ImageIOPtr;

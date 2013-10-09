@@ -28,28 +28,30 @@ QSTEM - image simulation for TEM/STEM/CBED
 // Separate from mulsliceStruct for parallelization.
 class WAVEFUNC 
 {
-	// shared pointer to 
-	ImageIOPtr m_imageIO;
+  // shared pointer to 
+  ImageIOPtr m_imageIO;
 public:
-	int iPosX,iPosY;      /* integer position of probe position array */
-	int nx, ny;			/* size of diffpat arrays */
-	int detPosX,detPosY;
-	char fileStart[512];
-	char fileout[512];
-	float_tt **diffpat;
-	float_tt **avgArray;
-	char avgName[512];
-	float_tt thickness;
-	float_tt intIntensity;
-	// These are not used for anything aside from when saving files.
-	float_tt resolutionX, resolutionY;
+  int iPosX,iPosY;      /* integer position of probe position array */
+  int nx, ny;			/* size of diffpat arrays */
+  char fileStart[512];
+  char fileout[512];
+  float_tt **diffpat;
+  float_tt **avgArray;
+  char avgName[512];
+  float_tt thickness;
+  float_tt intIntensity;
+  std::vector<unsigned> m_position;
+  std::map<std::string, double> m_params;
 
-	complex_tt  **wave; /* complex wave function */
+  // These are not used for anything aside from when saving files.
+  float_tt resolutionX, resolutionY;
+
+  complex_tt  **wave; /* complex wave function */
 
 #if FLOAT_PRECISION == 1
-	fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
+  fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
 #else
-	fftw_plan fftPlanWaveForw,fftPlanWaveInv;
+  fftw_plan fftPlanWaveForw,fftPlanWaveInv;
 #endif
 
 public:
@@ -58,8 +60,8 @@ public:
   // define a copy constructor to create new arrays
   //WAVEFUNC( WAVEFUNC& other );
 
-  void SetWavePosition(unsigned long posX, unsigned long posY);
-  std::vector<unsigned long> GetPositionVector();
+  void SetWavePosition(unsigned posX, unsigned posY);
+  std::vector<unsigned> GetPositionVector();
 
   void WriteWave(const char *fileName, const char *comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());
@@ -69,11 +71,11 @@ public:
                      std::map<std::string, double>params = std::map<std::string, double>());
 
   void ReadWave(const char *fileName);
-  void ReadWave(const char *fileName, unsigned long posX, unsigned long posY);
+  void ReadWave(const char *fileName, unsigned posX, unsigned posY);
   void ReadDiffPat(const char *fileName);
-  void ReadDiffPat(const char *fileName, unsigned long posX, unsigned long posY);
+  void ReadDiffPat(const char *fileName, unsigned posX, unsigned posY);
   void ReadAvgArray(const char *fileName);
-  void ReadAvgArray(const char *fileName, unsigned long posX, unsigned long posY);
+  void ReadAvgArray(const char *fileName, unsigned posX, unsigned posY);
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;
@@ -84,22 +86,20 @@ class Detector {
 	ImageIOPtr m_imageIO;
 	float_tt thickness;
 public:
-	int Navg;
-	float_tt **image;        // place for storing avg image = sum(data)/Navg
-	float_tt **image2;        // we will store sum(data.^2)/Navg 
-	float_tt rInside,rOutside;
-	float_tt k2Inside,k2Outside;
-	char name[32];
+  int Navg;
+  float_tt **image;        // place for storing avg image = sum(data)/Navg
+  float_tt **image2;        // we will store sum(data.^2)/Navg 
+  float_tt rInside,rOutside;
+  float_tt k2Inside,k2Outside;
+  char name[32];
+  float_tt error;
+  float_tt shiftX,shiftY;
 
 public:
-	Detector(int nx, int ny, float_tt resX, float_tt resY);
-	void WriteImage(const char *fileName);
-	void SetParams(std::map<std::string, double> &params);
-	void SetParameter(std::string key, double value);
-	void SetThickness(float_tt t);
-	void SetComment(const char *comment);
-	float_tt error;
-	float_tt shiftX,shiftY;
+  Detector(int nx, int ny, float_tt resX, float_tt resY);
+  void WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params);
+  void SetThickness(float_tt t);
+  
 };
 
 typedef boost::shared_ptr<Detector> DetectorPtr;
@@ -108,8 +108,8 @@ typedef boost::shared_ptr<Detector> DetectorPtr;
 
 class MULS {
 public:
-	MULS();
-	~MULS();
+  MULS();
+  
   int mode;                             /* determine the mode that this program runs in
 					 * can be STEM, TEM, CBED ... */
   int printLevel;                       /* Flag indicating how much output should appear
