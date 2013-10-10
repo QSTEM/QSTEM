@@ -53,6 +53,7 @@ void CImgOutput::WriteData(void **pix, bool is_complex, unsigned dataSize, std::
   double thickness = parameters["Thickness"];
   double resX = parameters["dx"];
   double resY = parameters["dy"];
+  int complexFlag = (int) is_complex;
 
   if(!file.is_open()) 
     {
@@ -65,8 +66,8 @@ void CImgOutput::WriteData(void **pix, bool is_complex, unsigned dataSize, std::
   file.write(reinterpret_cast <const char*> (&commentSize), 4);
   file.write(reinterpret_cast <const char*> (&shape[0]), 4);
   file.write(reinterpret_cast <const char*> (&shape[1]), 4);
-  file.write(reinterpret_cast <const char*> ((int)is_complex), 4);
-  file.write(reinterpret_cast <const char*> ((int)dataSize), 4);
+  file.write(reinterpret_cast <const char*> (&complexFlag), 4);
+  file.write(reinterpret_cast <const char*> (&dataSize), 4);
   file.write(reinterpret_cast <const char*> (&m_version), 4);
   file.write(reinterpret_cast <const char*> (&thickness), 8);
   file.write(reinterpret_cast <const char*> (&resX), 8);
@@ -81,3 +82,8 @@ void CImgOutput::WriteData(void **pix, bool is_complex, unsigned dataSize, std::
   file.write(reinterpret_cast<char*>(pix[0]), shape[0]*shape[1]*dataSize);
   file.close();
 }
+
+
+
+
+

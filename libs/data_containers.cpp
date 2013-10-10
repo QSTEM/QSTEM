@@ -23,7 +23,9 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "memory_fftw3.hpp"
 
 WAVEFUNC::WAVEFUNC(int x, int y, float_tt resX, float_tt resY) :
-  m_position(std::vector<unsigned>()),
+  //m_position(std::vector<unsigned>()),
+  detPosX(0),
+  detPosY(0),
   iPosX(0),
   iPosY(0),
   thickness(0.0),
@@ -60,7 +62,11 @@ WAVEFUNC::WAVEFUNC(int x, int y, float_tt resX, float_tt resY) :
 
 std::vector<unsigned> WAVEFUNC::GetPositionVector()
 {
-  return m_position;
+  std::vector<unsigned> position(2, unsigned());
+  position[0]=detPosX;
+  position[1]=detPosY;
+  return position;
+  //return m_position;
 }
 
 void WAVEFUNC::WriteWave(const char *fileName, const char *comment,
@@ -92,6 +98,9 @@ void WAVEFUNC::WriteDiffPat(const char *fileName, const char *comment,
 
 void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
 {
+  detPosX=posX;
+  detPosY=posY;
+  /*
   if (m_position==std::vector<unsigned>())
     {
       m_position.push_back(posX);
@@ -102,6 +111,7 @@ void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
       m_position[0]=posX;
       m_position[1]=posY;
     }
+  */
 }
 
 void WAVEFUNC::ReadWave(const char *fileName)
@@ -151,10 +161,11 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
   m_imageIO=ImageIOPtr(new CImageIO(nx, ny));
 }
 
-    void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params)
+void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
+                          std::vector<unsigned> position)
 {
   
-  m_imageIO->WriteRealImage((void **)image, fileName, params, std::string(comment));
+  m_imageIO->WriteRealImage((void **)image, fileName, params, std::string(comment), position);
 }
 
 void Detector::SetThickness(float_tt t)

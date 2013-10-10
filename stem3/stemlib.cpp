@@ -2679,6 +2679,7 @@ void saveSTEMImages(MULS *muls)
 	std::vector<DetectorPtr> detectors;
 	float t;
         std::map<std::string, double> params;
+        std::vector<unsigned> position(1);
 
 	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
@@ -2708,10 +2709,8 @@ void saveSTEMImages(MULS *muls)
 				intensity += detectors[i]->image[0][ix] * detectors[i]->image[0][ix];
 			}
 			detectors[i]->error /= intensity;
-			if (islice <tCount)
-				sprintf(fileName,"%s/%s_%d", muls->folder, detectors[i]->name, islice);
-			else
-				sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name, islice);
+                        position[0]=islice;
+                        sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name);
                         params["Thickness"]=t;
                         params["Runs Averaged"]=(double)muls->avgCount+1;
                         params["Error"]=(double)detectors[i]->error;
@@ -2723,7 +2722,11 @@ void saveSTEMImages(MULS *muls)
 				detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
 			}
                         */
-			detectors[i]->WriteImage(fileName, detectors[i]->name, params);
+
+                        if (islice==tCount)
+                          position=std::vector<unsigned>();
+
+			detectors[i]->WriteImage(fileName, detectors[i]->name, params, position);
 		}
 	}
 }

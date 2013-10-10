@@ -1,6 +1,7 @@
 #ifndef OUTPUT_INTERFACE_H
 #define OUTPUT_INTERFACE_H
 
+#include <string>
 #include <vector>
 #include <map>
 #include "stemtypes_fftw3.hpp"

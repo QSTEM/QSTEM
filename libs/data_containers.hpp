@@ -31,6 +31,7 @@ class WAVEFUNC
   // shared pointer to 
   ImageIOPtr m_imageIO;
 public:
+  unsigned detPosX, detPosY;
   int iPosX,iPosY;      /* integer position of probe position array */
   int nx, ny;			/* size of diffpat arrays */
   char fileStart[512];
@@ -97,7 +98,8 @@ public:
 
 public:
   Detector(int nx, int ny, float_tt resX, float_tt resY);
-  void WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params);
+  void WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
+                  std::vector<unsigned>position=std::vector<unsigned>());
   void SetThickness(float_tt t);
   
 };
