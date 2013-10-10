@@ -152,7 +152,8 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
   shiftX(0),
   shiftY(0),
   Navg(0),
-  thickness(0)
+  dx(resX),
+  dy(resY)
 {
   image = float2D(nx,ny,"ADFimag");
   image2 = float2D(nx,ny,"ADFimag");
@@ -164,15 +165,11 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
 void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
                           std::vector<unsigned> position)
 {
-  
+  params["dx"]=dx;
+  params["dy"]=dy;
+  // Thickness is set externally and passed in on params
   m_imageIO->WriteRealImage((void **)image, fileName, params, std::string(comment), position);
 }
-
-void Detector::SetThickness(float_tt t)
-{
-  thickness=t;
-}
-
 
 MULS::MULS():
   cubex(0), cubey(0), cubez(0),

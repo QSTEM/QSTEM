@@ -2381,7 +2381,7 @@ void doSTEM() {
 					iy = i % muls.scanYN;
 
 					wave = waves[omp_get_thread_num()];
-                                        wave->SetWavePosition(ix, iy);
+					wave->SetWavePosition(ix, iy);
 
 					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
 

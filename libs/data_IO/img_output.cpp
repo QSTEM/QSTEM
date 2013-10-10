@@ -36,7 +36,7 @@ void CImgOutput::WriteData(void **pix, bool is_complex, unsigned dataSize, std::
   filename<<label;
   for (unsigned idx=0; idx<position.size(); idx++)
     {
-      filename<<"_"<<idx;
+      filename<<"_"<<position[idx];
     }
   filename<<".img";
 

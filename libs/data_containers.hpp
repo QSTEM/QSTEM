@@ -85,7 +85,6 @@ typedef boost::shared_ptr<WAVEFUNC> WavePtr;
 
 class Detector {
 	ImageIOPtr m_imageIO;
-	float_tt thickness;
 public:
   int Navg;
   float_tt **image;        // place for storing avg image = sum(data)/Navg
@@ -95,13 +94,12 @@ public:
   char name[32];
   float_tt error;
   float_tt shiftX,shiftY;
+  float_tt dx, dy;
 
 public:
   Detector(int nx, int ny, float_tt resX, float_tt resY);
   void WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
                   std::vector<unsigned>position=std::vector<unsigned>());
-  void SetThickness(float_tt t);
-  
 };
 
 typedef boost::shared_ptr<Detector> DetectorPtr;

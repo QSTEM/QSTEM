@@ -2678,8 +2678,8 @@ void saveSTEMImages(MULS *muls)
 	//imageStruct *header = NULL;
 	std::vector<DetectorPtr> detectors;
 	float t;
-        std::map<std::string, double> params;
-        std::vector<unsigned> position(1);
+    std::map<std::string, double> params;
+    std::vector<unsigned> position(1,0);
 
 	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
 
@@ -2709,24 +2709,25 @@ void saveSTEMImages(MULS *muls)
 				intensity += detectors[i]->image[0][ix] * detectors[i]->image[0][ix];
 			}
 			detectors[i]->error /= intensity;
-                        position[0]=islice;
-                        sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name);
-                        params["Thickness"]=t;
-                        params["Runs Averaged"]=(double)muls->avgCount+1;
-                        params["Error"]=(double)detectors[i]->error;
+            position[0]=islice;
+            sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name);
+            params["Thickness"]=t;
+            params["Runs Averaged"]=(double)muls->avgCount+1;
+            params["Error"]=(double)detectors[i]->error;
 
-                        // TODO: why is this here?  It's a second image.  Why aren't we just saving another image?
-                        /*
+            // TODO: why is this here?  It's a second image.  Why aren't we just saving another image?
+            /*
 			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
 			{
 				detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
 			}
-                        */
+            */
 
-                        if (islice==tCount)
-                          position=std::vector<unsigned>();
-
-			detectors[i]->WriteImage(fileName, detectors[i]->name, params, position);
+			// exclude the suffix if this is the last detector (at the final thickness)
+			if (islice==tCount)
+				detectors[i]->WriteImage(fileName, detectors[i]->name, params);
+			else
+				detectors[i]->WriteImage(fileName, detectors[i]->name, params, position);
 		}
 	}
 }
