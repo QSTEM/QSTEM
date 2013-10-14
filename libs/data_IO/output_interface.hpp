@@ -10,6 +10,7 @@
 class IDataWriter
 {
 public:
+  /*
   virtual void WriteRealVolume(float_tt *data, std::vector<unsigned> shape, std::string label, 
                                std::vector<unsigned> position=std::vector<unsigned>(), 
                                std::string comment=std::string(),
@@ -18,6 +19,7 @@ public:
                                   std::vector<unsigned> position=std::vector<unsigned>(), 
                                   std::string comment=std::string(),
                                   std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+  */
   virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
                               std::vector<unsigned> position=std::vector<unsigned>(), 
                               std::string comment=std::string(),

@@ -48,73 +48,130 @@ std::string QH5::GetRunPath()
   return path.str();
 }
 
-std::string QH5::GetDataSetPath(std::string dataSetName)
+std::string QH5::GetDataSetPath(std::string &dataSetName)
 {
   std::stringstream path;
   path << GetRunPath() << "/" << dataSetName;
   return path.str();
 }
 
-/**
-Create a dataset for the 3D potential - either the 3D volume, or slices.
- */
-void QH5::CreatePotentialVolumeDataSet(unsigned int size_x, unsigned int size_y, unsigned int size_z)
+std::string QH5::GetDetectorPath(std::string &detectorName)
 {
-  hsize_t dims[3] = {size_x, size_y, size_z};
-  DataSpace ds (3, dims);
-
-  DataSet data = m_file.createDataSet(GetDataSetPath("Potential volume"), QH5_NATIVE_COMPLEX, ds);
-}
-
-void QH5::CreatePotentialDataSet(unsigned int size_x, unsigned int size_y, unsigned int size_z)
-{
-  hsize_t dims[3] = {size_x, size_y, size_z};
-  DataSpace ds (3, dims);
-
-  DataSet data = m_file.createDataSet(GetDataSetPath("Potential slices"), QH5_NATIVE_COMPLEX, ds);
-}
-
-
-void QH5::CreateWaveDataSet(unsigned int size_x, unsigned int size_y, std::vector<unsigned> positions)
-{
-  hsize_t dims = new hsize_t(2+positions.size());
-  DataSpace ds (2+positions.size(), dims);
-
-  DataSet data = m_file.createDataSet(GetDataSetPath("Potential volume"), QH5_NATIVE_COMPLEX, ds);  
-  
-  delete dims;
-}
-
-void QH5::CreateDPDataSet(unsigned int size_x, unsigned int size_y, std::vector<unsigned> positions)
-{
-  hsize_t dims = new hsize_t(2+positions.size());
-  DataSpace ds (2+positions.size(), dims);
-
-  DataSet data = m_file.createDataSet(GetDataSetPath("Potential volume"), QH5_NATIVE_FLOAT, ds);  
-  
-  delete dims;
-}
-
-void QH5::CreateDetectorDataSet(std::string name, unsigned int size_x, unsigned int size_y, unsigned int nslices)
-{
-  hsize_t dims[3]={size_x, size_y, size_z};
-  DataSpace ds (3, dims);
-
-  // TODO: need to make sure that detectors group has been created before creating this dataset!
-
   std::stringstream path;
-  path << "Detectors/" << name;
-
-  DataSet data = m_file.createDataSet(GetDataSetPath(path.str()), QH5_NATIVE_FLOAT, ds);  
+  path << GetDataSetPath("Detectors") << "/" << detectorName;
+  return path.str();
 }
 
+void QH5::CreateRealDataSet(std::string &path, unsigned int size_x, unsigned int size_y, 
+                            std::vector<unsigned> position)
+{
+  hsize_t dims = new hsize_t(2+position.size());
+  DataSpace ds (2+position.size(), dims);
 
+  DataSet data = m_file.createDataSet(path, QH5_NATIVE_FLOAT, ds);  
+  
+  delete dims;
+}
 
+void QH5::CreateComplexDataSet(std::string &path, unsigned int size_x, unsigned int size_y, 
+                               std::vector<unsigned> position)
+{
+  hsize_t dims = new hsize_t(2+position.size());
+  DataSpace ds (2+position.size(), dims);
 
+  DataSet data = m_file.createDataSet(path, QH5_NATIVE_COMPLEX, ds);  
+  
+  delete dims;
+}
 
+void WriteRealDataSlab(float_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+{
+  hsize_t memory_dims[2]={size_x, size_y};
+  DataSet ds = m_file.openDataSet(path);
+  DataSpace memspace(2, memory_dims);
+  DataSpace filespace = ds.getSpace();
+  // Position offset is where we sit in the n-dimensional dataset.  In other words,
+  //    which position, or which slice, are we going to write?
+  hsize_t position_offset = new hsize_t(2+position.size(),0);
+  
+  for (size_t idx=0; idx<position.size(); idx++)
+    {
+      position_offset[2+idx]=position[idx];
+    }
 
+  filespace.selectHyperslab( H5S_SELECT_SET, memory_dims, position_offset );
+  
+  ds.write((void *)pix, QH5_NATIVE_FLOAT, memspace, filespace);
+  
+  delete position_offset;
+}
 
+void WriteComplexDataSlab(complex_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+{
+  hsize_t memory_dims[2]={size_x, size_y};
+  DataSet ds = m_file.openDataSet(path);
+  DataSpace memspace(2, memory_dims);
+  DataSpace filespace = ds.getSpace();
+  // Position offset is where we sit in the n-dimensional dataset.  In other words,
+  //    which position, or which slice, are we going to write?
+  hsize_t position_offset = new hsize_t(2+position.size(),0);
+  
+  for (size_t idx=0; idx<position.size(); idx++)
+    {
+      position_offset[2+idx]=position[idx];
+    }
 
+  filespace.selectHyperslab( H5S_SELECT_SET, memory_dims, position_offset );
+  
+  ds.write((void *)pix, QH5_NATIVE_COMPLEX, memspace, filespace);
+  
+  delete position_offset;
+}
 
+void ReadRealDataSlab(float_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+{
+  hsize_t memory_dims[2]={size_x, size_y};
+  DataSet ds = m_file.openDataSet(path);
+  DataSpace memspace(2, memory_dims);
+  DataSpace filespace = ds.getSpace();
+  // Position offset is where we sit in the n-dimensional dataset.  In other words,
+  //    which position, or which slice, are we going to write?
+  hsize_t position_offset = new hsize_t(2+position.size(),0);
+  
+  for (size_t idx=0; idx<position.size(); idx++)
+    {
+      position_offset[2+idx]=position[idx];
+    }
 
+  filespace.selectHyperslab( H5S_SELECT_SET, memory_dims, position_offset );
+  
+  ds.read((void *)pix, QH5_NATIVE_FLOAT, memspace, filespace);
+  
+  delete position_offset;
+}
 
+void ReadComplexDataSlab(complex_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+{
+  hsize_t memory_dims[2]={size_x, size_y};
+  DataSet ds = m_file.openDataSet(path);
+  DataSpace memspace(2, memory_dims);
+  DataSpace filespace = ds.getSpace();
+  // Position offset is where we sit in the n-dimensional dataset.  In other words,
+  //    which position, or which slice, are we going to write?
+  hsize_t position_offset = new hsize_t(2+position.size(),0);
+  
+  for (size_t idx=0; idx<position.size(); idx++)
+    {
+      position_offset[2+idx]=position[idx];
+    }
+
+  filespace.selectHyperslab( H5S_SELECT_SET, memory_dims, position_offset );
+  
+  ds.read((void *)pix, QH5_NATIVE_COMPLEX, memspace, filespace);
+  
+  delete position_offset;
+}

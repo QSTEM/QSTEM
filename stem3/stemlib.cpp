@@ -638,13 +638,8 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 	}
 
 	// reset the potential to zero:  
-#if FLOAT_PRECISION == 1
-	memset((void *)&(muls->trans[0][0][0][0]),0,
-		muls->slices*muls->potNx*muls->potNy*sizeof(fftwf_complex));
-#else
 	memset((void *)&(muls->trans[0][0][0][0]),0,
 		muls->slices*muls->potNx*muls->potNy*sizeof(complex_tt));
-#endif
 	nyAtBox   = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionY);
 	nxyAtBox  = nyAtBox*(2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX));
 	nyAtBox2  = 2*nyAtBox;

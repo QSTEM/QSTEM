@@ -35,14 +35,57 @@ public:
 
   void GetConfigGroup();
 
-  void CreatePotentialDataSet(unsigned size_x, unsigned size_y, unsigned size_z);
-  void CreateWaveDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> positions);
-  void CreateDPDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> positions);
-  void CreateDetectorDataSet(std::string name, unsigned size_x, unsigned size_y, unsigned nslices);
+  inline void CreatePotentialDataSet(unsigned size_x, unsigned size_y, unsigned size_z)
+  { CreateComplexDataSet(GetDataSetPath("Potential"), size_x, size_y, size_z); }
+  inline void CreateWaveDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
+  { CreateComplexDataSet(GetDataSetPath("WaveFunctions"), size_x, size_y, positions); }
+  inline void CreateDPDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
+  { CreateRealDataSet(GetDataSetPath("DiffractionPatterns"), size_x, size_y, positions); }
+  inline void CreateDetectorDataSet(std::string name, unsigned size_x, unsigned size_y, unsigned nslices)
+  { CreateRealDataSet(GetDetectorPath(name), size_x, size_y, nslices); }
+
+
+  inline void WritePotentialSlice(complex_tt *pot, unsigned size_x, unsigned size_y, unsigned slice)
+  { WriteComplexDataSlab(GetDataSetPath("Potential"), pot, slice); }
+  inline void WriteWave(complex_tt *wave, unsigned size_x, unsigned size_y, std::vector<unsigned> &position)
+  { WriteComplexDataSlab(GetDataSetPath("WaveFunctions"), wave, position); }
+  inline void WriteDiffractionPattern(float_tt *dp, unsigned size_x, unsigned size_y, std::vector<unsigned> &position)
+  { WriteRealDataSlab(GetDataSetPath("DiffractionPatterns"), dp, position); }
+  inline void WriteDetector(float_tt *det, std::string name, unsigned size_x, unsigned size_y, unsigned slice)
+  { WriteRealDataSlab(GetDetectorPath(name), det, slice); }
+
+  inline void ReadPotentialSlice(complex_tt *pot, unsigned size_x, unsigned size_y, unsigned slice);
+  inline void ReadWave(complex_tt *wave, unsigned size_x, unsigned size_y, std::vector<unsigned> position);
+  inline void ReadDiffractionPattern(float_tt *dp, unsigned size_x, unsigned size_y, std::vector<unsigned> &position);
+  inline void ReadDetector(float_tt *det, std::string name, unsigned size_x, unsigned size_y, unsigned slice);
   
 private:
-  void CreateRealDataSet(const std::string &filename, std::vector<unsigned> size);
-  void CreateComplexDataSet(const std::string &filename, std::vector<unsigned> size);
+  std::string GetDataSetPath(std::string &dataSetName);
+  std::string GetDetectorPath(std::string &detectorName);
+
+  void CreateComplexDataSet(std::string &path, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions);
+  inline void CreateComplexDataSet(std::string &path, unsigned size_x, unsigned size_y, unsigned position)
+  {
+    std::vector<unsigned> pos(1);
+    pos[0]=position;
+    CreateComplexDataSet(path, size_x, size_y, pos);
+  }
+  void CreateRealDataSet(std::string &path, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions);
+  inline void CreateRealDataSet(std::string &path, unsigned size_x, unsigned size_y, unsigned position)
+  {
+    std::vector<unsigned> pos(1);
+    pos[0]=position;
+    CreateRealDataSet(path, size_x, size_y, pos);
+  }
+  void WriteRealDataSlab(float_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+  void WriteComplexDataSlab(complex_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+
+  void ReadRealDataSlab(float_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+  void ReadComplexDataSlab(complex_tt *pix, const std::string &path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters);
 
   H5::H5File *m_file;
   hid_t m_config;
