@@ -195,7 +195,7 @@ void QH5::WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, un
 
   hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
   hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, NULL);
+  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
   int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
   
   H5Dwrite(data, QH5_NATIVE_FLOAT, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
@@ -219,7 +219,7 @@ void QH5::WriteComplexDataSlab(complex_tt *pix, std::string path, unsigned size_
 
   hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
   hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, NULL);
+  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
   int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
   
   H5Dwrite(data, QH5_NATIVE_COMPLEX, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
@@ -243,7 +243,7 @@ void QH5::ReadRealDataSlab(float_tt *pix, std::string path, unsigned size_x, uns
 
   hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
   hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, NULL);
+  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
   int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
   
   H5Dread(data, QH5_NATIVE_FLOAT, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
@@ -267,7 +267,7 @@ void QH5::ReadComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x
 
   hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
   hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, NULL);
+  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
   int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
   
   H5Dread(data, QH5_NATIVE_COMPLEX, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
@@ -275,4 +275,54 @@ void QH5::ReadComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x
   H5Sclose(memoryspace);
   H5Dclose(data);
 }
+
+int QH5::ReadParameterOp(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data)
+{
+  std::map<std::string, double> pars = *static_cast<std::map<std::string, double> *>(op_data);
+  double tmp;
+  hid_t attr = H5Aopen(location_id, attr_name, H5P_DEFAULT);
+  H5Aread(attr, H5T_NATIVE_DOUBLE, &tmp);
+  pars[attr_name]=tmp;
+  H5Aclose(attr);
+}
+
+void QH5::ReadParameters(hid_t dataset, std::map<std::string, double> &parameters)
+{
+  H5Aiterate(dataset, H5_INDEX_NAME, H5_ITER_NATIVE, 0, QH5::ReadParameterOp, (void *)&parameters);
+}
+
+void QH5::WriteParameters(hid_t dataset, std::map<std::string, double> &parameters)
+{
+  std::map<std::string, double>::iterator par;
+  hid_t attrib;
+  std::vector<hsize_t> dims(1,1);
+  for (par=parameters.begin(); par!=parameters.end(); par++)
+    {
+      if (H5Aexists(dataset, par->first.c_str()))
+        {
+          attrib = H5Aopen(dataset, par->first.c_str(), H5P_DEFAULT);
+        }
+        else
+          {
+            hid_t space=H5Screate_simple(1, &dims[0], &dims[0]);
+            attrib = H5Acreate(dataset, par->first.c_str(), H5T_NATIVE_DOUBLE, space, H5P_DEFAULT, H5P_DEFAULT);
+            H5Sclose(space);
+          }
+        H5Awrite(attrib, H5T_NATIVE_DOUBLE, &(par->second));
+        H5Aclose(attrib);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 

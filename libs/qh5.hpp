@@ -165,6 +165,10 @@ private:
     ReadComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
+  static int ReadParameterOp(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data);
+  void ReadParameters(hid_t dataset, std::map<std::string, double> &parameters);
+  void WriteParameters(hid_t dataset, std::map<std::string, double> &parameters);
+
   hid_t m_file;
   hid_t m_config;
   // This is the complex datatype for storage purposes
@@ -179,8 +183,6 @@ private:
 typedef boost::shared_ptr<QH5> QH5ptr;
 
 #endif
-
-
 
 
 
