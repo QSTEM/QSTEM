@@ -21,21 +21,18 @@
 #define QH5_INPUT_H
 
 #include "input_interface.hpp"
-// include HDF5 stuff
-#include "H5Cpp.h"
+#include "qh5.hpp"
 
 class CQH5Input : public IDataInput
 {
 public:
-  CQH5Input()
-  ~CQH5Input()
+  CQH5Input();
+  ~CQH5Input();
   virtual void ReadImage(void **pix, std::string label, 
                          std::map<std::string, double> &params,
                          std::string &comment, 
-                         std::vector<unsigned> position=std::vector<unsigned>())=0;
+                         std::vector<unsigned> &position);
   void SetFile(std::string filename);
-private:
-  H5File m_file;
 };
 
 #endif

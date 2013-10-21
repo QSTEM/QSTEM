@@ -24,30 +24,17 @@ CQH5Input::CQH5Input()
 
 CQH5Input::~CQH5Input()
 {
-status = H5Fclose (m_file);
 }
 
 void CQH5Input::ReadImage(void **pix, std::string label, 
                  std::map<std::string, double> &params,
                  std::string &comment, 
-                 std::vector<unsigned> position=std::vector<unsigned>())
+                 std::vector<unsigned> &position)
 {
-  DataSet ds = m_file.openDataSet(label);
-  DataSpace space = ds.getSpace();
-  int ndim = dataspace.getSimpleExtentNdims();
-  hsize_t offset[2];
-  hsize_t img_size[2];
-
-  space.getSimpleExtentDims(img_size, NULL);
-
-  DataSpace memspace (2, img_size);
-
-
 }
 
 void CQH5Input::SetFile(std::string filename)
 {
-  m_file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY);
 }
 
 

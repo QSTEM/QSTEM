@@ -26,23 +26,15 @@ CQH5Output::CQH5Output()
 CQH5Output::~CQH5Output()
 {}
 
-CQH5Output::WriteRealImage(float_tt **data, std::vector<unsigned int> shape, std::string label, 
+void CQH5Output::WriteRealImage(float_tt **data, std::vector<unsigned int> shape, std::string label, 
                            std::vector<unsigned int> position, std::string comment, 
                            std::map<std::string, double> parameters)
 {
 }
 
-CQH5Output::WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label,
+void CQH5Output::WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label,
                               std::vector<unsigned> position, std::string comment, 
                               std::map<std::string, double> parameters)
-{
-}
-
-CQH5Output::WriteRealVolume(float_tt *data, std::vector<unsigned int> shape, std::string label, std::vector<unsigned int> position, std::string comment, std::map<std::string, double> parameters)
-{
-}
-
-CQH5Output::WriteComplexVolume(complex_tt *data, std::vector<unsigned int> shape, std::string label, std::vector<unsigned int> position, std::string comment, std::map<std::string, double> parameters)
 {
 }
 
