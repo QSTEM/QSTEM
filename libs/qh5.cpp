@@ -110,7 +110,7 @@ std::string QH5::GetDetectorPath(std::string detectorName)
   return path.str();
 }
 
-void QH5::CreateRealDataSet(std::string path, unsigned int size_x, unsigned int size_y, 
+void QH5::CreateDataSet(std::string path, hid_t type, unsigned int size_x, unsigned int size_y, 
                             std::vector<unsigned> &position)
 {
   std::vector<unsigned>::iterator pos;
@@ -130,7 +130,7 @@ void QH5::CreateRealDataSet(std::string path, unsigned int size_x, unsigned int 
   // If not there, create it
   if (data < 0)
     {
-      data = H5Dcreate(m_file, path.c_str(), QH5_NATIVE_FLOAT, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      data = H5Dcreate(m_file, path.c_str(), type, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     }
 
   H5Sclose(space);
@@ -145,42 +145,7 @@ void QH5::CreateRealDataSet(std::string path, unsigned int size_x, unsigned int 
   H5Dclose(data);
 }
 
-void QH5::CreateComplexDataSet(std::string path, unsigned int size_x, unsigned int size_y, 
-                               std::vector<unsigned> &position)
-{
-  std::vector<unsigned>::iterator pos;
-  std::vector<hsize_t> dims(2+position.size(),0); 
-  dims[0]=size_x;
-  dims[1]=size_y;
-  
-  for (unsigned pos=0; pos<position.size(); pos++)
-    {
-      dims[2+pos] = position[pos];
-    }
-  
-  hsize_t space = H5Screate_simple(2+position.size(), &dims[0], NULL);
-  // Try opening it first
-  hsize_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
-
-  // If not there, create it
-  if (data < 0)
-    {
-      data = H5Dcreate(m_file, path.c_str(), QH5_NATIVE_FLOAT, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    }
-
-  H5Sclose(space);
-
-  if (data <0)
-    {
-      throw std::runtime_error("Error creating dataset");
-    }
-
-  // The dataset is created - close it.  When anyone else wants it, they should open it, then close 
-  //     it when they're done.
-  H5Dclose(data);
-}
-
-void QH5::WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
+void QH5::DataSlabIO(bool read, hid_t datatype, void *pix, std::string path, unsigned size_x, unsigned size_y, 
                         std::vector<unsigned> &position, std::map<std::string, double> &parameters)
 {
   hsize_t memory_dims[2]={size_x, size_y};
@@ -198,79 +163,10 @@ void QH5::WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, un
   hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
   int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
   
-  H5Dwrite(data, QH5_NATIVE_FLOAT, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
-  H5Sclose(dataspace);
-  H5Sclose(memoryspace);
-  H5Dclose(data);
-}
-
-void QH5::WriteComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
-                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
-{
-  hsize_t memory_dims[2]={size_x, size_y};
-  // Position offset is where we sit in the n-dimensional dataset.  In other words,
-  //    which position, or which slice, are we going to write?
-  std::vector<hsize_t> position_offset(2+position.size(), 0);
-  
-  for (size_t idx=0; idx<position.size(); idx++)
-    {
-      position_offset[2+idx]=position[idx];
-    }
-
-  hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
-  hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
-  int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
-  
-  H5Dwrite(data, QH5_NATIVE_COMPLEX, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
-  H5Sclose(dataspace);
-  H5Sclose(memoryspace);
-  H5Dclose(data);
-}
-
-void QH5::ReadRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
-                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
-{
-  hsize_t memory_dims[2]={size_x, size_y};
-  // Position offset is where we sit in the n-dimensional dataset.  In other words,
-  //    which position, or which slice, are we going to write?
-  std::vector<hsize_t> position_offset(2+position.size(), 0);
-  
-  for (size_t idx=0; idx<position.size(); idx++)
-    {
-      position_offset[2+idx]=position[idx];
-    }
-
-  hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
-  hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
-  int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
-  
-  H5Dread(data, QH5_NATIVE_FLOAT, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
-  H5Sclose(dataspace);
-  H5Sclose(memoryspace);
-  H5Dclose(data);
-}
-
-void QH5::ReadComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
-                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
-{
-  hsize_t memory_dims[2]={size_x, size_y};
-  // Position offset is where we sit in the n-dimensional dataset.  In other words,
-  //    which position, or which slice, are we going to write?
-  std::vector<hsize_t> position_offset(2+position.size(), 0);
-  
-  for (size_t idx=0; idx<position.size(); idx++)
-    {
-      position_offset[2+idx]=position[idx];
-    }
-
-  hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
-  hid_t dataspace = H5Dget_space(data);
-  hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
-  int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
-  
-  H5Dread(data, QH5_NATIVE_COMPLEX, memoryspace, dataspace, H5P_DEFAULT, (void *)pix);
+  if (read)
+	H5Dread(data, datatype, memoryspace, dataspace, H5P_DEFAULT, pix);
+  else
+	H5Dwrite(data, datatype, memoryspace, dataspace, H5P_DEFAULT, pix);
   H5Sclose(dataspace);
   H5Sclose(memoryspace);
   H5Dclose(data);

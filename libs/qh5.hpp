@@ -109,7 +109,12 @@ private:
   inline std::string GetDetectorPath(const char *detectorName)
   {return GetDetectorPath(std::string(detectorName));}
 
-  void CreateComplexDataSet(std::string path, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions);
+  void CreateDataSet(std::string path, hid_t type, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions);
+
+  inline void CreateComplexDataSet(std::string path, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
+  {
+	  CreateDataSet(path, QH5_NATIVE_COMPLEX, size_x, size_y, positions);
+  }
   inline void CreateComplexDataSet(std::string path, unsigned size_x, unsigned size_y, unsigned position)
   {
     std::vector<unsigned> pos(1);
@@ -117,7 +122,10 @@ private:
     CreateComplexDataSet(path, size_x, size_y, pos);
   }
 
-  void CreateRealDataSet(std::string path, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions);
+  inline void CreateRealDataSet(std::string path, unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
+  {
+	  CreateDataSet(path, QH5_NATIVE_FLOAT, size_x, size_y, positions);
+  }
   inline void CreateRealDataSet(std::string path, unsigned size_x, unsigned size_y, unsigned position)
   {
     std::vector<unsigned> pos(1);
@@ -125,8 +133,15 @@ private:
     CreateRealDataSet(path, size_x, size_y, pos);
   }
 
-  void WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
+  void DataSlabIO(bool read /*true for read, false for write*/, hid_t datatype, void *pix, std::string path, 
+		unsigned size_x, unsigned size_y, 
                         std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+
+  inline void WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+  {
+	  DataSlabIO(false, QH5_NATIVE_FLOAT, pix, path, size_x, size_y, position, parameters);
+  }
   inline void WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y,
                                 unsigned slice, std::map<std::string, double> &parameters)
   {
@@ -135,8 +150,11 @@ private:
     WriteRealDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
-  void WriteComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
-                        std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+  inline void WriteComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+  {
+	  DataSlabIO(false, QH5_NATIVE_COMPLEX, pix, path, size_x, size_y, position, parameters);
+  }
   inline void WriteComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y,
                                 unsigned slice, std::map<std::string, double> &parameters)
   {
@@ -145,8 +163,11 @@ private:
     WriteComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
-  void ReadRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
-                        std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+  inline void ReadRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
+                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+  {
+	  DataSlabIO(true, QH5_NATIVE_FLOAT, pix, path, size_x, size_y, position, parameters);
+  }
   inline void ReadRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
                         unsigned slice, std::map<std::string, double> &parameters)
   {
@@ -155,8 +176,11 @@ private:
     ReadRealDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
-  void ReadComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
+  inline void ReadComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
                         std::vector<unsigned> &position, std::map<std::string, double> &parameters);
+  {
+	  DataSlabIO(true, QH5_NATIVE_COMPLEX, pix, path, size_x, size_y, position, parameters);
+  }
   inline void ReadComplexDataSlab(complex_tt *pix, std::string path, unsigned size_x, unsigned size_y, 
                         unsigned slice, std::map<std::string, double> &parameters)
   {
