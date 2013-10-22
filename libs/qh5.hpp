@@ -117,28 +117,28 @@ private:
   inline void CreateComplexDataSet(std::string path, unsigned size_x, unsigned size_y, 
                                    std::vector<unsigned> &positions)
   {
-    CreateDataSet(path, QH5_NATIVE_COMPLEX, size_x, size_y, positions);
+    return CreateDataSet(path, QH5_NATIVE_COMPLEX, size_x, size_y, positions);
   }
 
   inline void CreateComplexDataSet(std::string path, unsigned size_x, unsigned size_y, unsigned position)
   {
     std::vector<unsigned> pos(1);
     pos[0]=position;
-    CreateComplexDataSet(path, size_x, size_y, pos);
+    return CreateComplexDataSet(path, size_x, size_y, pos);
   }
 
 
   inline void CreateRealDataSet(std::string path, unsigned size_x, unsigned size_y, 
                                 std::vector<unsigned> &positions)
   {
-    CreateDataSet(path, QH5_NATIVE_FLOAT, size_x, size_y, positions);
+    return CreateDataSet(path, QH5_NATIVE_FLOAT, size_x, size_y, positions);
   }
 
   inline void CreateRealDataSet(std::string path, unsigned size_x, unsigned size_y, unsigned position)
   {
     std::vector<unsigned> pos(1);
     pos[0]=position;
-    CreateRealDataSet(path, size_x, size_y, pos);
+    return CreateRealDataSet(path, size_x, size_y, pos);
   }
 
   /********** Slab (slice/position) input & output ********/
@@ -155,14 +155,14 @@ private:
                                 std::vector<unsigned> &position, 
                                 std::map<std::string, double> &parameters)
   {
-    DataSlabIO(false, QH5_NATIVE_FLOAT, pix, path, size_x, size_y, position, parameters);
+    return DataSlabIO(false, QH5_NATIVE_FLOAT, pix, path, size_x, size_y, position, parameters);
   }
   inline void WriteRealDataSlab(float_tt *pix, std::string path, unsigned size_x, unsigned size_y,
                                 unsigned slice, std::map<std::string, double> &parameters)
   {
     std::vector<unsigned> slice_vec(1);
     slice_vec[0]=slice;
-    WriteRealDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
+    return WriteRealDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
 
@@ -171,7 +171,7 @@ private:
                                    std::vector<unsigned> &position, 
                                    std::map<std::string, double> &parameters)
   {
-    DataSlabIO(false, QH5_NATIVE_COMPLEX, pix, path, size_x, size_y, 
+    return DataSlabIO(false, QH5_NATIVE_COMPLEX, pix, path, size_x, size_y, 
                position, parameters);
   }
 
@@ -182,7 +182,7 @@ private:
   {
     std::vector<unsigned> slice_vec(1);
     slice_vec[0]=slice;
-    WriteComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
+    return WriteComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
 
@@ -191,8 +191,8 @@ private:
                                std::vector<unsigned> &position, 
                                std::map<std::string, double> &parameters)
   {
-	  DataSlabIO(true, QH5_NATIVE_FLOAT, pix, path, size_x, size_y, 
-                     position, parameters);
+    return DataSlabIO(true, QH5_NATIVE_FLOAT, pix, path, size_x, size_y, 
+                      position, parameters);
   }
 
   inline void ReadRealDataSlab(float_tt *pix, std::string path, 
@@ -202,7 +202,7 @@ private:
   {
     std::vector<unsigned> slice_vec(1);
     slice_vec[0]=slice;
-    ReadRealDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
+    return ReadRealDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
 
@@ -210,7 +210,7 @@ private:
                                   unsigned size_x, unsigned size_y, 
                                   std::vector<unsigned> &position, std::map<std::string, double> &parameters)
   {
-    DataSlabIO(true, QH5_NATIVE_COMPLEX, pix, path, size_x, size_y, position, 
+    return DataSlabIO(true, QH5_NATIVE_COMPLEX, pix, path, size_x, size_y, position, 
                parameters);
   }
 
@@ -221,7 +221,7 @@ private:
   {
     std::vector<unsigned> slice_vec(1);
     slice_vec[0]=slice;
-    ReadComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
+    return ReadComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
 
 
