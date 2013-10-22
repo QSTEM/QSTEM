@@ -35,6 +35,7 @@ void CQH5Input::ReadImage(void **pix, std::string label,
 
 void CQH5Input::SetFile(std::string filename)
 {
+
 }
 
 

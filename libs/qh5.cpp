@@ -130,7 +130,8 @@ void QH5::CreateDataSet(std::string path, hid_t type, unsigned int size_x, unsig
   // If not there, create it
   if (data < 0)
     {
-      data = H5Dcreate(m_file, path.c_str(), type, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      data = H5Dcreate(m_file, path.c_str(), type, space, H5P_DEFAULT, 
+                       H5P_DEFAULT, H5P_DEFAULT);
     }
 
   H5Sclose(space);
@@ -145,8 +146,10 @@ void QH5::CreateDataSet(std::string path, hid_t type, unsigned int size_x, unsig
   H5Dclose(data);
 }
 
-void QH5::DataSlabIO(bool read, hid_t datatype, void *pix, std::string path, unsigned size_x, unsigned size_y, 
-                        std::vector<unsigned> &position, std::map<std::string, double> &parameters)
+void QH5::DataSlabIO(bool read, hid_t datatype, void *pix, std::string path, 
+                     unsigned size_x, unsigned size_y, 
+                     std::vector<unsigned> &position, 
+                     std::map<std::string, double> &parameters)
 {
   hsize_t memory_dims[2]={size_x, size_y};
   // Position offset is where we sit in the n-dimensional dataset.  In other words,
@@ -161,7 +164,9 @@ void QH5::DataSlabIO(bool read, hid_t datatype, void *pix, std::string path, uns
   hid_t data = H5Dopen(m_file, path.c_str(), H5P_DEFAULT);
   hid_t dataspace = H5Dget_space(data);
   hid_t memoryspace = H5Screate_simple(2, memory_dims, memory_dims);
-  int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &position_offset[0], NULL, memory_dims, NULL);
+  int status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, 
+                                   &position_offset[0], NULL, 
+                                   memory_dims, NULL);
   
   if (read)
 	H5Dread(data, datatype, memoryspace, dataspace, H5P_DEFAULT, pix);
@@ -172,7 +177,8 @@ void QH5::DataSlabIO(bool read, hid_t datatype, void *pix, std::string path, uns
   H5Dclose(data);
 }
 
-int QH5::ReadParameterOp(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data)
+int QH5::ReadParameterOp(hid_t location_id, const char *attr_name, 
+                         const H5A_info_t *ainfo, void *op_data)
 {
   std::map<std::string, double> pars = *static_cast<std::map<std::string, double> *>(op_data);
   double tmp;
@@ -182,12 +188,15 @@ int QH5::ReadParameterOp(hid_t location_id, const char *attr_name, const H5A_inf
   H5Aclose(attr);
 }
 
-void QH5::ReadParameters(hid_t dataset, std::map<std::string, double> &parameters)
+void QH5::ReadParameters(hid_t dataset, 
+                         std::map<std::string, double> &parameters)
 {
-  H5Aiterate(dataset, H5_INDEX_NAME, H5_ITER_NATIVE, 0, QH5::ReadParameterOp, (void *)&parameters);
+  H5Aiterate(dataset, H5_INDEX_NAME, H5_ITER_NATIVE, 0, QH5::ReadParameterOp, 
+             (void *)&parameters);
 }
 
-void QH5::WriteParameters(hid_t dataset, std::map<std::string, double> &parameters)
+void QH5::WriteParameters(hid_t dataset, 
+                          std::map<std::string, double> &parameters)
 {
   std::map<std::string, double>::iterator par;
   hid_t attrib;
@@ -201,7 +210,8 @@ void QH5::WriteParameters(hid_t dataset, std::map<std::string, double> &paramete
         else
           {
             hid_t space=H5Screate_simple(1, &dims[0], &dims[0]);
-            attrib = H5Acreate(dataset, par->first.c_str(), H5T_NATIVE_DOUBLE, space, H5P_DEFAULT, H5P_DEFAULT);
+            attrib = H5Acreate(dataset, par->first.c_str(), H5T_NATIVE_DOUBLE, 
+                               space, H5P_DEFAULT, H5P_DEFAULT);
             H5Sclose(space);
           }
         H5Awrite(attrib, H5T_NATIVE_DOUBLE, &(par->second));
