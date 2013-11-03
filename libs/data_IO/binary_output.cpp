@@ -8,6 +8,20 @@ CBinaryOutput::~CBinaryOutput()
 {
 }
 
+void CBinaryOutput::Initialize(std::string dirname)
+{
+  if (DirExists(dirname.c_str())) {
+    // if ((fpDir = fopen(muls.folder,"r"))!= NULL) {
+    // 	fclose(fpDir);
+    printf(" (already exists)\n");
+  }
+  else {
+    sprintf(systStr,"mkdir %s",dirname.c_str());
+    system(systStr);
+    printf(" (created)\n");
+  }
+}
+
 void CBinaryOutput::DescribeFile(std::vector<unsigned> shape, unsigned element_size, 
                                  std::string label, 
                                  std::vector<unsigned> position, 

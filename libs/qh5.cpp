@@ -177,6 +177,10 @@ void QH5::DataSlabIO(bool read, hid_t datatype, void *pix, std::string path,
   H5Dclose(data);
 }
 
+/**
+   Static function called by H5Aiterate in ReadParameters to iterate over parameters in HDF5 file,
+   loading them into parameters map.
+ */
 int QH5::ReadParameterOp(hid_t location_id, const char *attr_name, 
                          const H5A_info_t *ainfo, void *op_data)
 {
@@ -218,17 +222,4 @@ void QH5::WriteParameters(hid_t dataset,
         H5Aclose(attrib);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -38,6 +38,8 @@ public:
   CImageIO(int nx, int ny, std::string input_extension=".img", 
            std::string output_extension=".img");
 
+  void CreateDataSet(std::string name, std::vector<unsigned> positions);
+  
   void WriteRealImage(void **pix, const char *fileName, 
                       std::map<std::string, double> &params,
                       std::string comment, 

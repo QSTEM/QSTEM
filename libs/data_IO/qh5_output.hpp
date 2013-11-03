@@ -20,6 +20,7 @@
 #ifndef QH5_OUTPUT_H
 #define QH5_OUTPUT_H
 
+#include "../qh5.hpp"
 #include "output_interface.hpp"
 
 class CQH5Output : public IDataWriter
@@ -27,14 +28,19 @@ class CQH5Output : public IDataWriter
 public:
   CQH5Output();
   ~CQH5Output();
+  virtual void Initialize(std::string fileName, std::string run_id="avg");
+  virtual void CreateRealDataSet(std::string name, std::vector<unsigned> positions);
+  virtual void CreateComplexDataSet(std::string name, std::vector<unsigned> positions);
   virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
                               std::vector<unsigned> position=std::vector<unsigned>(), 
                               std::string comment=std::string(),
-                              std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+                              std::map<std::string, double> parameters=std::map<std::string, double>());
   virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label, 
                                  std::vector<unsigned> position=std::vector<unsigned>(), 
                                  std::string comment=std::string(),
-                                 std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+                                 std::map<std::string, double> parameters=std::map<std::string, double>());
+private:
+  QH5ptr m_qh5;
 };
 
 #endif

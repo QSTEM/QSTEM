@@ -32,6 +32,15 @@ m_ny(ny)
   m_imageWriter=GetDataWriter(output_extension);
 };
 
+void CImageIO::CreateRealDataSet(std::string name, std::vector<unsigned int> positions)
+{
+  m_imageWriter->CreateRealDataSet(name, m_nx, m_ny, positions);
+}
+
+void CImageIO::CreateComplexDataSet(std::string name, std::vector<unsigned int> positions)
+{
+  m_imageWriter->CreateComplexDataSet(name, m_nx, m_ny, positions);
+}
 
 void CImageIO::WriteRealImage(void **pix, const char *fileName, std::map<std::string, double> &params,
                               std::string comment, std::vector<unsigned> position) {
