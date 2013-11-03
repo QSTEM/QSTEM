@@ -44,76 +44,6 @@ public:
 
   void GetConfigGroup();
 
-  inline void CreatePotentialDataSet(unsigned size_x, unsigned size_y, unsigned size_z)
-  { return CreateComplexDataSet(GetDataSetPath("Potential"), size_x, size_y, size_z); }
-  inline void CreateWaveDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
-  { return CreateComplexDataSet(GetDataSetPath("WaveFunctions"), size_x, size_y, positions); }
-  inline void CreateDPDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
-  { return CreateRealDataSet(GetDataSetPath("DiffractionPatterns"), size_x, size_y, positions); }
-  inline void CreateDetectorDataSet(std::string name, unsigned size_x, unsigned size_y, unsigned nslices)
-  { return CreateRealDataSet(GetDetectorPath(name), size_x, size_y, nslices); }
-
-  /************* Write image methods ***************/
-
-  inline void WritePotentialSlice(complex_tt *pot, unsigned size_x, unsigned size_y, unsigned slice, 
-                                  std::map<std::string, double> &parameters)
-  { 
-    return WriteComplexDataSlab(pot, GetDataSetPath("Potential"), size_x, size_y, slice, parameters); 
-  }
-  inline void WriteWave(complex_tt *wave, unsigned size_x, unsigned size_y, std::vector<unsigned> &position,
-                        std::map<std::string, double> &parameters)
-  { 
-    return WriteComplexDataSlab(wave, GetDataSetPath("WaveFunctions"), size_x, size_y, position, parameters); 
-  }
-  inline void WriteDiffractionPattern(float_tt *dp, unsigned size_x, unsigned size_y, 
-                                      std::vector<unsigned> &position,
-                                      std::map<std::string, double> &parameters)
-  { 
-    return WriteRealDataSlab(dp, GetDataSetPath("DiffractionPatterns"), size_x, size_y, position, parameters); 
-  }
-  inline void WriteDetector(float_tt *det, std::string name, unsigned size_x, unsigned size_y, unsigned slice,
-                            std::map<std::string, double> &parameters)
-  { 
-    return WriteRealDataSlab(det, GetDetectorPath(name), size_x, size_y, slice, parameters); 
-  }
-
-  /*************  Read image methods ************/
-
-  inline void ReadPotentialSlice(complex_tt *pot, unsigned size_x, unsigned size_y, unsigned slice, 
-                                 std::map<std::string, double> &parameters)
-  { 
-    return ReadComplexDataSlab(pot, GetDataSetPath("Potential"), size_x, size_y, slice, parameters);
-  }
-  inline void ReadWave(complex_tt *wave, unsigned size_x, unsigned size_y, std::vector<unsigned> position,
-                       std::map<std::string, double> &parameters)
-  {
-    return ReadComplexDataSlab(wave, GetDataSetPath("WaveFunctions"), size_x, size_y, position, parameters);
-  }
-  inline void ReadDiffractionPattern(float_tt *dp, unsigned size_x, unsigned size_y, std::vector<unsigned> &position,
-                                     std::map<std::string, double> &parameters)
-  { 
-    return ReadRealDataSlab(dp, GetDataSetPath("DiffractionPatterns"), size_x, size_y, position, parameters);
-  }
-  inline void ReadDetector(float_tt *det, std::string name, unsigned size_x, unsigned size_y, unsigned slice,
-                           std::map<std::string, double> &parameters)
-  { 
-    return ReadRealDataSlab(det, GetDetectorPath(name), size_x, size_y, slice, parameters);
-  }
-  
-private:
-  std::string GetRunPath();
-
-  std::string GetDataSetPath(std::string dataSetName);
-  inline std::string GetDataSetPath(const char *dataSetName)
-  {return GetDataSetPath(std::string(dataSetName));}
-  std::string GetDetectorPath(std::string detectorName);
-  inline std::string GetDetectorPath(const char *detectorName)
-  {return GetDetectorPath(std::string(detectorName));}
-
-  void CreateDataSet(std::string path, hid_t type, unsigned size_x, unsigned size_y, 
-                     std::vector<unsigned> &positions);
-
-
   inline void CreateComplexDataSet(std::string path, unsigned size_x, unsigned size_y, 
                                    std::vector<unsigned> &positions)
   {
@@ -140,15 +70,6 @@ private:
     pos[0]=position;
     return CreateRealDataSet(path, size_x, size_y, pos);
   }
-
-  /********** Slab (slice/position) input & output ********/
-
-  void DataSlabIO(bool read /*true for read, false for write*/, 
-                  hid_t datatype, void *pix, std::string path, 
-                  unsigned size_x, unsigned size_y, 
-                  std::vector<unsigned> &position, 
-                  std::map<std::string, double> &parameters);
-
 
   inline void WriteRealDataSlab(float_tt *pix, std::string path, 
                                 unsigned size_x, unsigned size_y, 
@@ -223,6 +144,27 @@ private:
     slice_vec[0]=slice;
     return ReadComplexDataSlab(pix, path, size_x, size_y, slice_vec, parameters);
   }
+
+private:
+  std::string GetRunPath();
+
+  std::string GetDataSetPath(std::string dataSetName);
+  inline std::string GetDataSetPath(const char *dataSetName)
+  {return GetDataSetPath(std::string(dataSetName));}
+  std::string GetDetectorPath(std::string detectorName);
+  inline std::string GetDetectorPath(const char *detectorName)
+  {return GetDetectorPath(std::string(detectorName));}
+
+  void CreateDataSet(std::string path, hid_t type, unsigned size_x, unsigned size_y, 
+                     std::vector<unsigned> &positions);
+
+  /********** Slab (slice/position) input & output ********/
+
+  void DataSlabIO(bool read /*true for read, false for write*/, 
+                  hid_t datatype, void *pix, std::string path, 
+                  unsigned size_x, unsigned size_y, 
+                  std::vector<unsigned> &position, 
+                  std::map<std::string, double> &parameters);
 
 
   /******* Parameter reading/writing **************/

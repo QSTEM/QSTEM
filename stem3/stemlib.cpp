@@ -2639,7 +2639,7 @@ void collectIntensity(MULS *muls, WavePtr wave, int slice)
 		sprintf(avgName,"%s/diff_%d.img",muls->folder,t);
 		// for (ix=0;ix<muls->nx*muls->ny;ix++) wave->diffpat[0][ix] *= scaleCBED;
 		if (muls->avgCount == 0) {
-			wave->WriteDiffPat(avgName);
+                  wave->WriteDiffPat(avgName);
 		}
 		else {
 			wave->ReadAvgArray(avgName);

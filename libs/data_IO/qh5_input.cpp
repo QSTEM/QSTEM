@@ -31,6 +31,19 @@ void CQH5Input::ReadImage(void **pix, std::string label,
                  std::string &comment, 
                  std::vector<unsigned> &position)
 {
+  if (label=="diffpat")
+    {
+    }
+  else if (label == "mulswav")
+    {
+    }
+  else if (label == "diffAvg")
+    {
+    }
+  else if (label == 
+  else
+    {
+    }
 }
 
 void CQH5Input::SetFile(std::string filename)

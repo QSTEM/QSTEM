@@ -303,16 +303,7 @@ void displayParams() {
 		printf("* Potential file name:  %s\n",muls.fileBase);
 	/* create the data folder ... */
 	printf("* Data folder:          ./%s/ ",muls.folder); 
-	if (DirExists(muls.folder)) {
-	// if ((fpDir = fopen(muls.folder,"r"))!= NULL) {
-	// 	fclose(fpDir);
-		printf(" (already exists)\n");
-	}
-	else {
-		sprintf(systStr,"mkdir %s",muls.folder);
-		system(systStr);
-		printf(" (created)\n");
-	}
+	
 
 	if ((muls.cubex == 0) || (muls.cubey == 0) || (muls.cubez == 0))
 		printf("* Unit cell:            ax=%g by=%g cz=%g\n",

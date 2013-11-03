@@ -29,8 +29,8 @@ public:
   CQH5Output();
   ~CQH5Output();
   virtual void Initialize(std::string fileName, std::string run_id="avg");
-  virtual void CreateRealDataSet(std::string name, std::vector<unsigned> positions);
-  virtual void CreateComplexDataSet(std::string name, std::vector<unsigned> positions);
+  virtual void CreateRealDataSet(std::string name, std::vector<unsigned> &positions);
+  virtual void CreateComplexDataSet(std::string name, std::vector<unsigned> &positions);
   virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
                               std::vector<unsigned> position=std::vector<unsigned>(), 
                               std::string comment=std::string(),
