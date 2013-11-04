@@ -17,21 +17,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "wavefunctions.h"
+#include "wavefunctions.hpp"
 
-WaveDataMgr::WaveDataMgr(int x, int y, std::vector<unsigned> positions)
+void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext)
 {
-}
-
-WaveDataMgr::~WaveDataMgr()
-{
-}
-
-/** Creates input/output directories/files as necessary.  Sets
-    informational parameters that won't change.
-*/
-WaveDataMgr::Initialize()
-{
+  CImageIO imageIO(x, y, "", output_ext);
+  imageIO.CreateComplexDataSet("Potential", positions);
+  imageIO.CreateComplexDataSet("mulswav", positions);
 }
 
 WAVEFUNC::WAVEFUNC(int x, int y, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext) :
@@ -71,13 +63,6 @@ std::vector<unsigned> WAVEFUNC::GetPositionVector()
   position[0]=detPosX;
   position[1]=detPosY;
   return position;
-}
-
-void WAVEFUNC::CreateDataSets()
-{
-  m_imageIO->CreateComplexDataSet("Potential", nx, ny, size_z); }
-  inline void CreateWaveDataSet(unsigned size_x, unsigned size_y, std::vector<unsigned> &positions)
-  { return CreateComplexDataSet(GetDataSetPath("WaveFunctions"), size_x, size_y, positions); }
 }
 
 void WAVEFUNC::WriteWave(const char *fileName, const char *comment,

@@ -10,6 +10,7 @@ class CImgOutput : public CBinaryOutput
 public:
   CImgOutput();
   ~CImgOutput();
+  virtual void Initialize(std::string dirOrFileName, std::string run_id="avg");
   // WriteVolume isn't implemented here - it uses the CBinaryOutput method instead.
   virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
                               std::vector<unsigned> position=std::vector<unsigned>(), 

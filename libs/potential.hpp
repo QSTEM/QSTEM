@@ -17,12 +17,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "stemtypes_fftw3.hpp"
-#include "imagelib_fftw3.hpp"
+#include "potentials/pot_2d.hpp"
+#include "potentials/pot_2d_fft.hpp"
+#include "potentials/pot_3d.hpp"
+#include "potentials/pot_3d_fft.hpp"
 
-class CPotential
-{
-  ImageIOPtr m_imageIO;
-};
-
-typedef boost::shared_ptr<CPotential> PotPtr;
+PotPtr GetPotential(bool _3D, bool fft, unsigned nx, unsigned ny);

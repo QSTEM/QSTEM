@@ -33,8 +33,8 @@ public:
   virtual void Initialize(std::string dirOrFileName, std::string run_id="avg")=0;
   // io plugins don't have to do anything to create a data set, but they might want to (qh5 uses this
   //   to create data sets which are then filled later, rather than saving individual files.)
-  virtual void CreateRealDataSet(std::string name, std::vector<unsigned> &positions){};
-  virtual void CreateComplexDataSet(std::string name, std::vector<unsigned> &positions){};
+  virtual void CreateRealDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
+  virtual void CreateComplexDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
   virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
                               std::vector<unsigned> position=std::vector<unsigned>(), 
                               std::string comment=std::string(),

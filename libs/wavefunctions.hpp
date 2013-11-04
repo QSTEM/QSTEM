@@ -19,6 +19,9 @@
 
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
+#include "memory_fftw3.hpp"
+
+void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -27,6 +30,9 @@ class WAVEFUNC
   // shared pointer to 
   ImageIOPtr m_imageIO;
 public:
+  char fileStart[500];
+  char avgName[500];
+  char fileout[500];
   unsigned detPosX, detPosY;
   int iPosX,iPosY;      /* integer position of probe position array */
   int nx, ny;			/* size of diffpat arrays */

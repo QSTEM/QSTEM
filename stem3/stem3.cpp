@@ -195,17 +195,6 @@ void initMuls() {
 		muls.sparam[i] = 0.0;
 }
 
-int DirExists(char *filename) { 
-  struct stat status; 
-  status.st_mode = 0;
-  
-  // Attempt to get the file attributes 
-  if (stat(filename,&status) == 0) return 0;
-  if (status.st_mode & S_IFDIR )  return 1;
-  return 0;
-}
-
-
 /************************************************************************
 *
 ***********************************************************************/
@@ -1615,8 +1604,8 @@ void doCBED() {
 	int oldMulsRepeat1 = 1;
 	int oldMulsRepeat2 = 1;
 	long iseed=0;
-	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY));
-	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny));
+	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY, muls.input_ext, muls.output_ext));
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, muls.input_ext, muls.output_ext));
 	std::map<std::string, double> params;
         params["dx"]=muls.resolutionX;
         params["dy"]=muls.resolutionY;
@@ -1912,7 +1901,7 @@ void doTEM() {
 	int oldMulsRepeat2 = 1;
 	long iseed=0;
 	std::map<std::string, double> params;
-	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny,muls.resolutionX,muls.resolutionY));
+	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny,muls.resolutionX,muls.resolutionY, muls.input_ext, muls.output_ext));
 	fftwf_complex **imageWave = NULL;
 
 	if (iseed == 0) iseed = -(long) time( NULL );
@@ -2276,7 +2265,7 @@ void doSTEM() {
 	//pre-allocate several waves (enough for one row of the scan.  
 	for (int th=0; th<omp_get_max_threads(); th++)
 	{
-		waves.push_back(WavePtr(new WAVEFUNC(muls.nx, muls.ny, muls.resolutionX, muls.resolutionY)));
+		waves.push_back(WavePtr(new WAVEFUNC(muls.nx, muls.ny, muls.resolutionX, muls.resolutionY, muls.input_ext, muls.output_ext)));
 	}
 
 	muls.chisq = std::vector<double>(muls.avgRuns);

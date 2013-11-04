@@ -23,6 +23,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 // #define WIN
 
 #include "stemtypes_fftw3.hpp"
+#include "potential.hpp"
+#include "wavefunctions.hpp"
 #include "data_containers.hpp"
 
 
