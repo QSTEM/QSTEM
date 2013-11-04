@@ -68,6 +68,8 @@ typedef struct atomStruct {
   int Znum;
 } atom;
 
+typedef boost::shared_ptr<atom> atomPtr;
+
 /* Planes will be defined by the standard equation for a plane, i.e.
  * a point (point) and 2 vectors (vect1, vect2)
  */
@@ -77,6 +79,8 @@ typedef struct planeStruct {
   double vect2X,vect2Y,vect2Z;
   double pointX,pointY,pointZ;
 } plane;
+
+typedef boost::shared_ptr<plane> planePtr;
 
 typedef struct grainBoxStruct {
   int amorphFlag;
@@ -97,12 +101,16 @@ typedef struct grainBoxStruct {
   int nplanes; /* number of planes in array planes */
 } grainBox;
 
+typedef boost::shared_ptr<grainBox> grainBoxPtr;
+
 typedef struct superCellBoxStruct {
   double cmx,cmy,cmz;  /* fractional center of mass coordinates */
   double ax,by,cz;
   int natoms;
   atom *atoms; /* contains all the atoms within the super cell */
 } superCellBox;
+
+typedef boost::shared_ptr<superCellBox> superCellBoxPtr;
 
 typedef struct atomBoxStruct {
   int used;   /* indicate here whether this atom is used in the
@@ -113,5 +121,7 @@ typedef struct atomBoxStruct {
   complex_tt ***potential;   /* 3D array containg 1st quadrant of real space potential */
   float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
 } atomBox;
+
+typedef boost::shared_ptr<atomBox> atomBoxPtr;
 
 #endif // STEMTYPES_H

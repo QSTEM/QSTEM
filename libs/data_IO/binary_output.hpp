@@ -19,7 +19,7 @@ class CBinaryOutput : public IDataWriter
 public:
   CBinaryOutput();
   ~CBinaryOutput();
-  virtual void Intialize(std::string dirName);
+  virtual void Initialize(std::string dirOrFileName, std::string run_id="avg");
   virtual void WriteRealVolume(float_tt *data, std::vector<unsigned> shape, std::string label, 
                                std::vector<unsigned> position=std::vector<unsigned>(), 
                                std::string comment=std::string(),

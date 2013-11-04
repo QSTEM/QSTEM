@@ -74,6 +74,8 @@ public:
   float_tt xOffset;
   float_tt yOffset;
   
+  std::string input_ext, output_ext; /* file extensions for data input/output */
+
   char cin2[1024];				/* stacking sequence */
   char fileBase[512];
   char **filein;			/* array of input potential files */

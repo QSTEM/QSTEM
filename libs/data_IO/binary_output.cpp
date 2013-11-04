@@ -1,5 +1,8 @@
 #include "binary_output.hpp"
 
+#include "boost/filesystem.hpp"   
+using namespace boost::filesystem; 
+
 CBinaryOutput::CBinaryOutput() : IDataWriter()
 {
 }
@@ -8,11 +11,11 @@ CBinaryOutput::~CBinaryOutput()
 {
 }
 
-void CBinaryOutput::Initialize(std::string dirname)
+// TODO: decide what to do about run ids for non-qh5 datasets.
+void CBinaryOutput::Initialize(std::string dirname, std::string run_id)
 {
-  if (DirExists(dirname.c_str())) {
-    // if ((fpDir = fopen(muls.folder,"r"))!= NULL) {
-    // 	fclose(fpDir);
+  char systStr[255];
+  if (boost::filesystem::exists(dirname.c_str())) {
     printf(" (already exists)\n");
   }
   else {
