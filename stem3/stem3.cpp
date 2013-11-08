@@ -108,58 +108,57 @@ void usage() {
 
 
 int main(int argc, char *argv[]) {
-	int i; 
-	double timerTot;
-	char fileName[256]; 
-	char cinTemp[BUF_LEN];
+  int i; 
+  double timerTot;
+  char fileName[256]; 
+  char cinTemp[BUF_LEN];
 
-	timerTot = cputim();
-	for (i=0;i<BUF_LEN;i++)
-		cinTemp[i] = 0;
-	muls.nCellX = 1; muls.nCellY = 1; muls.nCellZ = 1; 
+  timerTot = cputim();
+  for (i=0;i<BUF_LEN;i++)
+    cinTemp[i] = 0;
+  muls.nCellX = 1; muls.nCellY = 1; muls.nCellZ = 1; 
 
 #ifdef UNIX
-	system("date");
+  system("date");
 #endif
 
-	/*************************************************************
-	* read in the parameters
-	************************************************************/  
-	if (argc < 2)
-		sprintf(fileName,"stem.dat");
-	else
-		strcpy(fileName,argv[1]);
-	if (parOpen(fileName) == 0) {
-		printf("could not open input file %s!\n",fileName);
-		usage();
-		exit(0);
-	}
-	readFile();
+  /*************************************************************
+   * read in the parameters
+   ************************************************************/  
+  if (argc < 2)
+    sprintf(fileName,"stem.dat");
+  else
+    strcpy(fileName,argv[1]);
+  // Initialize the config file reader
+  ConfigReaderPtr configReader = GetConfigReader(fileName);
+  
+  if (!configReader->IsValid())
+    {
+      printf("could not open input file %s!\n",fileName);
+      exit(0);
+      usage();
+    }
+    
+    
+        
+  // Read potential parameters and initialize a pot object
+  WavePtr initialWave(configReader);
+  PotPtr potential = GetPotential(configReader);
+  readFile();
 
-	displayParams();
+  displayParams();
 #ifdef _OPENMP
-	omp_set_dynamic(1);
+  omp_set_dynamic(1);
 #endif
-	if (muls.mode == STEM) {
-		// sprintf(systStr,"mkdir %s",muls.folder);
-		// system(systStr);
-		for (muls.avgCount=0;muls.avgCount<muls.avgRuns;muls.avgCount++) {
-			muls.dE_E = muls.dE_EArray[muls.avgCount];
-			// printf("dE/E: %g\n",muls.dE_E);
-		}    
 
-		// drawStructure();
-
-		muls.showProbe = 0;
-		muls.avgCount = -1;
-	}
-
-	switch (muls.mode) {
-	  case CBED:   doCBED();   break;	
-	  case STEM:   doSTEM();   break;
-	  case TEM:    doTEM();    break;
-	  case MSCBED: doMSCBED(); break;
-	  case TOMO:   doTOMO();   break;
+        int mode;
+        configReader->ReadMode(mode);
+	switch (mode) {
+        case CBED:   doCBED(initialWave, potential);   break;	
+        case STEM:   doSTEM(initialWave, potential);   break;
+        case TEM:    doTEM(initialWave, potential);    break;
+        case MSCBED: doMSCBED(initialWave, potential); break;
+        case TOMO:   doTOMO(initialWave, potential);   break;
 	  // case REFINE: doREFINE(); break;
 	  default:
 		  printf("Mode not supported\n");

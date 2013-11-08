@@ -57,8 +57,9 @@ public:
 public:
   // initializing constructor:
   WAVEFUNC(int nx, int ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
+  WAVEFUNC(ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
-  //WAVEFUNC( WAVEFUNC& other );
+  WAVEFUNC( WAVEFUNC& other );
 
   void SetWavePosition(unsigned posX, unsigned posY);
   std::vector<unsigned> GetPositionVector();

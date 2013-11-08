@@ -1,6 +1,6 @@
 #include "pot_2d.hpp"
 
-C2DPotential::C2DPotential(std::string cfg_file) : CPotential(cfg_file)
+C2DPotential::C2DPotential(ConfigReaderPtr &configReader) : CPotential(configReader)
 {
 	m_boxNz = 1;
 }

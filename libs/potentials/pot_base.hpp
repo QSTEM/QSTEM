@@ -1,5 +1,6 @@
 #include "../stemtypes_fftw3.hpp"
 #include "../imagelib_fftw3.hpp"
+#include "../config_readers.hpp"
 #include <map>
 
 #ifndef POTENTIAL_BASE_H
@@ -9,7 +10,7 @@ class CPotential
 {
 public:
 	CPotential(unsigned nx, unsigned ny, unsigned nz, float_tt dx, float_tt dy, float_tt dz, float_tt atomRadius, float_tt v0);
-	CPotential(std::string parameter_file);
+	CPotential(ConfigReaderPtr &configReader);
 	~CPotential();
 
 	virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);

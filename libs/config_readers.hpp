@@ -17,12 +17,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "potentials/pot_base.hpp"
-#include "potentials/pot_2d.hpp"
-#include "potentials/pot_2d_fft.hpp"
-#include "potentials/pot_3d.hpp"
-#include "potentials/pot_3d_fft.hpp"
+// TODO: implement some kind of dynamic registration here, like maybe:
+// http://stackoverflow.com/questions/9975672/c-automatic-factory-registration-of-derived-types
 
-#include "config_readers.hpp"
+#include "config_IO/read_interface.hpp"
+#include "config_IO/read_qsc.hpp"
 
-PotPtr GetPotential(ConfigReaderPtr &configReader);
+ConfigReaderPtr GetConfigReader(std::string &filename);

@@ -3,5 +3,5 @@
 class C2DFFTPotential : public C2DPotential
 {
 public:
-	C2DFFTPotential(std::string cfg_file);
+  C2DFFTPotential(ConfigReaderPtr &configReader);
 };

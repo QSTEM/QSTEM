@@ -17,12 +17,30 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "potentials/pot_base.hpp"
-#include "potentials/pot_2d.hpp"
-#include "potentials/pot_2d_fft.hpp"
-#include "potentials/pot_3d.hpp"
-#include "potentials/pot_3d_fft.hpp"
-
 #include "config_readers.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
-PotPtr GetPotential(ConfigReaderPtr &configReader);
+ConfigReaderPtr GetConfigReader(std::string &filename)
+{
+  boost::filesystem::path filepath( filename );
+std::string extension = filepath.extension();
+boost::algorithm::to_lower(extension);
+  // check file extension, instantiate appropriate reader
+  if (extension == ".qsc")
+    return ConfigReaderPtr(new CQScReader(filename));
+  else if (extension == ".qh5")
+    {
+      // TODO: flesh out qh5 as config option
+    }
+}
+
+
+
+
+
+
+
+
+
+

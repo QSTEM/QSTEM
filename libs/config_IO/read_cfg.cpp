@@ -20,15 +20,18 @@
 #include "read_cfg.hpp"
 #include "readparams.hpp"
 
-CCfgReader::CCfgReader(std::string filename)
+CCfgReader::CCfgReader(std::string filename) : IConfigReader()
 {
   // open the file for reading
-  
+  if (parOpen(fileName) == 0) {
+    m_isValid=false
+  }
 }
   
 CCfgReader::~CCfgReader()
 {
   // make sure the file is closed
+  parClose();
 }
 
 void CCfgReader::ReadMode(int &mode)
@@ -125,7 +128,7 @@ void CCfgReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ
   /*************************************************
    * Read the beam tilt parameters
    */
-CCfgReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
+void CCfgReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
 {
   btiltx = 0.0;
   btilty = 0.0;
@@ -148,7 +151,7 @@ CCfgReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
   }
 
 }
-  CCfgReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
+void CCfgReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                      float_tt &cubex, float_tt &cubey, float_tt &cubez, 
                                      bool &adjustCubeSize)
 {
@@ -188,7 +191,8 @@ CCfgReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
   }
 }
 
-CCfgReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std::string &phononFile, bool &useEinstein)
+void CCfgReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std::string &phononFile, 
+                                     bool &useEinstein)
 {
   if (readparam("tds:",buf,1)) {
     sscanf(buf,"%s",answer);
@@ -207,7 +211,7 @@ CCfgReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std::stri
   }
 }
 
-CCfgReader::ReadSliceOffset(float_tt &xOffset, float_tt &yOffset)
+void CCfgReader::ReadSliceOffset(float_tt &xOffset, float_tt &yOffset)
 {
 	xOffset = 0.0; /* slize z-position offset in cartesian coords */
 	if (readparam("xOffset:",buf,1)) sscanf(buf,"%g",&(xOffset));
@@ -256,7 +260,7 @@ void CCfgReader::ReadSliceParameters(bool &centerSlices, float_tt &sliceThicknes
     
   // read the output interval:
   if (readparam("slices between outputs:",buf,1)) sscanf(buf,"%d",&(outputInterval));
-if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(czOffset));
+  if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(czOffset));
 }
 
 void CCfgReader::ReadPeriodicParameters(bool &periodicXY, bool &periodicZ)
@@ -349,8 +353,8 @@ void CCfgReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, u
   if (!readparam("scan_y_pixels:",buf,1)) sscanf(buf,"%d",&(scanYN));
 }
 
-void CCfgReader::
-	
+
+
 	/**********************************************************************
 	* Parameters for image display and directories, etc.
 	*/
@@ -376,17 +380,23 @@ void CCfgReader::
 		folder[strlen(folder)-1] = 0;
 
 
+
+void CCfgReader::ReadAtomRadius(float_tt &radius)
+{
 	/*******************************************************************
 	* Read in parameters related to the calculation of the projected
 	* Potential
 	*******************************************************************/
         if (readparam("atom radius:",buf,1))  
 		sscanf(buf,"%g",&(atomRadius)); /* in A */
+}
 	// why ??????  so that number of subdivisions per slice >= number of fitted points!!!
 	/*  
 	if (atomRadius < sliceThickness)
 	atomRadius = sliceThickness;
 	*/
+void CCfgReader::ReadStructureFactorType(int &type)
+{
 	scatFactor = DOYLE_TURNER;
 	if (readparam("Structure Factors:",buf,1)) {
 		sscanf(buf," %s",answer);
@@ -407,7 +417,10 @@ void CCfgReader::
 		scatFactor = DOYLE_TURNER;
 		}
 	}
+}
 
+void CCfgReader::ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams)
+{
 	/*************************************************************
 	* read in the beams we want to plot in the pendeloesung plot
 	* Only possible if not in STEM or CBED mode 
@@ -440,23 +453,17 @@ void CCfgReader::
 				printf("beam %d [%d %d]\n",i,hbeam[i],kbeam[i]); 			}
 		}
 	}
+}
 
-	/* TODO: possible breakage here - MCS 2013/04 - made cfgFile be allocated on the struct
-	       at runtim - thus this null check doesn't make sense anymore.  Change cfgFile set
-	   Old comment:
-		if cfgFile != NULL, the program will later write a the atomic config to this file */
-	//cfgFile = NULL;
-	if (readparam("CFG-file:",buf,1)) 
-	{
-		sscanf(buf,"%s",cfgFile);
-	}
-
-} /* end of readFile() */
-
-void CCfgReader::ReadSTEMParams(const char *fileName, MULS &muls)
+void CCfgReader::ReadStructureFile(std::string &filename)
 {
-		displayProgInterval = scanYN*scanYN;
-		
+  if (readparam("CFG-file:",buf,1)) 
+    {
+        filename = buf;
+        //sscanf(buf,"%s",cfgFile);
+    }
+  else
+    filename="";
 }
 
 void CCfgReader::ReadDetectors(const char *fileName, MULS &muls) // 

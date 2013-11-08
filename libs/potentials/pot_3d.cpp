@@ -1,6 +1,6 @@
 #include "pot_3d.hpp"
 
-C3DPotential::C3DPotential(std::string cfg_file) : CPotential(cfg_file)
+C3DPotential::C3DPotential(ConfigReaderPtr &configReader) : CPotential(configReader)
 {
 	m_boxNz = (int)(m_radius/m_ddz+2.0);
 }

@@ -53,7 +53,10 @@ public:
   virtual void ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
                                              bool &plotPotential)=0;
   virtual void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)=0;
-  virtual void ReadAverageParmaeters(unsigned &avgRuns, bool &storeSeries)=0;
+  virtual void ReadAtomRadius(float_tt &radius);
+  virtual void ReadStructureFactorType(int &type);
+  virtual void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams)
+  virtual void ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)=0;
   virtual void ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN)=0;
   // CBED uses this because stop and npixels are irrelevant
@@ -76,6 +79,9 @@ public:
                        float_tt &phi44, float_tt &phi42,
                        float_tt &phi55, float_tt &phi53, float_tt &phi51,
                        float_tt &phi66, float_tt &phi64, float_tt &phi62)=0;
+  inline bool IsValid() {return m_isValid;}
+protected:
+  bool m_isValid;
 };
 
 typedef boost::shared_ptr<IConfigReader> ConfigReaderPtr

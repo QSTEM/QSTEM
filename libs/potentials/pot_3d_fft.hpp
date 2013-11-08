@@ -3,5 +3,5 @@
 class C3DFFTPotential : public C3DPotential
 {
 public:
-	C3DFFTPotential(std::string cfg_file);
+	C3DFFTPotential(ConfigReaderPtr &configReader);
 };

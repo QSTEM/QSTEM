@@ -19,22 +19,13 @@
 
 #include "pot_base.hpp"
 
-CPotential::CPotential(unsigned nx, unsigned ny, unsigned nz, float_tt dx, float_tt dy, float_tt dz, float_tt atomRadius, float_tt v0)
-	: m_nx(nx)
-	, m_ny(ny)
-	, m_dx(dx)
-	, m_dy(dy)
-	, m_dz(dz)
-	, m_radius(atomRadius)
+CPotential::CPotential(ConfigReaderPtr &configReader)
 {
-	Initialize();
-}
-
-CPotential::CPotential(std::string parameter_file)
-	: m_printLevel(1)
-{
-	// Load parameters from file
-	Initialize();
+  configReader->ReadProbeArraySize(unsigned int &nx, unsigned int &ny)
+  configReader->ReadResolution(m_dx, m_dy);
+  configReader->ReadVoltage(m_v0);
+  configReader->ReadPotentialOutputParameters(m_savePotential, m_saveProjectedPotential, m_plotPotential);
+  
 }
 
 void CPotential::Initialize()
