@@ -17,13 +17,16 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef READ_QSC_H
+#define READ_QSC_H
+
 #include "read_interface.hpp"
 
-class CCfgReader : public IConfigReader
+class CQscReader : public IConfigReader
 {
 public:
-  CCfgReader(std::string filename);
-  ~CCfgReader();
+  CQscReader(std::string filename);
+  ~CQscReader();
 
   void ReadMode(int &mode);
   void ReadOutputLevel(int &printLevel, int &saveLevel, 
@@ -48,9 +51,22 @@ public:
   void ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
                                              bool &plotPotential);
   void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D);
-  void ReadAverageParmaeters(unsigned &avgRuns, bool &storeSeries);
+  void ReadAverageParameters(unsigned &avgRuns, bool &storeSeries);
   void ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
-                                  float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN);
+                                  float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN);  
+  void ReadAtomRadius(float_tt &radius);
+  void ReadStructureFactorType(int &type);
+  void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams);
+  void ReadStructureFile(std::string &filename);
+  void ReadNumberOfDetectors(int &numDetectors)=0;
+  void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, char *name, 
+                              float_tt &shiftX, float_tt &shiftY)=0;
+  //void ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
+  //                           DetectorPtr &detector_to_copy)
+  
+  void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
+                      float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
+                      bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
   void ReadTomoParameters(float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
   void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
@@ -70,3 +86,4 @@ protected:
   FILE *fpTemp;
 };
 
+#endif

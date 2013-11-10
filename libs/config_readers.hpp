@@ -20,7 +20,12 @@
 // TODO: implement some kind of dynamic registration here, like maybe:
 // http://stackoverflow.com/questions/9975672/c-automatic-factory-registration-of-derived-types
 
+#ifndef CONFIG_READER_H
+#define CONFIG_READER_H
+
 #include "config_IO/read_interface.hpp"
 #include "config_IO/read_qsc.hpp"
 
 ConfigReaderPtr GetConfigReader(std::string &filename);
+
+#endif

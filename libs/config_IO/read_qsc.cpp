@@ -20,7 +20,7 @@
 #include "read_cfg.hpp"
 #include "readparams.hpp"
 
-CCfgReader::CCfgReader(std::string filename) : IConfigReader()
+CQscReader::CQscReader(std::string filename) : IConfigReader()
 {
   // open the file for reading
   if (parOpen(fileName) == 0) {
@@ -28,13 +28,13 @@ CCfgReader::CCfgReader(std::string filename) : IConfigReader()
   }
 }
   
-CCfgReader::~CCfgReader()
+CQscReader::~CQscReader()
 {
   // make sure the file is closed
   parClose();
 }
 
-void CCfgReader::ReadMode(int &mode)
+void CQscReader::ReadMode(int &mode)
 {
   mode = STEM;
   if (readparam("mode:",buf,1)) {
@@ -46,7 +46,7 @@ void CCfgReader::ReadMode(int &mode)
   }
 }
 
-void CCfgReader::ReadOutputLevel(int &printLevel, int &saveLevel, 
+void CQscReader::ReadOutputLevel(int &printLevel, int &saveLevel, 
                                  unsigned &displayPotCalcInterval, unsigned &displayProgInterval)
 {
   if (readparam("print level:",buf,1)) sscanf(buf,"%d",&(printLevel));
@@ -61,7 +61,7 @@ void CCfgReader::ReadOutputLevel(int &printLevel, int &saveLevel,
 }
 
 // TODO: this should remove quotes from the output directory/filename
-void CCfgReader::ReadStructureFileName(std::string &directory, std::string &filename)
+void CQscReader::ReadStructureFileName(std::string &directory, std::string &filename)
 {
   if (!readparam("filename:",buf,1)) exit(0); 
   fileOrDirName = buf;
@@ -110,7 +110,7 @@ void CCfgReader::ReadStructureFileName(std::string &directory, std::string &file
   }
 }
 
-void CCfgReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv)
+void CQscReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv)
 {
   if (readparam("NCELLX:",buf,1)) sscanf(buf,"%d",&(nCellX));
   if (readparam("NCELLY:",buf,1)) sscanf(buf,"%d",&(nCellY));
@@ -128,7 +128,7 @@ void CCfgReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ
   /*************************************************
    * Read the beam tilt parameters
    */
-void CCfgReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
+void CQscReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
 {
   btiltx = 0.0;
   btilty = 0.0;
@@ -151,7 +151,7 @@ void CCfgReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
   }
 
 }
-void CCfgReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
+void CQscReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                      float_tt &cubex, float_tt &cubey, float_tt &cubez, 
                                      bool &adjustCubeSize)
 {
@@ -191,7 +191,7 @@ void CCfgReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_
   }
 }
 
-void CCfgReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std::string &phononFile, 
+void CQscReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std::string &phononFile, 
                                      bool &useEinstein)
 {
   if (readparam("tds:",buf,1)) {
@@ -211,7 +211,7 @@ void CCfgReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std:
   }
 }
 
-void CCfgReader::ReadSliceOffset(float_tt &xOffset, float_tt &yOffset)
+void CQscReader::ReadSliceOffset(float_tt &xOffset, float_tt &yOffset)
 {
 	xOffset = 0.0; /* slize z-position offset in cartesian coords */
 	if (readparam("xOffset:",buf,1)) sscanf(buf,"%g",&(xOffset));
@@ -220,14 +220,14 @@ void CCfgReader::ReadSliceOffset(float_tt &xOffset, float_tt &yOffset)
 	// printf("Reading Offset: %f, %f\n",xOffset,yOffset);
 }
 
-void CCfgReader::ReadProbeArraySize(unsigned &nx, unsigned &ny)
+void CQscReader::ReadProbeArraySize(unsigned &nx, unsigned &ny)
 {
 	if (!readparam("nx:",buf,1)) exit(0); sscanf(buf,"%d",&(nx));
 	if (readparam("ny:",buf,1)) sscanf(buf,"%d",&(ny));
 	else ny = nx;
 }
 
-void CCfgReader::ReadResolution(float_tt &resolutionX, float_tt &resolutionY)
+void CQscReader::ReadResolution(float_tt &resolutionX, float_tt &resolutionY)
 {
 	resolutionX = 0.0;
 	resolutionY = 0.0;
@@ -235,12 +235,12 @@ void CCfgReader::ReadResolution(float_tt &resolutionX, float_tt &resolutionY)
 	if (readparam("resolutionY:",buf,1)) sscanf(buf,"%g",&(resolutionY));
 }
 
-void CCfgReader::ReadVoltage(float_tt &voltage)
+void CQscReader::ReadVoltage(float_tt &voltage)
 {
 	if (!readparam("v0:",buf,1)) exit(0); sscanf(buf,"%g",&(v0));
 }
 
-void CCfgReader::ReadSliceParameters(bool &centerSlices, float_tt &sliceThickness, 
+void CQscReader::ReadSliceParameters(bool &centerSlices, float_tt &sliceThickness, 
                                      unsigned &nslices, unsigned &outputInterval,
                                      float_tt &zOffset)
 {
@@ -263,7 +263,7 @@ void CCfgReader::ReadSliceParameters(bool &centerSlices, float_tt &sliceThicknes
   if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(czOffset));
 }
 
-void CCfgReader::ReadPeriodicParameters(bool &periodicXY, bool &periodicZ)
+void CQscReader::ReadPeriodicParameters(bool &periodicXY, bool &periodicZ)
 {
   nonPeriodZ = 1;
   nonPeriod = 1;
@@ -277,7 +277,7 @@ void CCfgReader::ReadPeriodicParameters(bool &periodicXY, bool &periodicZ)
   }
 }
 
-void CCfgReader::ReadBandLimitTrans(bool &limit)
+void CQscReader::ReadBandLimitTrans(bool &limit)
 {
 	bandlimittrans = 1;
 	if (readparam("bandlimit f_trans:",buf,1)) {
@@ -286,7 +286,7 @@ void CCfgReader::ReadBandLimitTrans(bool &limit)
 	}
 }
 
-void CCfgReader::ReadLoadPotential(bool &loadPotential)
+void CQscReader::ReadLoadPotential(bool &loadPotential)
 {    
   readPotential = 0;
   if (readparam("read potential:",buf,1)) {
@@ -295,7 +295,7 @@ void CCfgReader::ReadLoadPotential(bool &loadPotential)
   }
 }
 
-void CCfgReader::ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
+void CQscReader::ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
                                                bool &plotPotential)
 {
 	savePotential = 0;
@@ -315,7 +315,7 @@ void CCfgReader::ReadPotentialOutputParameters(bool &savePotential, bool &savePr
 	}  
 }
 
-void CCfgReader::ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)
+void CQscReader::ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)
 {
 	fftpotential = 1;
 	if (readparam("one time integration:",buf,1)) {
@@ -329,7 +329,7 @@ void CCfgReader::ReadPotentialCalculationParameters(bool &fftPotential, bool &po
 	}
 }
 
-void CCfgReader::ReadAverageParmaeters(unsigned &avgRuns, bool &storeSeries)
+void CQscReader::ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)
 {
 	avgRuns = 10;
 	if (readparam("Runs for averaging:",buf,1))
@@ -342,7 +342,7 @@ void CCfgReader::ReadAverageParmaeters(unsigned &avgRuns, bool &storeSeries)
 	}  
 }
 
-void CCfgReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
+void CQscReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                     float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN)
 {
   if (!readparam("scan_x_start:",buf,1)) sscanf(buf,"%g",&(scanXStart));
@@ -352,6 +352,11 @@ void CCfgReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, u
   if (!readparam("scan_y_stop:",buf,1)) sscanf(buf,"%g",&(scanYStop));
   if (!readparam("scan_y_pixels:",buf,1)) sscanf(buf,"%d",&(scanYN));
 }
+
+
+
+
+
 
 
 
@@ -381,7 +386,10 @@ void CCfgReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, u
 
 
 
-void CCfgReader::ReadAtomRadius(float_tt &radius)
+
+
+
+void CQscReader::ReadAtomRadius(float_tt &radius)
 {
 	/*******************************************************************
 	* Read in parameters related to the calculation of the projected
@@ -390,12 +398,8 @@ void CCfgReader::ReadAtomRadius(float_tt &radius)
         if (readparam("atom radius:",buf,1))  
 		sscanf(buf,"%g",&(atomRadius)); /* in A */
 }
-	// why ??????  so that number of subdivisions per slice >= number of fitted points!!!
-	/*  
-	if (atomRadius < sliceThickness)
-	atomRadius = sliceThickness;
-	*/
-void CCfgReader::ReadStructureFactorType(int &type)
+
+void CQscReader::ReadStructureFactorType(int &type)
 {
 	scatFactor = DOYLE_TURNER;
 	if (readparam("Structure Factors:",buf,1)) {
@@ -419,7 +423,7 @@ void CCfgReader::ReadStructureFactorType(int &type)
 	}
 }
 
-void CCfgReader::ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams)
+void CQscReader::ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams)
 {
 	/*************************************************************
 	* read in the beams we want to plot in the pendeloesung plot
@@ -455,7 +459,7 @@ void CCfgReader::ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams
 	}
 }
 
-void CCfgReader::ReadStructureFile(std::string &filename)
+void CQscReader::ReadStructureFile(std::string &filename)
 {
   if (readparam("CFG-file:",buf,1)) 
     {
@@ -466,43 +470,56 @@ void CCfgReader::ReadStructureFile(std::string &filename)
     filename="";
 }
 
-void CCfgReader::ReadDetectors(const char *fileName, MULS &muls) // 
+void CQscReader::ReadNumberOfDetectors(int &numDetectors)
 {
-  int tCount = (int)(ceil((double)((slices * cellDiv) / outputInterval)));
-
-  /* first determine number of detectors */
-  while (readparam("detector:",buf,0)) detectorNum++;  
-  /* now read in the list of detectors: */
+  numDetectors=0;
   resetParamFile();
+  while (readparam("detector:",buf, 0)) ++numDetectors;
+}
 
+void CQscReader::ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, char *name, 
+                                        float_tt &shiftX, float_tt &shiftY)
+{
+  int file_det_idx=0;
+  resetParamFile();
+  while (readparam("detector:",buf,0)) {
+    if (det_idx==file_det_idx)
+      {
+        sscanf(buf,"%g %g %s %g %g",&(rInside),
+               &(rOutside), name, &(shiftX),&(shiftY));
+        return;
+      }
+    ++file_det_idx;
+  }
+}
+
+/*
+void CQscReader::ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
+                               DetectorPtr &detector_to_copy)
+{
+  
   // loop over thickness planes where we're going to record intermediates
   // TODO: is this too costly in terms of memory?  It simplifies the parallelization to
   //       save each of the thicknesses in memory, then save to disk afterwards.
-  for (int islice=0; islice<=tCount; islice++)
+  for (int islice=0; islice<=thicknesses.size(); islice++)
     {
-      std::vector<DetectorPtr> detectors;
+      std::vector<DetectorPtr> detectors_at_t();
       resetParamFile();
       while (readparam("detector:",buf,0)) {
-        DetectorPtr det = DetectorPtr(new Detector(scanXN, scanYN, 
-                                                   (scanXStop-scanXStart)/(float)scanXN,
-                                                   (scanYStop-scanYStart)/(float)scanYN));
+        DetectorPtr det = detector_to_copy.Clone();
         
         sscanf(buf,"%g %g %s %g %g",&(det->rInside),
-               &(det->rOutside), det->name, &(det->shiftX),&(det->shiftY));  
-        
-        /* determine v0 specific k^2 values corresponding to the angles */
-        det->k2Inside = (float)(sin(det->rInside*0.001)/(wavelength(v0)));
-        det->k2Outside = (float)(sin(det->rOutside*0.001)/(wavelength(v0)));
-        /* calculate the squares of the ks */
-        det->k2Inside *= det->k2Inside;
-        det->k2Outside *= det->k2Outside;
-        detectors.push_back(det);
+               &(det->rOutside), det->name, &(det->shiftX),&(det->shiftY));
+        detectors_at_t.push_back(det);
       }
-      detectors.push_back(detectors);
+      detectors.push_back(detectors_at_t);
     }
 }
+*/
 
-void CCfgReader::ReadProbeParameters(const char *fileName, MULS &muls)
+void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
+                                     float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
+                                     bool &ismoth, float_tt &gaussScale, bool &gaussFlag)
 {
   /**********************************************************************
    * Read STEM/CBED probe parameters 
@@ -520,67 +537,6 @@ void CCfgReader::ReadProbeParameters(const char *fileName, MULS &muls)
 	if (readparam("Cc:",buf,1))
 		Cc = 1e7*atof(buf);
 
-
-	/* memorize dE_E0, and fill the array of well defined energy deviations */
-	dE_E0 = sqrt(dE_E*dE_E+
-		dI_I*dI_I+
-		dV_V*dV_V);
-	dE_EArray = (double *)malloc((avgRuns+1)*sizeof(double));
-	dE_EArray[0] = 0.0;
-	/***********************************************************
-	* Statistical gaussian energy spread
-	* (takes too long for the statistics to become gaussian)
-	*/
-
-	/* for (i = 1;i <= avgRuns*tds; i++) {
-	dE_EArray[i] = rangauss(&iseed)*dE_E0;     
-	printf("dE/E[%d]: %g\n",i,dE_EArray[i]); 
-	}
-	*/
-
-	/**********************************************************
-	* quick little fix to calculate gaussian energy distribution
-	* without using statistics (better for only few runs)
-	*/
-	if (printLevel > 0) printf("avgRuns: %d\n",avgRuns);
-	// serious bug in Visual C - dy comes out enormous.
-	//dy = sqrt((double)pi)/((double)2.0*(double)(avgRuns));
-	// using precalculated sqrt(pi):
-	dy = 1.772453850905/((double)2.0*(double)(avgRuns));
-	dx = pi/((double)(avgRuns+1)*20);
-	for (ix=1,x=0,y=0;ix<avgRuns;x+=dx) {
-		y += exp(-x*x)*dx;
-		if (y>=ix*dy) {
-			dE_EArray[ix++] = x*2*dE_E0/pi;
-			if (printLevel > 2) printf("dE[%d]: %g eV\n",ix,dE_EArray[ix-1]*v0*1e3);
-			if (ix < avgRuns) {
-				dE_EArray[ix] = -dE_EArray[ix-1];
-				ix ++;
-				if (printLevel > 2) printf("dE[%d]: %g eV\n",ix,dE_EArray[ix-1]*v0*1e3);
-			}
-		}
-	}
-
-
-	
-	
-
-	////////////////////////////////////////////////////////
-	// read in more aberrations:
-	
-        ReadAberrationAmplitudes(Cs, C5, 
-                                 df0, astigMag,
-                                 a33, a31,
-                                 a44, a42,
-                                 a55, a53, a51,
-                                 a66, a64, a62);
-
-        ReadAberrationAngles(astig, 
-                             phi33, phi31,
-                             phi44, phi42,
-                             phi55, phi53, phi51,
-                             phi66, phi64, phi62);
-
 	if (!readparam("alpha:",buf,1)) exit(0); 
 	sscanf(buf,"%g",&(alpha)); /* in mrad */
 
@@ -595,9 +551,8 @@ void CCfgReader::ReadProbeParameters(const char *fileName, MULS &muls)
 		sscanf(buf,"%g",&(beamCurrent)); /* in pA */
 	}
 	if (readparam("dwell time:",buf,1)) { 
-		sscanf(buf,"%g",&(dwellTime)); /* in msec */
+		sscanf(buf,"%g",&(dwellTimeMs)); /* in msec */
 	}
-	electronScale = beamCurrent*dwellTime*MILLISEC_PICOAMP;
 	//////////////////////////////////////////////////////////////////////
 
 	sourceRadius = 0;
@@ -614,7 +569,7 @@ void CCfgReader::ReadProbeParameters(const char *fileName, MULS &muls)
 	}
 }
 
-void CCfgReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
+void CQscReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor)
 {
   // in case this file has been written by the tomography function, read the current tilt:
@@ -643,7 +598,7 @@ void CCfgReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, flo
     tomoStep = -2.0*tomoStart/(float_tt)(tomoCount - 1);
 }
 
-CCfgReader::ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
+CQscReader::ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
                            float_tt &df0, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,

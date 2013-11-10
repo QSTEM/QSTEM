@@ -20,6 +20,7 @@
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"
+#include "config_readers.hpp"
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
 

@@ -17,6 +17,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef POTENTIAL_H
+#define POTENTIAL_H
+
 #include "potentials/pot_base.hpp"
 #include "potentials/pot_2d.hpp"
 #include "potentials/pot_2d_fft.hpp"
@@ -26,3 +29,5 @@
 #include "config_readers.hpp"
 
 PotPtr GetPotential(ConfigReaderPtr &configReader);
+
+#endif
