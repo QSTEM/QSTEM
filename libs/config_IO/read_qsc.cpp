@@ -20,6 +20,9 @@
 #include "read_qsc.hpp"
 #include "readparams.hpp"
 
+#include "string.h"
+#include <boost/filesystem.hpp>
+
 CQscReader::CQscReader(std::string &filename) : IConfigReader()
 {
   // open the file for reading
@@ -61,18 +64,24 @@ void CQscReader::ReadOutputLevel(int &printLevel, int &saveLevel,
 }
 
 // TODO: this should remove quotes from the output directory/filename
-void CQscReader::ReadStructureFileName(std::string &directory, std::string &filename)
+void CQscReader::ReadStructureFileName(std::string &directory, std::string &fileOrDirName)
 {
+  char *strPtr;
   if (!readparam("filename:",buf,1)) exit(0); 
-  fileOrDirName = buf;
+
+  boost::filesystem::path structure_path = boost::filesystem::path(buf);
+  
+  // TODO: use boost::filesystem to do any manipulation necessary
+
   //sscanf(buf,"%s",fileBase);
   // search for second '"', in case the filename is in quotation marks:
-  if (fileBase[0] == '"') {
+  if (buf[0] == '"') {
     strPtr = strchr(buf,'"');
-    strcpy(fileBase,strPtr+1);
-    strPtr = strchr(fileBase,'"');
+    strcpy(buf,strPtr+1);
+    strPtr = strchr(buf,'"');
     *strPtr = '\0';
   }
+  fileOrDirName = buf;  
 
   /**********************************************************************
    * Read the atomic model positions !!!
@@ -80,8 +89,8 @@ void CQscReader::ReadStructureFileName(std::string &directory, std::string &file
   sprintf(atomPosFile,fileBase);
   /* remove directory in front of file base: */
   // TODO: use boost::filesystem to simplify this.
-  while ((strptr = strchr(fileBase,'\\')) != NULL) strcpy(fileBase,strptr+1);
-
+  while ((strPtr = strchr(fileBase,'\\')) != NULL) strcpy(fileBase,strPtr+1);
+  
   /* add a '_' to fileBase, if not existent */
   if (strrchr(fileBase,'_') != fileBase+strlen(fileBase)-1) {
     if ((strPtr = strchr(fileBase,'.')) != NULL) sprintf(strPtr,"_");
@@ -112,6 +121,7 @@ void CQscReader::ReadStructureFileName(std::string &directory, std::string &file
 
 void CQscReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv)
 {
+  char *strPtr;
   if (readparam("NCELLX:",buf,1)) sscanf(buf,"%d",&(nCellX));
   if (readparam("NCELLY:",buf,1)) sscanf(buf,"%d",&(nCellY));
 
@@ -560,18 +570,18 @@ void CQscReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, flo
 {
   // in case this file has been written by the tomography function, read the current tilt:
   if (readparam("tomo tilt:",buf,1)) { 
-    sscanf(buf,"%lf %s",&(tomoTilt),answer); /* in mrad */
+    sscanf(buf,"%g %s",&(tomoTilt),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
       tomoTilt *= 1000*PI/180.0;
   }
 
   if (readparam("tomo start:",buf,1)) { 
-    sscanf(buf,"%lf %s",&(tomoStart),answer); /* in mrad */
+    sscanf(buf,"%g %s",&(tomoStart),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
       tomoStart *= 1000*PI/180.0;
   }
   if (readparam("tomo step:",buf,1)) {
-    sscanf(buf,"%lf %s",&(tomoStep),answer); /* in mrad */
+    sscanf(buf,"%g %s",&(tomoStep),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
       tomoStep *= 1000*PI/180.0;
   }
@@ -579,7 +589,7 @@ void CQscReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, flo
   if (readparam("tomo count:",buf,1))  
     tomoCount = atoi(buf); 
   if (readparam("zoom factor:",buf,1))  
-    sscanf(buf,"%lf",&(zoomFactor));
+    sscanf(buf,"%g",&(zoomFactor));
   if ((tomoStep == 0) && (tomoStep > 1))
     tomoStep = -2.0*tomoStart/(float_tt)(tomoCount - 1);
 }

@@ -71,8 +71,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define DELTA_T 1     /* number of unit cells between pictures */
 #define PICTS 5      /* number of different thicknesses */
 #define NBITS 8	       /* number of bits for writeIntPix */
-#define RAD2DEG 57.2958
-#define SQRT_2 1.4142135
 
 const char *resultPage = "result.html";
 /* global variable: */

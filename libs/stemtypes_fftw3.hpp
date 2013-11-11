@@ -32,12 +32,18 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define DOYLE_TURNER 0
 #define WEICK_KOHL 1
 #define CUSTOM 2
+// Mode definitions
 #define STEM    1
 #define CBED    2
 #define TEM     3
 #define REFINE  4
 #define MSCBED  5
 #define TOMO    6
+
+// Helpful mathematical constants
+#define RAD2DEG 57.2958
+#define SQRT_2 1.4142135
+
 
 ////////////////////////////////////////////////////////////////////////
 // Define physical constants
