@@ -17,14 +17,14 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "read_cfg.hpp"
+#include "read_qsc.hpp"
 #include "readparams.hpp"
 
-CQscReader::CQscReader(std::string filename) : IConfigReader()
+CQscReader::CQscReader(std::string &filename) : IConfigReader()
 {
   // open the file for reading
-  if (parOpen(fileName) == 0) {
-    m_isValid=false
+  if (parOpen(filename.c_str()) == 0) {
+    m_isValid=false;
   }
 }
   
@@ -137,13 +137,13 @@ void CQscReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
   if (readparam("Beam tilt X:",buf,1)) { 
     sscanf(buf,"%g %s",&(btiltx),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      btiltx *= pi/180.0;
+      btiltx *= PI/180.0;
   }
   answer[0] = '\0';
   if (readparam("Beam tilt Y:",buf,1)) { 
     sscanf(buf,"%g %s",&(btilty),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      btilty *= pi/180.0;
+      btilty *= PI/180.0;
   }  
   if (readparam("Tilt back:",buf,1)) { 
     sscanf(buf,"%s",answer);
@@ -165,19 +165,19 @@ void CQscReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_
   if (readparam("Crystal tilt X:",buf,1)) { 
     sscanf(buf,"%g %s",&(tiltx),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      tiltx *= pi/180.0;
+      tiltx *= PI/180.0;
   }
   answer[0] = '\0';
   if (readparam("Crystal tilt Y:",buf,1)) { 
     sscanf(buf,"%g %s",&(tilty),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      tilty *= pi/180.0;
+      tilty *= PI/180.0;
   }  
   answer[0] = '\0';
   if (readparam("Crystal tilt Z:",buf,1)) { 
     sscanf(buf,"%g %s",&(tiltz),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      tiltz *= pi/180.0;
+      tiltz *= PI/180.0;
   }
   cubex = 0; cubey = 0; cubez = 0;
   if (readparam("Cube:",buf,1)) { 
@@ -237,7 +237,7 @@ void CQscReader::ReadResolution(float_tt &resolutionX, float_tt &resolutionY)
 
 void CQscReader::ReadVoltage(float_tt &voltage)
 {
-	if (!readparam("v0:",buf,1)) exit(0); sscanf(buf,"%g",&(v0));
+	if (!readparam("v0:",buf,1)) exit(0); sscanf(buf,"%g",&(voltage));
 }
 
 void CQscReader::ReadSliceParameters(bool &centerSlices, float_tt &sliceThickness, 
@@ -256,28 +256,28 @@ void CQscReader::ReadSliceParameters(bool &centerSlices, float_tt &sliceThicknes
 
   sliceThickness = 0.0;
   if (readparam("slice-thickness:",buf,1)) sscanf(buf,"%g",&(sliceThickness));
-  if (readparam("slices:",buf,1)) sscanf(buf,"%d",&(slices));
+  if (readparam("slices:",buf,1)) sscanf(buf,"%d",&(nslices));
     
   // read the output interval:
   if (readparam("slices between outputs:",buf,1)) sscanf(buf,"%d",&(outputInterval));
-  if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(czOffset));
+  if (readparam("zOffset:",buf,1)) sscanf(buf,"%g",&(zOffset));
 }
 
 void CQscReader::ReadPeriodicParameters(bool &periodicXY, bool &periodicZ)
 {
-  nonPeriodZ = 1;
-  nonPeriod = 1;
+  periodicZ = false;
+  periodicXY = false;
   if (readparam("periodicXY:",buf,1)) {
     sscanf(buf,"%s",answer);
-    nonPeriod = (tolower(answer[0]) != (int)'y');
+    periodicXY = (tolower(answer[0]) == (int)'y');
   }
   if (readparam("periodicZ:",buf,1)) {
     sscanf(buf,"%s",answer);
-    nonPeriodZ = (tolower(answer[0]) != (int)'y'); /* if 'y' -> nonPeriodZ=0 */
+    periodicZ = (tolower(answer[0]) == (int)'y'); 
   }
 }
 
-void CQscReader::ReadBandLimitTrans(bool &limit)
+void CQscReader::ReadBandLimitTrans(bool &bandlimittrans)
 {
 	bandlimittrans = 1;
 	if (readparam("bandlimit f_trans:",buf,1)) {
@@ -286,7 +286,7 @@ void CQscReader::ReadBandLimitTrans(bool &limit)
 	}
 }
 
-void CQscReader::ReadLoadPotential(bool &loadPotential)
+void CQscReader::ReadLoadPotential(bool &readPotential)
 {    
   readPotential = 0;
   if (readparam("read potential:",buf,1)) {
@@ -295,7 +295,7 @@ void CQscReader::ReadLoadPotential(bool &loadPotential)
   }
 }
 
-void CQscReader::ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
+void CQscReader::ReadPotentialOutputParameters(bool &savePotential, bool &saveTotalPotential, 
                                                bool &plotPotential)
 {
 	savePotential = 0;
@@ -317,10 +317,10 @@ void CQscReader::ReadPotentialOutputParameters(bool &savePotential, bool &savePr
 
 void CQscReader::ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)
 {
-	fftpotential = 1;
+	fftPotential = 1;
 	if (readparam("one time integration:",buf,1)) {
 		sscanf(buf,"%s",answer);
-		fftpotential = (tolower(answer[0]) == (int)'y');
+		fftPotential = (tolower(answer[0]) == (int)'y');
 	}
 	potential3D = 1;
 	if (readparam("potential3D:",buf,1)) {
@@ -354,36 +354,28 @@ void CQscReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, u
 }
 
 
-
-
-
-
-
-
-	/**********************************************************************
-	* Parameters for image display and directories, etc.
-	*/
-	imageGamma = 1.0;
-	if (readparam("Display Gamma:",buf,1)) {
-		imageGamma = atof(buf);
-	}
-	showProbe = 0;
-	if (readparam("show Probe:",buf,1)) {
-		sscanf(buf,"%s",answer);
-		showProbe = (tolower(answer[0]) == (int)'y');
-	}
-	sprintf(folder,"data");
-	if (readparam("Folder:",buf,1)) 
-		sscanf(buf," %s",folder);
-
-	while ((strptr = strchr(folder,'"')) != NULL) {
-		if (strptr == folder) sscanf(strptr+1,"%s",folder);	
-		else *strptr = '\0';
-	}
-
-	if (folder[strlen(folder)-1] == '/')
-		folder[strlen(folder)-1] = 0;
-
+void CQscReader::ReadOutputName(std::string &fileOrFolderName)
+{
+  /**********************************************************************
+   * Parameters for image display and directories, etc.
+   */
+  fileOrFolderName = "data";
+  //sprintf(fileOrFolderName,"data");
+  if (readparam("Folder:",buf,1)) 
+    fileOrFolderName = buf;
+  //sscanf(buf," %s",folder);
+  
+  /*
+    // TODO: what is this doing? stripping ""?  do any of this that is required using boost::filesystem.
+  while ((strptr = strchr(folder,'"')) != NULL) {
+    if (strptr == folder) sscanf(strptr+1,"%s",folder);	
+    else *strptr = '\0';
+  }
+  
+  if (folder[strlen(folder)-1] == '/')
+  folder[strlen(folder)-1] = 0;
+  */
+}
 
 
 
@@ -396,67 +388,64 @@ void CQscReader::ReadAtomRadius(float_tt &radius)
 	* Potential
 	*******************************************************************/
         if (readparam("atom radius:",buf,1))  
-		sscanf(buf,"%g",&(atomRadius)); /* in A */
+		sscanf(buf,"%g",&(radius)); /* in A */
 }
 
-void CQscReader::ReadStructureFactorType(int &type)
+void CQscReader::ReadStructureFactorType(int &scatFactor)
 {
-	scatFactor = DOYLE_TURNER;
-	if (readparam("Structure Factors:",buf,1)) {
-		sscanf(buf," %s",answer);
-		switch (tolower(answer[0])) {
-	case 'w':
-		if (tolower(answer[1])=='k') scatFactor = WEICK_KOHL;
-		break;
-	case 'd':  // DOYLE_TURNER
-		scatFactor = DOYLE_TURNER;
-		break;
-	case 'c':  // CUSTOM - specify k-lookup table and values for all atoms used
-		scatFactor = CUSTOM;
-		// we already have the kinds of atoms stored in 
-		// int *Znums and int atomKinds
-		readSFactLUT();
-		break;
-	default:
-		scatFactor = DOYLE_TURNER;
-		}
-	}
+  scatFactor = DOYLE_TURNER;
+  if (readparam("Structure Factors:",buf,1)) {
+    sscanf(buf," %s",answer);
+    switch (tolower(answer[0])) {
+    case 'w':
+      if (tolower(answer[1])=='k') scatFactor = WEICK_KOHL;
+      break;
+    case 'd':  // DOYLE_TURNER
+      scatFactor = DOYLE_TURNER;
+      break;
+    case 'c':  // CUSTOM - specify k-lookup table and values for all atoms used
+      scatFactor = CUSTOM;
+      break;
+    default:
+      scatFactor = DOYLE_TURNER;
+    }
+  }
 }
 
-void CQscReader::ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams)
+void CQscReader::ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams, 
+                                            bool &lbeams, unsigned &nbout,
+                                            unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny)
 {
-	/*************************************************************
-	* read in the beams we want to plot in the pendeloesung plot
-	* Only possible if not in STEM or CBED mode 
-	*************************************************************/
-	lbeams = 0;   /* flag for beam output */
-	nbout = 0;    /* number of beams */
-	resetParamFile();
-	if ((mode != STEM) && (mode != CBED)) {
-		if (readparam("Pendelloesung plot:",buf,1)) {
-			sscanf(buf,"%s",answer);
-			lbeams = (tolower(answer[0]) == (int)'y');
-		}
-		if (lbeams) {
-			while (readparam("beam:",buf,0)) nbout++;  
-			printf("will record %d beams\n",nbout);
-			hbeam = (int*)malloc(nbout*sizeof(int));
-			kbeam = (int*)malloc(nbout*sizeof(int));
-			/* now read in the list of detectors: */
-			resetParamFile();
-			for (i=0;i<nbout;i++) {
-				if (!readparam("beam:",buf,0)) break;
-				hbeam[i] = 0;
-				kbeam[i] = 0;
-				sscanf(buf,"%d %d",hbeam+i,kbeam+i);
-				hbeam[i] *= nCellX;
-				kbeam[i] *= nCellY;
+  /*************************************************************
+   * read in the beams we want to plot in the pendeloesung plot
+   * Only possible if not in STEM or CBED mode 
+   *************************************************************/
+  lbeams = 0;   /* flag for beam output */
+  nbout = 0;    /* number of beams */
+  resetParamFile();
+  if (readparam("Pendelloesung plot:",buf,1)) {
+    sscanf(buf,"%s",answer);
+    lbeams = (tolower(answer[0]) == (int)'y');
+  }
+  if (lbeams) {
+    while (readparam("beam:",buf,0)) nbout++;  
+    printf("will record %d beams\n",nbout);
+    hbeams.resize(nbout);
+    kbeams.resize(nbout);
+    /* now read in the list of detectors: */
+    resetParamFile();
+    for (unsigned i=0;i<nbout;i++) {
+      if (!readparam("beam:",buf,0)) break;
+      hbeams[i] = 0;
+      kbeams[i] = 0;
+      sscanf(buf,"%d %d",&(hbeams[i]),&(kbeams[i]));
+      hbeams[i] *= nCellX;
+      kbeams[i] *= nCellY;
 
-				hbeam[i] = (hbeam[i]+nx) % nx;
-				kbeam[i] = (kbeam[i]+ny) % ny;
-				printf("beam %d [%d %d]\n",i,hbeam[i],kbeam[i]); 			}
-		}
-	}
+      hbeams[i] = (hbeams[i]+nx) % nx;
+      kbeams[i] = (kbeams[i]+ny) % ny;
+      printf("beam %d [%d %d]\n",i,hbeams[i],kbeams[i]); 			}
+  }
 }
 
 void CQscReader::ReadStructureFile(std::string &filename)
@@ -527,15 +516,12 @@ void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &d
 	dE_E = 0.0;
 	dI_I = 0.0;
 	dV_V = 0.0;
-	Cc = 0.0;
 	if (readparam("dE/E:",buf,1))
 		dE_E = atof(buf);
 	if (readparam("dI/I:",buf,1))
 		dI_I = atof(buf);
 	if (readparam("dV/V:",buf,1))
 		dV_V = atof(buf);
-	if (readparam("Cc:",buf,1))
-		Cc = 1e7*atof(buf);
 
 	if (!readparam("alpha:",buf,1)) exit(0); 
 	sscanf(buf,"%g",&(alpha)); /* in mrad */
@@ -546,7 +532,7 @@ void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &d
 
 	///// read beam current and dwell time ///////////////////////////////
 	beamCurrent = 1;  // pico Ampere
-	dwellTime = 1;    // msec
+	dwellTimeMs = 1;    // msec
 	if (readparam("beam current:",buf,1)) { 
 		sscanf(buf,"%g",&(beamCurrent)); /* in pA */
 	}
@@ -576,18 +562,18 @@ void CQscReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, flo
   if (readparam("tomo tilt:",buf,1)) { 
     sscanf(buf,"%lf %s",&(tomoTilt),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      tomoTilt *= 1000*pi/180.0;
+      tomoTilt *= 1000*PI/180.0;
   }
 
   if (readparam("tomo start:",buf,1)) { 
     sscanf(buf,"%lf %s",&(tomoStart),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      tomoStart *= 1000*pi/180.0;
+      tomoStart *= 1000*PI/180.0;
   }
   if (readparam("tomo step:",buf,1)) {
     sscanf(buf,"%lf %s",&(tomoStep),answer); /* in mrad */
     if (tolower(answer[0]) == 'd')
-      tomoStep *= 1000*pi/180.0;
+      tomoStep *= 1000*PI/180.0;
   }
   
   if (readparam("tomo count:",buf,1))  
@@ -598,12 +584,12 @@ void CQscReader::ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, flo
     tomoStep = -2.0*tomoStart/(float_tt)(tomoCount - 1);
 }
 
-CQscReader::ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
-                           float_tt &df0, float_tt &astig,
-                           float_tt &a33, float_tt &a31,
-                           float_tt &a44, float_tt &a42,
-                           float_tt &a55, float_tt &a53, float_tt &a51,
-                           float_tt &a66, float_tt &a64, float_tt &a62)
+void CQscReader::ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
+                                          float_tt &df0, bool &scherzerDefocus, float_tt &astig,
+                                          float_tt &a33, float_tt &a31,
+                                          float_tt &a44, float_tt &a42,
+                                          float_tt &a55, float_tt &a53, float_tt &a51,
+                                          float_tt &a66, float_tt &a64, float_tt &a62)
 {
   if (!readparam("Cs:",buf,1))  exit(0); 
   sscanf(buf,"%g",&(Cs)); /* in mm */
@@ -614,25 +600,30 @@ CQscReader::ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
     sscanf(buf,"%g",&(C5)); /* in mm */
     C5 *= 1.0e7; /* convert C5 from mm to Angstroem */
   }
+  Cc = 0;
+  if (readparam("Cc:",buf,1))
+    Cc = 1e7*atof(buf);
 
   /* assume Scherzer defocus as default */
-  df0 = -(float)sqrt(1.5*Cs*(wavelength(v0))); /* in A */
-  Scherzer = 1;
+  scherzerDefocus = true;
+  // we'll calculate the Scherzer defocus elsewhere, where we know the other parameters.
+  df0 = 0;
   if (readparam("defocus:",buf,1)) { 
     sscanf(buf,"%s",answer);
     /* if Scherzer defocus */
     if (tolower(answer[0]) == 's') {
-      df0 = -(float)sqrt(1.5*Cs*(wavelength(v0)));
-      Scherzer = 1;
+      scherzerDefocus = true;
     }
+    // TODO: what is this, Exactly?
     else if (tolower(answer[0]) == 'o') {
-      df0 = -(float)sqrt(Cs*(wavelength(v0)));
-      Scherzer = 2;
+      //df0 = -(float)sqrt(Cs*(wavelength(v0)));
+      //Scherzer = 2;
     }
     else {
       sscanf(buf,"%g",&(df0)); /* in nm */
       df0 = 10.0*df0;       /* convert defocus to A */
-      Scherzer = (-(float)sqrt(1.5*Cs*(wavelength(v0)))==df0);
+      scherzerDefocus = false;
+      //Scherzer = (-(float)sqrt(1.5*Cs*(wavelength(v0)))==df0);
     }
   }
   // Astigmatism:
@@ -664,7 +655,7 @@ CQscReader::ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
   if (readparam("a_62:",buf,1)) {sscanf(buf,"%g",&(a62)); }
 }
 
-ReadAberrationAngles(float_tt &astig,
+void CQscReader::ReadAberrationAngles(float_tt &astig,
                        float_tt &phi33, float_tt &phi31,
                        float_tt &phi44, float_tt &phi42,
                        float_tt &phi55, float_tt &phi53, float_tt &phi51,
@@ -673,7 +664,7 @@ ReadAberrationAngles(float_tt &astig,
   astig = 0;
   if (readparam("astigmatism angle:",buf,1)) sscanf(buf,"%g",&(astig)); 
   // convert astigAngle from deg to rad:
-  astig *= pi/180.0;
+  astig *= PI/180.0;
 
   phi33 = 0;
   phi31 = 0;

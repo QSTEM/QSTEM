@@ -48,6 +48,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 // #include "floatdef.hpp"
 #include "fftw3.h"
+#include <cmath>
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
@@ -58,6 +59,8 @@ typedef fftw_complex complex_tt;
 typedef double float_tt;
 #endif  // FLOAT_PRECISION
 ////////////////////////////////////////////////////////////////
+
+const float_tt PI = 2*acos(0.0);
 
 typedef struct atomStruct {
   float z,y,x;

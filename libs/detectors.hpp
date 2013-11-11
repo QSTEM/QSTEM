@@ -26,18 +26,20 @@
 class Detector {
   ImageIOPtr m_imageIO;
 public:
-  int Navg;
+  int m_Navg;
+  unsigned m_nx, m_ny;
   float_tt **m_image;        // place for storing avg image = sum(data)/Navg
   float_tt **m_image2;        // we will store sum(data.^2)/Navg 
-  float_tt m_rInside,m_rOutside;
-  float_tt m_k2Inside,m_k2Outside;
+  float_tt m_rInside, m_rOutside;
+  float_tt m_k2Inside, m_k2Outside;
   char m_name[32];
   float_tt m_error;
-  float_tt m_shiftX,m_shiftY;
+  float_tt m_shiftX, m_shiftY;
   float_tt m_dx, m_dy;
+  float_tt m_wavelength;
 
 public:
-  Detector(int nx, int ny, float_tt resX, float_tt resY);
+  Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavelength);
   boost::shared_ptr<Detector> Clone();
   void Initialize();
   void CollectIntensity(WavePtr &wave);
@@ -63,9 +65,11 @@ class DetectorManager
   // collects intensity from diffraction patterns to yield image intensity
   void CollectIntensity(int plane_idx, WavePtr &wave);
   // Saves detector images to files
-  void SaveDetectors();
+  void SaveDetectors(std::string &comment, 
+                     std::map<std::string, double> &parameters);
 private:
-  std::vector<std::vector<DetectorPtr> > m_detectors
+  std::vector<std::vector<DetectorPtr> > m_detectors;
+  std::vector<float_tt> m_thicknesses;
 };
 
 typedef boost::shared_ptr<DetectorManager> DetectorMgrPtr;

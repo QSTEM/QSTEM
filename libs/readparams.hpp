@@ -34,7 +34,7 @@ QSTEM - image simulation for TEM/STEM/CBED
  * 0 for failure
  * If a file is already open, close it first
  *******************************************************/
-int parOpen(char *fileName);
+int parOpen(const char *fileName);
 
 /********************************************************
  * Close the parameter file, if it is open
@@ -78,7 +78,7 @@ void setComment(char newComment);
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(char *title, char *parString,int wrapFlag);
+int readparam(const char *title, const char *parString,int wrapFlag);
 
 
 /************************************************************

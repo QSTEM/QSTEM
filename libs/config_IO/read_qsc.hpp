@@ -25,12 +25,13 @@
 class CQscReader : public IConfigReader
 {
 public:
-  CQscReader(std::string filename);
+  CQscReader(std::string &filename);
   ~CQscReader();
 
   void ReadMode(int &mode);
   void ReadOutputLevel(int &printLevel, int &saveLevel, 
                                unsigned &displayPotCalcInterval, unsigned &displayProgInterval);
+  void ReadOutputName(std::string &fileOrFolderName);
   void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv);
   void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack);
   void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
@@ -56,21 +57,24 @@ public:
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN);  
   void ReadAtomRadius(float_tt &radius);
   void ReadStructureFactorType(int &type);
-  void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams);
-  void ReadStructureFile(std::string &filename);
-  void ReadNumberOfDetectors(int &numDetectors)=0;
+  void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams,
+                                  bool &lbeams, unsigned &nbout,
+                                  unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny);
+  void ReadStructureFileName(std::string &directory, std::string &filename);
+  
+  void ReadNumberOfDetectors(int &numDetectors);
   void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, char *name, 
-                              float_tt &shiftX, float_tt &shiftY)=0;
+                              float_tt &shiftX, float_tt &shiftY);
   //void ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
   //                           DetectorPtr &detector_to_copy)
   
   void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
                       float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
                       bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
-  void ReadTomoParameters(float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
+  void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
-  void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
-                           float_tt &df0, float_tt &astig,
+  void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
+                           float_tt &df0, bool &scherzerDefocus, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,

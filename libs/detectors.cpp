@@ -20,11 +20,12 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #include "detectors.hpp"
 #include "memory_fftw3.hpp"
 
-Detector::Detector(int nx, int ny, float_tt resX, float_tt resY)
+Detector::Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavelength)
   : m_error(0),
     m_shiftX(0),
     m_shiftY(0),
@@ -32,7 +33,8 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY)
     m_nx(nx),
     m_ny(ny),
     m_dx(resX),
-    m_dy(resY)
+    m_dy(resY),
+    m_wavelength(wavelength)
 {
   m_image = float2D(nx,ny,"ADFimag");
   m_image2 = float2D(nx,ny,"ADFimag");
@@ -47,29 +49,27 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY)
 //    this in only your ReadDetectors method.
 DetectorPtr Detector::Clone()
 {
-  return DetectorPtr(new Detector(m_nx, m_ny, m_dx, m_dy));
+  return DetectorPtr(new Detector(m_nx, m_ny, m_dx, m_dy, m_wavelength));
 }
 
 void Detector::Initialize()
 {
   /* determine v0 specific k^2 values corresponding to the angles */
-  k2Inside = (float)(sin(rInside*0.001)/(wavelength(v0)));
-  k2Outside = (float)(sin(rOutside*0.001)/(wavelength(v0)));
+  m_k2Inside = (float)(sin(m_rInside*0.001)/m_wavelength);
+  m_k2Outside = (float)(sin(m_rOutside*0.001)/m_wavelength);
   /* calculate the squares of the ks */
-  k2Inside *= k2Inside;
-  k2Outside *= k2Outside;
+  m_k2Inside *= m_k2Inside;
+  m_k2Outside *= m_k2Outside;
 }
 
 void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
                           std::vector<unsigned> position)
 {
-  params["dx"]=dx;
-  params["dy"]=dy;
+  params["dx"]=m_dx;
+  params["dy"]=m_dy;
   // Thickness is set externally and passed in on params
-  m_imageIO->WriteRealImage((void **)image, fileName, params, std::string(comment), position);
+  m_imageIO->WriteRealImage((void **)m_image, fileName, params, std::string(comment), position);
 }
-
-
 
 
 
@@ -79,13 +79,15 @@ DetectorManager::DetectorManager(ConfigReaderPtr &configReader)
   LoadDetectors(configReader);
 }
 
-DetectorManager::LoadDetectors(ConfigReaderPtr &configReader, std::vector<float_tt> &thicknesses)
+void DetectorManager::LoadDetectors(ConfigReaderPtr &configReader, std::vector<float_tt> &thicknesses)
 {
   int numDetectors;
 
-  m_detectors.resize(thicknesses.size());
+  m_thicknesses=thicknesses;
+
+  m_detectors.resize(m_thicknesses.size());
   configReader->ReadNumberOfDetectors(numDetectors);
-  for (size_t plane_idx=0; plane_idx<nplanes; plane_idx++)
+  for (size_t plane_idx=0; plane_idx<m_thicknesses.size(); plane_idx++)
     {
       m_detectors[plane_idx].resize(numDetectors);
       for (size_t det_idx=0; det_idx<numDetectors; det_idx++)
@@ -94,12 +96,11 @@ DetectorManager::LoadDetectors(ConfigReaderPtr &configReader, std::vector<float_
           configReader->ReadDetectorParameters(det_idx, det->m_rInside, det->m_rOutside, det->m_name, 
                                                det->m_shiftX, det->m_shiftY);
           det->Initialize();
-          det->SetThickness(thicknesses[det_idx]);
         }
     }
 }
 
-  DetectorManager::LoadDetectors(ConfigReaderPtr &configReader, std::vector<unsigned> &output_planes)
+void DetectorManager::LoadDetectors(ConfigReaderPtr &configReader, std::vector<unsigned> &output_planes)
 {
   float_tt sliceThickness, dummyf;
   bool dummyb;
@@ -107,15 +108,14 @@ DetectorManager::LoadDetectors(ConfigReaderPtr &configReader, std::vector<float_
   configReader->ReadSliceParameters(dummyb, sliceThickness, dummyi, dummyi, dummyf);
   // one extra plane for the final output
   std::vector<float_tt> thicknesses(output_planes.size(), float_tt());
-  for (size_t plane_idx=0; plane_idx<nplanes; plane_idx++)
+  for (size_t plane_idx=0; plane_idx<thicknesses.size(); plane_idx++)
     {
-      thicknesses[plane_idx]=(plane_idx+1)*sliceThickness;
+      thicknesses[plane_idx]=output_planes[plane_idx]*sliceThickness;
     }
-  thicknesses[nplanes]=nslices*sliceThickness;
   return LoadDetectors(configReader, thicknesses);
 }
 
-DetectorManager::LoadDetectors(ConfigReaderPtr &configReader)
+void DetectorManager::LoadDetectors(ConfigReaderPtr &configReader)
 {
   float_tt sliceThickness, dummyf;
   bool dummyb;
@@ -133,7 +133,7 @@ DetectorManager::LoadDetectors(ConfigReaderPtr &configReader)
   return LoadDetectors(configReader, thicknesses);
 }
 
-DetectorManager::CollectIntensity(int plane_idx, WavePtr &wave)
+void DetectorManager::CollectIntensity(int plane_idx, WavePtr &wave)
 {
   for (size_t det_idx=0; det_idx<m_detectors[plane_idx].size(); det_idx++)
     {
@@ -141,7 +141,8 @@ DetectorManager::CollectIntensity(int plane_idx, WavePtr &wave)
     }
 }
 
-DetectorManager::SaveDetectors()
+void DetectorManager::SaveDetectors(std::string &comment,
+                                    std::map<std::string, double> &params)
 {
   std::vector<unsigned>detector_id(2), final_id(1);
   for (size_t plane_idx=0; plane_idx<m_detectors.size(); plane_idx++)
@@ -152,22 +153,12 @@ DetectorManager::SaveDetectors()
           detector_id[1]=plane_idx;
           final_id[0]=det_idx;
           DetectorPtr det = m_detectors[plane_idx][det_idx];
+          params["Thickness"]=m_thicknesses[plane_idx];
           
-          det->WriteImage(det->m_name, "", ,
-
+          det->WriteImage(det->m_name, comment.c_str(), params);
+        }
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

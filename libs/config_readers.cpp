@@ -24,16 +24,21 @@
 ConfigReaderPtr GetConfigReader(std::string &filename)
 {
   boost::filesystem::path filepath( filename );
-std::string extension = filepath.extension();
-boost::algorithm::to_lower(extension);
+  std::string extension = filepath.extension().string();
+  boost::algorithm::to_lower(extension);
   // check file extension, instantiate appropriate reader
   if (extension == ".qsc")
-    return ConfigReaderPtr(new CQScReader(filename));
+    return ConfigReaderPtr(new CQscReader(filename));
   else if (extension == ".qh5")
     {
       // TODO: flesh out qh5 as config option
     }
 }
+
+
+
+
+
 
 
 

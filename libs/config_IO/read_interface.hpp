@@ -23,6 +23,7 @@
 #include "stemtypes_fftw3.hpp"
 #include <boost/shared_ptr.hpp>
 #include <string>
+#include <vector>
 
 class IConfigReader
 {
@@ -36,6 +37,7 @@ public:
     unsigned dummy;
     ReadOutputLevel(printLevel, saveLevel, displayPotCalcInterval, dummy);
   }
+  virtual void ReadOutputName(std::string &fileOrFolderName)=0;
   virtual void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv)=0;
   virtual void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)=0;
   virtual void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
@@ -58,7 +60,9 @@ public:
   virtual void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)=0;
   virtual void ReadAtomRadius(float_tt &radius)=0;
   virtual void ReadStructureFactorType(int &type)=0;
-  virtual void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams)=0;
+  virtual void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams,
+                                          bool &lbeams, unsigned &nbout,
+                                          unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny)=0;
   virtual void ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)=0;
   virtual void ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN)=0;
@@ -69,7 +73,8 @@ public:
     unsigned dummy_u;
     ReadScanParameters(scanXStart, dummy_f, dummy_u, scanYStart, dummy_f, dummy_u);
   }
-  virtual void ReadStructureFile(std::string &filename)=0;
+  virtual void ReadStructureFileName(std::string &directory, std::string &filename)=0;
+
   virtual void ReadNumberOfDetectors(int &numDetectors)=0;
   virtual void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, char *name, 
                               float_tt &shiftX, float_tt &shiftY)=0;
@@ -78,10 +83,10 @@ public:
   virtual void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
                            float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
                            bool &ismoth, float_tt &gaussScale, bool &gaussFlag)=0;
-  virtual void ReadTomoParameters(float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
+  virtual void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor)=0;
-  virtual void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5,
-                           float_tt &df0, float_tt &astig,
+  virtual void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
+                           float_tt &df0, bool &scherzerDefocus, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,

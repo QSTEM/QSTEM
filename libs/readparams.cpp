@@ -47,7 +47,7 @@ char commentChar=COMMENT;
  * 0 for failure
  * If a file is already open, close it first
  *******************************************************/
-int parOpen(char *fileName) {
+int parOpen(const char *fileName) {
   int i;
 
   if (fpStack == NULL) {
@@ -139,7 +139,7 @@ void setComment(char newComment) {
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(char *title, char *parString, int wrapFlag) {
+int readparam(const char *title, char *parString, int wrapFlag) {
   char *result;
   char *str=NULL,*comment;
   // int iresult;
