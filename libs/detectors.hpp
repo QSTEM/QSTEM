@@ -32,7 +32,7 @@ public:
   float_tt **m_image2;        // we will store sum(data.^2)/Navg 
   float_tt m_rInside, m_rOutside;
   float_tt m_k2Inside, m_k2Outside;
-  char m_name[32];
+  std::string m_name;
   float_tt m_error;
   float_tt m_shiftX, m_shiftY;
   float_tt m_dx, m_dy;
@@ -43,8 +43,13 @@ public:
   boost::shared_ptr<Detector> Clone();
   void Initialize();
   void CollectIntensity(WavePtr &wave);
-  void WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
-                  std::vector<unsigned>position=std::vector<unsigned>());
+  void WriteImage(std::string &fileName, std::string &comment, std::map<std::string, double> &params,
+                  std::vector<unsigned>&position);
+  inline void WriteImage(std::string &fileName, std::string &comment, std::map<std::string, double> &params)
+  {
+    std::vector<unsigned> position;
+    WriteImage(fileName, comment, params, position);
+  }
 };
 
 typedef boost::shared_ptr<Detector> DetectorPtr;

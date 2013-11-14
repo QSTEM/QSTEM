@@ -57,13 +57,13 @@ public:
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN);  
   void ReadAtomRadius(float_tt &radius);
   void ReadStructureFactorType(int &type);
-  void ReadPendeloesungParameters(bool &plot, std::vector<int> &hbeams, std::vector<int> &kbeams,
+  void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
                                   bool &lbeams, unsigned &nbout,
                                   unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny);
   void ReadStructureFileName(std::string &directory, std::string &filename);
   
   void ReadNumberOfDetectors(int &numDetectors);
-  void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, char *name, 
+  void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, std::string &name, 
                               float_tt &shiftX, float_tt &shiftY);
   //void ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
   //                           DetectorPtr &detector_to_copy)
@@ -74,7 +74,7 @@ public:
   void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
   void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
-                           float_tt &df0, bool &scherzerDefocus, float_tt &astig,
+                           float_tt &df0, int &Scherzer, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,

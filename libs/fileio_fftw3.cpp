@@ -495,7 +495,7 @@ int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 
 
 						   if ((muls->Einstein == 0) && (fpPhonon == NULL)) {
-							   if ((fpPhonon = fopen(muls->phononFile,"r")) == NULL) {
+                                                     if ((fpPhonon = fopen(muls->phononFile.c_str(),"r")) == NULL) {
 								   printf("Cannot find phonon mode file, will use random displacements!");
 								   muls->Einstein = 1;
 								   //muls->phononFile = NULL;

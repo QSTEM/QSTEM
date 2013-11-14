@@ -26,19 +26,17 @@
 class CQH5Output : public IDataWriter
 {
 public:
-  CQH5Output();
+  CQH5Output(std::string fileName, std::string run_id);
   ~CQH5Output();
   virtual void Initialize(std::string fileName, std::string run_id="avg");
   virtual void CreateRealDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions);
   virtual void CreateComplexDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions);
-  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
-                              std::vector<unsigned> position=std::vector<unsigned>(), 
-                              std::string comment=std::string(),
-                              std::map<std::string, double> parameters=std::map<std::string, double>());
-  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label, 
-                                 std::vector<unsigned> position=std::vector<unsigned>(), 
-                                 std::string comment=std::string(),
-                                 std::map<std::string, double> parameters=std::map<std::string, double>());
+  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> &shape, std::string label, 
+                              std::vector<unsigned> &position, std::string &comment,
+                              std::map<std::string, double> &parameters);
+  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string label, 
+                                 std::vector<unsigned> &position, std::string &comment,
+                                 std::map<std::string, double> &parameters);
 private:
   QH5ptr m_qh5;
 };

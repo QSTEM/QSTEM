@@ -24,27 +24,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 
-
-
-
-class Detector {
-	ImageIOPtr m_imageIO;
-public:
-  int Navg;
-  float_tt **image;        // place for storing avg image = sum(data)/Navg
-  float_tt **image2;        // we will store sum(data.^2)/Navg 
-  float_tt rInside,rOutside;
-  float_tt k2Inside,k2Outside;
-  char name[32];
-  float_tt error;
-  float_tt shiftX,shiftY;
-  float_tt dx, dy;
-
-public:
-  Detector(int nx, int ny, float_tt resX, float_tt resY);
-  void WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
-                  std::vector<unsigned>position=std::vector<unsigned>());
-};
+#include "detectors.hpp"
 
 typedef boost::shared_ptr<Detector> DetectorPtr;
 
@@ -90,10 +70,10 @@ public:
   char cfgFile[512];                        /* file name for writing tilted atomic configuration */
   float_tt cubex,cubey,cubez;            /* dimension of crystal cube, if zero, then nx,ny,nz *
 					 * will be used */
-  int adjustCubeSize;
+  bool adjustCubeSize;
   float_tt btiltx,btilty;   	        /* beam tilt in mrad*/
-  int tiltBack;               /* tilt back the wave below the specimen */
-  int *hbeam,*kbeam;		        /* arrays to hold recorded 
+  bool tiltBack;               /* tilt back the wave below the specimen */
+  std::vector<int> hbeam,kbeam;		        /* arrays to hold recorded 
 					   beam indicies */
   int lbeams;				/* flag indicating, whether 
 					   to record beams */	
@@ -104,7 +84,7 @@ public:
   int mulsRepeat1;                      /* # of times to repeat structure */
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   int slices;                           /* number of different slices */
-  int centerSlices;                     /* flag indicating how to cut the sample */
+  bool centerSlices;                     /* flag indicating how to cut the sample */
   float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt ax,by,c;	                /* lattice parameters */
   float_tt cAlpha,cBeta,cGamma;
@@ -200,16 +180,16 @@ public:
   int deconvolute;
   int showPhaseplate;
   int normHolog;
-  int gaussianProp;    /* convolute fresnel propagator with gaussian or not */
-  int nonPeriodZ;      /* for slicecell (make non periodic in Z */
-  int nonPeriod;       /* for slicecell (make non periodic in x,y */
-  int bandlimittrans;  /* flag for bandwidth limiting transmission function */
-  int fftpotential;    /* flag indicating that we should use FFT for V_proj calculation */
-  int plotPotential;
-  int storeSeries;
-  int tds;
-  int Einstein;        /* if set (default=set), the Einstein model will be used */
-  char phononFile[512];    /* file name for detailed phonon modes */
+  bool gaussianProp;    /* convolute fresnel propagator with gaussian or not */
+  bool periodicZ;      /* for slicecell (make non periodic in Z */
+  bool periodicXY;       /* for slicecell (make non periodic in x,y */
+  bool bandlimittrans;  /* flag for bandwidth limiting transmission function */
+  bool fftpotential;    /* flag indicating that we should use FFT for V_proj calculation */
+  bool plotPotential;
+  bool storeSeries;
+  bool tds;
+  bool Einstein;        /* if set (default=set), the Einstein model will be used */
+  std::string phononFile;    /* file name for detailed phonon modes */
   int atomKinds;
   int *Znums;
   double **rPotential;   /* array containing real space potential LUT for each atom kind present */
@@ -218,30 +198,29 @@ public:
   int sfNk;              /* number of k-points in sfTable and sfkArray */
   double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
   float_tt tds_temp;
-  int savePotential;
-  int saveTotalPotential;
-  int readPotential;
+  bool savePotential;
+  bool saveTotalPotential;
+  bool readPotential;
   float_tt scanXStart,scanXStop,scanYStart,scanYStop;
   int scanXN,scanYN;
   float_tt intIntensity;
-  double imageGamma;
-  char folder[1024];
+  std::string folder;
   int avgRuns;
-  int potential3D;
+  bool potential3D;
   int scatFactor;
   int Scherzer;
   std::vector<double> chisq;
-  int webUpdate;
   int cellDiv;
-  int equalDivs;           // this flag indicates whether we can reuse already pre-calculated potential data
+  bool equalDivs;           // this flag indicates whether we can reuse already pre-calculated potential data
 
   /* Parameters for STEM-detectors */
   int detectorNum;
   /* we will alow as many detector 
 			   definitions as the user wants */
-  std::vector<std::vector<DetectorPtr> > detectors;
+  DetectorMgrPtr detectors;
+  // std::vector<std::vector<DetectorPtr> > detectors;
   //DETECTOR *detectors;
-  int save_output_flag;
+  bool save_output_flag;
   
   double *dE_EArray;
 

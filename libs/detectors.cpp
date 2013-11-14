@@ -62,13 +62,13 @@ void Detector::Initialize()
   m_k2Outside *= m_k2Outside;
 }
 
-void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
-                          std::vector<unsigned> position)
+void Detector::WriteImage(std::string &fileName, std::string &comment, std::map<std::string, double> &params,
+                          std::vector<unsigned> &position)
 {
   params["dx"]=m_dx;
   params["dy"]=m_dy;
   // Thickness is set externally and passed in on params
-  m_imageIO->WriteRealImage((void **)m_image, fileName, params, std::string(comment), position);
+  m_imageIO->WriteRealImage((void **)m_image, fileName, params, comment, position);
 }
 
 
@@ -155,7 +155,7 @@ void DetectorManager::SaveDetectors(std::string &comment,
           DetectorPtr det = m_detectors[plane_idx][det_idx];
           params["Thickness"]=m_thicknesses[plane_idx];
           
-          det->WriteImage(det->m_name, comment.c_str(), params);
+          det->WriteImage(det->m_name, comment, params);
         }
     }
 }

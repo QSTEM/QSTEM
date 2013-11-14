@@ -35,14 +35,14 @@ public:
   //   to create data sets which are then filled later, rather than saving individual files.)
   virtual void CreateRealDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
   virtual void CreateComplexDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
-  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> shape, std::string label, 
-                              std::vector<unsigned> position=std::vector<unsigned>(), 
-                              std::string comment=std::string(),
-                              std::map<std::string, double> parameters=std::map<std::string, double>())=0;
-  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label, 
-                                 std::vector<unsigned> position=std::vector<unsigned>(), 
-                                 std::string comment=std::string(),
-                                 std::map<std::string, double> parameters=std::map<std::string, double>())=0;
+  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> &shape, std::string &label, 
+                              std::vector<unsigned> &position, 
+                              std::string &comment,
+                              std::map<std::string, double> &parameters)=0;
+  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label, 
+                                 std::vector<unsigned> &position, 
+                                 std::string &comment,
+                                 std::map<std::string, double> &parameters)=0;
 };
 
 typedef boost::shared_ptr<IDataWriter> DataWriterPtr;

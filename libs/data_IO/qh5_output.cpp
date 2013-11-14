@@ -33,25 +33,27 @@ void CQH5Output::Initialize(std::string fileName, std::string run_id)
   m_qh5->SetRunID(run_id);
 }
 
-void CQH5Output::CreateRealDataSet(std::string name, std::vector<unsigned int> &positions)
+void CQH5Output::CreateRealDataSet(std::string name, unsigned size_x, unsigned size_y, 
+                                   std::vector<unsigned int> &positions)
 {
   m_qh5->CreateRealDataSet(name, size_x, size_y, positions);
 }
 
-void CQH5Output::CreateComplexDataSet(std::string name, std::vector<unsigned int> &positions)
+void CQH5Output::CreateComplexDataSet(std::string name, unsigned size_x, unsigned size_y,
+                                      std::vector<unsigned int> &positions)
 {
   m_qh5->CreateComplexDataSet(name, size_x, size_y, positions);
 }
 
-void CQH5Output::WriteRealImage(float_tt **data, std::vector<unsigned int> shape, std::string label, 
-                           std::vector<unsigned int> position, std::string comment, 
+void CQH5Output::WriteRealImage(float_tt **data, std::vector<unsigned int> &shape, std::string &label, 
+                           std::vector<unsigned int> &position, std::string &comment, 
                            std::map<std::string, double> &parameters)
 {  
   m_qh5->WriteRealDataSlab(*data, label, shape[0], shape[1], position, parameters);
 }
 
-void CQH5Output::WriteComplexImage(complex_tt **data, std::vector<unsigned> shape, std::string label,
-                              std::vector<unsigned> position, std::string comment, 
+void CQH5Output::WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label,
+                              std::vector<unsigned> &position, std::string &comment, 
                               std::map<std::string, double> &parameters)
 {
   m_qh5->WriteComplexDataSlab(*data, label, shape[0], shape[1], position, parameters);
