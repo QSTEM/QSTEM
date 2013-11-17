@@ -40,7 +40,7 @@ void CQH5Input::ReadImage(void **pix, std::string label,
   else if (label == "diffAvg")
     {
     }
-  else if (label == 
+  //else if (label == 
   else
     {
     }

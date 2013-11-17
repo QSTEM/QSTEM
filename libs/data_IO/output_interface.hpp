@@ -36,12 +36,10 @@ public:
   virtual void CreateRealDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
   virtual void CreateComplexDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
   virtual void WriteRealImage(float_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                              std::vector<unsigned> &position, 
-                              std::string &comment,
+                              std::vector<unsigned> &position, std::string &comment,
                               std::map<std::string, double> &parameters)=0;
   virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                                 std::vector<unsigned> &position, 
-                                 std::string &comment,
+                                 std::vector<unsigned> &position, std::string &comment,
                                  std::map<std::string, double> &parameters)=0;
 };
 

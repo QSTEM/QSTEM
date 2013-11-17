@@ -17,12 +17,20 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef WAVEFUNC_H
+#define WAVEFUNC_H
+
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"
 #include "config_readers.hpp"
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
+
+std::string waveFilePrefix="mulswav";
+std::string dpFilePrefix="diff";
+std::string avgFilePrefix="diffAvg";
+std::string probeFilePrefix="probe_wave";
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -31,12 +39,12 @@ class WAVEFUNC
   // shared pointer to 
   ImageIOPtr m_imageIO;
 public:
-  char fileStart[500];
-  char avgName[500];
-  char fileout[500];
+  std::string fileStart;
+  std::string avgName;
+  std::string fileout;
   unsigned detPosX, detPosY;
-  int iPosX,iPosY;      /* integer position of probe position array */
-  int nx, ny;			/* size of diffpat arrays */
+  unsigned iPosX,iPosY;      /* integer position of probe position array */
+  unsigned nx, ny;			/* size of diffpat arrays */
   float_tt **diffpat;
   float_tt **avgArray;
   float_tt thickness;
@@ -57,29 +65,35 @@ public:
 
 public:
   // initializing constructor:
-  WAVEFUNC(int nx, int ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
+  WAVEFUNC(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
   WAVEFUNC(ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
   WAVEFUNC( WAVEFUNC& other );
 
+  // For CBED ( &TEM? )
+  void SetWavePosition(unsigned navg);
+  // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
   std::vector<unsigned> GetPositionVector();
 
   void CreateDataSets();
 
-  void WriteWave(const char *fileName, const char *comment="Wavefunction", 
+  void WriteProbe();
+  void WriteWave(std::string comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());
-  void WriteDiffPat(const char *fileName, const char *comment="Diffraction Pattern",
+  void WriteDiffPat(std::string comment="Diffraction Pattern",
                     std::map<std::string, double>params = std::map<std::string, double>());
-  void WriteAvgArray(const char *fileName, const char *comment="Average Array",
+  void WriteAvgArray(std::string comment="Average Array",
                      std::map<std::string, double>params = std::map<std::string, double>());
 
-  void ReadWave(const char *fileName);
-  void ReadWave(const char *fileName, unsigned posX, unsigned posY);
-  void ReadDiffPat(const char *fileName);
-  void ReadDiffPat(const char *fileName, unsigned posX, unsigned posY);
-  void ReadAvgArray(const char *fileName);
-  void ReadAvgArray(const char *fileName, unsigned posX, unsigned posY);
+  void ReadWave();
+  void ReadWave(unsigned posX, unsigned posY);
+  void ReadDiffPat();
+  void ReadDiffPat(unsigned posX, unsigned posY);
+  void ReadAvgArray();
+  void ReadAvgArray(unsigned posX, unsigned posY);
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;
+
+#endif

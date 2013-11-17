@@ -160,6 +160,21 @@ void DetectorManager::SaveDetectors(std::string &comment,
     }
 }
 
-
-
+void DetectorManager::PrintDetectors()
+{
+  printf("* Number of detectors:  %d\n",m_detectors.size());
+                
+  for (size_t i=0;i<m_detectors.size();i++) {
+    printf("* %d (\"%s\"):",i+1,m_detectors[0][i]->m_name.c_str());
+    for (size_t j=0;j<14-m_detectors[0][i]->m_name.size();j++) printf(" ");
+    printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
+           m_detectors[0][i]->m_rInside,
+           m_detectors[0][i]->m_rOutside,
+           m_detectors[0][i]->m_k2Inside,
+           m_detectors[0][i]->m_k2Outside);
+    if ((m_detectors[0][i]->m_shiftX != 0) ||(m_detectors[0][i]->m_shiftY != 0))
+      printf("*   center shifted:     dkx=%g, dky=%g\n",
+             m_detectors[0][i]->m_shiftX,m_detectors[0][i]->m_shiftY);
+  }
+}
 

@@ -73,7 +73,7 @@ public:
   void WriteComplexImage(void **pix, std::string &fileName,
                          std::map<std::string, double> &params,
                          std::string &comment,
-                         std::vector<unsigned> position=std::vector<unsigned>());
+                         std::vector<unsigned> &position);
   
   // If you want to add a comment, but no parameters
   inline void WriteComplexImage(void **pix, std::string &fileName, std::string &comment,

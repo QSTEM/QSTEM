@@ -83,20 +83,20 @@ public:
   //int nslic0;				/* slice counter */
   int mulsRepeat1;                      /* # of times to repeat structure */
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
-  int slices;                           /* number of different slices */
+  unsigned slices;                           /* number of different slices */
   bool centerSlices;                     /* flag indicating how to cut the sample */
   float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt ax,by,c;	                /* lattice parameters */
   float_tt cAlpha,cBeta,cGamma;
   double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
-  int nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
+  unsigned nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
   int natom;				/* number of atoms in "atoms" */
   atom *atoms;				/* 3D atoms array */	
   float_tt atomRadius;                   /* for atom potential boxes */
   float_tt potOffsetX,potOffsetY;        /* offset of potential array from zero */
   float_tt potSizeX,potSizeY;            /* real space dimensions of potential array in A */
-  int potNx,potNy;                      /* size of projected potential in pixels */
-  int nx,ny;				/* size of wave function arrays */
+  unsigned potNx,potNy;                      /* size of projected potential in pixels */
+  unsigned nx,ny;				/* size of wave function arrays */
   int avgCount;
   //float_tt thickness;
 
@@ -111,12 +111,12 @@ public:
   float_tt astigMag;				/* astigmatism*/
   float_tt astigAngle;				/* angle of astigmatism */
 
-  int ismoth;                          /* smoothen the probe wave function */
-  int gaussFlag;
+  bool ismoth;                          /* smoothen the probe wave function */
+  bool gaussFlag;
   float_tt gaussScale;
   int showProbe;
-  int displayProgInterval;             /* show progress every .. beam positions */
-  int displayPotCalcInterval;             /* show progress every .. beam positions */
+  unsigned displayProgInterval;             /* show progress every .. beam positions */
+  unsigned displayPotCalcInterval;             /* show progress every .. beam positions */
 
   float_tt beamCurrent;  // pico Ampere
   float_tt dwellTime;    // msec
@@ -124,7 +124,7 @@ public:
 
   
   int totalSliceCount;
-  int outputInterval;    // output results every n slices
+  unsigned outputInterval;    // output results every n slices
 
   float_tt aobj;				/* obj aperture */
   float_tt aAIS;                         /* condensor aperture in A (projected size, */
@@ -202,10 +202,10 @@ public:
   bool saveTotalPotential;
   bool readPotential;
   float_tt scanXStart,scanXStop,scanYStart,scanYStop;
-  int scanXN,scanYN;
+  unsigned scanXN,scanYN;
   float_tt intIntensity;
   std::string folder;
-  int avgRuns;
+  unsigned avgRuns;
   bool potential3D;
   int scatFactor;
   int Scherzer;
@@ -225,11 +225,11 @@ public:
   double *dE_EArray;
 
   // Tomography parameters:
-  double tomoTilt;  // current tilt in tomography series
-  double tomoStart; // in rad
-  double tomoStep;  // in rad
+  float_tt tomoTilt;  // current tilt in tomography series
+  float_tt tomoStart; // in rad
+  float_tt tomoStep;  // in rad
   int    tomoCount;  // number of diffraction patterns.
-  double zoomFactor; // increases the size of the super-box in x,y, in order to
+  float_tt zoomFactor; // increases the size of the super-box in x,y, in order to
                      // make full use of atoms present, creates vacuum edge around sample.
 
 }; 

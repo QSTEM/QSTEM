@@ -397,16 +397,18 @@ void CQscReader::ReadNumberOfDetectors(int &numDetectors)
   while (readparam("detector:",buf, 0)) ++numDetectors;
 }
 
-void CQscReader::ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, char *name, 
+void CQscReader::ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, std::string &name, 
                                         float_tt &shiftX, float_tt &shiftY)
 {
   int file_det_idx=0;
+  char name_buf[100];
   resetParamFile();
   while (readparam("detector:",buf,0)) {
     if (det_idx==file_det_idx)
       {
         sscanf(buf,"%g %g %s %g %g",&(rInside),
-               &(rOutside), name, &(shiftX),&(shiftY));
+               &(rOutside), name_buf, &(shiftX),&(shiftY));
+        name=name_buf;
         return;
       }
     ++file_det_idx;

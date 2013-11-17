@@ -87,12 +87,12 @@ void writeIntPix(char *outFile,float_tt **pict,int nx,int ny);
 void runMuls(int lstart);
 void saveLineScan(int run);
 void readBeams(FILE *fp);
-void doCBED();
-void doSTEM();
-void doTEM();
-void doMSCBED();
-void doTOMO();
-void readFile();
+void doCBED(WavePtr initialWave, PotPtr pot);
+void doSTEM(WavePtr initialWave, PotPtr pot);
+void doTEM(WavePtr initialWave, PotPtr pot);
+void doMSCBED(WavePtr initialWave, PotPtr pot);
+void doTOMO(WavePtr initialWave, PotPtr pot);
+void readFile(ConfigReaderPtr &configReader);
 void displayParams();
 
 void usage() {
@@ -110,7 +110,6 @@ void usage() {
 int main(int argc, char *argv[]) {
   int i; 
   double timerTot;
-  char fileName[256]; 
   char cinTemp[BUF_LEN];
 
   timerTot = cputim();
@@ -122,25 +121,26 @@ int main(int argc, char *argv[]) {
   system("date");
 #endif
 
+  std::string fileName;
   /*************************************************************
    * read in the parameters
    ************************************************************/  
   if (argc < 2)
-    sprintf(fileName,"stem.dat");
+    fileName = "stem.dat";
   else
-    strcpy(fileName,argv[1]);
+    fileName=argv[1];
   // Initialize the config file reader
   ConfigReaderPtr configReader = GetConfigReader(fileName);
   
   if (!configReader->IsValid())
     {
-      printf("could not open input file %s!\n",fileName);
+      printf("could not open input file %s!\n",fileName.c_str());
       exit(0);
       usage();
     }
         
   // Read potential parameters and initialize a pot object
-  WavePtr initialWave(configReader);
+  WavePtr initialWave(WAVEFUNC(configReader));
   PotPtr potential = GetPotential(configReader);
   readFile(configReader);
 
@@ -259,12 +259,12 @@ void displayParams() {
 	const double pi=3.1415926535897;
 
 	if (muls.printLevel < 1) {
-		if ((fpDir = fopen(muls.folder,"r"))) {
+          if ((fpDir = fopen(muls.folder.c_str(),"r"))) {
 			fclose(fpDir);
 			// printf(" (already exists)\n");
 		}
 		else {
-			sprintf(systStr,"mkdir %s",muls.folder);
+                  sprintf(systStr,"mkdir %s",muls.folder.c_str());
 			system(systStr);
 			// printf(" (created)\n");
 		}	  
@@ -288,7 +288,7 @@ void displayParams() {
 	if (muls.savePotential)
 		printf("* Potential file name:  %s\n",muls.fileBase);
 	/* create the data folder ... */
-	printf("* Data folder:          ./%s/ ",muls.folder); 
+	printf("* Data folder:          ./%s/ ",muls.folder.c_str()); 
 	
 
 	if ((muls.cubex == 0) || (muls.cubey == 0) || (muls.cubez == 0))
@@ -321,7 +321,7 @@ void displayParams() {
 	if (muls.fftpotential) printf(" (fast method)\n"); else printf(" (slow method)\n");	
 	printf("* Pot. array offset:    (%g,%g,%g)A\n",muls.potOffsetX,muls.potOffsetY,muls.czOffset);
 	printf("* Potential periodic:   (x,y): %s, z: %s\n",
-		(muls.nonPeriod) ? "no" : "yes",(muls.nonPeriodZ) ? "no" : "yes");
+		(muls.periodicXY) ? "yes" : "no",(muls.periodicZ) ? "yes" : "no");
 
 	printf("* Beams:                %d x %d \n",muls.nx,muls.ny);  
 	printf("* Acc. voltage:         %g (lambda=%gA)\n",muls.v0,wavelength(muls.v0));
@@ -378,10 +378,6 @@ void displayParams() {
 		printf("* TDS:                  yes (%d runs)\n",muls.avgRuns);
 	else
 		printf("* TDS:                  no\n"); 
-	if (muls.imageGamma == 0)
-		printf("* Gamma for diff. patt: logarithmic\n");
-	else
-		printf("* Gamma for diff. patt: %g\n",muls.imageGamma);
 
 	/**********************************************************
 	* FFTW specific data structures (stores in row major order)
@@ -417,28 +413,17 @@ void displayParams() {
 			"* STEM parameters:\n");
 		printf("* Maximum scattering angle:  %.0f mrad\n",
 			0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
-		printf("* Number of detectors:  %d\n",muls.detectorNum);
-		for (i=0;i<muls.detectorNum;i++) {
-			printf("* %d (\"%s\"):",i+1,muls.detectors[0][i]->name);
-			for (j=0;j<14-strlen(muls.detectors[0][i]->name);j++) printf(" ");
-			printf(" %g .. %g mrad = (%.2g .. %.2g 1/A)\n",
-				muls.detectors[0][i]->rInside,
-				muls.detectors[0][i]->rOutside,
-				muls.detectors[0][i]->k2Inside,
-				muls.detectors[0][i]->k2Outside);
-			if ((muls.detectors[0][i]->shiftX != 0) ||(muls.detectors[0][i]->shiftY != 0))
-				printf("*   center shifted:     dkx=%g, dky=%g\n",
-				muls.detectors[0][i]->shiftX,muls.detectors[0][i]->shiftY);
-		}
+                muls.detectors->PrintDetectors();
+		
 		printf("* Scan window:          (%g,%g) to (%g,%g)A, %d x %d = %d pixels\n",
 			muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
 			muls.scanXN,muls.scanYN,muls.scanXN*muls.scanYN);
-	} /* end of if mode == STEM */
+        } /* end of if mode == STEM */
 
 	/***********************************************************************
 	* TOMOGRAPHY Mode
 	**********************************************************************/
-	if (muls.mode == TOMO) {
+        if (muls.mode == TOMO) {
 		printf("*\n"
 			"* TOMO parameters:\n");
 		printf("* Starting angle:       %g mrad (%g deg)\n",
@@ -577,7 +562,7 @@ void readFile(ConfigReaderPtr &configReader) {
 		*strPtr = '\0';
 	}
 
-        configReader->ReadNCells(muls.nCellX, muls.nCellY, muls.nCellZ, muls.cellDiv)
+        configReader->ReadNCells(muls.nCellX, muls.nCellY, muls.nCellZ, muls.cellDiv);
 
 	/*************************************************
 	* Read the beam tilt parameters
@@ -737,7 +722,7 @@ void readFile(ConfigReaderPtr &configReader) {
 	* determine whether potential periodic or not, etc.:
 	*/
         configReader->ReadPeriodicParameters(muls.periodicXY, muls.periodicZ);
-	if ((muls.nonPeriodZ == 0) && (muls.cellDiv > 1)) {
+	if ((muls.periodicZ) && (muls.cellDiv > 1)) {
 		printf("****************************************************************\n"
 			"* Warning: cannot use cell divisions >1 and Z-periodic potential\n"
 			"* periodicZ = NO\n"
@@ -969,7 +954,7 @@ void readFile(ConfigReaderPtr &configReader) {
 	muls.nbout = 0;    /* number of beams */
 	resetParamFile();
 	if ((muls.mode != STEM) && (muls.mode != CBED)) {
-          ReadPendelloesungParameters(muls.lbeams, muls.hbeam, muls.kbeam, muls.nbout, 
+          configReader->ReadPendelloesungParameters(muls.lbeams, muls.hbeam, muls.kbeam, muls.nbout, 
                                       muls.nCellX, muls.nCellY, muls.nx, muls.ny);
 	}
 
@@ -1089,7 +1074,7 @@ void doTOMO() {
 		boxXmax,boxYmax,boxZmax);
 
 	// open the script file and write the stem instructions in there
-	sprintf(scriptFile,"%s/run_tomo",muls.folder);
+	sprintf(scriptFile,"%s/run_tomo",muls.folder.c_str());
 	if ((fpScript=fopen(scriptFile,"w")) == NULL) {
 		printf("doTOMO: unable to open scriptFile %s for writing\n",scriptFile);
 		exit(0);
@@ -1097,7 +1082,7 @@ void doTOMO() {
 	fprintf(fpScript,"#!/bin/bash\n\n");
 
 	// open the diffraction animation file 
-	sprintf(diffAnimFile,"%s/diff_anim",muls.folder);
+	sprintf(diffAnimFile,"%s/diff_anim",muls.folder.c_str());
 	if ((fpDiffAnim=fopen(diffAnimFile,"w")) == NULL) {
 		printf("doTOMO: unable to open diffraction animation %s for writing\n",diffAnimFile);
 		exit(0);
@@ -1125,8 +1110,8 @@ void doTOMO() {
 			atoms[i].dw = muls.atoms[i].dw;
 		}
 
-		sprintf(cfgFile,"%s/tomo_%dmrad.cfg",muls.folder,(int)theta);
-		sprintf(stemFile,"%s/tomo_%dmrad.dat",muls.folder,(int)theta);
+		sprintf(cfgFile,"%s/tomo_%dmrad.cfg",muls.folder.c_str(),(int)theta);
+		sprintf(stemFile,"%s/tomo_%dmrad.dat",muls.folder.c_str(),(int)theta);
 		printf("Writing file %s | ",cfgFile);
 		writeCFG(atoms,muls.natom,cfgFile,&muls);
 		sprintf(cfgFile,"tomo_%dmrad.cfg",(int)theta);
@@ -1136,7 +1121,7 @@ void doTOMO() {
 		fprintf(fpScript,"stem tomo_%dmrad.dat\n",(int)theta);
 	}
 	muls.ax = mAx; muls.by = mBy; muls.c = mCz;
-	sprintf(stemFile,"copy fparams.dat %s/",muls.folder);
+	sprintf(stemFile,"copy fparams.dat %s/",muls.folder.c_str());
 	system(stemFile);
 
 	// close script files again
@@ -1171,7 +1156,7 @@ void doCBED() {
 	FILE *avgFp,*fp,*fpPos=0;
 	double timer,timerTot;
 	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
-	char buf[BUF_LEN],avgName[32],systStr[64];
+	char buf[BUF_LEN];
 	float_tt t=0;
 	float_tt **avgPendelloesung = NULL;
 	int oldMulsRepeat1 = 1;
@@ -1182,6 +1167,9 @@ void doCBED() {
 	std::map<std::string, double> params;
         params["dx"]=muls.resolutionX;
         params["dy"]=muls.resolutionY;
+        std::string comment;
+
+        std::vector<unsigned> position(1);         // Used to indicate the number of averages
 
 	muls.chisq = std::vector<double>(muls.avgRuns);
 
@@ -1222,8 +1210,7 @@ void doCBED() {
 		muls.scanYStart = probeCenterY+probeOffsetY;
 		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
 		if (muls.saveLevel > 2) {
-			sprintf(systStr,"%s/wave_probe.img",muls.folder);
-			wave->WriteWave(systStr);
+                  wave->WriteProbe();
 		} 	
 		// printf("Probe: (%g, %g)\n",muls.scanXStart,muls.scanYStart);
 		/*****************************************************************
@@ -1248,7 +1235,7 @@ void doCBED() {
 		if ((muls.showProbe) && (muls.avgCount == 0)) {
 #ifndef WIN32
 			//probePlot(&muls);
-			sprintf(buf,"ee %s/probePlot_0.jpg &",muls.folder);
+                  sprintf(buf,"ee %s/probePlot_0.jpg &",muls.folder.c_str());
 			system(buf);
 #endif
 		}
@@ -1331,11 +1318,10 @@ void doCBED() {
 
 				/***************** Only if Save level > 2: ****************/
 				if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
-					sprintf(systStr,"%s/wave_final.img",muls.folder);
-					wave->WriteWave(systStr);
+                                  wave->WriteWave();
 				} 	
 #ifdef VIB_IMAGE_TEST_CBED
-				wave->WriteWave(sysStr)
+				wave->WriteWave()
 #endif 
 				muls.totalSliceCount += muls.slices;
 
@@ -1344,7 +1330,7 @@ void doCBED() {
 		}
 		/*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
 
-		sprintf(avgName,"%s/diff.img",muls.folder);
+		sprintf(avgName,"%s/diff.img",muls.folder.c_str());
 		// TODO: Why are we reading in a DP at this point?  Do we have one yet?  
 		//     What happens if it isn't there?
 		wave->ReadDiffPat(avgName);
@@ -1353,8 +1339,8 @@ void doCBED() {
 			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],
 				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
 			/* move the averaged (raw data) file to the target directory as well */
-			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
-			sprintf(systStr,"mv %s/diff.img %s",muls.folder,avgName);
+			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
+			sprintf(systStr,"mv %s/diff.img %s",muls.folder.c_str(),avgName);
 			system(systStr);
 			if (muls.lbeams) {
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
@@ -1374,10 +1360,11 @@ void doCBED() {
 
 			}
 			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
-			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
+			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
                         params["Tilt"] = muls.tomoTilt;
                         params["1/Wavelength"] = 1.0/wavelength(muls.v0);
-                        wave->WriteAvgArray(avgName,"Averaged Diffraction pattern, unit: 1/A",params);
+                        wave->SetWavePosition(muls.avgCount+1);
+                        wave->WriteAvgArray("Averaged Diffraction pattern, unit: 1/A", params);
 
 			muls.storeSeries = 1;
 			if (muls.saveLevel == 0)	muls.storeSeries = 0;
@@ -1385,14 +1372,14 @@ void doCBED() {
 
 			if (muls.storeSeries == 0) {
 				// printf("Removing old file \n");
-				sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount);
+                          sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount);
 				sprintf(systStr,"rm %s",avgName);
 				system(systStr);
 			}
 
 			/* write the data to a file */
 			if (muls.saveFlag >-1) {
-				sprintf(systStr,"%s/avgresults.dat",muls.folder);
+                          sprintf(systStr,"%s/avgresults.dat",muls.folder.c_str());
 				if ((avgFp = fopen(systStr,"w")) == NULL )
 					printf("Sorry, could not open data file for averaging\n");
 				else {
@@ -1426,7 +1413,7 @@ void doCBED() {
 			* We can write the array to a file and display it, just for 
 			* demonstration purposes
 			*************************************************************/
-			sprintf(systStr,"%s/pendelloesung.dat",muls.folder);
+                  sprintf(systStr,"%s/pendelloesung.dat",muls.folder.c_str());
 			if ((fp=fopen(systStr,"w")) !=NULL) {
 				printf("Writing Pendelloesung data\n");
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
@@ -1603,7 +1590,7 @@ void doTEM() {
 				if ((muls.avgCount == 0) && (muls.saveLevel >=0) && (pCount+1==muls.mulsRepeat2*muls.cellDiv)) {
 					if (muls.tds) comment = "Test wave function for run 0";
 					else comment = "Exit face wave function for no TDS";
-					sprintf(systStr,"%s/wave.img",muls.folder);
+					sprintf(systStr,"%s/wave.img",muls.folder.c_str());
 					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
 						ktx = -2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
 						kty = -2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
@@ -1618,11 +1605,11 @@ void doTEM() {
 						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
 					}
 
-					wave->WriteWave(systStr, comment);
+					wave->WriteWave(comment);
 				}	
 #ifdef VIB_IMAGE_TEST  // doTEM
 				if ((muls.tds) && (muls.saveLevel > 2)) {
-					sprintf(systStr,"%s/wave_%d.img",muls.folder,muls.avgCount);
+                                  sprintf(systStr,"%s/wave_%d.img",muls.folder.c_str(),muls.avgCount);
                                         params["HT"] = muls.v0;
                                         params["Cs"] = muls.Cs;
                                         params["Defocus"] = muls.df0;
@@ -1647,7 +1634,7 @@ void doTEM() {
 		// and diffraction patterns.
 		//////////////////////////////////////////////////////////////////////////////
 
-		sprintf(avgName,"%s/diff.img",muls.folder);
+		sprintf(avgName,"%s/diff.img",muls.folder.c_str());
 
 		wave->ReadDiffPat(avgName);
 
@@ -1659,11 +1646,11 @@ void doTEM() {
 			/* move the averaged (raw data) file to the target directory as well */
 #ifndef WIN32
 			sprintf(avgName,"diffAvg_%d.img",muls.avgCount+1);
-			sprintf(systStr,"mv %s/diff.img %s/%s",muls.folder,muls.folder,avgName);
+			sprintf(systStr,"mv %s/diff.img %s/%s",muls.folder.c_str(),muls.folder.c_str(),avgName);
 			system(systStr);
 #else
 			sprintf(avgName,"diffAvg_%d.img",muls.avgCount+1);
-			sprintf(systStr,"move %s\\diff.img %s/%s",muls.folder,muls.folder,avgName);
+			sprintf(systStr,"move %s\\diff.img %s/%s",muls.folder.c_str(),muls.folder.c_str(),avgName);
 			// system(systStr);
 #endif
 			/***********************************************************
@@ -1696,7 +1683,7 @@ void doTEM() {
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				wave->diffpat[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
 			}
-			sprintf(avgName,"%s/waveIntensity.img",muls.folder);
+			sprintf(avgName,"%s/waveIntensity.img",muls.folder.c_str());
 			wave->WriteDiffPat(avgName, "Wave intensity");
 			// End of Image writing (if avgCount = 0)
 			//////////////////////////////////////////////////////////////////////
@@ -1712,7 +1699,7 @@ void doTEM() {
 				wave->avgArray[ix][iy] = t;
 			}
 			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
-			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder,muls.avgCount+1);
+			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
 			wave->WriteAvgArray(avgName, "Diffraction pattern");
 
 			/* write the data to a file */
@@ -1764,7 +1751,7 @@ void doTEM() {
 #endif
 
 			// save the amplitude squared:
-			sprintf(avgName,"%s/image.img",muls.folder); 
+			sprintf(avgName,"%s/image.img",muls.folder.c_str()); 
 			wave->ReadDiffPat(avgName);
 			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
 				t = ((float_tt)muls.avgCount*wave->diffpat[ix][iy]+
@@ -1951,8 +1938,8 @@ void doSTEM() {
 					else 
 					{
         					/* load incident wave function and then propagate it */
-						sprintf(wave->fileStart, "%s/mulswav", muls.folder);
-                                                wave->ReadWave(wave->fileStart); /* this also sets the thickness!!! */
+                                          
+                                          wave->ReadWave(); /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
 						//muls.nslic0 = pCount;
 					}
@@ -1960,7 +1947,6 @@ void doSTEM() {
 					   and save exit wave function for this position 
 					   (done by runMulsSTEM), 
 					   but we need to define the file name */
-					sprintf(wave->fileout,"%s/mulswav",muls.folder);
 					muls.saveFlag = 1;
 
 					wave->iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/

@@ -271,7 +271,7 @@ void make3DSlicesFT(MULS *muls) {
   if (divCount == 0) {
     qsort(atoms,muls->natom,sizeof(atom),atomCompare);
     if ((*muls).cfgFile != NULL) {
-      sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
+      sprintf(buf,"%s/%s",muls->folder.c_str(),muls->cfgFile);
       writeCFG(atoms,muls->natom,buf,muls);	
     }
   }
@@ -319,10 +319,13 @@ void make3DSlicesFT(MULS *muls) {
     params["dy"] = dYp;
     imageIO = ImageIOPtr(new CImageIO(Nxp, Nyp));
     for (iz=0;iz<Nzp;iz++) {
-      sprintf(fileName,"%s/%s%d",muls->folder,muls->fileBase,iz);
+      sprintf(fileName,"%s/%s%d",muls->folder.c_str(),muls->fileBase,iz);
       // printf("Saving potential layer %d to file %s\n",iz,filename); 
       sprintf(buf,"Projected Potential (%d slices)",muls->slices);
-      imageIO->WriteComplexImage((void **)muls->trans[iz], fileName, params, std::string(buf));
+      std::string comment = buf;
+      std::string filename_tmp = fileName;
+      std::vector<unsigned> position;
+      imageIO->WriteComplexImage((void **)muls->trans[iz], filename_tmp, params, comment, position);
     } 
   } /* end of if savePotential ... */
   
@@ -339,7 +342,7 @@ void plotVzr(complex_tt **pot,int Nx,int Nz,double dx,MULS *muls) {
   char str[128];
   double p;
 
-  sprintf(str,"%s/vz.dat",muls->folder);
+  sprintf(str,"%s/vz.dat",muls->folder.c_str());
   fp =fopen(str,"w");
  
   for (ix=Nx/2;ix<Nx;ix++) {
@@ -349,7 +352,7 @@ void plotVzr(complex_tt **pot,int Nx,int Nz,double dx,MULS *muls) {
   }
 
   fclose(fp);
-  sprintf(str,"xmgr -nxy %s/vz.dat &",muls->folder);
+  sprintf(str,"xmgr -nxy %s/vz.dat &",muls->folder.c_str());
   system(str);
 }
 

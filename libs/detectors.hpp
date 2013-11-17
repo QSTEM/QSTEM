@@ -59,6 +59,7 @@ typedef boost::shared_ptr<Detector> DetectorPtr;
 //   Detector objects as necessary.
 class DetectorManager
 {
+public:
   DetectorManager(ConfigReaderPtr &configReader);
   ~DetectorManager();
   void LoadDetectors(ConfigReaderPtr &configReader, std::vector<unsigned> &output_planes);
@@ -72,6 +73,7 @@ class DetectorManager
   // Saves detector images to files
   void SaveDetectors(std::string &comment, 
                      std::map<std::string, double> &parameters);
+  void PrintDetectors();
 private:
   std::vector<std::vector<DetectorPtr> > m_detectors;
   std::vector<float_tt> m_thicknesses;
