@@ -62,6 +62,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "customslice.hpp"
 #include "data_containers.hpp"
 
+#include "readparams.hpp"
+
 #include "config_readers.hpp"
 
 #define NCINMAX 1024
@@ -74,7 +76,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define PICTS 5      /* number of different thicknesses */
 #define NBITS 8	       /* number of bits for writeIntPix */
 
-const char *resultPage = "result.html";
 /* global variable: */
 MULS muls;
 // int fftMeasureFlag = FFTW_MEASURE;
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
     }
         
   // Read potential parameters and initialize a pot object
-  WavePtr initialWave(WAVEFUNC(configReader));
+  WavePtr initialWave = WavePtr(new WAVEFUNC(configReader));
   PotPtr potential = GetPotential(configReader);
   readFile(configReader);
 
@@ -550,18 +551,6 @@ void readFile(ConfigReaderPtr &configReader) {
         else
           configReader->ReadOutputLevel(muls.printLevel, muls.saveLevel, muls.displayPotCalcInterval);            
 
-	/************************************************************************
-	* Basic microscope/simulation parameters, 
-	*/ 
-	if (!readparam("filename:",buf,1)) exit(0); sscanf(buf,"%s",muls.fileBase);
-	// search for second '"', in case the filename is in quotation marks:
-	if (muls.fileBase[0] == '"') {
-		strPtr = strchr(buf,'"');
-		strcpy(muls.fileBase,strPtr+1);
-		strPtr = strchr(muls.fileBase,'"');
-		*strPtr = '\0';
-	}
-
         configReader->ReadNCells(muls.nCellX, muls.nCellY, muls.nCellZ, muls.cellDiv);
 
 	/*************************************************
@@ -776,9 +765,9 @@ void readFile(ConfigReaderPtr &configReader) {
 	* Read STEM/CBED probe parameters 
 	*/
 	muls.Cc = 0.0;
+        configReader->ReadDoseParameters(muls.beamCurrent, muls.dwellTime);
         configReader->ReadProbeParameters(muls.dE_E, muls.dI_I, muls.dV_V, muls.alpha, muls.aAIS,
-                                          muls.beamCurrent, muls.dwellTime, muls.sourceRadius,
-                                          muls.ismoth, muls.gaussScale, muls.gaussFlag);
+                                          muls.sourceRadius, muls.ismoth, muls.gaussScale, muls.gaussFlag);
 
 	muls.electronScale = muls.beamCurrent*muls.dwellTime*MILLISEC_PICOAMP;
 	//////////////////////////////////////////////////////////////////////
@@ -954,8 +943,16 @@ void readFile(ConfigReaderPtr &configReader) {
 	muls.nbout = 0;    /* number of beams */
 	resetParamFile();
 	if ((muls.mode != STEM) && (muls.mode != CBED)) {
-          configReader->ReadPendelloesungParameters(muls.lbeams, muls.hbeam, muls.kbeam, muls.nbout, 
-                                      muls.nCellX, muls.nCellY, muls.nx, muls.ny);
+          configReader->ReadPendelloesungParameters(muls.hbeams, muls.kbeams, muls.lbeams, muls.nbout);
+          muls.hbeams[i] *= muls.nCellX;
+          muls.kbeams[i] *= muls.nCellY;
+
+          muls.hbeams[i] = (muls.hbeams[i]+muls.nx) % muls.nx;
+          muls.kbeams[i] = (muls.kbeams[i]+muls.ny) % muls.ny;
+          for (size_t i=0; i<muls.hbeams.size(); i++)
+            {
+              printf("beam %d [%d %d]\n",i,muls.hbeams[i],muls.kbeams[i]);
+            }
 	}
 
 	/* TODO: possible breakage here - MCS 2013/04 - made muls.cfgFile be allocated on the struct
@@ -1012,7 +1009,7 @@ void readFile(ConfigReaderPtr &configReader) {
 *
 * Important parameters: tomoStart, tomoStep, tomoCount, zoomFactor
 ***********************************************************************/
-void doTOMO() {
+void doTOMO(WavePtr initialWave, PotPtr pot) {
 	double boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
 	double mAx,mBy,mCz;
 	int ix,iy,iz,iTheta,i;
@@ -1141,7 +1138,7 @@ void doTOMO() {
 * including phonons.
 *
 ***********************************************************************/
-void doMSCBED() {
+void doMSCBED(WavePtr initialWave, PotPtr pot) {
 
 
 }
@@ -1151,292 +1148,267 @@ void doMSCBED() {
 *
 ***********************************************************************/
 
-void doCBED() {
-	int ix,iy,i,pCount,result;
-	FILE *avgFp,*fp,*fpPos=0;
-	double timer,timerTot;
-	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
-	char buf[BUF_LEN];
-	float_tt t=0;
-	float_tt **avgPendelloesung = NULL;
-	int oldMulsRepeat1 = 1;
-	int oldMulsRepeat2 = 1;
-	long iseed=0;
-	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY, muls.input_ext, muls.output_ext));
-	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, muls.input_ext, muls.output_ext));
-	std::map<std::string, double> params;
-        params["dx"]=muls.resolutionX;
-        params["dy"]=muls.resolutionY;
-        std::string comment;
+void doCBED(WavePtr initialWave, PotPtr pot) {
+  int ix,iy,i,pCount,result;
+  FILE *avgFp,*fp,*fpPos=0;
+  double timer,timerTot;
+  double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
+  char buf[BUF_LEN];
+  float_tt t=0;
+  float_tt **avgPendelloesung = NULL;
+  int oldMulsRepeat1 = 1;
+  int oldMulsRepeat2 = 1;
+  long iseed=0;
+  WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY, muls.input_ext, muls.output_ext));
+  ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, muls.input_ext, muls.output_ext));
+  std::map<std::string, double> params;
+  params["dx"]=muls.resolutionX;
+  params["dy"]=muls.resolutionY;
+  std::string comment;
 
-        std::vector<unsigned> position(1);         // Used to indicate the number of averages
+  std::vector<unsigned> position(1);         // Used to indicate the number of averages
 
-	muls.chisq = std::vector<double>(muls.avgRuns);
+  muls.chisq = std::vector<double>(muls.avgRuns);
 
-	if (iseed == 0) iseed = -(long) time( NULL );
+  if (iseed == 0) iseed = -(long) time( NULL );
 
-	if (muls.lbeams) {
-		muls.pendelloesung = NULL;
-		if (avgPendelloesung == NULL) {
-			avgPendelloesung = float2D(muls.nbout,
-				muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-				"pendelloesung");
-		}    
-	}
-	probeCenterX = muls.scanXStart;
-	probeCenterY = muls.scanYStart;
+  if (muls.lbeams) {
+    muls.pendelloesung = NULL;
+    if (avgPendelloesung == NULL) {
+      avgPendelloesung = float2D(muls.nbout,
+                                 muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
+                                 "pendelloesung");
+    }    
+  }
+  probeCenterX = muls.scanXStart;
+  probeCenterY = muls.scanYStart;
 
-	timerTot = 0; /* cputim();*/
-	displayProgress(-1);
+  timerTot = 0; /* cputim();*/
+  displayProgress(-1);
 
-	for (muls.avgCount = 0;muls.avgCount < muls.avgRuns;muls.avgCount++) {
-		muls.totalSliceCount = 0;
-		pCount = 0;
-		/* make sure we start at the beginning of the file 
-		so we won't miss any line that contains a sequence,
-		because we will not do any EOF wrapping
-		*/
-		resetParamFile();
+  for (muls.avgCount = 0;muls.avgCount < muls.avgRuns;muls.avgCount++) {
+    muls.totalSliceCount = 0;
+    pCount = 0;
+    /* make sure we start at the beginning of the file 
+       so we won't miss any line that contains a sequence,
+       because we will not do any EOF wrapping
+    */
+    resetParamFile();
+    
+    /* probe(&muls,xpos,ypos); */
+    /* make incident probe wave function with probe exactly in the center */
+    /* if the potential array is not big enough, the probe can 
+     * then also be adjusted, so that it is off-center
+     */
 
-		/* probe(&muls,xpos,ypos); */
-		/* make incident probe wave function with probe exactly in the center */
-		/* if the potential array is not big enough, the probe can 
-		* then also be adjusted, so that it is off-center
-		*/
-
-		probeOffsetX = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
-		probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
-		muls.scanXStart = probeCenterX+probeOffsetX;
-		muls.scanYStart = probeCenterY+probeOffsetY;
-		probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
-		if (muls.saveLevel > 2) {
-                  wave->WriteProbe();
-		} 	
-		// printf("Probe: (%g, %g)\n",muls.scanXStart,muls.scanYStart);
-		/*****************************************************************
-		* For debugging only!!!
-		*
+    probeOffsetX = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
+    probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
+    muls.scanXStart = probeCenterX+probeOffsetX;
+    muls.scanYStart = probeCenterY+probeOffsetY;
+    probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
+    if (muls.saveLevel > 2) {
+      wave->WriteProbe();
+    } 	
+    // printf("Probe: (%g, %g)\n",muls.scanXStart,muls.scanYStart);
+    /*****************************************************************
+     * For debugging only!!!
+     *
 		muls->WriteWave("probe.img")
-		*****************************************************************/
+    *****************************************************************/
 
 
-		if (muls.sourceRadius > 0) {
-			if (muls.avgCount == 0) fpPos = fopen("probepos.dat","w");
-			else fpPos = fopen("probepos.dat","a");
-			if (fpPos == NULL) {
-				printf("Was unable to open file probepos.dat for writing\n");
-			}
-			else {
-				fprintf(fpPos,"%g %g\n",muls.scanXStart,muls.scanYStart);
-				fclose(fpPos);
-			}
-		}
+    if (muls.sourceRadius > 0) {
+      if (muls.avgCount == 0) fpPos = fopen("probepos.dat","w");
+      else fpPos = fopen("probepos.dat","a");
+      if (fpPos == NULL) {
+        printf("Was unable to open file probepos.dat for writing\n");
+      }
+      else {
+        fprintf(fpPos,"%g %g\n",muls.scanXStart,muls.scanYStart);
+        fclose(fpPos);
+      }
+    }
 
-		if ((muls.showProbe) && (muls.avgCount == 0)) {
+    if ((muls.showProbe) && (muls.avgCount == 0)) {
 #ifndef WIN32
-			//probePlot(&muls);
-                  sprintf(buf,"ee %s/probePlot_0.jpg &",muls.folder.c_str());
-			system(buf);
+      //probePlot(&muls);
+      sprintf(buf,"ee %s/probePlot_0.jpg &",muls.folder.c_str());
+      system(buf);
 #endif
-		}
-		//muls.nslic0 = 0;
+    }
+    //muls.nslic0 = 0;
 
-		result = readparam("sequence: ",buf,0);
-		while (result) {
-			if (((buf[0] < 'a') || (buf[0] > 'z')) && 
-				((buf[0] < '1') || (buf[0] > '9')) &&
-				((buf[0] < 'A') || (buf[0] > 'Z'))) {
-					// printf("Stacking sequence: %s\n",buf);
-					printf("Can only work with old stacking sequence\n");
-					break;
-			}
-			muls.mulsRepeat1 = 1;
-			muls.mulsRepeat2 = 1;
-			sscanf(buf,"%d %d",&muls.mulsRepeat1,&muls.mulsRepeat2);
-			for (i=0;i<(int)strlen(buf);i++) buf[i] = 0;
-			if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
-			sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+    result = readparam("sequence: ",buf,0);
+    while (result) {
+      if (((buf[0] < 'a') || (buf[0] > 'z')) && 
+          ((buf[0] < '1') || (buf[0] > '9')) &&
+          ((buf[0] < 'A') || (buf[0] > 'Z'))) {
+        // printf("Stacking sequence: %s\n",buf);
+        printf("Can only work with old stacking sequence\n");
+        break;
+      }
+      muls.mulsRepeat1 = 1;
+      muls.mulsRepeat2 = 1;
+      sscanf(buf,"%d %d",&muls.mulsRepeat1,&muls.mulsRepeat2);
+      for (i=0;i<(int)strlen(buf);i++) buf[i] = 0;
+      if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
+      sprintf(muls.cin2,"%d",muls.mulsRepeat1);
 
+      
+      /***********************************************************
+       * make sure we have enough memory for the pendelloesung plot
+       */
+      if ((muls.lbeams) && 
+          ((oldMulsRepeat1 !=muls.mulsRepeat1) ||
+           (oldMulsRepeat2 !=muls.mulsRepeat2))) {
+        oldMulsRepeat1 = muls.mulsRepeat1;
+        oldMulsRepeat2 = muls.mulsRepeat2;
+        if (muls.pendelloesung != NULL)
+          free(muls.pendelloesung[0]);
+        free(avgPendelloesung[0]);
+        muls.pendelloesung = NULL;
+        avgPendelloesung = float2D(muls.nbout,
+                                   muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
+                                   "pendelloesung");
+      }
+      /*********************************************************/
+      
+      // printf("Stacking sequence: %s\n",buf);
 
-			/***********************************************************
-			* make sure we have enough memory for the pendelloesung plot
-			*/
-			if ((muls.lbeams) && 
-				((oldMulsRepeat1 !=muls.mulsRepeat1) ||
-				(oldMulsRepeat2 !=muls.mulsRepeat2))) {
-					oldMulsRepeat1 = muls.mulsRepeat1;
-					oldMulsRepeat2 = muls.mulsRepeat2;
-					if (muls.pendelloesung != NULL)
-						free(muls.pendelloesung[0]);
-					free(avgPendelloesung[0]);
-					muls.pendelloesung = NULL;
-					avgPendelloesung = float2D(muls.nbout,
-						muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-						"pendelloesung");
-			}
-			/*********************************************************/
+      muls.saveFlag = 0;
+      /****************************************
+       * do the (small) loop
+       *****************************************/
+      for (pCount = 0;pCount<muls.mulsRepeat2*muls.cellDiv;pCount++) {
+        
+        pot->Refresh();
+        
+        timer = cputim();
+        // what probe should runMulsSTEM use here?
+        runMulsSTEM(&muls, wave, pot); 
+        
+        printf("Thickness: %gA, int.=%g, time: %gsec\n",
+               wave->thickness,wave->intIntensity,cputim()-timer);
 
-			// printf("Stacking sequence: %s\n",buf);
-
-
-			/************************************************
-			*make3DSlicesFFT(&muls,muls.slices,atomPosFile,NULL);
-			*exit(0);
-			************************************************/
-			if (muls.equalDivs) {
-				if (muls.scatFactor == CUSTOM)
-					make3DSlicesFT(&muls);
-				else
-					make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-				initSTEMSlices(&muls,muls.slices);
-			}
-
-			muls.saveFlag = 0;
-			/****************************************
-			* do the (small) loop
-			*****************************************/
-			for (pCount = 0;pCount<muls.mulsRepeat2*muls.cellDiv;pCount++) {
-
-				// printf("pCount = %d\n",pCount);
-				/*******************************************************
-				* build the potential slices from atomic configuration
-				******************************************************/
-				if (!muls.equalDivs) {
-					if (muls.scatFactor == CUSTOM)
-						make3DSlicesFT(&muls);
-					else
-						make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-					initSTEMSlices(&muls,muls.slices);
-				}
-
-				timer = cputim();
-				// what probe should runMulsSTEM use here?
-				runMulsSTEM(&muls,wave); 
-
-				printf("Thickness: %gA, int.=%g, time: %gsec\n",
-					wave->thickness,wave->intIntensity,cputim()-timer);
-
-				/***************** Only if Save level > 2: ****************/
-				if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
-                                  wave->WriteWave();
-				} 	
+        /***************** Only if Save level > 2: ****************/
+        if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
+          wave->WriteWave();
+        } 	
 #ifdef VIB_IMAGE_TEST_CBED
-				wave->WriteWave()
+        wave->WriteWave()
 #endif 
-				muls.totalSliceCount += muls.slices;
+          muls.totalSliceCount += muls.slices;
+        
+      } // end of for pCount = 0... 
+      result = readparam("sequence: ",buf,0);
+    }
+    /*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
+    
+    // TODO: Why are we reading in a DP at this point?  Do we have one yet?  
+    //     What happens if it isn't there?
+    wave->ReadDiffPat();
+    
+    if (muls.avgCount == 0) {
+      memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],
+             (size_t)(muls.nx*muls.ny*sizeof(float_tt)));
+      /* move the averaged (raw data) file to the target directory as well */
+      // TODO: make sure that DP average gets created properly
+      //sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
+      //sprintf(systStr,"mv %s/diff.img %s",muls.folder.c_str(),avgName);
+      //system(systStr);
+      if (muls.lbeams) {
+        for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
+          for (ix=0;ix<muls.nbout;ix++) {
+            avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
+          }
+        }
+      }
+    } // of if muls.avgCount == 0 ...
+    else {
+      muls.chisq[muls.avgCount-1] = 0.0;
+      for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+          t = ((float_tt)muls.avgCount*wave->avgArray[ix][iy]+
+               wave->diffpat[ix][iy])/((float_tt)(muls.avgCount+1));
+          muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+          wave->avgArray[ix][iy] = t;
 
-			} // end of for pCount = 0... 
-			result = readparam("sequence: ",buf,0);
-		}
-		/*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
+        }
+      muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+      params["Tilt"] = muls.tomoTilt;
+      params["1/Wavelength"] = 1.0/wavelength(muls.v0);
+      wave->WriteDiffPat("Averaged Diffraction pattern, unit: 1/A", params);
+                        
+      muls.storeSeries = 1;
+      if (muls.saveLevel == 0)	muls.storeSeries = 0;
+      else if (muls.avgCount % muls.saveLevel != 0) muls.storeSeries = 0;
 
-		sprintf(avgName,"%s/diff.img",muls.folder.c_str());
-		// TODO: Why are we reading in a DP at this point?  Do we have one yet?  
-		//     What happens if it isn't there?
-		wave->ReadDiffPat(avgName);
+      if (muls.storeSeries) 
+        wave->WriteAvgArray(muls.avgCount+1, "Averaged Diffraction pattern, unit: 1/A", params);
 
-		if (muls.avgCount == 0) {
-			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],
-				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
-			/* move the averaged (raw data) file to the target directory as well */
-			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
-			sprintf(systStr,"mv %s/diff.img %s",muls.folder.c_str(),avgName);
-			system(systStr);
-			if (muls.lbeams) {
-				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
-					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
-					}
-				}
-			}
-		} // of if muls.avgCount == 0 ...
-		else {
-			muls.chisq[muls.avgCount-1] = 0.0;
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((float_tt)muls.avgCount*wave->avgArray[ix][iy]+
-					wave->diffpat[ix][iy])/((float_tt)(muls.avgCount+1));
-				muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
-				wave->avgArray[ix][iy] = t;
 
-			}
-			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
-			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
-                        params["Tilt"] = muls.tomoTilt;
-                        params["1/Wavelength"] = 1.0/wavelength(muls.v0);
-                        wave->SetWavePosition(muls.avgCount+1);
-                        wave->WriteAvgArray("Averaged Diffraction pattern, unit: 1/A", params);
+      /* write the data to a file */
+      // TODO: vestigial code?  does anyone use this?
+      if (muls.saveFlag >-1) {
+        char systStr[255];
+        sprintf(systStr,"%s/avgresults.dat",muls.folder.c_str());
+        if ((avgFp = fopen(systStr,"w")) == NULL )
+          printf("Sorry, could not open data file for averaging\n");
+        else {
+          for (ix =0;ix<muls.avgCount;ix++) {
+            fprintf(avgFp,"%d %g\n",ix+1,muls.chisq[ix]);
+          }
+          fclose(avgFp);
+        }
+      }
+      /*************************************************************/
 
-			muls.storeSeries = 1;
-			if (muls.saveLevel == 0)	muls.storeSeries = 0;
-			else if (muls.avgCount % muls.saveLevel != 0) muls.storeSeries = 0;
-
-			if (muls.storeSeries == 0) {
-				// printf("Removing old file \n");
-                          sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount);
-				sprintf(systStr,"rm %s",avgName);
-				system(systStr);
-			}
-
-			/* write the data to a file */
-			if (muls.saveFlag >-1) {
-                          sprintf(systStr,"%s/avgresults.dat",muls.folder.c_str());
-				if ((avgFp = fopen(systStr,"w")) == NULL )
-					printf("Sorry, could not open data file for averaging\n");
-				else {
-					for (ix =0;ix<muls.avgCount;ix++) {
-						fprintf(avgFp,"%d %g\n",ix+1,muls.chisq[ix]);
-					}
-					fclose(avgFp);
-				}
-			}
-			/*************************************************************/
-
-			/***********************************************************
-			* Average over the pendelloesung plot as well
-			*/
-			if (muls.lbeams) {
-				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
-					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = 
-							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
-					}
-				}
-			}
-		} /* else ... if avgCount was greater than 0 */
-
-		if (muls.lbeams) {
-			/**************************************************************
-			* The diffraction spot intensities of the selected 
-			* diffraction spots are now stored in the 2 dimensional array
-			* muls.pendelloesung[beam][slice].
-			* We can write the array to a file and display it, just for 
-			* demonstration purposes
-			*************************************************************/
-                  sprintf(systStr,"%s/pendelloesung.dat",muls.folder.c_str());
-			if ((fp=fopen(systStr,"w")) !=NULL) {
-				printf("Writing Pendelloesung data\n");
-				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
-					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
-					/* write the beam intensities in the following columns */
-					for (ix=0;ix<muls.nbout;ix++) {
-						fprintf(fp,"\t%g",avgPendelloesung[ix][iy]);
-					}
-					/* close the line, and start a new one for the next set of
-					* intensities
-					*/
-					fprintf(fp,"\n");
-				}
-				fclose(fp);
-			}
-			else {
-				printf("Could not open file for pendelloesung plot\n");
-			}  
-		} /* end of if lbemas ... */
-		displayProgress(1);
-	} /* end of for muls.avgCount=0.. */
-	//delete(wave);
+      /***********************************************************
+       * Average over the pendelloesung plot as well
+       */
+      if (muls.lbeams) {
+        for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
+          for (ix=0;ix<muls.nbout;ix++) {
+            avgPendelloesung[ix][iy] = 
+              ((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
+               muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
+          }
+        }
+      }
+    } /* else ... if avgCount was greater than 0 */
+    
+    if (muls.lbeams) {
+      /**************************************************************
+       * The diffraction spot intensities of the selected 
+       * diffraction spots are now stored in the 2 dimensional array
+       * muls.pendelloesung[beam][slice].
+       * We can write the array to a file and display it, just for 
+       * demonstration purposes
+       *************************************************************/
+      char systStr[255];
+      sprintf(systStr,"%s/pendelloesung.dat",muls.folder.c_str());
+      if ((fp=fopen(systStr,"w")) !=NULL) {
+        printf("Writing Pendelloesung data\n");
+        for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
+          /* write the thicknes in the first column of the file */
+          fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+          /* write the beam intensities in the following columns */
+          for (ix=0;ix<muls.nbout;ix++) {
+            fprintf(fp,"\t%g",avgPendelloesung[ix][iy]);
+          }
+          /* close the line, and start a new one for the next set of
+           * intensities
+           */
+          fprintf(fp,"\n");
+        }
+        fclose(fp);
+      }
+      else {
+        printf("Could not open file for pendelloesung plot\n");
+      }  
+    } /* end of if lbeams ... */
+    displayProgress(1);
+  } /* end of for muls.avgCount=0.. */
+  //delete(wave);
 }
 /************************************************************************
 * End of doCBED()
@@ -1447,14 +1419,14 @@ void doCBED() {
 *
 ***********************************************************************/
 
-void doTEM() {
+void doTEM(WavePtr initialWave, PotPtr pot) {
 	const double pi=3.1415926535897;
 	int ix,iy,i,pCount,result;
 	FILE *avgFp,*fp; // *fpPos=0;
 	double timer,timerTot;
 	double x,y,ktx,kty;
-	char buf[BUF_LEN],avgName[256],systStr[512];
-	char *comment;
+	char buf[BUF_LEN];//,avgName[256],systStr[512];
+	std::string comment;
 	float_tt t;
 	float_tt **avgPendelloesung = NULL;
 	int oldMulsRepeat1 = 1;
@@ -1469,335 +1441,314 @@ void doTEM() {
 	muls.chisq=std::vector<double>(muls.avgRuns);
 
 	if (muls.lbeams) {
-		muls.pendelloesung = NULL;
-		if (avgPendelloesung == NULL) {
-			avgPendelloesung = float2D(muls.nbout,
-				muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-				"pendelloesung");
-		}	  
+          muls.pendelloesung = NULL;
+          if (avgPendelloesung == NULL) {
+            avgPendelloesung = float2D(muls.nbout,
+                                       muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
+                                       "pendelloesung");
+          }	  
 	}
 
 	timerTot = 0; /* cputim();*/
 	displayProgress(-1);
 	for (muls.avgCount = 0;muls.avgCount < muls.avgRuns;muls.avgCount++) {
-		muls.totalSliceCount = 0;
+          muls.totalSliceCount = 0;
+          
+          pCount = 0;
+          resetParamFile();
 
-		pCount = 0;
-		resetParamFile();
+          /* make incident probe wave function with probe exactly in the center */
+          /* if the potential array is not big enough, the probe can 
+           * then also be adjusted, so that it is off-center
+           */
 
-		/* make incident probe wave function with probe exactly in the center */
-		/* if the potential array is not big enough, the probe can 
-		* then also be adjusted, so that it is off-center
-		*/
+          // muls.scanXStart = muls.nx/2*muls.resolutionX+muls.sourceRadius*gasdev(&iseed)*sqrt(2);
+          // muls.scanYStart = muls.ny/2*muls.resolutionY+muls.sourceRadius*gasdev(&iseed)*sqrt(2);
+          // probe(&muls,muls.scanXStart,muls.scanYStart);
 
-		// muls.scanXStart = muls.nx/2*muls.resolutionX+muls.sourceRadius*gasdev(&iseed)*sqrt(2);
-		// muls.scanYStart = muls.ny/2*muls.resolutionY+muls.sourceRadius*gasdev(&iseed)*sqrt(2);
-		// probe(&muls,muls.scanXStart,muls.scanYStart);
+          //muls.nslic0 = 0;
+          // produce an incident plane wave:
+          if ((muls.btiltx == 0) && (muls.btilty == 0)) {
+            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+                wave->wave[ix][iy][0] = 1;	wave->wave[ix][iy][1] = 0;
+              }
+          }
+          else {
+            // produce a tilted wave function (btiltx,btilty):
+            ktx = 2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
+            kty = 2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
+            for (ix=0;ix<muls.nx;ix++) {
+              x = muls.resolutionX*(ix-muls.nx/2);
+              for (iy=0;iy<muls.ny;iy++) {
+                y = muls.resolutionY*(ix-muls.nx/2);
+                wave->wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
+                wave->wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
+              }
+            }
+          }
 
-		//muls.nslic0 = 0;
-		// produce an incident plane wave:
-		if ((muls.btiltx == 0) && (muls.btilty == 0)) {
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				wave->wave[ix][iy][0] = 1;	wave->wave[ix][iy][1] = 0;
-			}
-		}
-		else {
-			// produce a tilted wave function (btiltx,btilty):
-			ktx = 2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
-			kty = 2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
-			for (ix=0;ix<muls.nx;ix++) {
-				x = muls.resolutionX*(ix-muls.nx/2);
-				for (iy=0;iy<muls.ny;iy++) {
-					y = muls.resolutionY*(ix-muls.nx/2);
-					wave->wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
-					wave->wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
-				}
-			}
-		}
+          result = readparam("sequence: ",buf,0);
+          while (result) {
+            if (((buf[0] < 'a') || (buf[0] > 'z')) && 
+                ((buf[0] < '1') || (buf[0] > '9')) &&
+                ((buf[0] < 'A') || (buf[0] > 'Z'))) {
+              // printf("Stacking sequence: %s\n",buf);
+              printf("Can only work with old stacking sequence\n");
+              break;
+            }
 
-		result = readparam("sequence: ",buf,0);
-		while (result) {
-			if (((buf[0] < 'a') || (buf[0] > 'z')) && 
-				((buf[0] < '1') || (buf[0] > '9')) &&
-				((buf[0] < 'A') || (buf[0] > 'Z'))) {
-					// printf("Stacking sequence: %s\n",buf);
-					printf("Can only work with old stacking sequence\n");
-					break;
-			}
+            muls.mulsRepeat1 = 1;
+            muls.mulsRepeat2 = 1;
+            sscanf(buf,"%d %d",&muls.mulsRepeat1,&muls.mulsRepeat2);
+            for (i=0;i<(int)strlen(buf);i++)
+              buf[i] = 0;
+            if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
+            sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+            /***********************************************************
+             * make sure we have enough memory for the pendelloesung plot
+             */
+            if ((muls.lbeams) && 
+                ((oldMulsRepeat1 !=muls.mulsRepeat1) ||
+                 (oldMulsRepeat2 !=muls.mulsRepeat2))) {
+              oldMulsRepeat1 = muls.mulsRepeat1;
+              oldMulsRepeat2 = muls.mulsRepeat2;
+              if (muls.pendelloesung != NULL)  free(muls.pendelloesung[0]);
+              free(avgPendelloesung[0]);
+              muls.pendelloesung = NULL;
+              avgPendelloesung = float2D(muls.nbout,
+                                         muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
+                                         "pendelloesung");
+            }
+            /*********************************************************/
+            
+            // printf("Stacking sequence: %s\n",buf);
 
-			muls.mulsRepeat1 = 1;
-			muls.mulsRepeat2 = 1;
-			sscanf(buf,"%d %d",&muls.mulsRepeat1,&muls.mulsRepeat2);
-			for (i=0;i<(int)strlen(buf);i++)
-				buf[i] = 0;
-			if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
-			sprintf(muls.cin2,"%d",muls.mulsRepeat1);
-			/***********************************************************
-			* make sure we have enough memory for the pendelloesung plot
-			*/
-			if ((muls.lbeams) && 
-				((oldMulsRepeat1 !=muls.mulsRepeat1) ||
-				(oldMulsRepeat2 !=muls.mulsRepeat2))) {
-					oldMulsRepeat1 = muls.mulsRepeat1;
-					oldMulsRepeat2 = muls.mulsRepeat2;
-					if (muls.pendelloesung != NULL)  free(muls.pendelloesung[0]);
-					free(avgPendelloesung[0]);
-					muls.pendelloesung = NULL;
-					avgPendelloesung = float2D(muls.nbout,
-						muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
-						"pendelloesung");
-			}
-			/*********************************************************/
+            if (muls.equalDivs) {
+              if (muls.printLevel > 1) printf("found equal unit cell divisions\n");
+              pot->Refresh();
+            }
 
-			// printf("Stacking sequence: %s\n",buf);
+            muls.saveFlag = 0;
+            /****************************************
+             * do the (small) loop through the slabs
+             *****************************************/
+            for (pCount = 0;pCount<muls.mulsRepeat2*muls.cellDiv;pCount++) {
 
+              /*******************************************************
+               * build the potential slices from atomic configuration
+               ******************************************************/
+              // if ((muls.tds) || (muls.nCellZ % muls.cellDiv != 0)) {
+              if (!muls.equalDivs) {
+                pot->Refresh();
+              }
 
-			/************************************************
-			*make3DSlicesFFT(&muls,muls.slices,atomPosFile,NULL);
-			*exit(0);
-			************************************************/
-			if (muls.equalDivs) {
-				if (muls.printLevel > 1) printf("found equal unit cell divisions\n");
-				make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-				initSTEMSlices(&muls,muls.slices);
-			}
+              timer = cputim();
+              runMulsSTEM(&muls,wave, pot); 
+              muls.totalSliceCount += muls.slices;
 
-			muls.saveFlag = 0;
-			/****************************************
-			* do the (small) loop through the slabs
-			*****************************************/
-			for (pCount = 0;pCount<muls.mulsRepeat2*muls.cellDiv;pCount++) {
+              if (muls.printLevel > 0) {
+                printf("t=%gA, int.=%g time: %gsec (avgCount=%d)\n",
+                       wave->thickness,wave->intIntensity,cputim()-timer,muls.avgCount);
+              }
 
-				/*******************************************************
-				* build the potential slices from atomic configuration
-				******************************************************/
-				// if ((muls.tds) || (muls.nCellZ % muls.cellDiv != 0)) {
-				if (!muls.equalDivs) {
-					make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-					initSTEMSlices(&muls,muls.slices);
-				}
-
-				timer = cputim();
-				runMulsSTEM(&muls,wave); 
-				muls.totalSliceCount += muls.slices;
-
-				if (muls.printLevel > 0) {
-					printf("t=%gA, int.=%g time: %gsec (avgCount=%d)\n",
-						wave->thickness,wave->intIntensity,cputim()-timer,muls.avgCount);
-				}
-
-				/***************** FOR DEBUGGING ****************/		
-				if ((muls.avgCount == 0) && (muls.saveLevel >=0) && (pCount+1==muls.mulsRepeat2*muls.cellDiv)) {
-					if (muls.tds) comment = "Test wave function for run 0";
-					else comment = "Exit face wave function for no TDS";
-					sprintf(systStr,"%s/wave.img",muls.folder.c_str());
-					if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
-						ktx = -2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
-						kty = -2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
-						for (ix=0;ix<muls.nx;ix++) {
-							x = muls.resolutionX*(ix-muls.nx/2);
-							for (iy=0;iy<muls.ny;iy++) {
-								y = muls.resolutionY*(ix-muls.nx/2);
-								wave->wave[ix][iy][0] *= cos(ktx*x+kty*y);	
-								wave->wave[ix][iy][1] *= sin(ktx*x+kty*y);
-							}
-						}
-						if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
-					}
-
-					wave->WriteWave(comment);
-				}	
+              /***************** FOR DEBUGGING ****************/		
+              if ((muls.avgCount == 0) && (muls.saveLevel >=0) && (pCount+1==muls.mulsRepeat2*muls.cellDiv)) {
+                if (muls.tds) comment = "Test wave function for run 0";
+                else comment = "Exit face wave function for no TDS";
+                if ((muls.tiltBack) && ((muls.btiltx != 0) || (muls.btilty != 0))) {
+                  ktx = -2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
+                  kty = -2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
+                  for (ix=0;ix<muls.nx;ix++) {
+                    x = muls.resolutionX*(ix-muls.nx/2);
+                    for (iy=0;iy<muls.ny;iy++) {
+                      y = muls.resolutionY*(ix-muls.nx/2);
+                      wave->wave[ix][iy][0] *= cos(ktx*x+kty*y);	
+                      wave->wave[ix][iy][1] *= sin(ktx*x+kty*y);
+                    }
+                  }
+                  if (muls.printLevel > 1) printf("** Applied beam tilt compensation **\n");
+                }
+                
+                wave->WriteWave();
+              }	
 #ifdef VIB_IMAGE_TEST  // doTEM
-				if ((muls.tds) && (muls.saveLevel > 2)) {
-                                  sprintf(systStr,"%s/wave_%d.img",muls.folder.c_str(),muls.avgCount);
-                                        params["HT"] = muls.v0;
-                                        params["Cs"] = muls.Cs;
-                                        params["Defocus"] = muls.df0;
-                                        params["Astigmatism Magnitude"] = muls.astigMag;
-                                        params["Astigmatism Angle"] = muls.astigAngle;
-                                        params["Focal Spread"] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);
-                                        params["Convergence Angle"] = muls.alpha;
-                                        params["Beam Tilt X"] = muls.btiltx;
-                                        params["Beam Tilt Y"] = muls.btilty;
-                                        comment = "complex exit face Wave function";
+              if ((muls.tds) && (muls.saveLevel > 2)) {
+                params["HT"] = muls.v0;
+                params["Cs"] = muls.Cs;
+                params["Defocus"] = muls.df0;
+                params["Astigmatism Magnitude"] = muls.astigMag;
+                params["Astigmatism Angle"] = muls.astigAngle;
+                params["Focal Spread"] = muls.Cc * sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I);
+                params["Convergence Angle"] = muls.alpha;
+                params["Beam Tilt X"] = muls.btiltx;
+                params["Beam Tilt Y"] = muls.btilty;
+                comment = "complex exit face Wave function";
 
-					wave->WriteWave(systStr, comment, params);
-				}
+                wave->WriteWave(muls.avgCount, comment, params);
+              }
 #endif 
 
-			} 
-			result = readparam("sequence: ",buf,0);
-		} 
-		/////////////////////////////////////////////////////////////////////////////
-		// finished propagating through whole sample, we're at the exit surface now.
-		// This means the wave function is used for nothing else than producing image(s)
-		// and diffraction patterns.
-		//////////////////////////////////////////////////////////////////////////////
+            } 
+            result = readparam("sequence: ",buf,0);
+          } 
+          /////////////////////////////////////////////////////////////////////////////
+          // finished propagating through whole sample, we're at the exit surface now.
+          // This means the wave function is used for nothing else than producing image(s)
+          // and diffraction patterns.
+          //////////////////////////////////////////////////////////////////////////////
 
-		sprintf(avgName,"%s/diff.img",muls.folder.c_str());
+          wave->ReadDiffPat();
 
-		wave->ReadDiffPat(avgName);
+          if (muls.avgCount == 0) {
+            /***********************************************************
+             * Save the diffraction pattern
+             **********************************************************/	
+            memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
+            /* move the averaged (raw data) file to the target directory as well */
+            wave->WriteAvgArray(muls.avgCount+1);
 
-		if (muls.avgCount == 0) {
-			/***********************************************************
-			* Save the diffraction pattern
-			**********************************************************/	
-			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
-			/* move the averaged (raw data) file to the target directory as well */
-#ifndef WIN32
-			sprintf(avgName,"diffAvg_%d.img",muls.avgCount+1);
-			sprintf(systStr,"mv %s/diff.img %s/%s",muls.folder.c_str(),muls.folder.c_str(),avgName);
-			system(systStr);
-#else
-			sprintf(avgName,"diffAvg_%d.img",muls.avgCount+1);
-			sprintf(systStr,"move %s\\diff.img %s/%s",muls.folder.c_str(),muls.folder.c_str(),avgName);
-			// system(systStr);
-#endif
-			/***********************************************************
-			* Save the Pendelloesung Plot
-			**********************************************************/	
-			if (muls.lbeams) {
-				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
-					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
-					}
-				}
-			}
-			/***********************************************************
-			* Save the defocused image, we can do with the wave what 
-			* we want, since it is not used after this anymore. 
-			* We will therefore multiply with the transfer function for
-			* all the different defoci, inverse FFT and save each image.
-			* diffArray will be overwritten with the image.
-			**********************************************************/ 
-			if (imageWave == NULL) imageWave = complex2D(muls.nx,muls.ny,"imageWave");
-			// multiply wave (in rec. space) with transfer function and write result to imagewave
-			fftwf_execute(wave->fftPlanWaveForw);
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				// here, we apply the CTF:
-				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
-				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
-			}
-			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
-			// get the amplitude squared:
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				wave->diffpat[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
-			}
-			sprintf(avgName,"%s/waveIntensity.img",muls.folder.c_str());
-			wave->WriteDiffPat(avgName, "Wave intensity");
-			// End of Image writing (if avgCount = 0)
-			//////////////////////////////////////////////////////////////////////
+            /***********************************************************
+             * Save the Pendelloesung Plot
+             **********************************************************/	
+            if (muls.lbeams) {
+              for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
+                for (ix=0;ix<muls.nbout;ix++) {
+                  avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
+                }
+              }
+            }
+            /***********************************************************
+             * Save the defocused image, we can do with the wave what 
+             * we want, since it is not used after this anymore. 
+             * We will therefore multiply with the transfer function for
+             * all the different defoci, inverse FFT and save each image.
+             * diffArray will be overwritten with the image.
+             **********************************************************/ 
+            if (imageWave == NULL) imageWave = complex2D(muls.nx,muls.ny,"imageWave");
+            // multiply wave (in rec. space) with transfer function and write result to imagewave
+            fftwf_execute(wave->fftPlanWaveForw);
+            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+                // here, we apply the CTF:
+                imageWave[ix][iy][0] = wave->wave[ix][iy][0];
+                imageWave[ix][iy][1] = wave->wave[ix][iy][1];
+              }
+            fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+            // get the amplitude squared:
+            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+                wave->diffpat[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
+              }
+            wave->WriteWaveIntensity();
+            // End of Image writing (if avgCount = 0)
+            //////////////////////////////////////////////////////////////////////
+            
+          } // of if muls.avgCount == 0 ...
+          else {
+            /* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
+            muls.chisq[muls.avgCount-1] = 0.0;
+            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+                t = ((float_tt)muls.avgCount*wave->avgArray[ix][iy]+
+                     wave->diffpat[ix][iy])/((float_tt)(muls.avgCount+1));
+                muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
+                wave->avgArray[ix][iy] = t;
+              }
+            muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
+            wave->WriteAvgArray(muls.avgCount+1);
 
-		} // of if muls.avgCount == 0 ...
-		else {
-			/* 	 readRealImage_old(avgArray,muls.nx,muls.ny,&t,"diffAvg.img"); */
-			muls.chisq[muls.avgCount-1] = 0.0;
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((float_tt)muls.avgCount*wave->avgArray[ix][iy]+
-					wave->diffpat[ix][iy])/((float_tt)(muls.avgCount+1));
-				muls.chisq[muls.avgCount-1] += (wave->avgArray[ix][iy]-t)*(wave->avgArray[ix][iy]-t);
-				wave->avgArray[ix][iy] = t;
-			}
-			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
-			sprintf(avgName,"%s/diffAvg_%d.img",muls.folder.c_str(),muls.avgCount+1);
-			wave->WriteAvgArray(avgName, "Diffraction pattern");
-
-			/* write the data to a file */
-			if ((avgFp = fopen("avgresults.dat","w")) == NULL )
-				printf("Sorry, could not open data file for averaging\n");
-			else {
-				for (ix =0;ix<muls.avgCount;ix++) {
-					fprintf(avgFp,"%d %g\n",ix+1,muls.chisq[ix]);
-				}
-				fclose(avgFp);
-			}
-			/*************************************************************/
-
-			/***********************************************************
-			* Average over the pendelloesung plot as well
-			*/
-			if (muls.lbeams) {
-				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
-					for (ix=0;ix<muls.nbout;ix++) {
-						avgPendelloesung[ix][iy] = 
-							((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
-							muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
-					}
-				}
-			}
-			/***********************************************************
-			* Save the defocused image, we can do with the wave what 
-			* we want, since it is not used after this anymore. 
-			* We will therefore multiply with the transfer function for
-			* all the different defoci, inverse FFT and save each image.
-			* diffArray will be overwritten with the image.
-			**********************************************************/ 
-			if (imageWave == NULL) imageWave = complex2D(muls.nx,muls.ny,"imageWave");
-			// multiply wave (in rec. space) with transfer function and write result to imagewave
+            /* write the data to a file */
+            if ((avgFp = fopen("avgresults.dat","w")) == NULL )
+              printf("Sorry, could not open data file for averaging\n");
+            else {
+              for (ix =0;ix<muls.avgCount;ix++) {
+                fprintf(avgFp,"%d %g\n",ix+1,muls.chisq[ix]);
+              }
+              fclose(avgFp);
+            }
+            /*************************************************************/
+            
+            /***********************************************************
+             * Average over the pendelloesung plot as well
+             */
+            if (muls.lbeams) {
+              for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
+                for (ix=0;ix<muls.nbout;ix++) {
+                  avgPendelloesung[ix][iy] = 
+                    ((float_tt)muls.avgCount*avgPendelloesung[ix][iy]+
+                     muls.pendelloesung[ix][iy])/(float_tt)(muls.avgCount+1);
+                }
+              }
+            }
+            /***********************************************************
+             * Save the defocused image, we can do with the wave what 
+             * we want, since it is not used after this anymore. 
+             * We will therefore multiply with the transfer function for
+             * all the different defoci, inverse FFT and save each image.
+             * diffArray will be overwritten with the image.
+             **********************************************************/ 
+            if (imageWave == NULL) imageWave = complex2D(muls.nx,muls.ny,"imageWave");
+            // multiply wave (in rec. space) with transfer function and write result to imagewave
 #if FLOAT_PRECISION == 1
-			fftwf_execute(wave->fftPlanWaveForw);
+            fftwf_execute(wave->fftPlanWaveForw);
 #elif FLOAT_PRECISION == 2
-			fftw_execute(wave->fftPlanWaveForw);
+            fftw_execute(wave->fftPlanWaveForw);
 #endif
-
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				imageWave[ix][iy][0] = wave->wave[ix][iy][0];
-				imageWave[ix][iy][1] = wave->wave[ix][iy][1];
-			}
+            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+                imageWave[ix][iy][0] = wave->wave[ix][iy][0];
+                imageWave[ix][iy][1] = wave->wave[ix][iy][1];
+              }
 #if FLOAT_PRECISION == 1
-			fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+            fftwf_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 #elif FLOAT_PRECISION == 2
-			fftw_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
+            fftw_execute_dft(wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
 #endif
 
-			// save the amplitude squared:
-			sprintf(avgName,"%s/image.img",muls.folder.c_str()); 
-			wave->ReadDiffPat(avgName);
-			for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-				t = ((float_tt)muls.avgCount*wave->diffpat[ix][iy]+
-					imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(muls.avgCount+1);
-				wave->diffpat[ix][iy] = t;
-			}
-			wave->WriteDiffPat(avgName, "Image intensity");
-			// End of Image writing (if avgCount > 0)
-			//////////////////////////////////////////////////////////////////////
+            // save the amplitude squared:
+            wave->ReadImage();
+            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
+                t = ((float_tt)muls.avgCount*wave->diffpat[ix][iy]+
+                     imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(muls.avgCount+1);
+                wave->diffpat[ix][iy] = t;
+              }
+            wave->WriteImage();
+            // End of Image writing (if avgCount > 0)
+            //////////////////////////////////////////////////////////////////////
 
-		} /* else ... if avgCount was greater than 0 */
+          } /* else ... if avgCount was greater than 0 */
 
 
-		/////////////////////////////////////////////////////
-		// Save the Pendelloesung plot:
-		if (muls.lbeams) {
-			/**************************************************************
-			* The diffraction spot intensities of the selected 
-			* diffraction spots are now stored in the 2 dimensional array
-			* muls.pendelloesung[beam][slice].
-			* We can write the array to a file and display it, just for 
-			* demonstration purposes
-			*************************************************************/
-			sprintf(avgName,"%s/pendelloesung.dat",muls.folder);
-			if ((fp=fopen(avgName,"w")) !=NULL) {
-				printf("Writing Pendelloesung data\n");
-				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
-					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
-					/* write the beam intensities in the following columns */
-					for (ix=0;ix<muls.nbout;ix++) {
-						// store the AMPLITUDE:
-						fprintf(fp,"\t%g",sqrt(avgPendelloesung[ix][iy]/(muls.nx*muls.ny)));
-					}
-					/* close the line, and start a new one for the next set of
-					* intensities
-					*/
-					fprintf(fp,"\n");
-				}
-				fclose(fp);
-			}
-			else {
-				printf("Could not open file for pendelloesung plot\n");
-			}	
-		} /* end of if lbemas ... */		 
-		displayProgress(1);
+          /////////////////////////////////////////////////////
+          // Save the Pendelloesung plot:
+          if (muls.lbeams) {
+            /**************************************************************
+             * The diffraction spot intensities of the selected 
+             * diffraction spots are now stored in the 2 dimensional array
+             * muls.pendelloesung[beam][slice].
+             * We can write the array to a file and display it, just for 
+             * demonstration purposes
+             *************************************************************/
+            char avgName[255];
+            sprintf(avgName,"%s/pendelloesung.dat",muls.folder.c_str());
+            if ((fp=fopen(avgName,"w")) !=NULL) {
+              printf("Writing Pendelloesung data\n");
+              for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
+                /* write the thicknes in the first column of the file */
+                fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+                /* write the beam intensities in the following columns */
+                for (ix=0;ix<muls.nbout;ix++) {
+                  // store the AMPLITUDE:
+                  fprintf(fp,"\t%g",sqrt(avgPendelloesung[ix][iy]/(muls.nx*muls.ny)));
+                }
+                /* close the line, and start a new one for the next set of
+                 * intensities
+                 */
+                fprintf(fp,"\n");
+              }
+              fclose(fp);
+            }
+            else {
+              printf("Could not open file for pendelloesung plot\n");
+            }	
+          } /* end of if lbeams ... */		 
+          displayProgress(1);
 	} /* end of for muls.avgCount=0.. */  
 }
 /************************************************************************
@@ -1811,7 +1762,7 @@ void doTEM() {
 *
 ***********************************************************************/
 
-void doSTEM() {
+void doSTEM(WavePtr initialWave, PotPtr pot) {
 	int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
 	double timer, total_time=0;
 	char buf[BUF_LEN];
@@ -1885,9 +1836,8 @@ void doSTEM() {
 			picts *= muls.cellDiv;
 
 			if (muls.equalDivs) {
-				make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
-				initSTEMSlices(&muls, muls.slices);
-				timer = cputim();
+                          pot->Refresh();
+                          timer = cputim();
 			}
 
 			/****************************************
@@ -1898,9 +1848,8 @@ void doSTEM() {
 				* build the potential slices from atomic configuration
 				******************************************************/
 				if (!muls.equalDivs) {
-					make3DSlices(&muls,muls.slices,muls.atomPosFile,NULL);
-					initSTEMSlices(&muls,muls.slices);
-					timer = cputim();
+                                  pot->Refresh();
+                                  timer = cputim();
 				}
 
 				muls.complete_pixels=0;
@@ -1911,7 +1860,7 @@ void doSTEM() {
 				//    Otherwise, they are implicitly shared (and this was cause of several bugs.)
 #pragma omp parallel \
 	private(ix, iy, ixa, iya, wave, t, timer) \
-	shared(pCount, picts, muls, collectedIntensity, total_time, waves) \
+  shared(pot, pCount, picts, muls, collectedIntensity, total_time, waves) \
 	default(none)
 #pragma omp for
 				for (i=0; i < (muls.scanXN * muls.scanYN); i++)
@@ -1921,7 +1870,6 @@ void doSTEM() {
 					iy = i % muls.scanYN;
 
 					wave = waves[omp_get_thread_num()];
-					wave->SetWavePosition(ix, iy);
 
 					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
 
@@ -1939,7 +1887,7 @@ void doSTEM() {
 					{
         					/* load incident wave function and then propagate it */
                                           
-                                          wave->ReadWave(); /* this also sets the thickness!!! */
+                                          wave->ReadWave(ix, iy); /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
 						//muls.nslic0 = pCount;
 					}
@@ -1964,7 +1912,7 @@ void doSTEM() {
 
 					// MCS - update the probe wavefunction with its position
 
-					runMulsSTEM(&muls,wave); 
+					runMulsSTEM(&muls,wave, pot); 
 
 
 					/***************************************************************
@@ -1979,10 +1927,7 @@ void doSTEM() {
 
 					if (pCount == picts-1)  /* if this is the last slice ... */
 					{
-						sprintf(wave->avgName,"%s/diffAvg",muls.folder);
-						// printf("Will copy to avgArray %d %d (%d, %d)\n",muls.nx, muls.ny,(int)(muls.diffpat),(int)avgArray);	
-
-						if (muls.saveLevel > 0) 
+                                          if (muls.saveLevel > 0) 
 						{
 							if (muls.avgCount == 0)  
 							{
@@ -1998,7 +1943,7 @@ void doSTEM() {
 							else 
 							{
 								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
-                                                          wave->ReadAvgArray(wave->avgName, ix, iy);
+                                                          wave->ReadAvgArray(ix, iy);
 								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
 									t = ((float_tt)muls.avgCount * wave->avgArray[ixa][iya] +
 										wave->diffpat[ixa][iya]) / ((float_tt)(muls.avgCount + 1));
@@ -2012,7 +1957,7 @@ void doSTEM() {
 								}
 							}
 							// Write the array to a file, resize and crop it, 
-							wave->WriteAvgArray(wave->avgName);
+							wave->WriteAvgArray(ix, iy);
 							}	
 							else {
 								if (muls.avgCount > 0)	muls.chisq[muls.avgCount-1] = 0.0;

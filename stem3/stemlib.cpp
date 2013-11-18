@@ -59,8 +59,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define INTEGRAL_TOL 1e-5
 #define MAX_INTEGRAL_STEPS 15
 #define MIN_INTEGRAL_STEPS 2
-#define OVERSAMPLING 3
-#define OVERSAMPLINGZ (3*OVERSAMPLING)
 /*#define USE_VATOM_LUT */ /* set if you want to use vzatomLUT/v3DatomLUT */
 /*#define USE_VZATOM_IN_CENTER */
 /////////////////////////////////////////////////
@@ -473,7 +471,7 @@ void probe(MULS *muls, WavePtr wave, double dx, double dy)
 * waver, wavei are expected to contain incident wave function 
 * they will be updated at return
 *****************************************************************/
-int runMulsSTEM(MULS *muls, WavePtr wave) {
+int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 	int printFlag = 0; 
 	int showEverySlice=1;
 	int islice,i,ix,iy,mRepeat;
@@ -525,9 +523,10 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 #else
 			fftw_execute(wave->fftPlanWaveForw);
 #endif
-			propagate_slow((void **)wave->wave, muls->nx, muls->ny, muls);
+			propagate_slow(wave, muls->nx, muls->ny, muls);
 
-			collectIntensity(muls, wave, muls->totalSliceCount+islice*(1+mRepeat));
+                        muls->detectors->CollectIntensity(wave, muls->totalSliceCount+islice*(1+mRepeat));
+			//collectIntensity(muls, wave, muls->totalSliceCount+islice*(1+mRepeat));
 
 			if (muls->mode != STEM) {
 				/* write pendelloesung plots, if this is not STEM */
@@ -575,11 +574,13 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 			
 			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
 			{
-				// TODO (MCS 2013/04): this restructure probably broke this file saving - 
-				//   need to rewrite a function to save things for TEM/CBED?
-				// This used to call interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
-				interimWave(muls,wave,absolute_slice*(1+mRepeat)); 
-				collectIntensity(muls,wave,absolute_slice*(1+mRepeat));
+                          // TODO (MCS 2013/04): this restructure probably broke this file saving - 
+                          //   need to rewrite a function to save things for TEM/CBED?
+                          // This used to call interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
+                          interimWave(muls,wave,absolute_slice*(1+mRepeat)); 
+                          muls->detectors->CollectIntensity(wave, absolute_slice*(1+mRepeat));
+
+                          //collectIntensity(muls,wave,absolute_slice*(1+mRepeat));
 			}
 		} /* end for(islice...) */
 		// collect intensity at the final slice
@@ -626,9 +627,9 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 	}
 	if (muls->saveFlag) {
 		if ((muls->saveLevel > 1) || (muls->cellDiv > 1)) {
-			wave->WriteWave(wave->fileout);
+			wave->WriteWave();
 			if (printFlag)
-				printf("Created complex image file %s\n",(*wave).fileout);    
+                          printf("Created complex image file %s\n",(*wave).fileout.c_str());
 		}
 	}
 	return 0;
@@ -660,131 +661,11 @@ void interimWave(MULS *muls,WavePtr wave,int slice) {
 	// produce the following filename:
 	// wave_avgCount_thicknessIndex.img or
 	// wave_thicknessIndex.img if tds is turned off
-	if (muls->tds) sprintf(fileName,"%s/wave_%d_%d.img",muls->folder,muls->avgCount,t);
-	else sprintf(fileName,"%s/wave_%d.img",muls->folder,t);
-	wave->WriteWave(fileName, "Wave Function", params);
+	if (muls->tds) wave->WriteWave(muls->avgCount, t, "Wave Function", params);
+        else wave->WriteWave(t, "Wave Function", params);
 }
 
-/********************************************************************
-* collectIntensity(muls, wave, slice)
-* collect the STEM signal on the annular detector(s) defined in muls
-* and write the appropriate pixel in the image for each detector and thickness
-* The number of images is determined by the following formula:
-* muls->slices*muls->cellDiv/muls->outputInterval 
-* There are muls->detectorNum different detectors
-*******************************************************************/
-void collectIntensity(MULS *muls, WavePtr wave, int slice) 
-{
-	int i,ix,iy,ixs,iys,t;
-	float_tt k2;
-	double intensity,scale,scaleCBED,scaleDiff,intensity_save;
-	char fileName[256],avgName[256]; 
-	float_tt **diffpatAvg = NULL;
-	int tCount = 0;
 
-	std::vector<std::vector<DetectorPtr> > detectors;
-
-	scale = muls->electronScale/((double)(muls->nx*muls->ny)*(muls->nx*muls->ny));
-	// scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
-	scaleDiff = 1.0/sqrt((double)(muls->nx*muls->ny));
-
-	tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
-
-	// we write directly to the shared muls object.  This is safe only because 
-	//    each thread is accessing different pixels in the output images.
-	detectors = muls->detectors;
-
-	if (muls->outputInterval == 0) t = 0;
-	else if (slice < ((muls->slices*muls->cellDiv)-1))
-	{
-		t = (int)((slice) / muls->outputInterval);
-		//if (t > tCount)
-		//{
-			// printf("t = %d, which is greater than tCount (%d)\n",t,tCount);
-			//t = tCount-1;
-		//}
-	}
-	else
-	{
-		t = tCount;
-	}
-
-	int position_offset = wave->detPosY * muls->scanXN + wave->detPosX;
-
-	// Multiply each image by its number of averages and divide by it later again:
-	for (i=0;i<muls->detectorNum;i++) 
-	{
-		detectors[t][i]->image[wave->detPosX][wave->detPosY]  *= detectors[t][i]->Navg;	
-		detectors[t][i]->image2[wave->detPosX][wave->detPosY] *= detectors[t][i]->Navg;	
-		detectors[t][i]->error = 0;
-	}
-	/* add the intensities in the already 
-	fourier transformed wave function */
-	for (ix = 0; ix < muls->nx; ix++) 
-	{
-		for (iy = 0; iy < muls->ny; iy++) 
-		{
-			k2 = muls->kx2[ix]+muls->ky2[iy];
-			intensity = (wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
-				wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
-			wave->diffpat[(ix+muls->nx/2)%muls->nx][(iy+muls->ny/2)%muls->ny] = intensity*scaleDiff;
-			intensity *= scale;
-			for (i=0;i<muls->detectorNum;i++) {
-				if ((k2 >= detectors[t][i]->k2Inside) && (k2 <= detectors[t][i]->k2Outside)) 
-				{
-					// detector in center of diffraction pattern:
-					if ((detectors[t][i]->shiftX == 0) && (detectors[t][i]->shiftY == 0)) 
-					{
-						detectors[t][i]->image[wave->detPosX][wave->detPosY] += intensity;
-						// misuse the error number for collecting this pixels raw intensity
-						detectors[t][i]->error += intensity;
-					}
-					/* special case for shifted detectors: */		
-					else 
-					{
-						intensity_save = intensity;
-						ixs = (ix+(int)detectors[t][i]->shiftX+muls->nx) % muls->nx;
-						iys = (iy+(int)detectors[t][i]->shiftY+muls->ny) % muls->ny;	    
-						intensity = scale * (wave->wave[ixs][iys][0]*wave->wave[ixs][iys][0]+
-							wave->wave[ixs][iys][1]*wave->wave[ixs][iys][1]);
-						detectors[t][i]->image[wave->detPosX][wave->detPosY] += intensity;
-						// repurpose the error number for collecting this pixels raw intensity
-						detectors[t][i]->error += intensity;
-						/* restore intensity, so that it will not be shifted for the other detectors */
-						intensity = intensity_save;
-					}
-				} /* end of if k2 ... */
-			} /* end of for i=0 ... detectorNum */
-		} /* end of for iy=0... */
-	} /* end of for ix = ... */
-
-	////////////////////////////////////////////////////////////////////////////
-	// write the diffraction pattern to disc in case we are working in CBED mode
-	if ((muls->mode == CBED) && (muls->saveLevel > 0)) {
-		sprintf(avgName,"%s/diff_%d.img",muls->folder,t);
-		// for (ix=0;ix<muls->nx*muls->ny;ix++) wave->diffpat[0][ix] *= scaleCBED;
-		if (muls->avgCount == 0) {
-                  wave->WriteDiffPat(avgName);
-		}
-		else {
-			wave->ReadAvgArray(avgName);
-			for (ix=0;ix<muls->nx*muls->ny;ix++) {
-				wave->avgArray[0][ix] = (muls->avgCount*wave->avgArray[0][ix]+wave->diffpat[0][ix])/(muls->avgCount+1);
-			}
-			wave->WriteAvgArray(avgName);
-		}
-	}
-
-	// Divide each image by its number of averages again:
-	for (i=0;i<muls->detectorNum;i++) {
-		// add intensity squared to image2 for this detector and pixel, then rescale:
-		detectors[t][i]->image2[wave->detPosX][wave->detPosY] += detectors[t][i]->error*detectors[t][i]->error;
-		detectors[t][i]->image2[wave->detPosX][wave->detPosY] /= detectors[t][i]->Navg+1;	
-
-		// do the rescaling for the average image:
-		detectors[t][i]->image[wave->detPosX][wave->detPosY] /= detectors[t][i]->Navg+1;	
-	}
-}
 
 /*****  saveSTEMImages *******/
 // Saves all detector images (STEM images) that are defined in muls.
@@ -792,64 +673,9 @@ void collectIntensity(MULS *muls, WavePtr wave, int slice)
 //   the intermediate STEM images for each detector.
 void saveSTEMImages(MULS *muls)
 {
-	int i, ix, islice;
-	double intensity;
-	static char fileName[256]; 
-	//imageStruct *header = NULL;
-	std::vector<DetectorPtr> detectors;
-	float t;
-    std::map<std::string, double> params;
-    std::vector<unsigned> position(1,0);
-
-	int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
-
-	// Loop over slices (intermediates)
-	for (islice=0; islice <= tCount; islice++)
-	{
-		if (islice<tCount)
-		{
-			t = ((islice+1) * muls->outputInterval ) * muls->sliceThickness;
-		}
-		else
-		{
-			t = muls->slices*muls->cellDiv*muls->sliceThickness;
-		}
-		detectors = muls->detectors[islice];
-		// write the output STEM images:
-		// This is done only after all pixels have completed, so that image is complete.
-		for (i=0; i<muls->detectorNum; i++) 
-		{
-			// calculate the standard error for this image:
-			detectors[i]->error = 0;
-			intensity             = 0;
-			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
-			{
-				detectors[i]->error += (detectors[i]->image2[0][ix]-
-					detectors[i]->image[0][ix] * detectors[i]->image[0][ix]);
-				intensity += detectors[i]->image[0][ix] * detectors[i]->image[0][ix];
-			}
-			detectors[i]->error /= intensity;
-            position[0]=islice;
-            sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name);
-            params["Thickness"]=t;
-            params["Runs Averaged"]=(double)muls->avgCount+1;
-            params["Error"]=(double)detectors[i]->error;
-
-            // TODO: why is this here?  It's a second image.  Why aren't we just saving another image?
-            /*
-			for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
-			{
-				detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
-			}
-            */
-
-			// exclude the suffix if this is the last detector (at the final thickness)
-			if (islice==tCount)
-				detectors[i]->WriteImage(fileName, detectors[i]->name, params);
-			else
-				detectors[i]->WriteImage(fileName, detectors[i]->name, params, position);
-		}
-	}
+  std::map<std::string, double> params;
+  params["Runs Averaged"]=(double)muls->avgCount+1;
+  muls->detectors->SaveDetectors(params);  
 }
 
 
@@ -857,65 +683,46 @@ void saveSTEMImages(MULS *muls)
 * propagate_slow() 
 * replicates the original way, mulslice did it:
 *****************************************************************/
-void propagate_slow(void **w,int nx, int ny,MULS *muls)
+void propagate_slow(WavePtr wave,int nx, int ny,MULS *muls)
 {
 	int ixa, iya;
 	float_tt wr, wi, tr, ti,ax,by;
 	float_tt scale,t,dz; 
 	static float_tt dzs=0;
-	static float_tt *propxr=NULL,*propyr=NULL;
-	static float_tt *propxi=NULL,*propyi=NULL;
-	static float_tt *kx2,*ky2;
-	static float_tt *kx,*ky;
-	static float_tt k2max=0,wavlen;
-	complex_tt **wave;
-	wave = (complex_tt **)w;
+        static std::vector<float_tt> propxr(nx), propxi(nx), propyr(ny), propyi(ny);
+        float_tt wavlen;
 
 	ax = (*muls).resolutionX*nx;
 	by = (*muls).resolutionY*ny;
 	dz = (*muls).cz[0];
 
 	if (dz != dzs) {
-		if (propxr == NULL) {
-			propxr = float1D(nx, "propxr" );
-			propxi = float1D(nx, "propxi" );
-			propyr = float1D(ny, "propyr" );
-			propyi = float1D(ny, "propyi" );
-			kx2    = float1D(nx, "kx2" );
-			kx     = float1D(nx, "kx" );
-			ky2    = float1D(ny, "ky2" );
-			ky     = float1D(ny, "ky" );
-		}
-		dzs = dz;
-		scale = dz*PI;
-		wavlen = wavelength((*muls).v0);
+          dzs = dz;
+          scale = dz*PI;
+          wavlen = wavelength(wave->v0);
 
-		for( ixa=0; ixa<nx; ixa++) {
-			kx[ixa] = (ixa>nx/2) ? (float_tt)(ixa-nx)/ax : 
-				(float_tt)ixa/ax;
-			kx2[ixa] = kx[ixa]*kx[ixa];
-			t = scale * (kx2[ixa]*wavlen);
-			propxr[ixa] = (float_tt)  cos(t);
-			propxi[ixa] = (float_tt) -sin(t);
-		}
-		for( iya=0; iya<ny; iya++) {
-			ky[iya] = (iya>ny/2) ? 
-				(float_tt)(iya-ny)/by : 
-			(float_tt)iya/by;
-			ky2[iya] = ky[iya]*ky[iya];
-			t = scale * (ky2[iya]*wavlen);
-			propyr[iya] = (float_tt)  cos(t);
-			propyi[iya] = (float_tt) -sin(t);
-		}
-		k2max = nx/(2.0F*ax);
-		if (ny/(2.0F*by) < k2max ) k2max = ny/(2.0F*by);
-		k2max = 2.0/3.0 * k2max;
-		// TODO: modifying shared value from multiple threads?
-		k2max = k2max*k2max;
-		(*muls).kx2=kx2;
-		(*muls).ky2=ky2;
-		(*muls).kx=kx;
-		(*muls).ky=ky;
+          for( ixa=0; ixa<nx; ixa++) {
+            wave->m_kx[ixa] = (ixa>nx/2) ? (float_tt)(ixa-nx)/ax : 
+              (float_tt)ixa/ax;
+            wave->m_kx2[ixa] = wave->m_kx[ixa]*wave->m_kx[ixa];
+            t = scale * (wave->m_kx2[ixa]*wavlen);
+            propxr[ixa] = (float_tt)  cos(t);
+            propxi[ixa] = (float_tt) -sin(t);
+          }
+          for( iya=0; iya<ny; iya++) {
+            wave->m_ky[iya] = (iya>ny/2) ? 
+              (float_tt)(iya-ny)/by : 
+              (float_tt)iya/by;
+            wave->m_ky2[iya] = wave->m_ky[iya]*wave->m_ky[iya];
+            t = scale * (wave->m_ky2[iya]*wavlen);
+            propyr[iya] = (float_tt)  cos(t);
+            propyi[iya] = (float_tt) -sin(t);
+          }
+          wave->m_k2max = nx/(2.0F*ax);
+          if (ny/(2.0F*by) < wave->m_k2max ) wave->m_k2max = ny/(2.0F*by);
+          wave->m_k2max = 2.0/3.0 * wave->m_k2max;
+          // TODO: modifying shared value from multiple threads?
+          wave->m_k2max = wave->m_k2max*wave->m_k2max;
 	} 
 	/* end of: if dz != dzs */
 	/*************************************************************/
@@ -924,23 +731,23 @@ void propagate_slow(void **w,int nx, int ny,MULS *muls)
 	* Propagation
 	************************************************************/
 	for( ixa=0; ixa<nx; ixa++) {
-		if( kx2[ixa] < k2max ) {
-			for( iya=0; iya<ny; iya++) {
-				if( (kx2[ixa] + ky2[iya]) < k2max ) {
+          if( wave->m_kx2[ixa] < wave->m_k2max ) {
+            for( iya=0; iya<ny; iya++) {
+              if( (wave->m_kx2[ixa] + wave->m_ky2[iya]) < wave->m_k2max ) {
+                
+                wr = wave->wave[ixa][iya][0];
+                wi = wave->wave[ixa][iya][1];
+                tr = wr*propyr[iya] - wi*propyi[iya];
+                ti = wr*propyi[iya] + wi*propyr[iya];
+                wave->wave[ixa][iya][0] = tr*propxr[ixa] - ti*propxi[ixa];
+                wave->wave[ixa][iya][1] = tr*propxi[ixa] + ti*propxr[ixa];
 
-					wr = wave[ixa][iya][0];
-					wi = wave[ixa][iya][1];
-					tr = wr*propyr[iya] - wi*propyi[iya];
-					ti = wr*propyi[iya] + wi*propyr[iya];
-					wave[ixa][iya][0] = tr*propxr[ixa] - ti*propxi[ixa];
-					wave[ixa][iya][1] = tr*propxi[ixa] + ti*propxr[ixa];
+              } else
+                wave->wave[ixa][iya][0] = wave->wave[ixa][iya][1] = 0.0F;
+            } /* end for(iy..) */
 
-				} else
-					wave[ixa][iya][0] = wave[ixa][iya][1] = 0.0F;
-			} /* end for(iy..) */
-
-		} else for( iya=0; iya<ny; iya++)
-			wave[ixa][iya][0] = wave[ixa][iya][1] = 0.0F;
+          } else for( iya=0; iya<ny; iya++)
+                   wave->wave[ixa][iya][0] = wave->wave[ixa][iya][1] = 0.0F;
 	} /* end for(ix..) */
 } /* end propagate_slow() */
 
@@ -1056,7 +863,7 @@ void writeBeams(MULS *muls, WavePtr wave, int ilayer, int absolute_slice) {
 	static char fileBeam[32];
 	static FILE *fp1 = NULL,*fpAmpl = NULL,*fpPhase=NULL;
 	int ib;
-	static int *hbeam=NULL,*kbeam=NULL;
+	static std::vector<int> hbeam,kbeam;
 	static float_tt zsum = 0.0f,scale;
 	float_tt rPart,iPart,ampl,phase;
 	static char systStr[64];
@@ -1078,16 +885,16 @@ void writeBeams(MULS *muls, WavePtr wave, int ilayer, int absolute_slice) {
 
 		if ((fp1 == NULL) || (fpAmpl == NULL) || (fpPhase == NULL)) {
 			scale = 1.0F / ( ((float_tt)muls->nx) * ((float_tt)muls->ny) );
-			hbeam = (*muls).hbeam;
-			kbeam = (*muls).kbeam;
-			if ((hbeam == NULL) || (kbeam == NULL)) {
+			hbeam = (*muls).hbeams;
+			kbeam = (*muls).kbeams;
+			if ((hbeam.empty()) || (kbeam.empty())) {
 				printf("ERROR: hbeam or kbeam == NULL!\n");
 				exit(0);
 			}
 
-			sprintf(fileAmpl,"%s/beams_amp.dat",(*muls).folder);
-			sprintf(filePhase,"%s/beams_phase.dat",(*muls).folder);
-			sprintf(fileBeam,"%s/beams_all.dat",(*muls).folder);
+			sprintf(fileAmpl,"%s/beams_amp.dat",(*muls).folder.c_str());
+			sprintf(filePhase,"%s/beams_phase.dat",(*muls).folder.c_str());
+			sprintf(fileBeam,"%s/beams_all.dat",(*muls).folder.c_str());
 			fp1 = fopen(fileBeam, "w" );
 			fpAmpl = fopen( fileAmpl, "w" );
 			fpPhase = fopen( filePhase, "w" );
@@ -1105,7 +912,7 @@ void writeBeams(MULS *muls, WavePtr wave, int ilayer, int absolute_slice) {
 			}
 			fprintf(fp1, " (h,k) = ");
 			for(ib=0; ib<(*muls).nbout; ib++) {
-				fprintf(fp1," (%d,%d)", muls->hbeam[ib],  muls->kbeam[ib]);
+				fprintf(fp1," (%d,%d)", muls->hbeams[ib],  muls->kbeams[ib]);
 			}
 			fprintf( fp1, "\n" );
 			fprintf( fp1, "nslice, (real,imag) (real,imag) ...\n\n");
@@ -1166,18 +973,14 @@ void writeBeams(MULS *muls, WavePtr wave, int ilayer, int absolute_slice) {
 				(*muls).nbout,(*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2);
 		}
 		for( ib=0; ib<muls->nbout; ib++) {
-			rPart = (*wave).wave[muls->hbeam[ib]][muls->kbeam[ib]][0];
-			iPart = (*wave).wave[muls->hbeam[ib]][muls->kbeam[ib]][1];
+			rPart = (*wave).wave[muls->hbeams[ib]][muls->kbeams[ib]][0];
+			iPart = (*wave).wave[muls->hbeams[ib]][muls->kbeams[ib]][1];
 			muls->pendelloesung[ib][absolute_slice] = scale*(float_tt)(rPart*rPart+iPart*iPart);
 			// printf("slice: %d beam: %d [%d,%d], intensity: %g\n",muls->nslic0,ib,muls->hbeam[ib],muls->kbeam[ib],muls->pendelloesung[ib][muls->nslic0]);			
 		} // end of ib=0 ... 
 	}
 	
 }
-
-
-
-
 
 
 
@@ -1374,3 +1177,4 @@ fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B) {
 #undef SHOW_SINGLE_POTENTIAL
 
 */
+

@@ -35,6 +35,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "fileio_fftw3.hpp"
 // #include "stemlib.hpp"
 
+#include "readparams.hpp"
+
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>
@@ -1099,10 +1101,6 @@ MULS initMu() {
 	muls.sparam = (float *)malloc(NPARAM*sizeof(float));
 	for (i=0;i<NPARAM;i++)
 		muls.sparam[i] = 0.0;
-	muls.kx = NULL;
-	muls.kx2= NULL;
-	muls.ky = NULL;
-	muls.ky2= NULL;
 
 	/****************************************************/
 	/* copied from slicecell.c                          */
@@ -1113,21 +1111,22 @@ MULS initMu() {
 // #undef NPARAM	64    /* number of parameters */
 
 int readCubicCFG(double **pos,double **dw, int **Znums, double *ax,double *by,double *cz, 
-				 double ctiltx, double ctilty) {
-					 atom *atoms;
-					 int Natom;
-					 int j;
-					 MULS mu = initMu();
-
-					 mu.atomKinds = 0;
-					 mu.Znums = NULL;
-					 mu.tds = 0;
-					 mu.u2 = NULL;
-					 mu.nCellX = 1;
-					 mu.nCellY = 1;
-					 mu.nCellZ = 1;
-					 mu.ctiltx = ctiltx; mu.ctilty = ctilty; mu.ctiltz = 0;
-					 mu.cubex = 0; mu.cubey = 0; mu.cubez = 0;
+                 double ctiltx, double ctilty) 
+{
+  atom *atoms;
+  int Natom;
+  int j;
+  MULS mu = initMu();
+  
+  mu.atomKinds = 0;
+  mu.Znums = NULL;
+  mu.tds = 0;
+  mu.u2 = NULL;
+  mu.nCellX = 1;
+  mu.nCellY = 1;
+  mu.nCellZ = 1;
+  mu.ctiltx = ctiltx; mu.ctilty = ctilty; mu.ctiltz = 0;
+  mu.cubex = 0; mu.cubey = 0; mu.cubez = 0;
 
 					 atoms = readUnitCell(&Natom,"demo.cfg",&mu,1);
 					 /*  

@@ -62,16 +62,94 @@ void Detector::Initialize()
   m_k2Outside *= m_k2Outside;
 }
 
-void Detector::WriteImage(std::string &fileName, std::string &comment, std::map<std::string, double> &params,
+void Detector::WriteImage(std::map<std::string, double> &params,
                           std::vector<unsigned> &position)
 {
   params["dx"]=m_dx;
   params["dy"]=m_dy;
+  std::string comment;
   // Thickness is set externally and passed in on params
-  m_imageIO->WriteRealImage((void **)m_image, fileName, params, comment, position);
+  m_imageIO->WriteRealImage((void **)m_image, m_name, params, comment, position);
 }
 
+void Detector::CollectIntensity(WavePtr &wave)
+{
+  /********************************************************************
+   * collectIntensity(muls, wave, slice)
+   * collect the STEM signal on the annular detector(s) defined in muls
+   * and write the appropriate pixel in the image for each detector and thickness
+   * The number of images is determined by the following formula:
+   * muls->slices*muls->cellDiv/muls->outputInterval 
+   * There are muls->detectorNum different detectors
+   *******************************************************************/
+  int i,ix,iy,ixs,iys,t;
+  float_tt k2;
+  double intensity,scale,scaleCBED,scaleDiff,intensity_save;
+  char fileName[256],avgName[256]; 
+  float_tt **diffpatAvg = NULL;
+  int tCount = 0;
 
+  std::vector<std::vector<DetectorPtr> > detectors;
+
+  scale = wave->electronScale/((double)(wave->nx*wave->ny)*(wave->nx*wave->ny));
+  // scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
+  scaleDiff = 1.0/sqrt((double)(wave->nx*wave->ny));
+
+  int position_offset = wave->detPosY * m_nx + wave->detPosX;
+
+  // Multiply each image by its number of averages and divide by it later again:
+  m_image[wave->detPosX][wave->detPosY]  *= m_Navg;	
+  m_image2[wave->detPosX][wave->detPosY] *= m_Navg;	
+  m_error = 0;
+
+  /* add the intensities in the already 
+     fourier transformed wave function */
+  for (ix = 0; ix < wave->nx; ix++) 
+    {
+      for (iy = 0; iy < wave->ny; iy++) 
+        {
+          k2 = wave->m_kx2[ix]+wave->m_ky2[iy];
+          intensity = (wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
+                       wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
+          wave->diffpat[(ix+wave->nx/2)%wave->nx][(iy+wave->ny/2)%wave->ny] = intensity*scaleDiff;
+          intensity *= scale;
+          if ((k2 >= m_k2Inside) && (k2 <= m_k2Outside)) 
+              {
+                // detector in center of diffraction pattern:
+                if ((m_shiftX == 0) && (m_shiftY == 0)) 
+                  {
+                    m_image[wave->detPosX][wave->detPosY] += intensity;
+                    // misuse the error number for collecting this pixels raw intensity
+                    m_error += intensity;
+                  }
+                /* special case for shifted detectors: */		
+                else 
+                  {
+                    intensity_save = intensity;
+                    ixs = (ix+(int)m_shiftX+wave->nx) % wave->nx;
+                    iys = (iy+(int)m_shiftY+wave->ny) % wave->ny;	    
+                    intensity = scale * (wave->wave[ixs][iys][0]*wave->wave[ixs][iys][0]+
+                                         wave->wave[ixs][iys][1]*wave->wave[ixs][iys][1]);
+                    m_image[wave->detPosX][wave->detPosY] += intensity;
+                    // repurpose the error number for collecting this pixels raw intensity
+                    m_error += intensity;
+                    /* restore intensity, so that it will not be shifted for the other detectors */
+                    intensity = intensity_save;
+                  }
+              } /* end of if k2 ... */
+        } /* end of for iy=0... */
+    } /* end of for ix = ... */
+
+  
+  
+  // Divide each image by its number of averages again:
+  // add intensity squared to image2 for this detector and pixel, then rescale:
+  m_image2[wave->detPosX][wave->detPosY] += m_error*m_error;
+  m_image2[wave->detPosX][wave->detPosY] /= m_Navg+1;	
+    
+  // do the rescaling for the average image:
+  m_image[wave->detPosX][wave->detPosY] /= m_Navg+1;	
+}
 
 
 DetectorManager::DetectorManager(ConfigReaderPtr &configReader)
@@ -133,7 +211,7 @@ void DetectorManager::LoadDetectors(ConfigReaderPtr &configReader)
   return LoadDetectors(configReader, thicknesses);
 }
 
-void DetectorManager::CollectIntensity(int plane_idx, WavePtr &wave)
+void DetectorManager::CollectIntensity(WavePtr &wave, int plane_idx)
 {
   for (size_t det_idx=0; det_idx<m_detectors[plane_idx].size(); det_idx++)
     {
@@ -141,8 +219,7 @@ void DetectorManager::CollectIntensity(int plane_idx, WavePtr &wave)
     }
 }
 
-void DetectorManager::SaveDetectors(std::string &comment,
-                                    std::map<std::string, double> &params)
+void DetectorManager::SaveDetectors(std::map<std::string, double> &params)
 {
   std::vector<unsigned>detector_id(2), final_id(1);
   for (size_t plane_idx=0; plane_idx<m_detectors.size(); plane_idx++)
@@ -155,9 +232,66 @@ void DetectorManager::SaveDetectors(std::string &comment,
           DetectorPtr det = m_detectors[plane_idx][det_idx];
           params["Thickness"]=m_thicknesses[plane_idx];
           
-          det->WriteImage(det->m_name, comment, params);
+          det->WriteImage(params);
         }
     }
+  /*
+  int i, ix, islice;
+  double intensity;
+  static char fileName[256]; 
+  //imageStruct *header = NULL;
+  std::vector<DetectorPtr> detectors;
+  float t;
+  std::vector<unsigned> position(1,0);
+
+  int tCount = (int)(ceil((double)((muls->slices * muls->cellDiv) / muls->outputInterval)));
+  
+  // Loop over slices (intermediates)
+  for (islice=0; islice <= tCount; islice++)
+    {
+      if (islice<tCount)
+        {
+          t = ((islice+1) * muls->outputInterval ) * muls->sliceThickness;
+        }
+      else
+        {
+          t = muls->slices*muls->cellDiv*muls->sliceThickness;
+        }
+      detectors = muls->detectors[islice];
+      // write the output STEM images:
+      // This is done only after all pixels have completed, so that image is complete.
+      for (i=0; i<muls->detectorNum; i++) 
+        {
+          // calculate the standard error for this image:
+          detectors[i]->error = 0;
+          intensity             = 0;
+          for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
+            {
+              detectors[i]->error += (detectors[i]->image2[0][ix]-
+                                      detectors[i]->image[0][ix] * detectors[i]->image[0][ix]);
+              intensity += detectors[i]->image[0][ix] * detectors[i]->image[0][ix];
+            }
+          detectors[i]->error /= intensity;
+          position[0]=islice;
+          sprintf(fileName,"%s/%s", muls->folder, detectors[i]->name);
+          params["Thickness"]=t;
+          params["Runs Averaged"]=(double)muls->avgCount+1;
+          params["Error"]=(double)detectors[i]->error;
+
+          // TODO: why is this here?  It's a second image.  Why aren't we just saving another image?
+          //  for (ix=0; ix<muls->scanXN * muls->scanYN; ix++) 
+          //  {
+          //  detectors[i]->SetParameter(2+ix, (double)detectors[i]->image2[0][ix]);
+          //  }
+
+          // exclude the suffix if this is the last detector (at the final thickness)
+          if (islice==tCount)
+            detectors[i]->WriteImage(fileName, detectors[i]->name, params);
+          else
+            detectors[i]->WriteImage(fileName, detectors[i]->name, params, position);
+        }
+    }
+*/
 }
 
 void DetectorManager::PrintDetectors()

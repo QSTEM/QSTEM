@@ -69,36 +69,39 @@ WAVEFUNC::WAVEFUNC(ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(nx, ny);
   configReader->ReadResolution(resolutionX, resolutionY);
+  configReader->ReadDoseParameters(beamCurrent, dwellTime);
+  configReader->ReadVoltage(v0);
+  electronScale = beamCurrent*dwellTime*MILLISEC_PICOAMP;
+
   // TODO: need to figure out how user is going to specify input/output formats
   WAVEFUNC(nx, ny, resolutionX, resolutionY, ".img", ".img");
-  
 }
 
-void WAVEFUNC::WriteWave(std::string comment,
+void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
   params["dx"]=resolutionX;
   params["dy"]=resolutionY;
   params["Thickness"]=thickness;
-  m_imageIO->WriteComplexImage((void **)wave, waveFilePrefix, params, comment, m_position);
+  m_imageIO->WriteComplexImage((void **)wave, fileName, params, comment, m_position);
 }
 
-void WAVEFUNC::WriteDiffPat(std::string comment,
+void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
                             std::map<std::string, double> params)
 {
   params["dx"]=1.0/(nx*resolutionX);
   params["dy"]=1.0/(ny*resolutionY);
   params["Thickness"]=thickness;
-  m_imageIO->WriteRealImage((void **)diffpat, dpFilePrefix, params, comment, m_position);
+  m_imageIO->WriteRealImage((void **)diffpat, fileName, params, comment, m_position);
 }
 
-  void WAVEFUNC::WriteAvgArray(std::string comment, 
+  void WAVEFUNC::_WriteAvgArray(std::string &fileName, std::string comment, 
                                std::map<std::string, double> params)
 {
   params["dx"]=1.0/(nx*resolutionX);
   params["dy"]=1.0/(ny*resolutionY);
   params["Thickness"]=thickness;
-  m_imageIO->WriteRealImage((void **)avgArray, avgFilePrefix, params, comment, m_position);
+  m_imageIO->WriteRealImage((void **)avgArray, fileName, params, comment, m_position);
 }
 
 void WAVEFUNC::SetWavePosition(unsigned navg)
@@ -118,33 +121,56 @@ void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
 
 void WAVEFUNC::ReadWave()
 {
+  m_position.clear();
   m_imageIO->ReadImage((void **)wave, waveFilePrefix, m_position);
+}
+
+void WAVEFUNC::ReadWave(unsigned navg)
+{
+  SetWavePosition(navg);
+  m_imageIO->ReadImage((void **)wave, waveFilePrefix, m_position);
+
 }
 
 void WAVEFUNC::ReadWave(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  return ReadWave();
+  m_imageIO->ReadImage((void **)wave, waveFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadDiffPat()
 {
+  m_position.clear();
+  m_imageIO->ReadImage((void **)diffpat, dpFilePrefix, m_position);
+}
+
+void WAVEFUNC::ReadDiffPat(unsigned navg)
+{
+  SetWavePosition(navg);
   m_imageIO->ReadImage((void **)diffpat, dpFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadDiffPat(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  return ReadDiffPat();
+  m_imageIO->ReadImage((void **)diffpat, dpFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadAvgArray()
 {
+  m_position.clear();
+  m_imageIO->ReadImage((void **)avgArray, avgFilePrefix, m_position);
+}
+
+void WAVEFUNC::ReadAvgArray(unsigned navg)
+{
+  SetWavePosition(navg);
   m_imageIO->ReadImage((void **)avgArray, avgFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadAvgArray(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  return ReadAvgArray();
+  m_imageIO->ReadImage((void **)avgArray, avgFilePrefix, m_position);
 }
+

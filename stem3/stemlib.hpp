@@ -39,19 +39,13 @@ void probePlot(MULS *muls, WavePtr wave);
 
 void initSTEMSlices(MULS *muls, int nlayer);
 void interimWave(MULS *muls,WavePtr wave,int slice);
-void collectIntensity(MULS *muls, WavePtr wave, int slices);
+//void collectIntensity(MULS *muls, WavePtr wave, int slices);
 //void detectorCollect(MULS *muls, WavePtr wave);
 void saveSTEMImages(MULS *muls);
 
-void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center);
-void make3DSlicesFFT(MULS *muls,int nlayer,char *fileName,atom *center);
 void createAtomBox(MULS *muls, int Znum, atomBox *aBox);
 void transmit(void **wave,void **trans,int nx, int ny,int posx,int posy);
-void propagate_slow(void** wave,int nx, int ny,MULS *muls);
-fftwf_complex *getAtomPotential3D_3DFFT(int Znum, MULS *muls,double B);
-fftwf_complex *getAtomPotential3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut);
-fftwf_complex *getAtomPotentialOffset3D(int Znum, MULS *muls,double B,int *nzSub,int *Nr,int*Nz_lut,float q);
-fftwf_complex *getAtomPotential2D(int Znum, MULS *muls,double B);
+void propagate_slow(WavePtr wave,int nx, int ny,MULS *muls);
 
 WAVEFUNC initWave(int nx, int ny);
 void readStartWave(WavePtr wave);
@@ -62,7 +56,7 @@ void readStartWave(WavePtr wave);
  * the will be updated at return
  *****************************************************************/
 int runMulsSTEM_old(MULS *muls,int lstart);
-int runMulsSTEM(MULS *muls, WavePtr wave);
+int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot);
 void writePix(char *outFile,complex_tt **pict,MULS *muls,int iz);
 void fft_normalize(void **array,int nx, int ny);
 void showPotential(complex_tt ***pot,int nz,int nx,int ny,

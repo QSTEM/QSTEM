@@ -22,30 +22,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "data_containers.hpp"
 #include "memory_fftw3.hpp"
 
-Detector::Detector(int nx, int ny, float_tt resX, float_tt resY) :
-  error(0),
-  shiftX(0),
-  shiftY(0),
-  Navg(0),
-  dx(resX),
-  dy(resY)
-{
-  image = float2D(nx,ny,"ADFimag");
-  image2 = float2D(nx,ny,"ADFimag");
-  
-  // TODO: need way of passing file formats into constructor here
-  m_imageIO=ImageIOPtr(new CImageIO(nx, ny));
-}
-
-void Detector::WriteImage(const char *fileName, const char *comment, std::map<std::string, double> &params,
-                          std::vector<unsigned> position)
-{
-  params["dx"]=dx;
-  params["dy"]=dy;
-  // Thickness is set externally and passed in on params
-  m_imageIO->WriteRealImage((void **)image, fileName, params, std::string(comment), position);
-}
-
 MULS::MULS():
   cubex(0), cubey(0), cubez(0),
   printLevel(2),
@@ -95,7 +71,6 @@ MULS::MULS():
   scatFactor(DOYLE_TURNER),
   normHolog(0),
   gaussianProp(0),
-  kx(NULL), kx2(NULL), ky(NULL), ky2(NULL),
   pendelloesung(NULL),
   onlyFresnel(NULL),
   showPhaseplate(NULL),

@@ -27,10 +27,12 @@
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
 
-std::string waveFilePrefix="mulswav";
-std::string dpFilePrefix="diff";
-std::string avgFilePrefix="diffAvg";
-std::string probeFilePrefix="probe_wave";
+static std::string waveFilePrefix="mulswav";
+static std::string dpFilePrefix="diff";
+static std::string avgFilePrefix="diffAvg";
+static std::string probeFilePrefix="probe_wave";
+static std::string imageFilePrefix="image";
+static std::string waveIntensityFilePrefix="waveIntensity";
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -49,8 +51,15 @@ public:
   float_tt **avgArray;
   float_tt thickness;
   float_tt intIntensity;
+  float_tt electronScale;
+  float_tt beamCurrent;
+  float_tt dwellTime;
+  float_tt v0;
   std::vector<unsigned> m_position;
   std::map<std::string, double> m_params;
+
+  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  float_tt m_k2max;
 
   // These are not used for anything aside from when saving files.
   float_tt resolutionX, resolutionY;
@@ -70,28 +79,104 @@ public:
   // define a copy constructor to create new arrays
   WAVEFUNC( WAVEFUNC& other );
 
+  void CreateDataSets();
+
+  inline void WriteProbe()
+  {
+    _WriteWave(probeFilePrefix);
+  }
+  // WriteImage is for TEM mode
+  inline void WriteImage()
+  {
+    _WriteWave(imageFilePrefix, "Image intensity");
+  }
+  inline void WriteWaveIntensity()
+  {
+    _WriteDiffPat(waveIntensityFilePrefix, "Wave intensity");
+  }
+
+  inline void WriteWave(std::string comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    m_position.clear();
+    _WriteWave(waveFilePrefix, comment, params);
+  }
+  inline void WriteWave(unsigned navg, std::string comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(navg);
+    _WriteWave(waveFilePrefix, comment, params);
+  }
+  inline void WriteWave(unsigned posX, unsigned posY, std::string comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY);
+    _WriteWave(waveFilePrefix, comment, params);
+  }
+
+  inline void WriteDiffPat(std::string comment="Diffraction Pattern", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    m_position.clear();
+    _WriteDiffPat(dpFilePrefix, comment, params);
+  }
+  inline void WriteDiffPat(unsigned navg, std::string comment="Diffraction Pattern", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(navg);
+    _WriteDiffPat(dpFilePrefix, comment, params);
+  }
+  inline void WriteDiffPat(unsigned posX, unsigned posY, std::string comment="Diffraction Pattern", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY);
+    _WriteDiffPat(dpFilePrefix, comment, params);
+  }
+
+  inline void WriteAvgArray(std::string comment="Average Array", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    m_position.clear();
+    _WriteAvgArray(avgFilePrefix, comment, params);
+  }
+  inline void WriteAvgArray(unsigned navg, std::string comment="Average Array", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(navg);
+    _WriteAvgArray(avgFilePrefix, comment, params);
+  }
+  inline void WriteAvgArray(unsigned posX, unsigned posY, std::string comment="Average Array", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY);
+    _WriteAvgArray(avgFilePrefix, comment, params);
+  }
+
+  // ReadImage is for TEM mode
+  void ReadImage();
+  void ReadWave();
+  void ReadWave(unsigned navg);
+  void ReadWave(unsigned posX, unsigned posY);
+  void ReadDiffPat();
+  void ReadDiffPat(unsigned navg);
+  void ReadDiffPat(unsigned posX, unsigned posY);
+  void ReadAvgArray();
+  void ReadAvgArray(unsigned navg);
+  void ReadAvgArray(unsigned posX, unsigned posY);
+
+private:
+  void _WriteWave(std::string &prefix, std::string comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>());
+  void _WriteDiffPat(std::string &prefix, std::string comment="Diffraction Pattern",
+                    std::map<std::string, double>params = std::map<std::string, double>());
+  void _WriteAvgArray(std::string &prefix, std::string comment="Average Array",
+                     std::map<std::string, double>params = std::map<std::string, double>());
+
   // For CBED ( &TEM? )
   void SetWavePosition(unsigned navg);
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
-  std::vector<unsigned> GetPositionVector();
 
-  void CreateDataSets();
-
-  void WriteProbe();
-  void WriteWave(std::string comment="Wavefunction", 
-                 std::map<std::string, double>params = std::map<std::string, double>());
-  void WriteDiffPat(std::string comment="Diffraction Pattern",
-                    std::map<std::string, double>params = std::map<std::string, double>());
-  void WriteAvgArray(std::string comment="Average Array",
-                     std::map<std::string, double>params = std::map<std::string, double>());
-
-  void ReadWave();
-  void ReadWave(unsigned posX, unsigned posY);
-  void ReadDiffPat();
-  void ReadDiffPat(unsigned posX, unsigned posY);
-  void ReadAvgArray();
-  void ReadAvgArray(unsigned posX, unsigned posY);
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;

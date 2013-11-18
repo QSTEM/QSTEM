@@ -61,8 +61,7 @@ public:
   virtual void ReadAtomRadius(float_tt &radius)=0;
   virtual void ReadStructureFactorType(int &type)=0;
   virtual void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
-                                          bool &lbeams, unsigned &nbout,
-                                          unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny)=0;
+                                           bool &lbeams, unsigned &nbout)=0;
   virtual void ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)=0;
   virtual void ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN)=0;
@@ -80,9 +79,9 @@ public:
                               float_tt &shiftX, float_tt &shiftY)=0;
   //void ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
   //                 DetectorPtr &detector_to_copy)=0;
+  virtual void ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs)=0;
   virtual void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                           float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
-                           bool &ismoth, float_tt &gaussScale, bool &gaussFlag)=0;
+                           float_tt &sourceRadius, bool &ismoth, float_tt &gaussScale, bool &gaussFlag)=0;
   virtual void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor)=0;
   virtual void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,

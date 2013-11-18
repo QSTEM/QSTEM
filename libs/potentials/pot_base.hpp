@@ -32,15 +32,18 @@
 class CPotential
 {
 public:
-	CPotential(unsigned nx, unsigned ny, unsigned nz, float_tt dx, float_tt dy, float_tt dz, float_tt atomRadius, float_tt v0);
-	CPotential(ConfigReaderPtr &configReader);
-	~CPotential();
+  CPotential(unsigned nx, unsigned ny, unsigned nz, float_tt dx, float_tt dy, float_tt dz, float_tt atomRadius, float_tt v0);
+  CPotential(ConfigReaderPtr &configReader);
+  ~CPotential();
 
-	virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
-	virtual void make3DSlices(int nlayer,char *fileName,atom *center);
+  virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
+  virtual void make3DSlices(int nlayer,char *fileName,atom *center);
+  virtual void initSTEMSlices();
+  // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
+  //    shake)
+  virtual void Refresh();
 protected:
   void Initialize();
-
 
   ImageIOPtr m_imageIO;
   complex_tt ***m_trans;

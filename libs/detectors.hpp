@@ -43,12 +43,13 @@ public:
   boost::shared_ptr<Detector> Clone();
   void Initialize();
   void CollectIntensity(WavePtr &wave);
-  void WriteImage(std::string &fileName, std::string &comment, std::map<std::string, double> &params,
+  void WriteImage(std::map<std::string, double> &params,
                   std::vector<unsigned>&position);
-  inline void WriteImage(std::string &fileName, std::string &comment, std::map<std::string, double> &params)
+  // No position - for example, the final detector in a series
+  inline void WriteImage(std::map<std::string, double> &params)
   {
     std::vector<unsigned> position;
-    WriteImage(fileName, comment, params, position);
+    WriteImage(params, position);
   }
 };
 
@@ -69,10 +70,9 @@ public:
   // Loads parameters for detectors from a config file
   void LoadDetectors(ConfigReaderPtr &configReader);
   // collects intensity from diffraction patterns to yield image intensity
-  void CollectIntensity(int plane_idx, WavePtr &wave);
+  void CollectIntensity(WavePtr &wave, int plane_idx);
   // Saves detector images to files
-  void SaveDetectors(std::string &comment, 
-                     std::map<std::string, double> &parameters);
+  void SaveDetectors(std::map<std::string, double> &parameters);
   void PrintDetectors();
 private:
   std::vector<std::vector<DetectorPtr> > m_detectors;

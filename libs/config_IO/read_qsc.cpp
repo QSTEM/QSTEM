@@ -357,8 +357,7 @@ void CQscReader::ReadStructureFactorType(int &scatFactor)
 }
 
 void CQscReader::ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams, 
-                                            bool &lbeams, unsigned &nbout,
-                                            unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny)
+                                             bool &lbeams, unsigned &nbout)
 {
   /*************************************************************
    * read in the beams we want to plot in the pendeloesung plot
@@ -381,12 +380,7 @@ void CQscReader::ReadPendelloesungParameters(std::vector<int> &hbeams, std::vect
       hbeams[i] = 0;
       kbeams[i] = 0;
       sscanf(buf,"%d %d",&(hbeams[i]),&(kbeams[i]));
-      hbeams[i] *= nCellX;
-      kbeams[i] *= nCellY;
-
-      hbeams[i] = (hbeams[i]+nx) % nx;
-      kbeams[i] = (kbeams[i]+ny) % ny;
-      printf("beam %d [%d %d]\n",i,hbeams[i],kbeams[i]); 			}
+    }
   }
 }
 
@@ -415,9 +409,19 @@ void CQscReader::ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt
   }
 }
 
+void CQscReader::ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs)
+{
+  ///// read beam current and dwell time ///////////////////////////////
+  if (readparam("beam current:",buf,1)) { 
+    sscanf(buf,"%g",&(beamCurrent)); /* in pA */
+  }
+  if (readparam("dwell time:",buf,1)) { 
+    sscanf(buf,"%g",&(dwellTimeMs)); /* in msec */
+  }
+}
+
 void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                                     float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
-                                     bool &ismoth, float_tt &gaussScale, bool &gaussFlag)
+                                     float_tt &sourceRadius, bool &ismoth, float_tt &gaussScale, bool &gaussFlag)
 {
   /**********************************************************************
    * Read STEM/CBED probe parameters 
@@ -435,13 +439,7 @@ void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &d
 	if (readparam("AIS aperture:",buf,1)) 
 		sscanf(buf,"%g",&(aAIS)); /* in A */
 
-	///// read beam current and dwell time ///////////////////////////////
-	if (readparam("beam current:",buf,1)) { 
-		sscanf(buf,"%g",&(beamCurrent)); /* in pA */
-	}
-	if (readparam("dwell time:",buf,1)) { 
-		sscanf(buf,"%g",&(dwellTimeMs)); /* in msec */
-	}
+	
 	//////////////////////////////////////////////////////////////////////
 
 	if (readparam("Source Size (diameter):",buf,1)) 

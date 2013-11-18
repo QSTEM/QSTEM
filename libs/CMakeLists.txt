@@ -23,6 +23,7 @@ set (qstem_libs_src ${qstem_libs_src} ${STRUCTURE_C_FILES} ${STRUCTURE_H_FILES} 
 set (qstem_libs_src ${qstem_libs_src} ${POTENTIAL_C_FILES} ${POTENTIAL_H_FILES} )
 
 add_library(qstem_libs ${qstem_libs_src})
+target_link_libraries(qstem_libs ${Boost_FILESYSTEM_LIBRARY})
 
 # Also build IO functionality separately for external use (??)
 #add_subdirectory(config_IO)

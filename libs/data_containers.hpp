@@ -26,10 +26,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include "detectors.hpp"
 
-typedef boost::shared_ptr<Detector> DetectorPtr;
-
-
-
 class MULS {
 public:
   MULS();
@@ -73,12 +69,12 @@ public:
   bool adjustCubeSize;
   float_tt btiltx,btilty;   	        /* beam tilt in mrad*/
   bool tiltBack;               /* tilt back the wave below the specimen */
-  std::vector<int> hbeam,kbeam;		        /* arrays to hold recorded 
+  std::vector<int> hbeams,kbeams;	/* arrays to hold recorded 
 					   beam indicies */
-  int lbeams;				/* flag indicating, whether 
+  bool lbeams;				/* flag indicating, whether 
 					   to record beams */	
   char filebeam[512];		 	/* file, that beams get recorded in */
-  int nbout;				/* number of recorded beams */
+  unsigned nbout;				/* number of recorded beams */
 
   //int nslic0;				/* slice counter */
   int mulsRepeat1;                      /* # of times to repeat structure */
@@ -165,7 +161,6 @@ public:
   int saveFlag;			/* flag indicating, whether to save the result */
   float_tt rmin,rmax;		/* min and max of real part */
   float_tt aimin,aimax;		/* min and max of imag part */
-  float_tt *kx2,*ky2,k2max,*kx,*ky;
 
   int nlayer;
   float_tt *cz;

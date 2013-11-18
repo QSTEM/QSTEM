@@ -58,8 +58,7 @@ public:
   void ReadAtomRadius(float_tt &radius);
   void ReadStructureFactorType(int &type);
   void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
-                                  bool &lbeams, unsigned &nbout,
-                                  unsigned nCellX, unsigned nCellY, unsigned nx, unsigned ny);
+                                   bool &lbeams, unsigned &nbout);
   void ReadStructureFileName(std::string &directory, std::string &filename);
   
   void ReadNumberOfDetectors(int &numDetectors);
@@ -67,10 +66,9 @@ public:
                               float_tt &shiftX, float_tt &shiftY);
   //void ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
   //                           DetectorPtr &detector_to_copy)
-  
+  void ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs);
   void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                      float_tt &beamCurrent, float_tt &dwellTimeMs, float_tt &sourceRadius, 
-                      bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
+                      float_tt &sourceRadius, bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
   void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
   void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,

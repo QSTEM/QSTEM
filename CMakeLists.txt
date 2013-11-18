@@ -54,26 +54,26 @@ add_subdirectory(qscRg12)
 OPTION( BUILD_TESTS "Set to ON to enable unit test target generation.  Requires Boost Test binary libraries to be installed." ON )
 
 if (BUILD_TESTS)
-	add_subdirectory(tests)
+  add_subdirectory(tests)
 
-	# this enables the RUN_TEST target, which runs tests, but doesn't give much info.
-	add_test (NAME TestLibs COMMAND test_libs)
-	#add_test (NAME TestStem3 COMMAND test_stem3)
-	#add_test (NAME TestGBMaker COMMAND test_gbmaker)
+  # this enables the RUN_TEST target, which runs tests, but doesn't give much info.
+  add_test (NAME TestLibs COMMAND test_libs)
+  #add_test (NAME TestStem3 COMMAND test_stem3)
+  #add_test (NAME TestGBMaker COMMAND test_gbmaker)
 
-	if(WIN32)
-	# helpful custom target for verbose CTest output from: 
-	# http://stackoverflow.com/questions/16158091/cmake-setting-an-environmental-variable-for-ctest-or-otherwise-getting-failed
-	if (CMAKE_CONFIGURATION_TYPES)
-		add_custom_target(run_tests COMMAND ${CMAKE_CTEST_COMMAND} 
-			--force-new-ctest-process --output-on-failure 
-			--build-config "$<CONFIGURATION>")
-	else(CMAKE_CONFIGURATION_TYPES)
-		add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} 
-			--force-new-ctest-process --output-on-failure)
-	endif(CMAKE_CONFIGURATION_TYPES)
-	else(WIN32)
-		add_custom_target(test COMMAND ${CMAKE_CTEST_COMMAND}
-			--force-new-ctest-process --output-on-failure)
-	endif(WIN32)
+  if(WIN32)
+    # helpful custom target for verbose CTest output from: 
+    # http://stackoverflow.com/questions/16158091/cmake-setting-an-environmental-variable-for-ctest-or-otherwise-getting-failed
+    if (CMAKE_CONFIGURATION_TYPES)
+      add_custom_target(run_tests COMMAND ${CMAKE_CTEST_COMMAND} 
+	--force-new-ctest-process --output-on-failure 
+	--build-config "$<CONFIGURATION>")
+    else(CMAKE_CONFIGURATION_TYPES)
+      add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} 
+	--force-new-ctest-process --output-on-failure)
+    endif(CMAKE_CONFIGURATION_TYPES)
+  else(WIN32)
+    add_custom_target(test COMMAND ${CMAKE_CTEST_COMMAND}
+      --force-new-ctest-process --output-on-failure)
+  endif(WIN32)
 endif(BUILD_TESTS)
