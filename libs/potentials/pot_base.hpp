@@ -36,12 +36,13 @@ public:
   CPotential(ConfigReaderPtr &configReader);
   ~CPotential();
 
-  virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
-  virtual void make3DSlices(int nlayer,char *fileName,atom *center);
+  void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
+  virtual void makeSlices(int nlayer,char *fileName,atom *center);
   virtual void initSTEMSlices();
   // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
   //    shake)
   virtual void Refresh();
+  virtual void ReadPotential(std::string &fileName);
 protected:
   void Initialize();
 
@@ -59,6 +60,9 @@ protected:
   // voltage
   float_tt m_v0;
   std::map<unsigned, atomBoxPtr> m_atomBoxes;
+  std::vector<atom> m_atoms;
+
+  bool m_periodicXY, m_periodicZ;
 
   int m_printLevel;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;

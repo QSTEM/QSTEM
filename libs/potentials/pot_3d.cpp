@@ -68,3 +68,6 @@ void C3DPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt
 	}
 }
 	
+void C3DPotential::AddAtom()
+{
+}
