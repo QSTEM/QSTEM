@@ -95,7 +95,7 @@ void C3DPotential::AddAtomToSlicesRealSpaceLUT(std::vector<atom>::iterator &atom
    */
   iRadZ = (int)(sqrt(atomRadius2-r2sqr)/m_cz[0]+1.0);
   /* loop through the slices that this atoms contributes to */
-  for (unsigned iaz=-iRadZ;iaz <=iRadZ;iaz++) {
+  for (int iaz=-iRadZ;iaz <=iRadZ;iaz++) {
     if (!m_periodicZ) {
       if (iaz+iAtomZ < 0) {
         if (-iAtomZ <= iRadZ) iaz = -iAtomZ;
