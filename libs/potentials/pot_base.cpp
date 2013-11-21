@@ -531,3 +531,38 @@ void AddAtomToSliceNonPeriodic(std::vector<atom>::iterator &atom, float_tt atomX
     }
   }
 }
+
+
+/*------------------------ transmit() ------------------------*/
+/*
+transmit the wavefunction thru one layer 
+(simply multiply wave by transmission function)
+
+waver,i[ix][iy]  = real and imaginary parts of wavefunction
+transr,i[ix][iy] = real and imag parts of transmission functions
+
+nx, ny = size of array
+
+on entrance waver,i and transr,i are in real space
+
+only waver,i will be changed by this routine
+*/
+void CPotential::transmit(WavePtr wave, unsigned sliceIdx) {
+	double wr, wi, tr, ti;
+
+	complex_tt **w,**t;
+	unsigned posx = wave->iPosX;
+	unsigned posy = wave->iPosY;
+	w = (complex_tt **)wave->wave;
+	t = (complex_tt **)trans[sliceIdx];
+
+	/*  trans += posx; */
+	for(unsigned ix=0; ix<m_nx; ix++) for(unsigned iy=0; iy<m_ny; iy++) {
+		wr = w[ix][iy][0];
+		wi = w[ix][iy][1];
+		tr = t[ix+posx][iy+posy][0];
+		ti = t[ix+posx][iy+posy][1];
+		w[ix][iy][0] = wr*tr - wi*ti;
+		w[ix][iy][1] = wr*ti + wi*tr;
+	} /* end for(iy.. ix .) */
+} /* end transmit() */

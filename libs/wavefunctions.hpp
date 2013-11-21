@@ -24,6 +24,7 @@
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"
 #include "config_readers.hpp"
+#include "potential.hpp"
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
 
@@ -41,20 +42,20 @@ class WAVEFUNC
   // shared pointer to 
   ImageIOPtr m_imageIO;
 public:
-  std::string fileStart;
-  std::string avgName;
-  std::string fileout;
-  unsigned detPosX, detPosY;
-  unsigned iPosX,iPosY;      /* integer position of probe position array */
-  unsigned nx, ny;			/* size of diffpat arrays */
-  float_tt **diffpat;
-  float_tt **avgArray;
-  float_tt thickness;
-  float_tt intIntensity;
-  float_tt electronScale;
-  float_tt beamCurrent;
-  float_tt dwellTime;
-  float_tt v0;
+  std::string m_fileStart;
+  std::string m_avgName;
+  std::string m_fileout;
+  unsigned m_detPosX, m_detPosY;
+  unsigned m_iPosX,m_iPosY;      /* integer position of probe position array */
+  unsigned m_nx, m_ny;			/* size of diffpat arrays */
+  float_tt **m_diffpat;
+  float_tt **m_avgArray;
+  float_tt m_thickness;
+  float_tt m_intIntensity;
+  float_tt m_electronScale;
+  float_tt m_beamCurrent;
+  float_tt m_dwellTime;
+  float_tt m_v0;
   std::vector<unsigned> m_position;
   std::map<std::string, double> m_params;
 
@@ -62,14 +63,14 @@ public:
   float_tt m_k2max;
 
   // These are not used for anything aside from when saving files.
-  float_tt resolutionX, resolutionY;
+  float_tt m_resolutionX, m_resolutionY;
 
-  complex_tt  **wave; /* complex wave function */
+  complex_tt  **m_wave; /* complex wave function */
 
 #if FLOAT_PRECISION == 1
-  fftwf_plan fftPlanWaveForw,fftPlanWaveInv;
+  fftwf_plan m_fftPlanWaveForw,m_fftPlanWaveInv;
 #else
-  fftw_plan fftPlanWaveForw,fftPlanWaveInv;
+  fftw_plan m_fftPlanWaveForw,m_fftPlanWaveInv;
 #endif
 
 public:
@@ -80,6 +81,9 @@ public:
   WAVEFUNC( WAVEFUNC& other );
 
   void CreateDataSets();
+  void Transmit(PotPtr pot, unsigned sliceIdx);
+  void Propagate();
+  void FormProbe();
 
   inline void WriteProbe()
   {

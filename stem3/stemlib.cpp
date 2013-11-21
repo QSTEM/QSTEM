@@ -507,11 +507,12 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 
 			// if ((muls->cubez > 0) && (muls->thickness >= muls->cubez)) break;
 			//  else if ((muls->cubez == 0) && (muls->thickness >= muls->c)) break;
-
+			//pot->Transmit(wave, islice)
 			/***********************************************************************
 			* Transmit is a simple multiplication of wave with trans in real space
 			**********************************************************************/
-			transmit((void **)wave->wave, (void **)(muls->trans[islice]), muls->nx,muls->ny, wave->iPosX, wave->iPosY);
+			wave->Transmit(pot, islice);
+			//transmit((void **)wave->wave, (void **)(muls->trans[islice]), muls->nx,muls->ny, wave->iPosX, wave->iPosY);
 			//    writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,"wavet.img");      
 			/***************************************************** 
 			* remember: prop must be here to anti-alias
@@ -523,9 +524,10 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 #else
 			fftw_execute(wave->fftPlanWaveForw);
 #endif
-			propagate_slow(wave, muls->nx, muls->ny, muls);
+			wave->Propagate();
+			//propagate_slow(wave, muls->nx, muls->ny, muls);
 
-                        muls->detectors->CollectIntensity(wave, muls->totalSliceCount+islice*(1+mRepeat));
+            muls->detectors->CollectIntensity(wave, muls->totalSliceCount+islice*(1+mRepeat));
 			//collectIntensity(muls, wave, muls->totalSliceCount+islice*(1+mRepeat));
 
 			if (muls->mode != STEM) {
@@ -541,11 +543,6 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 #endif
 			// old code: fftwnd_one((*muls).fftPlanInv,(complex_tt *)wave[0][0], NULL);
 			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
-
-			/*
-			sprintf(outStr,"wave%d.img",islice);
-			writeImage_old(wave,(*muls).nx,(*muls).ny,(*muls).thickness,"wavep.img");
-			*/    
 
 			// write the intermediate TEM wave function:
 
@@ -665,8 +662,6 @@ void interimWave(MULS *muls,WavePtr wave,int slice) {
         else wave->WriteWave(t, "Wave Function", params);
 }
 
-
-
 /*****  saveSTEMImages *******/
 // Saves all detector images (STEM images) that are defined in muls.
 //   When saving intermediate STEM images is enabled, this also saves
@@ -678,112 +673,6 @@ void saveSTEMImages(MULS *muls)
   muls->detectors->SaveDetectors(params);  
 }
 
-
-/******************************************************************
-* propagate_slow() 
-* replicates the original way, mulslice did it:
-*****************************************************************/
-void propagate_slow(WavePtr wave,int nx, int ny,MULS *muls)
-{
-	int ixa, iya;
-	float_tt wr, wi, tr, ti,ax,by;
-	float_tt scale,t,dz; 
-	static float_tt dzs=0;
-        static std::vector<float_tt> propxr(nx), propxi(nx), propyr(ny), propyi(ny);
-        float_tt wavlen;
-
-	ax = (*muls).resolutionX*nx;
-	by = (*muls).resolutionY*ny;
-	dz = (*muls).cz[0];
-
-	if (dz != dzs) {
-          dzs = dz;
-          scale = dz*PI;
-          wavlen = wavelength(wave->v0);
-
-          for( ixa=0; ixa<nx; ixa++) {
-            wave->m_kx[ixa] = (ixa>nx/2) ? (float_tt)(ixa-nx)/ax : 
-              (float_tt)ixa/ax;
-            wave->m_kx2[ixa] = wave->m_kx[ixa]*wave->m_kx[ixa];
-            t = scale * (wave->m_kx2[ixa]*wavlen);
-            propxr[ixa] = (float_tt)  cos(t);
-            propxi[ixa] = (float_tt) -sin(t);
-          }
-          for( iya=0; iya<ny; iya++) {
-            wave->m_ky[iya] = (iya>ny/2) ? 
-              (float_tt)(iya-ny)/by : 
-              (float_tt)iya/by;
-            wave->m_ky2[iya] = wave->m_ky[iya]*wave->m_ky[iya];
-            t = scale * (wave->m_ky2[iya]*wavlen);
-            propyr[iya] = (float_tt)  cos(t);
-            propyi[iya] = (float_tt) -sin(t);
-          }
-          wave->m_k2max = nx/(2.0F*ax);
-          if (ny/(2.0F*by) < wave->m_k2max ) wave->m_k2max = ny/(2.0F*by);
-          wave->m_k2max = 2.0/3.0 * wave->m_k2max;
-          // TODO: modifying shared value from multiple threads?
-          wave->m_k2max = wave->m_k2max*wave->m_k2max;
-	} 
-	/* end of: if dz != dzs */
-	/*************************************************************/
-
-	/*************************************************************
-	* Propagation
-	************************************************************/
-	for( ixa=0; ixa<nx; ixa++) {
-          if( wave->m_kx2[ixa] < wave->m_k2max ) {
-            for( iya=0; iya<ny; iya++) {
-              if( (wave->m_kx2[ixa] + wave->m_ky2[iya]) < wave->m_k2max ) {
-                
-                wr = wave->wave[ixa][iya][0];
-                wi = wave->wave[ixa][iya][1];
-                tr = wr*propyr[iya] - wi*propyi[iya];
-                ti = wr*propyi[iya] + wi*propyr[iya];
-                wave->wave[ixa][iya][0] = tr*propxr[ixa] - ti*propxi[ixa];
-                wave->wave[ixa][iya][1] = tr*propxi[ixa] + ti*propxr[ixa];
-
-              } else
-                wave->wave[ixa][iya][0] = wave->wave[ixa][iya][1] = 0.0F;
-            } /* end for(iy..) */
-
-          } else for( iya=0; iya<ny; iya++)
-                   wave->wave[ixa][iya][0] = wave->wave[ixa][iya][1] = 0.0F;
-	} /* end for(ix..) */
-} /* end propagate_slow() */
-
-
-/*------------------------ transmit() ------------------------*/
-/*
-transmit the wavefunction thru one layer 
-(simply multiply wave by transmission function)
-
-waver,i[ix][iy]  = real and imaginary parts of wavefunction
-transr,i[ix][iy] = real and imag parts of transmission functions
-
-nx, ny = size of array
-
-on entrance waver,i and transr,i are in real space
-
-only waver,i will be changed by this routine
-*/
-void transmit(void **wave, void **trans,int nx, int ny,int posx,int posy) {
-	int ix, iy;
-	double wr, wi, tr, ti;
-
-	complex_tt **w,**t;
-	w = (complex_tt **)wave;
-	t = (complex_tt **)trans;
-
-	/*  trans += posx; */
-	for( ix=0; ix<nx; ix++) for( iy=0; iy<ny; iy++) {
-		wr = w[ix][iy][0];
-		wi = w[ix][iy][1];
-		tr = t[ix+posx][iy+posy][0];
-		ti = t[ix+posx][iy+posy][1];
-		w[ix][iy][0] = wr*tr - wi*ti;
-		w[ix][iy][1] = wr*ti + wi*tr;
-	} /* end for(iy.. ix .) */
-} /* end transmit() */
 
 void fft_normalize(void **array,int nx, int ny) {
 	int ix,iy;
