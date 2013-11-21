@@ -55,14 +55,30 @@ protected:
   float_tt m_ddx, m_ddy, m_ddz;
   //
   int m_boxNx, m_boxNy, m_boxNz;
-  // Atom radius
-  float_tt m_radius, m_radius2;
   // voltage
   float_tt m_v0;
   std::map<unsigned, atomBoxPtr> m_atomBoxes;
   std::vector<atom> m_atoms;
 
+  // *********** Slice parameters **********
+  bool m_centerSlices;
+  float_tt m_sliceThickness, m_zOffset;
+  // nslices is the number of slices PER SUB-SLAB!  Not the total.
+  unsigned m_nslices, m_outputInterval;
+  // vector of slice thicknesses.  Only really relevant when slice thickness is not uniform.
+  std::vector<float_tt> m_cz;
+  // vector of slice positions
+  std::vector<float_tt> m_slicePos;
+
+  // m_c 
+  float_tt m_c; // the thickness of the current sub-slab (in A)
+  float_tt m_dr, m_atomRadius, m_atomRadius2;
+  unsigned m_iRadX, m_iRadY, m_iRadZ, m_iRad2;
   bool m_periodicXY, m_periodicZ;
+
+  // ********* multi-slab parameters ********
+  unsigned m_cellDiv; // How many sub-slabs the model is divided into
+  unsigned m_divCount; // How many sub-slabs we've already processed
 
   int m_printLevel;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;

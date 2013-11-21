@@ -25,20 +25,41 @@ CPotential::CPotential(ConfigReaderPtr &configReader)
   configReader->ReadResolution(m_dx, m_dy);
   configReader->ReadVoltage(m_v0);
   configReader->ReadPotentialOutputParameters(m_savePotential, m_saveProjectedPotential, m_plotPotential);
+  configReader->ReadAtomRadius(m_atomRadius);
+  configReader->ReadSliceParameters(m_centerSlices, m_sliceThickness, m_nslices, m_outputInterval, m_zOffset);
+  Initialize();
 }
 
 void CPotential::Initialize()
 {
-	m_ddx = m_dx/(double)OVERSAMPLING;
-	m_ddy = m_dy/(double)OVERSAMPLING;
-	m_ddz = m_dz/(double)OVERSAMPLINGZ;
+  m_ddx = m_dx/(double)OVERSAMPLING;
+  m_ddy = m_dy/(double)OVERSAMPLING;
+  m_ddz = m_dz/(double)OVERSAMPLINGZ;
 
-	/* For now we don't care, if the box has only small 
-		* prime factors, because we will not fourier transform it
-		* especially not very often.
-		*/
-	m_boxNx = (int)(m_radius/m_ddx+2.0);  
-	m_boxNy = (int)(m_radius/m_ddy+2.0);  
+  /* For now we don't care, if the box has only small 
+   * prime factors, because we will not fourier transform it
+   * especially not very often.
+   */
+  m_boxNx = (int)(m_atomRadius/m_ddx+2.0);  
+  m_boxNy = (int)(m_atomRadius/m_ddy+2.0);  
+
+  m_c = m_sliceThickness * m_nslices;
+  m_dr = m_dx/OVERSAMP_X; // define step width in which radial V(r,z) is defined
+  m_iRadX = (int)ceil(m_atomRadius/m_dx);
+  m_iRadY = (int)ceil(m_atomRadius/m_dy);
+  m_iRadZ = (int)ceil(m_atomRadius/m_sliceThickness);
+  m_iRad2 = iRadX*iRadX+iRadY*iRadY;
+  m_atomRadius2 = m_atomRadius * m_atomRadius;
+
+  m_cz.resize(m_nslices);
+  m_slicePos.resize(m_nslices);
+
+  if (m_sliceThickness == 0)
+    m_cz[0] = m_c/(float_tt)m_nslices;
+  else
+    m_cz[0] = m_sliceThickness;
+
+  m_slicePos[0] = m_czOffset;
 }
 
 /****************************************************************************
@@ -262,6 +283,41 @@ minX = maxX = atoms[0].x;
     }
 }
 
+void CPotential::SliceSetup()
+{
+  /**************************************************************
+   *        setup the slices with their start and end positions
+   *        then loop through all the atoms and add their potential to
+   *        the slice that their potential reaches into (up to RMAX)
+   *************************************************************/
+       
+  for (unsigned i=1;i<m_nslices;i++) {
+    if (sliceFp == NULL) m_cz[i] = m_cz[0];
+    /* don't need to all be the same, yes they do for fast 3D-FFT method! */
+    else {
+      fgets(buf,BUF_LEN,sliceFp);
+      m_cz[i] = atof(buf);
+    }
+    m_slicePos[i] = m_slicePos[i-1]+m_cz[i-1]/2.0+m_cz[i]/2.0;
+  }
+}
+
+void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
+{
+  
+  /*
+   * Since cellDiv is always >=1, and divCount starts at 0, the actual position
+   * of this atom with the super cell is given by:
+   */
+  /* c*(float_tt)((*muls).cellDiv-divCount-1) will pick the right super-cell
+   * division in the big super-cell
+   * The z-offset 0.5*cz[0] will position atoms at z=0 into the middle of the first
+   * slice.
+   */
+    z = atom->z-m_c*(float_tt)(m_cellDiv-m_divCount-1) + m_czOffset
+      -(0.5*m_sliceThickness*(1-(int)m_centerSlices));
+}
+
 /*****************************************************
 * void make3DSlices()
 *
@@ -333,54 +389,7 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
     atoms = muls->atoms;
   }
 
-  /**************************************************************
-   *        setup the slices with their start and end positions
-   *        then loop through all the atoms and add their potential to
-   *        the slice that their potential reaches into (up to RMAX)
-   *************************************************************/
-  // c = (*muls).c/(float_tt)((*muls).cellDiv);
-  c = muls->sliceThickness * muls->slices;
-  dx = (*muls).resolutionX;
-  dy = (*muls).resolutionY;
-  dr = muls->resolutionX/OVERSAMP_X; // define step width in which radial V(r,z) is defined
-  iRadX = (int)ceil((*muls).atomRadius/dx);
-  iRadY = (int)ceil((*muls).atomRadius/dy);
-  iRadZ = (int)ceil((*muls).atomRadius/muls->sliceThickness);
-  iRad2 = iRadX*iRadX+iRadY*iRadY;
-  atomRadius2 = (*muls).atomRadius * (*muls).atomRadius;
-  
-  if (muls->printLevel >= 3) {
-    printf("Slab thickness: %gA z-offset: %gA (cellDiv=%d)\n",
-           c,c*(float_tt)(muls->cellDiv-divCount-1),divCount);
-  }        
-  /*******************************************************
-   * initializing slicPos, cz, and transr
-   *************************************************************/
-  if ((*muls).cz == NULL) {
-    (*muls).cz = float1D(nlayer,"cz");
-  }
-  // sliceFp = fopen(sliceFile,"r");
-  sliceFp = NULL;
-  slicePos = float1D(nlayer,"slicePos");
-
-  if (muls->sliceThickness == 0)
-    (*muls).cz[0] = c/(float_tt)nlayer;
-  else
-    (*muls).cz[0] = muls->sliceThickness;
-  slicePos[0] = (*muls).czOffset;
-  /*
-************************************************************/
-
-
-  for (i=1;i<nlayer;i++) {
-    if (sliceFp == NULL) (*muls).cz[i] = (*muls).cz[0];
-    /* don't need to all be the same, yes they do for fast 3D-FFT method! */
-    else {
-      fgets(buf,BUF_LEN,sliceFp);
-      (*muls).cz[i] = atof(buf);
-    }
-    slicePos[i] = slicePos[i-1]+(*muls).cz[i-1]/2.0+(*muls).cz[i]/2.0;
-  }
+  SliceSetup();
 
   // reset the potential to zero:
   memset((void *)&(muls->trans[0][0][0][0]),0,
@@ -409,55 +418,15 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
         printf("Adding potential for atom %d (Z=%d, pos=[%.1f, %.1f, %.1f])\n",iatom+1,atom->Znum,
                atom->x, atom->y, atom->z);
       }
-    // printf("c=%g, slice thickness=%g, slices=%d, %d\n",c,muls->sliceThickness,muls->slices,muls->displayPotCalcInterval);
-    /*
-     * c = the thickness of the current slab.
-     *
-     * if the z-position of this atom is outside the potential slab
-     * we won't consider it and skip to the next
-     */
-    /* cellDiv = number of times that the big super cell is divided into
-     * less big ones, yet often still bigger than a single unit cell
-     * (for saving memory)
-     * divCount = counter of how many such semi-super cells we already
-     * passed through.
-     * c = height in A of one such semi-super cell.
-     * Since cellDiv is always >=1, and divCount starts at 0, the actual position
-     * of this atom with the super cell is given by:
-     */
-    /* c*(float_tt)((*muls).cellDiv-divCount-1) will pick the right super-cell
-     * division in the big super-cell
-     * The z-offset 0.5*cz[0] will position atoms at z=0 into the middle of the first
-     * slice.
-     */
-    atomZ = atom->z-c*(float_tt)(muls->cellDiv-divCount-1) + muls->czOffset
-      -(0.5*muls->sliceThickness*(1-muls->centerSlices));
     // make sure that slices are centered for 2D and 3D differently:
-    if (muls->potential3D==0)        atomZ += 0.5*muls->sliceThickness;
-    else atomZ -= muls->sliceThickness;
+    CenterAtomZ(atom, atomZ);
 
-    /* Now we need to find the first atom that contributes to this slice */
-    /* Make use of the fact that we sorted the atoms in z */
-    if ((*muls).nonPeriodZ) {
-      if (((*muls).potential3D) && (atomZ -(*muls).atomRadius > c)) break;        
-      if (((*muls).potential3D==0) && (atomZ > c)) break;                
-      do {
-        // printf("z: %g c: %g\n",atomZ,c);
-        if (((*muls).potential3D) && (atomZ+(*muls).atomRadius+muls->sliceThickness >=0)) break;
-        if (((*muls).potential3D==0) && (atomZ >=0)) break;
-        // atomZ is the z of the next atom minus ...
-        atomZ = (++atom)->z-c*(float_tt)(muls->cellDiv-divCount-1) + muls->czOffset
-                -(0.5*muls->sliceThickness*(1-muls->centerSlices));
-        if (muls->potential3D==0)        atomZ += 0.5*muls->sliceThickness;
-        else atomZ -= muls->sliceThickness;
-      }
-    }
     /* atom coordinates in cartesian coords
      * The x- and y-position will be offset by the starting point
      * of the actually needed array of projected potential
      */
-    atomX = atom->x -(*muls).potOffsetX;
-    atomY = atom->y -(*muls).potOffsetY;
+    atomX = atom->x -m_potOffsetX;
+    atomY = atom->y -m_potOffsetY;
 
     /* so far we need periodicity in z-direction.
      * This requirement can later be removed, if we
@@ -465,20 +434,8 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
      * proj. potential that we need to add to the first slice of
      * the next stack of slices
      */
+    AddAtomToSlices(atom, atomX, atomY, atomZ);
 
-    /*************************************************************
-     * real space potential lookup table summation
-     ************************************************************/
-    if (muls->fftpotential) {
-            
-    }
-          
-    /**************************************************************************
-     * Newer, even faster method based on FFT of tabulated scattering factors
-     **************************************************************************/
-    else {        /* fftpotential */
-            
-    } /* end of if (fftpotential) */
     } /* for iatom =0 ... */
   time(&time1);
   if (muls->printLevel) 
@@ -530,30 +487,19 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
 } // end of make3DSlices
 
 
-void AddAtomToSliceNonPeriodic()
+void AddAtomToSliceNonPeriodic(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)
 {
   /* Warning: will assume constant slice thickness ! */
   /* do not round here: atomX=0..dx -> iAtomX=0 */
-  /*
-    iAtomX = (int)(atomX/dx);        
-    if (atomX/dx < (float)iAtomX) iAtomX--; // in case iAtomX is negative
-    iAtomY = (int)(atomY/dy);
-    if (atomY/dy < (float)iAtomY) iAtomY--;
-    iAtomZ = (int)(atomZ/(*muls).cz[0]);
-    if (atomZ/(*muls).cz[0] < (float)iAtomZ) iAtomZ--;
-  */
   iAtomX = (int)floor(atomX/dx);
   iAtomY = (int)floor(atomY/dy);
   iAtomZ = (int)floor(atomZ/muls->cz[0]);
-
-  // printf("atomZ(%d)=%g(%d)\t",iatom,atomZ,iAtomZ);
 
   if (muls->displayPotCalcInterval > 0) {
     if ((muls->printLevel>=3) && ((iatom+1) % muls->displayPotCalcInterval == 0)) {
       printf("adding atom %d [%.3f %.3f %.3f (%.3f)], Z=%d\n",
              iatom+1,atomX+(*muls).potOffsetX,atomY+(*muls).potOffsetY,
              atoms[iatom].z,atomZ,atoms[iatom].Znum);
-      /* (*muls).ax,(*muls).by,(*muls).potOffsetX,(*muls).potOffsetY); */
     }
   }
 
@@ -578,8 +524,10 @@ void AddAtomToSliceNonPeriodic()
       y = (double)(iAtomY+iay)*dy-atomY;
       iy = (iay+iAtomY+16*ny) % ny;         /* shift into the positive range */
       r2sqr = x*x + y*y;
-   if (r2sqr <= atomRadius2) 
-     {
-       AddAtomToPotential()
-         }
+      if (r2sqr <= atomRadius2) 
+        {
+          AddAtomToPotential();
+        }
+    }
+  }
 }

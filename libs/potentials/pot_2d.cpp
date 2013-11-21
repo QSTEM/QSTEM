@@ -53,8 +53,67 @@ void C2DPotential::atomBoxLookUp(complex_tt &sum, int Znum, float_tt x, float_tt
   }
 }
 
-void C2DPotential::makeSlices(int nlayer, char *fileName, atom *center)
+bool C2DPotential::CheckAtomZInBounds(float_tt atomZ)
 {
-  
+  /*
+   * c = the thickness of the current slab.
+   *
+   * if the z-position of this atom is outside the potential slab
+   * we won't consider it and skip to the next
+   */
+  return ((atomZ<m_c) && (atomZ>=0));
 }
 
+void C2DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY,
+                                               float_tt atomZ)
+{
+  // Note that if you override this method, you should do the following check to make sure the atom is in bounds.
+  // skip atoms that are beyond the cell's boundaries
+  if (!m_periodicZ)
+    {
+      if (atomZ > c) return;
+      if ((atomZ >=0)
+  
+
+  AddAtomToSlicesRealSpaceLUT(atom, atomX, atomY, atomZ);
+}
+
+void C2DPotential::AddAtomToSlicesRealSpaceLUT(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY,
+                                               float_tt atomZ)
+{
+  complex_tt dPot;
+  if (!periodicZ) {
+    if (iAtomZ < 0) return;
+    if (iAtomZ >= nlayer) return;        
+  }                
+  iz = (iAtomZ+32*nlayer) % nlayer;         /* shift into the positive range */
+  atomBoxLookUp(&dPot,atom->Znum,x,y,0, m_tds ? 0 : atom->dw);
+  z = (double)(iAtomZ+1)*m_cz[0]-atomZ;
+
+  /* split the atom if it is close to the top edge of the slice */
+  if ((z<0.15*(*muls).cz[0]) && (iz >0)) {
+    m_trans[iz][ix][iy][0] += 0.5*dPot[0];
+    m_trans[iz][ix][iy][1] += 0.5*dPot[1];
+    m_trans[iz-1][ix][iy][0] += 0.5*dPot[0];
+    m_trans[iz-1][ix][iy][1] += 0.5*dPot[1];                        
+  }
+  /* split the atom if it is close to the bottom edge of the slice */
+  else {
+    if ((z>0.85*m_cz[0]) && (iz < nlayer-1)) {
+      m_trans[iz][ix][iy][0] += 0.5*dPot[0];
+      m_trans[iz][ix][iy][1] += 0.5*dPot[1];        
+      m_trans[iz+1][ix][iy][0] += 0.5*dPot[0];
+      m_trans[iz+1][ix][iy][1] += 0.5*dPot[1];                 
+    }
+    else {
+      m_trans[iz][ix][iy][0] += dPot[0];
+      m_trans[iz][ix][iy][1] += dPot[1];        
+    }
+  }
+}
+
+void C2DPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
+{
+  CPotential::CenterAtomZ(atom, z);
+  z += 0.5*muls->sliceThickness;
+}
