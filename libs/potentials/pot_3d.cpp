@@ -67,13 +67,6 @@ void C3DPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt
 			dx*m_atomBoxes[Znum]->rpotential[iz+1][ix+1][iy+1]));
 	}
 }
-	
-void C3DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)
-{
-  if (!m_periodicZ && ) return;
-  return AddAtomToSlicesRealSpaceLUT(atom, atomZ)
-}
-
 
 bool C3DPotential::CheckAtomZInBounds(float_tt atomZ)
 {
@@ -86,32 +79,38 @@ bool C3DPotential::CheckAtomZInBounds(float_tt atomZ)
   return ((atomZ - m_atomRadius > m_c) && (atomZ + m_atomRadius + m_sliceThickness >= 0));
 }
 
-void C3DPotential::AddAtomToSlicesRealSpaceLUT(std::vector<atom>::iterator &atom, float_tt atomZ)
+void C3DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom, 
+                                     float_tt atomBoxX, unsigned ix, 
+                                     float_tt atomBoxY, unsigned iy, 
+                                     float_tt atomZ, unsigned iAtomZ)
 {
+  unsigned iz, iRadZ;
+  float_tt atomBoxZ;
   complex_tt dPot;
   /* calculate the range which we have left to cover with z-variation */
   /* iRadZ is the number of slices (rounded up) that this atom
    * will contribute to, given its current x,y-radius
    */
-  iRadZ = (int)(sqrt(atomRadius2-r2sqr)/m_cz[0]+1.0);
+  float_tt r2sqr = atomBoxX*atomBoxX + atomBoxY*atomBoxY;
+  iRadZ = (int)(sqrt(m_atomRadius2-r2sqr)/m_cz[0]+1.0);
   /* loop through the slices that this atoms contributes to */
   for (int iaz=-iRadZ;iaz <=iRadZ;iaz++) {
     if (!m_periodicZ) {
       if (iaz+iAtomZ < 0) {
         if (-iAtomZ <= iRadZ) iaz = -iAtomZ;
         else break;
-        if (abs(iaz)>nlayer) break;
+        if (abs(iaz)>m_nslices) break;
       }
-      if (iaz+iAtomZ >= nlayer)        break;
+      if (iaz+iAtomZ >= m_nslices)        break;
     }
-    z = (double)(iAtomZ+iaz+0.5)*m_cz[0]-atomZ;
+    atomBoxZ = (double)(iAtomZ+iaz+0.5)*m_cz[0]-atomZ;
     /* shift into the positive range */
-    iz = (iaz+iAtomZ+32*nlayer) % nlayer;        
+    iz = (iaz+iAtomZ+32*m_nslices) % m_nslices;        
     /* x,y,z is the true vector from the atom center
      * We can look up the proj potential at that spot
      * using trilinear extrapolation.
      */
-    atomBoxLookUp(&dPot,atom->Znum,x,y,z,
+    atomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,atomBoxZ,
                   m_tds ? 0 : atom->dw);
     // printf("access: %d %d %d\n",iz,ix,iy);
     m_trans[iz][ix][iy][0] += dPot[0];

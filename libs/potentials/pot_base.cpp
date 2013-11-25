@@ -73,7 +73,6 @@ void CPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y
 {
   int boxNx,boxNy,boxNz;
   float_tt dx,dy,dz,ddx,ddy,ddz;
-  int ix,iy,iz;
   float_tt maxRadius2;
   char fileName[256],systStr[256];
   int tZ, tnx, tny, tnz, tzOversample;  
@@ -319,8 +318,6 @@ void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 }
 
 /*****************************************************
-* void make3DSlices()
-*
 * This function will create a 3D potential from whole
 * unit cell, slice it, and make transr/i and propr/i
 * Call this function with center = NULL, if you don't
@@ -328,59 +325,21 @@ void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 ****************************************************/
 void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center) 
 {
-  // FILE *fpu2;
-  char filename[512];
-  int natom,iatom,iz; /* number of atoms */
-  atom *atoms;
-  float_tt dx,dy,dz;
-  float_tt c,atomX,atomY,atomZ;
-  int i=0,j,nx,ny,ix,iy,iax,iay,iaz,sliceStep;
-  int iAtomX,iAtomY,iAtomZ,iRadX,iRadY,iRadZ,iRad2;
-  int iax0,iax1,iay0,iay1,iaz0,iaz1,nyAtBox,nyAtBox2,nxyAtBox,nxyAtBox2,iOffsX,iOffsY,iOffsZ;
-  int nzSub,Nr,ir,Nz_lut;
-  int iOffsLimHi,iOffsLimLo,iOffsStep;
-
-  float_tt *slicePos;
-  double z,x,y,r,ddx,ddy,ddr,dr,r2sqr,x2,y2,potVal,dOffsZ;
-  char buf[BUF_LEN];
-  FILE *sliceFp;
-  float_tt minX,maxX,minY,maxY,minZ,maxZ;
-  double atomRadius2;
-  time_t time0,time1;
-  float s11,s12,s21,s22;
-  fftwf_complex        *atPotPtr;
-  float *potPtr=NULL, *ptr;
-  static int divCount = 0;
-  ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls->potNx,muls->potNy));
-  complex_tt dPot;
-#if Z_INTERPOLATION
-  double ddz;
-#endif
-#if USE_Q_POT_OFFSETS
-  fftwf_complex        *atPotOffsPtr;
-#endif
-
-  // parameters to be saved to output files (e.g. thickness)
-  std::map<std::string, double> params;
-
   /* return, if there is nothing to do */
   if (nlayer <1)
     return;
 
-  nx = muls->potNx;
-  ny = muls->potNy;
-
   /* we need to keep track of which subdivision of the unit cell we are in
    * If the cell is not subdivided, then muls.cellDiv-1 = 0.
    */
-  if ((divCount == 0) || (muls->equalDivs))
-    divCount = muls->cellDiv;
-  divCount--;
+  if ((m_divCount == 0) || (m_equalDivs))
+    m_divCount = m_cellDiv;
+  m_divCount--;
 
   /* we only want to reread and shake the atoms, if we have finished the
    * current unit cell.
    */
-  if (divCount == muls->cellDiv-1) {
+  if (m_divCount == m_cellDiv-1) {
     ReadAtoms();
     
   } /* end of if divCount==cellDiv-1 ... */
@@ -392,14 +351,14 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
   SliceSetup();
 
   // reset the potential to zero:
-  memset((void *)&(muls->trans[0][0][0][0]),0,
-         muls->slices*muls->potNx*muls->potNy*sizeof(complex_tt));
+  memset((void *)&(m_trans[0][0][0][0]),0,
+         m_nslices*m_nx*m_ny*sizeof(complex_tt));
 
-  nyAtBox = 2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionY);
-  nxyAtBox = nyAtBox*(2*OVERSAMP_X*(int)ceil(muls->atomRadius/muls->resolutionX));
+  nyAtBox = 2*OVERSAMP_X*(int)ceil(m_atomRadius/m_dy);
+  nxyAtBox = nyAtBox*(2*OVERSAMP_X*(int)ceil(m_atomRadius/m_dx));
   nyAtBox2 = 2*nyAtBox;
   nxyAtBox2 = 2*nxyAtBox;
-  sliceStep = 2*muls->potNx*muls->potNy;
+  sliceStep = 2*m_nx*m_ny;
 
   /****************************************************************
    * Loop through all the atoms and add their potential
@@ -425,15 +384,9 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
      * The x- and y-position will be offset by the starting point
      * of the actually needed array of projected potential
      */
-    atomX = atom->x -m_potOffsetX;
-    atomY = atom->y -m_potOffsetY;
+    atomX = atom->x - m_potOffsetX;
+    atomY = atom->y - m_potOffsetY;
 
-    /* so far we need periodicity in z-direction.
-     * This requirement can later be removed, if we
-     * use some sort of residue slice which will contain the
-     * proj. potential that we need to add to the first slice of
-     * the next stack of slices
-     */
     AddAtomToSlices(atom, atomX, atomY, atomZ);
 
     } /* for iatom =0 ... */
@@ -487,29 +440,35 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
 } // end of make3DSlices
 
 
-void AddAtomToSliceNonPeriodic(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)
+void CPotential::AddAtomRealSpace(std::vector<atom>::iterator &atom, unsigned iatom)
 {
+  float_tt atomX = atom->x - m_offsetX;
+  float_tt atomY = atom->y - m_offsetY;
+  float_tt atomZ;
+
+  CenterAtomZ(atom, atomZ);
+  
   /* Warning: will assume constant slice thickness ! */
   /* do not round here: atomX=0..dx -> iAtomX=0 */
-  iAtomX = (int)floor(atomX/dx);
-  iAtomY = (int)floor(atomY/dy);
-  iAtomZ = (int)floor(atomZ/muls->cz[0]);
+  unsigned iAtomX = (int)floor(atomX/dx);
+  unsigned iAtomY = (int)floor(atomY/dy);
+  unsigned iAtomZ = (int)floor(atomZ/m_cz[0]);
 
-  if (muls->displayPotCalcInterval > 0) {
-    if ((muls->printLevel>=3) && ((iatom+1) % muls->displayPotCalcInterval == 0)) {
+  if (m_displayPotCalcInterval > 0) {
+    if ((m_printLevel>=3) && ((iatom+1) % m_displayPotCalcInterval == 0)) {
       printf("adding atom %d [%.3f %.3f %.3f (%.3f)], Z=%d\n",
-             iatom+1,atomX+(*muls).potOffsetX,atomY+(*muls).potOffsetY,
-             atoms[iatom].z,atomZ,atoms[iatom].Znum);
+             iatom+1,atomX+m_offsetX,atomY+m_offsetY,
+             atom->z,atomZ,atom->Znum);
     }
   }
 
   for (iax = -iRadX;iax<=iRadX;iax++) {
-    if ((*muls).nonPeriod) {
+    if (!m_periodicXY) {
       if (iax+iAtomX < 0) {
         iax = -iAtomX;
         if (abs(iax)>iRadX) break;
       }
-      if (iax+iAtomX >= nx)        break;
+      if (iax+iAtomX >= nx) break;
     }
     x = (double)(iAtomX+iax)*dx-atomX;
     ix = (iax+iAtomX+16*nx) % nx;        /* shift into the positive range */
@@ -526,43 +485,11 @@ void AddAtomToSliceNonPeriodic(std::vector<atom>::iterator &atom, float_tt atomX
       r2sqr = x*x + y*y;
       if (r2sqr <= atomRadius2) 
         {
-          AddAtomToPotential();
+          // This (virtual) method is meant to be implemented by subclasses, 
+          //    for specific functionality varying by dimensionality.
+          _AddAtomRealSpace(atom, x, ix, y, iy, atomZ, iatomZ);
         }
     }
   }
 }
 
-
-/*------------------------ transmit() ------------------------*/
-/*
-transmit the wavefunction thru one layer 
-(simply multiply wave by transmission function)
-
-waver,i[ix][iy]  = real and imaginary parts of wavefunction
-transr,i[ix][iy] = real and imag parts of transmission functions
-
-nx, ny = size of array
-
-on entrance waver,i and transr,i are in real space
-
-only waver,i will be changed by this routine
-*/
-void CPotential::transmit(WavePtr wave, unsigned sliceIdx) {
-	double wr, wi, tr, ti;
-
-	complex_tt **w,**t;
-	unsigned posx = wave->iPosX;
-	unsigned posy = wave->iPosY;
-	w = (complex_tt **)wave->wave;
-	t = (complex_tt **)trans[sliceIdx];
-
-	/*  trans += posx; */
-	for(unsigned ix=0; ix<m_nx; ix++) for(unsigned iy=0; iy<m_ny; iy++) {
-		wr = w[ix][iy][0];
-		wi = w[ix][iy][1];
-		tr = t[ix+posx][iy+posy][0];
-		ti = t[ix+posx][iy+posy][1];
-		w[ix][iy][0] = wr*tr - wi*ti;
-		w[ix][iy][1] = wr*ti + wi*tr;
-	} /* end for(iy.. ix .) */
-} /* end transmit() */

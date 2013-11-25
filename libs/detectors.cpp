@@ -91,34 +91,34 @@ void Detector::CollectIntensity(WavePtr &wave)
 
   std::vector<std::vector<DetectorPtr> > detectors;
 
-  scale = wave->electronScale/((double)(wave->nx*wave->ny)*(wave->nx*wave->ny));
+  scale = wave->m_electronScale/((double)(wave->m_nx*wave->m_ny)*(wave->m_nx*wave->m_ny));
   // scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
-  scaleDiff = 1.0/sqrt((double)(wave->nx*wave->ny));
+  scaleDiff = 1.0/sqrt((double)(wave->m_nx*wave->m_ny));
 
-  int position_offset = wave->detPosY * m_nx + wave->detPosX;
+  int position_offset = wave->m_detPosY * m_nx + wave->m_detPosX;
 
   // Multiply each image by its number of averages and divide by it later again:
-  m_image[wave->detPosX][wave->detPosY]  *= m_Navg;	
-  m_image2[wave->detPosX][wave->detPosY] *= m_Navg;	
+  m_image[wave->m_detPosX][wave->m_detPosY]  *= m_Navg;	
+  m_image2[wave->m_detPosX][wave->m_detPosY] *= m_Navg;	
   m_error = 0;
 
   /* add the intensities in the already 
      fourier transformed wave function */
-  for (ix = 0; ix < wave->nx; ix++) 
+  for (ix = 0; ix < wave->m_nx; ix++) 
     {
-      for (iy = 0; iy < wave->ny; iy++) 
+      for (iy = 0; iy < wave->m_ny; iy++) 
         {
           k2 = wave->m_kx2[ix]+wave->m_ky2[iy];
-          intensity = (wave->wave[ix][iy][0]*wave->wave[ix][iy][0]+
-                       wave->wave[ix][iy][1]*wave->wave[ix][iy][1]);
-          wave->diffpat[(ix+wave->nx/2)%wave->nx][(iy+wave->ny/2)%wave->ny] = intensity*scaleDiff;
+          intensity = (wave->m_wave[ix][iy][0]*wave->m_wave[ix][iy][0]+
+                       wave->m_wave[ix][iy][1]*wave->m_wave[ix][iy][1]);
+          wave->m_diffpat[(ix+wave->m_nx/2)%wave->m_nx][(iy+wave->m_ny/2)%wave->m_ny] = intensity*scaleDiff;
           intensity *= scale;
           if ((k2 >= m_k2Inside) && (k2 <= m_k2Outside)) 
               {
                 // detector in center of diffraction pattern:
                 if ((m_shiftX == 0) && (m_shiftY == 0)) 
                   {
-                    m_image[wave->detPosX][wave->detPosY] += intensity;
+                    m_image[wave->m_detPosX][wave->m_detPosY] += intensity;
                     // misuse the error number for collecting this pixels raw intensity
                     m_error += intensity;
                   }
@@ -126,11 +126,11 @@ void Detector::CollectIntensity(WavePtr &wave)
                 else 
                   {
                     intensity_save = intensity;
-                    ixs = (ix+(int)m_shiftX+wave->nx) % wave->nx;
-                    iys = (iy+(int)m_shiftY+wave->ny) % wave->ny;	    
-                    intensity = scale * (wave->wave[ixs][iys][0]*wave->wave[ixs][iys][0]+
-                                         wave->wave[ixs][iys][1]*wave->wave[ixs][iys][1]);
-                    m_image[wave->detPosX][wave->detPosY] += intensity;
+                    ixs = (ix+(int)m_shiftX+wave->m_nx) % wave->m_nx;
+                    iys = (iy+(int)m_shiftY+wave->m_ny) % wave->m_ny;	    
+                    intensity = scale * (wave->m_wave[ixs][iys][0]*wave->m_wave[ixs][iys][0]+
+                                         wave->m_wave[ixs][iys][1]*wave->m_wave[ixs][iys][1]);
+                    m_image[wave->m_detPosX][wave->m_detPosY] += intensity;
                     // repurpose the error number for collecting this pixels raw intensity
                     m_error += intensity;
                     /* restore intensity, so that it will not be shifted for the other detectors */
@@ -144,11 +144,11 @@ void Detector::CollectIntensity(WavePtr &wave)
   
   // Divide each image by its number of averages again:
   // add intensity squared to image2 for this detector and pixel, then rescale:
-  m_image2[wave->detPosX][wave->detPosY] += m_error*m_error;
-  m_image2[wave->detPosX][wave->detPosY] /= m_Navg+1;	
+  m_image2[wave->m_detPosX][wave->m_detPosY] += m_error*m_error;
+  m_image2[wave->m_detPosX][wave->m_detPosY] /= m_Navg+1;	
     
   // do the rescaling for the average image:
-  m_image[wave->detPosX][wave->detPosY] /= m_Navg+1;	
+  m_image[wave->m_detPosX][wave->m_detPosY] /= m_Navg+1;	
 }
 
 

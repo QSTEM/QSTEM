@@ -1076,7 +1076,6 @@ MULS initMu() {
 	muls.acmax = 0;
 	muls.acmin = 0;
 	muls.aobj = 0;
-	muls.Cs = 0;
 	muls.aAIS = 0;
 	// muls.areaAIS = 1.0;
 
@@ -2631,7 +2630,7 @@ double gasdev(long *idum)
 	} 
 }
 
-void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls) {
+void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls, WavePtr wave, PotPtr pot) {
 	FILE *fp;
 	char folder[64];
 
@@ -2659,20 +2658,20 @@ void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls) {
 	fprintf(fp,"periodicZ: no\n");
 
 
-	fprintf(fp,"nx: %d\n",muls->nx); 
-	fprintf(fp,"ny: %d\n",muls->ny);      
-	fprintf(fp,"Cs: %g\n",muls->Cs*1e-7);	
-	fprintf(fp,"C5: %g\n",muls->C5);		
-	fprintf(fp,"Cc: %g\n",muls->Cc*1e-7);		
-	fprintf(fp,"dV/V: %g\n",muls->dE_E);	
-	fprintf(fp,"alpha: %g\n",muls->alpha);		
-	fprintf(fp,"AIS aperture: %g %% A\n",muls->aAIS); 
-	fprintf(fp,"smooth: %s\n",muls->ismoth ? "yes" : "no");		
-	fprintf(fp,"defocus: %g \n",muls->df0);
-	fprintf(fp,"Source Size (diameter): %g \n",2*muls->sourceRadius);
-	fprintf(fp,"gaussian: %s\n", muls->gaussFlag ? "yes" : "no");
-	fprintf(fp,"potential3D: %s \n", muls->potential3D ? "yes" : "no");
-	fprintf(fp,"atom radius: %g \n", muls->atomRadius);
+	fprintf(fp,"nx: %d\n",wave->m_nx); 
+	fprintf(fp,"ny: %d\n",wave->m_ny);      
+	fprintf(fp,"Cs: %g\n",wave->m_Cs*1e-7);	
+	fprintf(fp,"C5: %g\n",wave->m_C5);		
+	fprintf(fp,"Cc: %g\n",wave->m_Cc*1e-7);		
+	fprintf(fp,"dV/V: %g\n",wave->m_dE_E);	
+	fprintf(fp,"alpha: %g\n",wave->m_alpha);		
+	fprintf(fp,"AIS aperture: %g %% A\n",wave->m_aAIS); 
+	fprintf(fp,"smooth: %s\n",wave->m_ismoth ? "yes" : "no");		
+	fprintf(fp,"defocus: %g \n",wave->m_df0);
+	fprintf(fp,"Source Size (diameter): %g \n",2*wave->m_sourceRadius);
+	fprintf(fp,"gaussian: %s\n", wave->m_gaussFlag ? "yes" : "no");
+	fprintf(fp,"potential3D: %s \n", pot->m_potential3D ? "yes" : "no");
+	fprintf(fp,"atom radius: %g \n", pot->m_atomRadius);
 	fprintf(fp,"plot V(r)*r: yes \n");	
 	fprintf(fp,"bandlimit f_trans: yes\n");	
 	fprintf(fp,"save potential: no	\n");

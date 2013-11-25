@@ -60,7 +60,37 @@ public:
   std::map<std::string, double> m_params;
 
   std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
   float_tt m_k2max;
+
+  float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
+protected:
+  float_tt m_a33, m_a31;
+  float_tt m_a44, m_a42;
+  float_tt m_a55, m_a53, m_a51;
+  float_tt m_a66, m_a64, m_a62;
+  float_tt m_phi33, m_phi31;
+  float_tt m_phi44, m_phi42;
+  float_tt m_phi55, m_phi53, m_phi51;
+  float_tt m_phi66, m_phi64, m_phi62;
+
+  int m_printLevel;
+public:
+  float_tt m_C5;
+  float_tt m_dE_E;
+  float_tt m_dV_V;
+  float_tt m_dI_I;
+  float_tt m_alpha;
+  float_tt m_sourceRadius;
+  float_tt m_Cc;
+  float_tt m_Cs;
+  float_tt m_df0;				/* defocus */
+  float_tt m_astigMag;				/* astigmatism*/
+  float_tt m_astigAngle;				/* angle of astigmatism */
+
+  bool m_ismoth;                          /* smoothen the probe wave function */
+  bool m_gaussFlag;
+  float_tt m_gaussScale;
 
   // These are not used for anything aside from when saving files.
   float_tt m_resolutionX, m_resolutionY;
@@ -82,7 +112,7 @@ public:
 
   void CreateDataSets();
   void Transmit(PotPtr pot, unsigned sliceIdx);
-  void Propagate();
+  void Propagate(float_tt dz);
   void FormProbe();
 
   inline void WriteProbe()
@@ -168,7 +198,7 @@ public:
   void ReadAvgArray(unsigned navg);
   void ReadAvgArray(unsigned posX, unsigned posY);
 
-private:
+protected:
   void _WriteWave(std::string &prefix, std::string comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());
   void _WriteDiffPat(std::string &prefix, std::string comment="Diffraction Pattern",
@@ -181,6 +211,7 @@ private:
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
 
+  float_tt m_wavlen;
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;

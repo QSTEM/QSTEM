@@ -96,20 +96,6 @@ public:
   int avgCount;
   //float_tt thickness;
 
-  float_tt C5;
-  float_tt dE_E;
-  float_tt dV_V;
-  float_tt dI_I;
-  float_tt alpha;
-  float_tt sourceRadius;
-  float_tt Cc;
-  float_tt df0;				/* defocus */
-  float_tt astigMag;				/* astigmatism*/
-  float_tt astigAngle;				/* angle of astigmatism */
-
-  bool ismoth;                          /* smoothen the probe wave function */
-  bool gaussFlag;
-  float_tt gaussScale;
   int showProbe;
   unsigned displayProgInterval;             /* show progress every .. beam positions */
   unsigned displayPotCalcInterval;             /* show progress every .. beam positions */
@@ -125,30 +111,8 @@ public:
   float_tt aobj;				/* obj aperture */
   float_tt aAIS;                         /* condensor aperture in A (projected size, */
                                         /* for Koehler illumination)                */
-  // float_tt areaAIS;                      /* fractional area illuminated by AIS (def=1) */
-  float_tt Cs;			      	/* spher. aberration */
   /////////////////////////////////////////////
   // more aberrations:
-  float_tt a33;
-  float_tt a31;
-  float_tt a44;
-  float_tt a42;
-  float_tt a55;
-  float_tt a53;
-  float_tt a51;
-  float_tt a66;
-  float_tt a64;
-  float_tt a62;
-  float_tt phi33;
-  float_tt phi31;
-  float_tt phi44;
-  float_tt phi42;
-  float_tt phi55;
-  float_tt phi53;
-  float_tt phi51;
-  float_tt phi66;
-  float_tt phi64;
-  float_tt phi62;
 
   float_tt acmax,acmin;
   float_tt sigmaf;

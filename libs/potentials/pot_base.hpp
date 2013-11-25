@@ -43,6 +43,19 @@ public:
   //    shake)
   virtual void Refresh();
   virtual void ReadPotential(std::string &fileName);
+  virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
+  void AddAtomRealSpace(std::vector<atom>::iterator &atom, unsigned iatom);
+  virtual void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
+                                 float_tt atomBoxX, unsigned int ix, 
+                                 float_tt atomBoxY, unsigned int iy, 
+                                 float_tt atomZ, unsigned int iatomZ)=0;
+
+  complex_tt **GetSlice(unsigned idx){return m_trans[idx];}
+
+  // public members (should be moved to protected, and given getters/setters...
+  bool m_potential3D;
+  float_tt m_atomRadius;
+
 protected:
   void Initialize();
 
@@ -70,9 +83,11 @@ protected:
   // vector of slice positions
   std::vector<float_tt> m_slicePos;
 
+  bool m_tds;
+
   // m_c 
   float_tt m_c; // the thickness of the current sub-slab (in A)
-  float_tt m_dr, m_atomRadius, m_atomRadius2;
+  float_tt m_dr, m_atomRadius2;
   unsigned m_iRadX, m_iRadY, m_iRadZ, m_iRad2;
   bool m_periodicXY, m_periodicZ;
 
@@ -82,6 +97,7 @@ protected:
 
   int m_printLevel;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;
+
 };
 
 typedef boost::shared_ptr<CPotential> PotPtr;

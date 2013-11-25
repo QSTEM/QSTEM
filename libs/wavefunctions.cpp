@@ -31,77 +31,79 @@ void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> po
 WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY, 
                    std::string input_ext, std::string output_ext) :
   //m_position(std::vector<unsigned>()),
-  detPosX(0),
-  detPosY(0),
-  iPosX(0),
-  iPosY(0),
-  thickness(0.0),
-  nx(x),
-  ny(y),
-  resolutionX(resX),
-  resolutionY(resY),
-  m_params(std::map<std::string, double>())
+  m_detPosX(0),
+  m_detPosY(0),
+  m_iPosX(0),
+  m_iPosY(0),
+  m_thickness(0.0),
+  m_nx(x),
+  m_ny(y),
+  m_resolutionX(resX),
+  m_resolutionY(resY),
+  m_params(std::map<std::string, double>()),
+  m_propxr(std::vector<float_tt>(x)),
+  m_propxi(std::vector<float_tt>(x)),
+  m_propyr(std::vector<float_tt>(y)),
+  m_propyi(std::vector<float_tt>(y))
 {
-  diffpat = float2D(nx,ny,"diffpat");
-  avgArray = float2D(nx,ny,"avgArray");
+  //m_wavlen = wavelength(m_v0);
+  m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
+
+  m_diffpat = float2D(m_nx,m_ny,"diffpat");
+  m_avgArray = float2D(m_nx,m_ny,"avgArray");
 
   // TODO: need to pass file extension through to this constructor
-  m_imageIO=ImageIOPtr(new CImageIO(nx, ny, input_ext, output_ext));
+  m_imageIO=ImageIOPtr(new CImageIO(m_nx, m_ny, input_ext, output_ext));
 	
-  wave = complex2D(nx, ny, "wave");
+  m_wave = complex2D(m_nx, m_ny, "wave");
 #if FLOAT_PRECISION == 1
-  fftPlanWaveForw = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
-  fftPlanWaveInv = fftwf_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
+  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
+  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
 #else
-  fftPlanWaveForw = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_FORWARD,
+  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_FORWARD,
                                      fftMeasureFlag);
-  fftPlanWaveInv = fftw_plan_dft_2d(nx,ny,wave[0],wave[0],FFTW_BACKWARD,
+  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_BACKWARD,
                                     fftMeasureFlag);
 #endif
 }
 
 WAVEFUNC::WAVEFUNC(ConfigReaderPtr &configReader)
-  : detPosX(0)
-  , detPosY(0)
-  , iPosX(0)
-  , iPosY(0)
-  , thickness(0)
 {
-  configReader->ReadProbeArraySize(nx, ny);
-  configReader->ReadResolution(resolutionX, resolutionY);
-  configReader->ReadDoseParameters(beamCurrent, dwellTime);
-  configReader->ReadVoltage(v0);
-  electronScale = beamCurrent*dwellTime*MILLISEC_PICOAMP;
+  configReader->ReadProbeArraySize(m_nx, m_ny);
+  configReader->ReadResolution(m_resolutionX, m_resolutionY);
+  configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
+  configReader->ReadVoltage(m_v0);
+  m_electronScale = m_beamCurrent*m_dwellTime*MILLISEC_PICOAMP;
 
   // TODO: need to figure out how user is going to specify input/output formats
-  WAVEFUNC(nx, ny, resolutionX, resolutionY, ".img", ".img");
+  WAVEFUNC(m_nx, m_ny, m_resolutionX, m_resolutionY, ".img", ".img");
 }
 
 void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
-  params["dx"]=resolutionX;
-  params["dy"]=resolutionY;
-  params["Thickness"]=thickness;
-  m_imageIO->WriteComplexImage((void **)wave, fileName, params, comment, m_position);
+  params["dx"]=m_resolutionX;
+  params["dy"]=m_resolutionY;
+  params["Thickness"]=m_thickness;
+  m_imageIO->WriteComplexImage((void **)m_wave, fileName, params, comment, m_position);
 }
 
 void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
                             std::map<std::string, double> params)
 {
-  params["dx"]=1.0/(nx*resolutionX);
-  params["dy"]=1.0/(ny*resolutionY);
-  params["Thickness"]=thickness;
-  m_imageIO->WriteRealImage((void **)diffpat, fileName, params, comment, m_position);
+  params["dx"]=1.0/(m_nx*m_resolutionX);
+  params["dy"]=1.0/(m_ny*m_resolutionY);
+  params["Thickness"]=m_thickness;
+  m_imageIO->WriteRealImage((void **)m_diffpat, fileName, params, comment, m_position);
 }
 
   void WAVEFUNC::_WriteAvgArray(std::string &fileName, std::string comment, 
                                std::map<std::string, double> params)
 {
-  params["dx"]=1.0/(nx*resolutionX);
-  params["dy"]=1.0/(ny*resolutionY);
-  params["Thickness"]=thickness;
-  m_imageIO->WriteRealImage((void **)avgArray, fileName, params, comment, m_position);
+  params["dx"]=1.0/(m_nx*m_resolutionX);
+  params["dy"]=1.0/(m_ny*m_resolutionY);
+  params["Thickness"]=m_thickness;
+  m_imageIO->WriteRealImage((void **)m_avgArray, fileName, params, comment, m_position);
 }
 
 void WAVEFUNC::SetWavePosition(unsigned navg)
@@ -112,8 +114,8 @@ void WAVEFUNC::SetWavePosition(unsigned navg)
 
 void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
 {
-  detPosX=posX;
-  detPosY=posY;
+  m_detPosX=posX;
+  m_detPosY=posY;
   m_position.resize(2);
   m_position[0]=posX;
   m_position[1]=posY;
@@ -122,128 +124,123 @@ void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
 void WAVEFUNC::ReadWave()
 {
   m_position.clear();
-  m_imageIO->ReadImage((void **)wave, waveFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadWave(unsigned navg)
 {
   SetWavePosition(navg);
-  m_imageIO->ReadImage((void **)wave, waveFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
 
 }
 
 void WAVEFUNC::ReadWave(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  m_imageIO->ReadImage((void **)wave, waveFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadDiffPat()
 {
   m_position.clear();
-  m_imageIO->ReadImage((void **)diffpat, dpFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadDiffPat(unsigned navg)
 {
   SetWavePosition(navg);
-  m_imageIO->ReadImage((void **)diffpat, dpFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadDiffPat(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  m_imageIO->ReadImage((void **)diffpat, dpFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadAvgArray()
 {
   m_position.clear();
-  m_imageIO->ReadImage((void **)avgArray, avgFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadAvgArray(unsigned navg)
 {
   SetWavePosition(navg);
-  m_imageIO->ReadImage((void **)avgArray, avgFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
 }
 
 void WAVEFUNC::ReadAvgArray(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  m_imageIO->ReadImage((void **)avgArray, avgFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
 }
 
 /******************************************************************
 * propagate_slow() 
 * Propagates a wave
 *****************************************************************/
-WAVEFUNC::Propagate()
+void WAVEFUNC::Propagate(float_tt dz)
 {
-	int ixa, iya;
-	float_tt wr, wi, tr, ti,ax,by;
-	float_tt scale,t,dz; 
-	static float_tt dzs=0;
-    static std::vector<float_tt> propxr(nx), propxi(nx), propyr(ny), propyi(ny);
-    float_tt wavlen;
+  int ixa, iya;
+  float_tt wr, wi, tr, ti, ax, by;
+  float_tt scale,t; 
+  float_tt dzs=0;
 
-	ax = m_resolutionX*m_nx;
-	by = m_resolutionY*m_ny;
-	dz = (*muls).cz[0];
+  ax = m_resolutionX*m_nx;
+  by = m_resolutionY*m_ny;
 
-	if (dz != dzs) {
-          dzs = dz;
-          scale = dz*PI;
-          wavlen = wavelength(wave->v0);
+  if (dz != dzs) {
+    dzs = dz;
+    scale = dz*PI;
 
-          for( ixa=0; ixa<nx; ixa++) {
-            wave->m_kx[ixa] = (ixa>nx/2) ? (float_tt)(ixa-nx)/ax : 
-              (float_tt)ixa/ax;
-            wave->m_kx2[ixa] = wave->m_kx[ixa]*wave->m_kx[ixa];
-            t = scale * (wave->m_kx2[ixa]*wavlen);
-            propxr[ixa] = (float_tt)  cos(t);
-            propxi[ixa] = (float_tt) -sin(t);
-          }
-          for( iya=0; iya<ny; iya++) {
-            wave->m_ky[iya] = (iya>ny/2) ? 
-              (float_tt)(iya-ny)/by : 
-              (float_tt)iya/by;
-            wave->m_ky2[iya] = wave->m_ky[iya]*wave->m_ky[iya];
-            t = scale * (wave->m_ky2[iya]*wavlen);
-            propyr[iya] = (float_tt)  cos(t);
-            propyi[iya] = (float_tt) -sin(t);
-          }
-          wave->m_k2max = nx/(2.0F*ax);
-          if (ny/(2.0F*by) < wave->m_k2max ) wave->m_k2max = ny/(2.0F*by);
-          wave->m_k2max = 2.0/3.0 * wave->m_k2max;
-          // TODO: modifying shared value from multiple threads?
-          wave->m_k2max = wave->m_k2max*wave->m_k2max;
-	} 
-	/* end of: if dz != dzs */
-	/*************************************************************/
-
-	/*************************************************************
-	* Propagation
-	************************************************************/
-	for( ixa=0; ixa<nx; ixa++) {
-          if( wave->m_kx2[ixa] < wave->m_k2max ) {
-            for( iya=0; iya<ny; iya++) {
-              if( (wave->m_kx2[ixa] + wave->m_ky2[iya]) < wave->m_k2max ) {
+    for( ixa=0; ixa<m_nx; ixa++) {
+      m_kx[ixa] = (ixa>m_nx/2) ? (float_tt)(ixa-m_nx)/ax : 
+        (float_tt)ixa/ax;
+      m_kx2[ixa] = m_kx[ixa]*m_kx[ixa];
+      t = scale * (m_kx2[ixa]*m_wavlen);
+      m_propxr[ixa] = (float_tt)  cos(t);
+      m_propxi[ixa] = (float_tt) -sin(t);
+    }
+    for( iya=0; iya<m_ny; iya++) {
+      m_ky[iya] = (iya>m_ny/2) ? 
+        (float_tt)(iya-m_ny)/by : 
+        (float_tt)iya/by;
+      m_ky2[iya] = m_ky[iya]*m_ky[iya];
+      t = scale * (m_ky2[iya]*m_wavlen);
+      m_propyr[iya] = (float_tt)  cos(t);
+      m_propyi[iya] = (float_tt) -sin(t);
+    }
+    m_k2max = m_nx/(2.0F*ax);
+    if (m_ny/(2.0F*by) < m_k2max ) m_k2max = m_ny/(2.0F*by);
+    m_k2max = 2.0/3.0 * m_k2max;
+    m_k2max = m_k2max*m_k2max;
+  } 
+  /* end of: if dz != dzs */
+  /*************************************************************/
+  
+  /*************************************************************
+   * Propagation
+   ************************************************************/
+  for( ixa=0; ixa<m_nx; ixa++) {
+    if( m_kx2[ixa] < m_k2max ) {
+      for( iya=0; iya<m_ny; iya++) {
+        if( (m_kx2[ixa] + m_ky2[iya]) < m_k2max ) {
                 
-                wr = wave->wave[ixa][iya][0];
-                wi = wave->wave[ixa][iya][1];
-                tr = wr*propyr[iya] - wi*propyi[iya];
-                ti = wr*propyi[iya] + wi*propyr[iya];
-                wave->wave[ixa][iya][0] = tr*propxr[ixa] - ti*propxi[ixa];
-                wave->wave[ixa][iya][1] = tr*propxi[ixa] + ti*propxr[ixa];
+          wr = m_wave[ixa][iya][0];
+          wi = m_wave[ixa][iya][1];
+          tr = wr*m_propyr[iya] - wi*m_propyi[iya];
+          ti = wr*m_propyi[iya] + wi*m_propyr[iya];
+          m_wave[ixa][iya][0] = tr*m_propxr[ixa] - ti*m_propxi[ixa];
+          m_wave[ixa][iya][1] = tr*m_propxi[ixa] + ti*m_propxr[ixa];
 
-              } else
-                wave->wave[ixa][iya][0] = wave->wave[ixa][iya][1] = 0.0F;
-            } /* end for(iy..) */
+        } else
+          m_wave[ixa][iya][0] = m_wave[ixa][iya][1] = 0.0F;
+      } /* end for(iy..) */
 
-          } else for( iya=0; iya<ny; iya++)
-                   wave->wave[ixa][iya][0] = wave->wave[ixa][iya][1] = 0.0F;
-	} /* end for(ix..) */
+    } else for( iya=0; iya<m_ny; iya++)
+             m_wave[ixa][iya][0] = m_wave[ixa][iya][1] = 0.0F;
+  } /* end for(ix..) */
 } /* end propagate */
 
 /*------------------------ transmit() ------------------------*/
@@ -260,22 +257,22 @@ on entrance waver,i and transr,i are in real space
 
 only waver,i will be changed by this routine
 */
-void WAVEFUNCTION::Transmit(PotPtr pot, unsigned sliceIdx) {
-	double wr, wi, tr, ti;
+void WAVEFUNC::Transmit(PotPtr pot, unsigned sliceIdx) {
+  double wr, wi, tr, ti;
+  
+  complex_tt **w,**t;
+  w = m_wave;
+  t = pot->GetSlice(sliceIdx);
 
-	complex_tt **w,**t;
-	w = (complex_tt **)m_wave;
-	t = (complex_tt **)pot->trans[sliceIdx];
-
-	/*  trans += posx; */
-	for(unsigned ix=0; ix<m_nx; ix++) for(unsigned iy=0; iy<m_ny; iy++) {
-		wr = w[ix][iy][0];
-		wi = w[ix][iy][1];
-		tr = t[ix+m_iPosX][iy+m_iPosY][0];
-		ti = t[ix+m_iPosX][iy+m_iPosY][1];
-		w[ix][iy][0] = wr*tr - wi*ti;
-		w[ix][iy][1] = wr*ti + wi*tr;
-	} /* end for(iy.. ix .) */
+  /*  trans += posx; */
+  for(unsigned ix=0; ix<m_nx; ix++) for(unsigned iy=0; iy<m_ny; iy++) {
+      wr = w[ix][iy][0];
+      wi = w[ix][iy][1];
+      tr = t[ix+m_iPosX][iy+m_iPosY][0];
+      ti = t[ix+m_iPosX][iy+m_iPosY][1];
+      w[ix][iy][0] = wr*tr - wi*ti;
+      w[ix][iy][1] = wr*ti + wi*tr;
+    } /* end for(iy.. ix .) */
 } /* end transmit() */
 
 
@@ -310,243 +307,239 @@ void WAVEFUNCTION::Transmit(PotPtr pot, unsigned sliceIdx) {
 *
 *********************************************/
 #define SMOOTH_EDGE 5 // make a smooth edge on AIS aperture over +/-SMOOTH_EDGE pixels
-void WAVEFUNCTION::FormProbe()
+void WAVEFUNC::FormProbe()
 {
-	// static char *plotFile = "probePlot.dat",systStr[32];
-	int ix, iy, nx, ny, ixmid, iymid;
-	int CsDefAstOnly = 0;
-	float rmin, rmax, aimin, aimax;
-	// float **pixr, **pixi;
-	double  kx, ky, ky2,k2, ktheta2, ktheta, k2max, v0, wavlen,ax,by,x,y,
-		rx2, ry2,rx,ry, pi, scale, pixel,alpha,
-		df, df_eff, chi1, chi2,chi3, sum, chi, time,r,phi;
-	double gaussScale = 0.05;
-	double envelope,delta,avgRes,edge;
+  // static char *plotFile = "probePlot.dat",systStr[32];
+  int ix, iy, nx, ny, ixmid, iymid;
+  int CsDefAstOnly = 0;
+  float rmin, rmax, aimin, aimax;
+  // float **pixr, **pixi;
+  double dx, dy;
+  double  kx, ky, ky2,k2, ktheta2, ktheta, k2max, v0, wavlen,ax,by,x,y,
+    rx2, ry2,rx,ry, pi, scale, pixel,alpha,
+    df, df_eff, chi1, chi2,chi3, sum, chi, time,r,phi;
+  double envelope,delta,avgRes,edge;
 
-	// FILE *fp=NULL;
+  // FILE *fp=NULL;
 
-	/* temporary fix, necessary, because fftw has rec. space zero 
-	in center of image:
-	*/
-	nx = (*muls).nx;
-	ny = (*muls).ny;
-	ax = nx*(*muls).resolutionX; 
-	by = ny*(*muls).resolutionY; 
-	dx = ax-dx;
-	dy = by-dy;
-	gaussScale = (*muls).gaussScale;
-	// average resolution:
-	avgRes = sqrt(0.5*(muls->resolutionX*muls->resolutionX+muls->resolutionY*muls->resolutionY));
-	edge = SMOOTH_EDGE*avgRes;
+  /* temporary fix, necessary, because fftw has rec. space zero 
+     in center of image:
+  */
+  ax = m_nx*m_resolutionX; 
+  by = m_ny*m_resolutionY; 
+  dx = ax-dx;
+  dy = by-dy;
+  // average resolution:
+  avgRes = sqrt(0.5*(m_resolutionX*m_resolutionX+m_resolutionY*m_resolutionY));
+  edge = SMOOTH_EDGE*avgRes;
 
-	/********************************************************
-	* formulas from:
-	* http://cimesg1.epfl.ch/CIOL/asu94/ICT_8.html
-	*
-	* dE_E = dE/E = energy spread of emitted electrons
-	* dV_V = dV/V = acc. voltage fluctuations
-	* dI_I = dI/I = lens current fluctuations
-	* delta defocus in Angstroem (Cc in A)
-	*******************************************************/
-	delta = muls->Cc*muls->dE_E;
-	if (muls->printLevel > 2) printf("defocus offset: %g nm (Cc = %g)\n",delta,muls->Cc);
+  /********************************************************
+   * formulas from:
+   * http://cimesg1.epfl.ch/CIOL/asu94/ICT_8.html
+   *
+   * dE_E = dE/E = energy spread of emitted electrons
+   * dV_V = dV/V = acc. voltage fluctuations
+   * dI_I = dI/I = lens current fluctuations
+   * delta defocus in Angstroem (Cc in A)
+   *******************************************************/
+  delta = m_Cc*m_dE_E;
+  if (m_printLevel > 2) printf("defocus offset: %g nm (Cc = %g)\n",delta,m_Cc);
+  
+  if (m_wave == NULL) {
+    printf("Error in probe(): Wave not allocated!\n");
+    exit(0);
+  }
 
-	if (wave->wave == NULL) {
-		printf("Error in probe(): Wave not allocated!\n");
-		exit(0);
-	}
+  /**********************************************************
+   *  Calculate misc constants  
+   *********************************************************/  
+  pi = 4.0 * atan( 1.0 );
 
-	/**********************************************************
-	*  Calculate misc constants  
-	*********************************************************/  
-	time = cputim( );
-	pi = 4.0 * atan( 1.0 );
+  rx = 1.0/ax;
+  rx2 = rx * rx;
+  ry = 1.0/by;
+  ry2 = ry * ry;
 
-	rx = 1.0/ax;
-	rx2 = rx * rx;
-	ry = 1.0/by;
-	ry2 = ry * ry;
+  ixmid = nx/2;
+  iymid = ny/2;
 
-	ixmid = nx/2;
-	iymid = ny/2;
-
-	// df = muls->df0;
-	v0 = muls->v0;
-	wavlen = 12.26/ sqrt( v0*1.e3 + v0*v0*0.9788 );
-
-	/*  printf("Wavelength: %g A\n",wavlen);
-	*/
+  // df = muls->df0;
+  //v0 = muls->v0;
+  
+  /*  printf("Wavelength: %g A\n",wavlen);
+   */
 
 
-	// chi2 = (*muls).Cs*0.5*wavlen*wavlen;
-	// chi3 = (*muls).C5*0.25*wavlen*wavlen*wavlen*wavlen;
-	/* delta *= 0.5*delta*pi*pi*wavlen*wavlen; */
+  // chi2 = (*muls).Cs*0.5*wavlen*wavlen;
+  // chi3 = (*muls).C5*0.25*wavlen*wavlen*wavlen*wavlen;
+  /* delta *= 0.5*delta*pi*pi*wavlen*wavlen; */
 
-	/* convert convergence angle from mrad to rad */
-	alpha = 0.001*muls->alpha;
-	k2max = sin(alpha)/wavlen;  /* = K0*sin(alpha) */
-	k2max = k2max * k2max;
+  /* convert convergence angle from mrad to rad */
+  alpha = 0.001*m_alpha;
+  k2max = sin(alpha)/m_wavlen;  /* = K0*sin(alpha) */
+  k2max = k2max * k2max;
 
-	/*   Calculate MTF 
-	NOTE zero freg is in the bottom left corner and
-	expandes into all other corners - not in the center
-	this is required for FFT
+  /*   Calculate MTF 
+       NOTE zero freg is in the bottom left corner and
+       expandes into all other corners - not in the center
+       this is required for FFT
+       
+       PIXEL = diagonal width of pixel squared
+       if a pixel is on the apertur boundary give it a weight
+       of 1/2 otherwise 1 or 0
+  */
+  pixel = ( rx2 + ry2 );
+  scale = 1.0/sqrt((double)nx*(double)ny);
 
-	PIXEL = diagonal width of pixel squared
-	if a pixel is on the apertur boundary give it a weight
-	of 1/2 otherwise 1 or 0
-	*/
-	pixel = ( rx2 + ry2 );
-	scale = 1.0/sqrt((double)nx*(double)ny);
+  /*
+    if ((muls.a33 == 0) && (muls.a31 == 0) && (muls.a44 == 0) && (muls.a42 == 0) &&
+    (muls.a55 == 0) && (muls.a53 == 0) && (muls.a51 == 0) && 
+    (muls.a66 == 0) && (muls.a64 == 0) && (muls.a62 == 0) && (muls.C5 == 0)) {
+    CsDefAstOnly = 1;
+    }
+  */
 
-	/*
-	if ((muls.a33 == 0) && (muls.a31 == 0) && (muls.a44 == 0) && (muls.a42 == 0) &&
-	(muls.a55 == 0) && (muls.a53 == 0) && (muls.a51 == 0) && 
-	(muls.a66 == 0) && (muls.a64 == 0) && (muls.a62 == 0) && (muls.C5 == 0)) {
-	CsDefAstOnly = 1;
-	}
-	*/
+  for( iy=0; iy<ny; iy++) {
+    ky = (double) iy;
+    if( iy > iymid ) ky = (double) (iy-ny);
+    ky2 = ky*ky*ry2;
+    for( ix=0; ix<nx; ix++) {
+      kx = (double) ix;
+      if( ix > ixmid ) kx = (double) (ix-nx);
+      k2 = kx*kx*rx2 + ky2;
+      ktheta2 = k2*(wavlen*wavlen);
+      ktheta = sqrt(ktheta2);
+      phi = atan2(ry*ky,rx*kx);
+      // compute the effective defocus from the actual defocus and the astigmatism: 
+      // df_eff = df + m_astigMag*cos(m_astigAngle+phi);
 
-	for( iy=0; iy<ny; iy++) {
-		ky = (double) iy;
-		if( iy > iymid ) ky = (double) (iy-ny);
-		ky2 = ky*ky*ry2;
-		for( ix=0; ix<nx; ix++) {
-			kx = (double) ix;
-			if( ix > ixmid ) kx = (double) (ix-nx);
-			k2 = kx*kx*rx2 + ky2;
-			ktheta2 = k2*(wavlen*wavlen);
-			ktheta = sqrt(ktheta2);
-			phi = atan2(ry*ky,rx*kx);
-			// compute the effective defocus from the actual defocus and the astigmatism: 
-			// df_eff = df + muls->astigMag*cos(muls->astigAngle+phi);
+      // chi = chi1*k2*(df_eff +chi2*k2)-2.0*pi*( (dx*kx/ax) + (dy*ky/by) );
+      // defocus, astigmatism, and shift:
+      chi = ktheta2*(m_df0+delta + m_astigMag*cos(2.0*(phi-m_astigAngle)))/2.0;
+      ktheta2 *= ktheta;  // ktheta^3 
+      if ((m_a33 > 0) || (m_a31 > 0)) {
+        chi += ktheta2*(m_a33*cos(3.0*(phi-m_phi33))+m_a31*cos(phi-m_phi31))/3.0;
+      }	
+      ktheta2 *= ktheta;   // ktheta^4
+      if ((m_a44 > 0) || (m_a42 > 0) || (m_Cs != 0)) {
+        // chi += ktheta2*(m_a33*cos(3*(phi-m_phi33))+m_a31*cos(phi-m_phi31))/3.0;
+        chi += ktheta2*(m_a44*cos(4.0*(phi-m_phi44))+m_a42*cos(2.0*(phi-m_phi42))+m_Cs)/4.0;  
+        //                     1/4*(a(4,4).*cos(4*(kphi-phi(4,4)))+a(4,2).*cos(2*(kphi-phi(4,2)))+c(4)).*ktheta.^4+...
+      }
+      ktheta2 *= ktheta;    // ktheta^5
+      if ((m_a55 > 0) || (m_a53 > 0) || (m_a51 > 0)) {
+        chi += ktheta2*(m_a55*cos(5.0*(phi-m_phi55))+m_a53*cos(3.0*(phi-m_phi53))+m_a51*cos(phi-m_phi51))/5.0;
+        //                     1/5*(a(5,5).*cos(5*(kphi-phi(5,5)))+a(5,3).*cos(3*(kphi-phi(5,3)))+a(5,1).*cos(1*(kphi-phi(5,1)))).*ktheta.^5+...
+      }
+      ktheta2 *= ktheta;    // ktheta^6
+      if ((m_a66 > 0) || (m_a64 > 0) || (m_a62 = 0) || (m_C5 != 0)) {
+        chi += ktheta2*(m_a66*cos(6.0*(phi-m_phi66))+m_a64*cos(4.0*(phi-m_phi64))+m_a62*cos(2.0*(phi-m_phi62))+m_C5)/6.0;
+        //                     1/6*(a(6,6).*cos(6*(kphi-phi(6,6)))+a(6,4).*cos(4*(kphi-phi(6,4)))+a(6,2).*cos(2*(kphi-phi(6,2)))+c(6)).*ktheta.^6);
+      }
 
-			// chi = chi1*k2*(df_eff +chi2*k2)-2.0*pi*( (dx*kx/ax) + (dy*ky/by) );
-			// defocus, astigmatism, and shift:
-			chi = ktheta2*(muls->df0+delta + muls->astigMag*cos(2.0*(phi-muls->astigAngle)))/2.0;
-			ktheta2 *= ktheta;  // ktheta^3 
-			if ((muls->a33 > 0) || (muls->a31 > 0)) {
-				chi += ktheta2*(muls->a33*cos(3.0*(phi-muls->phi33))+muls->a31*cos(phi-muls->phi31))/3.0;
-			}	
-			ktheta2 *= ktheta;   // ktheta^4
-			if ((muls->a44 > 0) || (muls->a42 > 0) || (muls->Cs != 0)) {
-				// chi += ktheta2*(muls->a33*cos(3*(phi-muls->phi33))+muls->a31*cos(phi-muls->phi31))/3.0;
-				chi += ktheta2*(muls->a44*cos(4.0*(phi-muls->phi44))+muls->a42*cos(2.0*(phi-muls->phi42))+muls->Cs)/4.0;  
-				//                     1/4*(a(4,4).*cos(4*(kphi-phi(4,4)))+a(4,2).*cos(2*(kphi-phi(4,2)))+c(4)).*ktheta.^4+...
-			}
-			ktheta2 *= ktheta;    // ktheta^5
-			if ((muls->a55 > 0) || (muls->a53 > 0) || (muls->a51 > 0)) {
-				chi += ktheta2*(muls->a55*cos(5.0*(phi-muls->phi55))+muls->a53*cos(3.0*(phi-muls->phi53))+muls->a51*cos(phi-muls->phi51))/5.0;
-				//                     1/5*(a(5,5).*cos(5*(kphi-phi(5,5)))+a(5,3).*cos(3*(kphi-phi(5,3)))+a(5,1).*cos(1*(kphi-phi(5,1)))).*ktheta.^5+...
-			}
-			ktheta2 *= ktheta;    // ktheta^6
-			if ((muls->a66 > 0) || (muls->a64 > 0) || (muls->a62 = 0) || (muls->C5 != 0)) {
-				chi += ktheta2*(muls->a66*cos(6.0*(phi-muls->phi66))+muls->a64*cos(4.0*(phi-muls->phi64))+muls->a62*cos(2.0*(phi-muls->phi62))+muls->C5)/6.0;
-				//                     1/6*(a(6,6).*cos(6*(kphi-phi(6,6)))+a(6,4).*cos(4*(kphi-phi(6,4)))+a(6,2).*cos(2*(kphi-phi(6,2)))+c(6)).*ktheta.^6);
-			}
-
-			chi *= 2*pi/wavlen;
-			chi -= 2.0*pi*( (dx*kx/ax) + (dy*ky/by) );
-			// include higher order aberrations
+      chi *= 2*pi/wavlen;
+      chi -= 2.0*pi*( (dx*kx/ax) + (dy*ky/by) );
+      // include higher order aberrations
 
 
-			if ( ( (*muls).ismoth != 0) && 
-				( fabs(k2-k2max) <= pixel)) {
-					wave->wave[ix][iy][0]= (float) ( 0.5*scale * cos(chi));
-					wave->wave[ix][iy][1]= (float) (-0.5*scale* sin(chi));
-			} 
-			else if ( k2 <= k2max ) {
-				wave->wave[ix][iy][0]= (float)  scale * cos(chi);
-				wave->wave[ix][iy][1]= (float) -scale * sin(chi);
-			} 
-			else {
-				wave->wave[ix][iy][0] = wave->wave[ix][iy][1] = 0.0f;
-			}
-		}
-	}
-	/* Fourier transform into real space */
-	// fftwnd_one(muls->fftPlanInv, &(muls->wave[0][0]), NULL);
+      if ( ( m_ismoth != 0) && 
+           ( fabs(k2-k2max) <= pixel)) {
+        m_wave[ix][iy][0]= (float) ( 0.5*scale * cos(chi));
+        m_wave[ix][iy][1]= (float) (-0.5*scale* sin(chi));
+      } 
+      else if ( k2 <= k2max ) {
+        m_wave[ix][iy][0]= (float)  scale * cos(chi);
+        m_wave[ix][iy][1]= (float) -scale * sin(chi);
+      } 
+      else {
+        m_wave[ix][iy][0] = m_wave[ix][iy][1] = 0.0f;
+      }
+    }
+  }
+  /* Fourier transform into real space */
+  // fftwnd_one(m_fftPlanInv, &(m_wave[0][0]), NULL);
 #if FLOAT_PRECISION == 1
-	fftwf_execute(wave->fftPlanWaveInv);
+  fftwf_execute(m_fftPlanWaveInv);
 #else
-	fftw_execute(wave->fftPlanWaveInv);
+  fftw_execute(m_fftPlanWaveInv);
 #endif
-	/**********************************************************
-	* display cross section of probe intensity
-	*/
+  /**********************************************************
+   * display cross section of probe intensity
+   */
+  
+  /* multiply with gaussian in Real Space in order to avoid artifacts */
+  if (m_gaussFlag) {
+    for( ix=0; ix<nx; ix++) {
+      for( iy=0; iy<ny; iy++) {
+        r = exp(-((ix-m_nx/2)*(ix-m_nx/2)+(iy-m_ny/2)*(iy-m_ny/2))/(m_nx*m_nx*m_gaussScale));
+        m_wave[ix][iy][0] *= (float)r;
+        m_wave[ix][iy][1] *= (float)r;
+      }
+    }  
+  }
 
-	/* multiply with gaussian in Real Space in order to avoid artifacts */
-	if (muls->gaussFlag) {
-		for( ix=0; ix<nx; ix++) {
-			for( iy=0; iy<ny; iy++) {
-				r = exp(-((ix-nx/2)*(ix-nx/2)+(iy-ny/2)*(iy-ny/2))/(nx*nx*gaussScale));
-				wave->wave[ix][iy][0] *= (float)r;
-				wave->wave[ix][iy][1] *= (float)r;
-			}
-		}  
-	}
+  /* Apply AIS aperture in Real Space */
+  // printf("center: %g,%g\n",dx,dy);
+  if (m_aAIS > 0) {
+    for( ix=0; ix<m_nx; ix++) {
+      for( iy=0; iy<m_ny; iy++) {
+        x = ix*m_resolutionX-dx;
+        y = iy*m_resolutionY-dy;
+        r = sqrt(x*x+y*y);
+        delta = r-0.5*m_aAIS+edge;
+        if (delta > 0) {
+          m_wave[ix][iy][0] = 0;
+          m_wave[ix][iy][1] = 0;
+        }
+        else if (delta >= -edge) {
+          scale = 0.5*(1-cos(pi*delta/edge));
+          m_wave[ix][iy][0] = scale*m_wave[ix][iy][0];
+          m_wave[ix][iy][1] = scale*m_wave[ix][iy][1];
+        }
+      }
+    }
+  }
 
-	/* Apply AIS aperture in Real Space */
-	// printf("center: %g,%g\n",dx,dy);
-	if (muls->aAIS > 0) {
-		for( ix=0; ix<nx; ix++) {
-			for( iy=0; iy<ny; iy++) {
-				x = ix*muls->resolutionX-dx;
-				y = iy*muls->resolutionY-dy;
-				r = sqrt(x*x+y*y);
-				delta = r-0.5*muls->aAIS+edge;
-				if (delta > 0) {
-					wave->wave[ix][iy][0] = 0;
-					wave->wave[ix][iy][1] = 0;
-				}
-				else if (delta >= -edge) {
-					scale = 0.5*(1-cos(pi*delta/edge));
-					wave->wave[ix][iy][0] = scale*wave->wave[ix][iy][0];
-					wave->wave[ix][iy][1] = scale*wave->wave[ix][iy][1];
-				}
-			}
-		}
-	}
+  /*  Normalize probe intensity to unity  */
+  
+  sum = 0.0;
+  for( ix=0; ix<m_nx; ix++) 
+    for( iy=0; iy<m_ny; iy++) 
+      sum +=  m_wave[ix][iy][0]*m_wave[ix][iy][0]
+        + m_wave[ix][iy][1]*m_wave[ix][iy][1];
 
-	/*  Normalize probe intensity to unity  */
+  scale = 1.0 / sum;
+  scale = scale * ((double)m_nx) * ((double)m_ny);
+  scale = (double) sqrt( scale );
 
-	sum = 0.0;
-	for( ix=0; ix<nx; ix++) for( iy=0; iy<ny; iy++) 
-		sum +=  wave->wave[ix][iy][0]*wave->wave[ix][iy][0]
-	+ wave->wave[ix][iy][1]*wave->wave[ix][iy][1];
+  for( ix=0; ix<m_nx; ix++) 
+    for( iy=0; iy<m_ny; iy++) {
+      m_wave[ix][iy][0] *= (float) scale;
+      m_wave[ix][iy][1] *= (float) scale;
+    }
 
-	scale = 1.0 / sum;
-	scale = scale * ((double)nx) * ((double)ny);
-	scale = (double) sqrt( scale );
+  /*  Output results and find min and max to echo
+      remember that complex pix are stored in the file in FORTRAN
+      order for compatability
+  */
 
-	for( ix=0; ix<nx; ix++) 
-		for( iy=0; iy<ny; iy++) {
-			wave->wave[ix][iy][0] *= (float) scale;
-			wave->wave[ix][iy][1] *= (float) scale;
-		}
+  rmin = m_wave[0][0][0];
+  rmax = rmin;
+  aimin = m_wave[0][0][1];
+  aimax = aimin;
+  for( iy=0; iy<m_ny; iy++) {
+    for( ix=0; ix<m_nx; ix++) {
+      if( m_wave[ix][iy][0] < rmin ) rmin = m_wave[ix][iy][0];
+      if( m_wave[ix][iy][0] > rmax ) rmax = m_wave[ix][iy][0];
+      if( m_wave[ix][iy][1] < aimin ) aimin = m_wave[ix][iy][1];
+      if( m_wave[ix][iy][1] > aimax ) aimax = m_wave[ix][iy][1];
+    }
+  }
+  m_rmin = rmin;
+  m_rmax = rmax;
+  m_aimin = aimin;
+  m_aimax = aimax;
 
-		/*  Output results and find min and max to echo
-		remember that complex pix are stored in the file in FORTRAN
-		order for compatability
-		*/
-
-		rmin = wave->wave[0][0][0];
-		rmax = rmin;
-		aimin = wave->wave[0][0][1];
-		aimax = aimin;
-		for( iy=0; iy<ny; iy++) {
-			for( ix=0; ix<nx; ix++) {
-				if( wave->wave[ix][iy][0] < rmin ) rmin = wave->wave[ix][iy][0];
-				if( wave->wave[ix][iy][0] > rmax ) rmax = wave->wave[ix][iy][0];
-				if( wave->wave[ix][iy][1] < aimin ) aimin = wave->wave[ix][iy][1];
-				if( wave->wave[ix][iy][1] > aimax ) aimax = wave->wave[ix][iy][1];
-			}
-		}
-		(*muls).rmin = rmin;
-		(*muls).rmax = rmax;
-		(*muls).aimin = aimin;
-		(*muls).aimax = aimax;
-
-		/**********************************************************/
+  /**********************************************************/
 
 }  /* end probe() */

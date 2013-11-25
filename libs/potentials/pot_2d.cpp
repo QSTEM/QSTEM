@@ -18,7 +18,7 @@ void C2DPotential::atomBoxLookUp(complex_tt &sum, int Znum, float_tt x, float_tt
    */
   sum[0] = 0.0;
   sum[1] = 0.0;
-  if (x*x+y*y+z*z > m_radius2) {
+  if (x*x+y*y+z*z > m_atomRadius2) {
     return;
   }
   x = fabs(x);
@@ -64,6 +64,7 @@ bool C2DPotential::CheckAtomZInBounds(float_tt atomZ)
   return ((atomZ<m_c) && (atomZ>=0));
 }
 
+/*
 void C2DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY,
                                                float_tt atomZ)
 {
@@ -72,26 +73,34 @@ void C2DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt a
   if (!m_periodicZ)
     {
       if (atomZ > c) return;
-      if ((atomZ >=0)
+      if ((atomZ >=0));
   
 
   AddAtomToSlicesRealSpaceLUT(atom, atomX, atomY, atomZ);
 }
+*/
 
-void C2DPotential::AddAtomToSlicesRealSpaceLUT(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY,
-                                               float_tt atomZ)
+void C2DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom, 
+                                     float_tt atomBoxX, unsigned int ix, 
+                                     float_tt atomBoxY, unsigned int iy, 
+                                     float_tt atomZ, unsigned int iAtomZ)
 {
   complex_tt dPot;
-  if (!periodicZ) {
+  // Coordinates in the total potential space
+  unsigned iz;
+  
+
+  if (!m_periodicZ) {
     if (iAtomZ < 0) return;
-    if (iAtomZ >= nlayer) return;        
+    if (iAtomZ >= m_nslices) return;        
   }                
-  iz = (iAtomZ+32*nlayer) % nlayer;         /* shift into the positive range */
-  atomBoxLookUp(&dPot,atom->Znum,x,y,0, m_tds ? 0 : atom->dw);
-  z = (double)(iAtomZ+1)*m_cz[0]-atomZ;
+  iz = (iAtomZ+32*m_nslices) % m_nslices;         /* shift into the positive range */
+  // x, y are the coordinates in the space of the atom box
+  atomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,0, m_tds ? 0 : atom->dw);
+  float_tt atomBoxZ = (double)(iAtomZ+1)*m_cz[0]-atomZ;
 
   /* split the atom if it is close to the top edge of the slice */
-  if ((z<0.15*(*muls).cz[0]) && (iz >0)) {
+  if ((atomBoxZ<0.15*m_cz[0]) && (iz >0)) {
     m_trans[iz][ix][iy][0] += 0.5*dPot[0];
     m_trans[iz][ix][iy][1] += 0.5*dPot[1];
     m_trans[iz-1][ix][iy][0] += 0.5*dPot[0];
@@ -99,7 +108,7 @@ void C2DPotential::AddAtomToSlicesRealSpaceLUT(std::vector<atom>::iterator &atom
   }
   /* split the atom if it is close to the bottom edge of the slice */
   else {
-    if ((z>0.85*m_cz[0]) && (iz < nlayer-1)) {
+    if ((atomBoxZ>0.85*m_cz[0]) && (iz < m_nslices-1)) {
       m_trans[iz][ix][iy][0] += 0.5*dPot[0];
       m_trans[iz][ix][iy][1] += 0.5*dPot[1];        
       m_trans[iz+1][ix][iy][0] += 0.5*dPot[0];
@@ -115,5 +124,5 @@ void C2DPotential::AddAtomToSlicesRealSpaceLUT(std::vector<atom>::iterator &atom
 void C2DPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 {
   CPotential::CenterAtomZ(atom, z);
-  z += 0.5*muls->sliceThickness;
+  z += 0.5*m_sliceThickness;
 }
