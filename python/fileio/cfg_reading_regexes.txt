@@ -1,0 +1,37 @@
+#############
+For reading cell dimensions:
+
+Extract the two numbers in the parenthesis, and the floating point number that follows.
+H0\((\d),(\d)\) = (\d+\.\d+)\s*
+
+You won't get matches for indices that don't have entries - this RE requires that a decimal point be present.
+Thus, all of the entries that are simply 0 are skipped.  Still, you should later check the returned results and keep
+only those in which the first two indices are identical.
+
+
+
+#############
+For reading the atomic coordinates:
+# This regex is designed to capture 3 things:
+- the atomic number entry
+- the chemical symbol
+- the block of text containing the atomic coordinate, DW-factor, occ, and charge entries
+
+# find atomic number at beginning of line, followed by symbol:
+^([\d]+)\s*\n([A-Za-z]{1,2})\s*\n
+
+# match everything after the start, but don't be greedy (stop before consuming absolutely everything):
+(.*?)
+
+# termination:
+# either match the start of a new atom (without consuming it, with the ?= lookahead assertion),
+#    or the end of the string/file (\Z):
+(?=^\d+\s*\n\s*\w+\s*\n|\Z)
+
+# In combination:
+(\d+)\s*\n([A-Za-z]{1,2})\s*\n (.*?) (?=\d+\s*\n\s*[A-Za-z]{1,2}\s*\n|\Z)
+
+# in Python, need to make sure that '.' matches newlines also in order to grab multiple lines:
+e = re.compile("(\d+)\s*\n([A-Za-z]{1,2})\s*\n(.*?)(?=\d+\s*\n\s*[A-Za-z]{1,2}\s*\n|\Z)", flags=re.M|re.S)
+
+

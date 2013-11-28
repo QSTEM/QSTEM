@@ -3,6 +3,9 @@
 *.lo
 *.o
 
+# Compiled Python files
+*.pyc
+
 # Compiled Dynamic libraries
 *.so
 *.dylib
@@ -16,8 +19,11 @@
 
 # Visual studio project files
 *.vcproj
+*.vcxproj
 *.vcproj.*
+*.vcxproj.*
 *.vcproj.*.*
+*.vcxproj.*.*
 *.sln
 *.ncb
 *.suo
@@ -29,6 +35,10 @@ BuildLog.htm
 *.idb
 *.pdb
 *.lib
+*.tlog
+*.log
+*.lastbuildstate
+*.cache
 
 # binaries
 /bin
@@ -42,4 +52,6 @@ CMakeCache.txt
 
 # img results from debug testing
 *.img
-
+# but include the ones from any testing directory
+#    these are for the unit tests.
+!/tests/data/*.img
