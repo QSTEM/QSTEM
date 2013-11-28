@@ -2706,7 +2706,10 @@ void saveSTEMImages(MULS *muls)
 				sprintf(fileName,"%s/%s_%d.img", muls->folder, detectors[i]->name, islice);
 			else
 				sprintf(fileName,"%s/%s.img", muls->folder, detectors[i]->name, islice);
-			detectors[i]->SetComment(detectors[i]->name);
+			//detectors[i]->SetComment(detectors[i]->name);
+			// NOTE: the comment for STEM images must be this, or else the MATLAB GUI doesn't recognize it as a STEM image!
+			//     That means the quantification and source size dialogs will be disabled.
+			detectors[i]->SetComment("STEM image");
 			detectors[i]->SetThickness(t);
 			detectors[i]->SetParameter(0, (double)muls->avgCount+1);
 			detectors[i]->SetParameter(1, (double)detectors[i]->error);
