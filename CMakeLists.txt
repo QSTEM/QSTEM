@@ -21,6 +21,9 @@ find_package(fftw3 REQUIRED)
 
 find_package(Boost 1.35.0 REQUIRED)
 
+FIND_PACKAGE(HDF5 "1.8.5" REQUIRED)
+#FIND_PACKAGE(HDF5 "1.8.5" REQUIRED NO_MODULE PATHS "$ENV{ProgramFiles}/HDF5")
+
 # Make boost, fftw3, and our headers available to all projects
 include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")
 

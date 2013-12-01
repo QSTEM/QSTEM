@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(qstem_libs)
 
-include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}")	
+include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" "${HDF5_INCLUDE_DIR}" )	
 
 FILE(GLOB LIBS_C_FILES "*.cpp")
 FILE(GLOB LIBS_H_FILES "*.hpp")
