@@ -42,8 +42,11 @@ public:
   // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
   //    shake)
   virtual void Refresh();
+  // TODO: need abstracted structure reader
+  virtual void ReadAtoms();
   virtual void ReadPotential(std::string &fileName);
   virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
+  virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;
   void AddAtomRealSpace(std::vector<atom>::iterator &atom, unsigned iatom);
   virtual void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
                                  float_tt atomBoxX, unsigned int ix, 

@@ -86,9 +86,6 @@ void CPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y
     m_atomBoxes[Znum]->potential = NULL;
     m_atomBoxes[Znum]->rpotential = NULL;
     m_atomBoxes[Znum]->B = -1.0;
-
-    m_radius2 = m_radius*m_radius;
-
 		
     if (m_printLevel > 2)
       printf("Atombox has real space resolution of %g x %g x %gA (%d x %d x %d pixels)\n",
@@ -187,21 +184,14 @@ void CPotential::ReadPotential(std::string &fileName)
   /*************************************************************************
    * read the potential that has been created externally!
    */
-    for (i=(divCount+1)*muls->slices-1,j=0;i>=(divCount)*muls->slices;i--,j++) {
-      ReadSlice(fileName, trans[j], i);
+    for (unsigned i=(divCount+1)*m_nslices-1, unsigned j=0;i>=(divCount)*m_nslices;i--,j++) {
+      ReadSlice(fileName, m_trans[j], i);
     }
     return;
 }
 
 void CPotential::ReadAtoms()
 {
-  if (muls->avgCount == 0) {
-    // if this is the first run, the atoms have already been
-    // read during initialization
-    natom = (*muls).natom;
-    atoms = (*muls).atoms;
-  }
-  else {
     /*
       the following function makes an array of natom atoms from
       the input file (with x,y,z,dw,occ);
@@ -209,14 +199,13 @@ void CPotential::ReadAtoms()
     // the last parameter is handleVacancies. If it is set to 1 vacancies
     
     // and multiple occupancies will be handled.
-    atoms = readUnitCell(&natom,fileName,muls,1);
-    if (muls->printLevel>=3)
-      printf("Read %d atoms from %s, tds: %d\n",natom,fileName,muls->tds);
+    m_atoms = readUnitCell(m_natom,fileName,muls,1);
+    if (m_printLevel>=3)
+      printf("Read %d atoms from %s, tds: %d\n",natom,fileName,m_tds);
     muls->natom = natom;
     muls->atoms = atoms;
-  }
 
-minX = maxX = atoms[0].x;
+	minX = maxX = atoms[0].x;
     minY = maxY = atoms[0].y;
     minZ = maxZ = atoms[0].z;
 

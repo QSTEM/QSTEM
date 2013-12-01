@@ -1302,7 +1302,7 @@ void replicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVa
 //
 // This function reads the atomic positions from fileName and also adds 
 // Thermal displacements to their positions, if muls.tds is turned on.
-atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
+void readUnitCell(std::vector<atom> &atoms, unsigned &natom,char *fileName, int handleVacancies) {
 	int printFlag = 1;
 	// char buf[NCMAX], *str,element[16];
 	// FILE *fp;
@@ -1384,27 +1384,10 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	* now that we know how many coordinates there are
 	* allocate the arrays 
 	************************************************************/
-	/*
-	printf("%d atoms (%d %d %d) (%d %d %d)\n",ncoord,ncx,ncy,ncz,
-	muls->nCellX,muls->nCellY,muls->nCellZ);
-	*/
-	if (ncoord_old != ncoord) {
-		if (atoms != NULL) free(atoms);
-		atoms = (atom *)malloc(ncoord*sizeof(atom)*ncx*ncy*ncz);
-		ncoord_old = ncoord;
-	}
-	if (atoms == NULL) {
-		printf("Could not allocate memory for atoms!\n");
-		return NULL;
-	}
-	*natom = ncoord*ncx*ncy*ncz;
 
-	/*
-	if (muls->atomKinds < 1) {
-	muls->atomKinds = 1;
-	muls->Znums = (int *)malloc(muls->atomKinds*sizeof(int));
-	}
-	*/
+	natom = ncoord*ncx*ncy*ncz;
+	atoms.resize(natom);
+
 	atomKinds = 0;
 
 	/***********************************************************
@@ -1412,25 +1395,23 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	***********************************************************/
 	for(jz=0,i=ncoord-1; i>=0; i--) {
 
-
-
 		switch (format) {
 		case FORMAT_CFG: 
-		if (readNextCFGAtom(atoms+i,0,fileName) < 0) {
+		if (readNextCFGAtom(&atoms[i],0,fileName) < 0) {
 			printf("number of atoms does not agree with atoms in file!\n");
 			return NULL;
 		}
 		break;
 		case FORMAT_DAT: 
 
-		if (readNextDATAtom(atoms+i,0,fileName) < 0) {
+		if (readNextDATAtom(&atoms[i],0,fileName) < 0) {
 			printf("number of atoms does not agree with atoms in file!\n");
 			return NULL;
 		}
 		break;
 
 		case FORMAT_CSSR:
-		readNextCSSRAtom(atoms+i,0,fileName);
+			readNextCSSRAtom(&atoms[i],0,fileName);
 		break;
 		default: return NULL;
 		}
@@ -1442,7 +1423,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 			*/
 			printf("Error: bad atomic number %d in file %s (atom %d [%d: %g %g %g])\n",
 				atoms[i].Znum,fileName,i,atoms[i].Znum,atoms[i].x,atoms[i].y,atoms[i].z);
-			return NULL;
+			return;
 		}
 
 		// Keep a record of the kinds of atoms we are reading
@@ -1488,7 +1469,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 
 	// First, we will sort the atoms by position:
 	if (handleVacancies) {
-		qsort((void *)atoms,ncoord,sizeof(atom),atomCompareZYX);
+		qsort(&atoms[0],ncoord,sizeof(atom),atomCompareZYX);
 	}
 
 
@@ -1498,7 +1479,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	if ((muls->cubex > 0) && (muls->cubey > 0) && (muls->cubez > 0)) {
 		/* at this point the atoms should have fractional coordinates */
 		// printf("Entering tiltBoxed\n");
-		atoms = tiltBoxed(ncoord,natom,muls,atoms,handleVacancies);
+		tiltBoxed(ncoord,natom,muls,atoms,handleVacancies);
 		// printf("ncoord: %d, natom: %d\n",ncoord,*natom);
 	}
 	else {  // work in NCell mode
@@ -1511,10 +1492,10 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		* now, after we read all of the important coefficients, we
 		* need to decide if this is workable
 		**************************************************************/
-		*natom = ncoord*ncx*ncy*ncz;
+		natom = ncoord*ncx*ncy*ncz;
 		if (1) { // ((Mm[0][0]*Mm[1][1]*Mm[2][2] == 0) || (Mm[0][1]!=0)|| (Mm[0][2]!=0)|| (Mm[1][0]!=0)|| (Mm[1][2]!=0)|| (Mm[2][0]!=0)|| (Mm[2][1]!=0)) {
 				// printf("Lattice is not orthogonal, or rotated\n");
-				for(i=0;i<*natom;i++) {
+				for(i=0;i<natom;i++) {
 					/*
 					x = Mm[0][0]*atoms[i].x+Mm[0][1]*atoms[i].y+Mm[0][2]*atoms[i].z;
 					y = Mm[1][0]*atoms[i].x+Mm[1][1]*atoms[i].y+Mm[1][2]*atoms[i].z;
@@ -1536,7 +1517,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 		* Converting to cartesian coordinates
 		*************************************************************/
 		else { 
-			for(i=0;i<*natom;i++) {
+			for(i=0;i<natom;i++) {
 				atoms[i].x *= muls->ax; 
 				atoms[i].y *= muls->by; 
 				atoms[i].z *= muls->c;
@@ -1588,7 +1569,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 
 
 		if ((muls->ctiltx != 0) || (muls->ctilty != 0) || (muls->ctiltz != 0)) {			
-			for(i=0;i<(*natom);i++) {
+			for(i=0;i<(natom);i++) {
 
 				u[0] = atoms[i].x-boxCenterX; 
 				u[1] = atoms[i].y-boxCenterY; 
@@ -1606,7 +1587,7 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 			}
 		} /* if tilts != 0 ... */
 
-		for(i=0;i<(*natom);i++) {
+		for(i=0;i<(natom);i++) {
 			atoms[i].x-=boxXmin; 
 			atoms[i].y-=boxYmin; 
 			atoms[i].z-=boxZmin; 
@@ -1624,33 +1605,18 @@ atom *readUnitCell(int *natom,char *fileName,MULS *muls, int handleVacancies) {
 	// Offset the atoms in x- and y-directions:
 	// Do this after the rotation!
 	if ((muls->xOffset != 0) || (muls->yOffset != 0)) {
-		for(i=0;i<*natom;i++) {
+		for(i=0;i<natom;i++) {
 			atoms[i].x += muls->xOffset; 
 			atoms[i].y += muls->yOffset; 
 		}		 
 	}
 	} // end of Ncell mode conversion to cartesian coords and tilting.
-	// printf("Offset: (%f, %f)\n",muls->xOffset,muls->yOffset);
-
-	/*
-	printf("Atom box: (%g %g %g) .. (%g %g %g)\n",boxXmin,boxYmin,boxZmin,boxXmax,boxYmax,boxZmax);
-	printf("ax: %g, bx: %g, c: %g\n",muls->ax,muls->by,muls->c);
-
-	printf("%d atoms read from file <%s>, %d atoms in model (Tilt: x: %g mrad, y: %g mrad).\n",
-	ncoord,fileName,*natom,muls->ctiltx,muls->ctilty);
-	*/
-
-	// initialize vibration amplitude counters:
-	//////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-	return atoms;
 } // end of readUnitCell
 
 
-
-atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancies) {
+// TODO: old version return a pointer to new atom positions.  Can we do this in place?
+//		If not, just set atoms to the new vector.
+void tiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int handleVacancies) {
 	int atomKinds = 0;
 	int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
 	static double *axCell,*byCell,*czCell=NULL;
@@ -1661,24 +1627,9 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 	static int oldAtomSize = 0;
 	double x,y,z,dx,dy,dz; 
 	double totOcc,lastOcc,choice;
-	atom *unitAtoms,newAtom;
-	int nxmin,nxmax,nymin,nymax,nzmin,nzmax,jz;
-	// static FILE *fpPhonon = NULL;
-	// FILE *fpu2;
-	// static int Nk, Ns;     // number of k-vectors and atoms per primitive unit cell
-	// static float **bPrim;   // basis of primitive unit cell
-	// static float **posPrim; // atomic positions per primitive basis
-	// static float *massPrim;  // masses for every atom in primitive basis
-	// static float **omega;  // array of eigenvalues for every k-vector 
-	// static fftw_complex ***eigVecs;  // array of eigenvectors for every k-vector
-	// static float **kVecs;    // array for Nk 3-dim k-vectors
-	// static double **q1=NULL, **q2=NULL;
+	std::vector<atom> unitAtoms, newAtom;
+	int nxmin,nxmax,nymin,nymax,n zmin,nzmax,jz;
 	int Ncells;
-	// double kR,kRi,kRr;
-	// FILE *fp;
-	//static double u2=0;
-	//static int u2Count = 0;
-	// static long iseed=0;
 	static double *u;
 	static long idum = -1;
 
