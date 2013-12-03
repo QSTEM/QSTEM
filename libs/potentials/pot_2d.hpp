@@ -11,6 +11,8 @@ public:
   virtual void makeSlices(int nlayer, char *fileName, atom *center);
   bool CheckAtomZInBounds(float_tt atomZ);
   void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
+  virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, 
+                               float_tt atomX, float_tt atomY, float_tt atomZ);
   void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
                          float_tt atomBoxX, unsigned int ix, 
                          float_tt atomBoxY, unsigned int iy, 
@@ -18,3 +20,13 @@ public:
 };
 
 #endif
+
+
+
+
+
+
+
+
+
+

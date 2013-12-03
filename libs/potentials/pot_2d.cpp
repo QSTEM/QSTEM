@@ -64,7 +64,7 @@ bool C2DPotential::CheckAtomZInBounds(float_tt atomZ)
   return ((atomZ<m_c) && (atomZ>=0));
 }
 
-/*
+
 void C2DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY,
                                                float_tt atomZ)
 {
@@ -74,11 +74,10 @@ void C2DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt a
     {
       if (atomZ > c) return;
       if ((atomZ >=0));
-  
+    }
 
   AddAtomToSlicesRealSpaceLUT(atom, atomX, atomY, atomZ);
 }
-*/
 
 void C2DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom, 
                                      float_tt atomBoxX, unsigned int ix, 

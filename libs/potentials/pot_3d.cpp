@@ -79,14 +79,27 @@ bool C3DPotential::CheckAtomZInBounds(float_tt atomZ)
   return ((atomZ - m_atomRadius > m_c) && (atomZ + m_atomRadius + m_sliceThickness >= 0));
 }
 
-void C3DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom, 
-                                     float_tt atomBoxX, unsigned ix, 
-                                     float_tt atomBoxY, unsigned iy, 
-                                     float_tt atomZ, unsigned iAtomZ)
+void AddAtomToSlices(std::vector<atom>::iterator &atom, 
+                     float_tt atomX, float_tt atomY, float_tt atomZ)
 {
+  if (!m_periodicZ && CheckAtomZInBounds(atomZ))
+    {
+
+      _AddAtomRealSpace(atom, atomX, ix, atomY, iy, atomZ
+    }
+}
+
+void C3DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom, 
+                                     float_tt atomBoxX, float_tt atomBoxY,
+                                     float_tt atomZ)
+{
+  unsigned ix = fabs(atomBoxX/m_ddx);
+  unsigned iy = fabs(atomBoxY/m_ddy);
+
   unsigned iz, iRadZ;
   float_tt atomBoxZ;
   complex_tt dPot;
+
   /* calculate the range which we have left to cover with z-variation */
   /* iRadZ is the number of slices (rounded up) that this atom
    * will contribute to, given its current x,y-radius
