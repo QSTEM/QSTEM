@@ -22,15 +22,6 @@
 int CStructureCfg::Write(atom *atoms,int natoms,char *fileName,MULS *muls) {
 	FILE *fp;
 	int j;
-	/*
-	static char *elTable = {
-	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-	"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-	"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-	"I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-	"YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-	"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-	*/
 	char elem[16];
 	double ax,by,cz;
 
@@ -90,21 +81,17 @@ int CStructureCfg::Write(atom *atoms,int natoms,char *fileName,MULS *muls) {
 }
 
 
+#define MIN_EDGE_LENGTH 5.18 /* minimal allowed edge length in A
+* going below this limit will crash 
+* AtomEye.
+*/
+
 // write CFG file using atomic positions stored in pos, Z's in Znum and DW-factors in dw
 // the unit cell is assumed to be cubic
 int CStructureCfg::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
                                    double a,double b,double c) {
   FILE *fp;
   int j;
-  /*
-    static char *elTable = {
-    "H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-    "ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-    "KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-    "I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-    "YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-    "FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"};
-  */
   char elem[16];
   double ax,by,cz;
   
