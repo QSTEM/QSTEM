@@ -14,9 +14,11 @@ public:
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, 
                                float_tt atomX, float_tt atomY, float_tt atomZ);
   void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
-                         float_tt atomBoxX, unsigned int ix, 
-                         float_tt atomBoxY, unsigned int iy, 
-                         float_tt atomZ, unsigned int iatomZ);
+                         float_tt atomBoxX, unsigned ix,
+                         float_tt atomBoxY, unsigned iy,
+                         float_tt atomZ, unsigned iAtomZ);
+protected:
+  unsigned m_sliceStep;  // number of float_tt to advance to next slice (2*m_nx*m_ny)
 };
 
 #endif

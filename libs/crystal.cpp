@@ -19,9 +19,14 @@
 
 
 #include "crystal.hpp"
+#include <boost/array.hpp>
 
-// #define printf mexPrintf
-//
+
+CCrystal::CCrystal(std::string &structureFilename)
+{
+  m_Mm = boost::Array();
+}
+
 // This function reads the atomic positions from fileName and also adds 
 // Thermal displacements to their positions, if muls.tds is turned on.
 void CCrystal::ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies) 
@@ -44,42 +49,20 @@ void CCrystal::ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies
 
   printFlag = muls->printLevel;
 
+  /*
   if (Mm == NULL) {
     Mm = double2D(3,3,"Mm");
     memset(Mm[0],0,9*sizeof(double));
     muls->Mm = Mm;
     u = (double *)malloc(3*sizeof(double));
   }
+  */
+
+  StructureReaderPtr reader = GetStructureReader(fileName);
+  ncoord = reader->GetNCoord();
+  reader->ReadCellParams(m_Mm);
   
-  /* figure out, whether we have  cssr, pdb, or cfg */
-  if (strstr(fileName,".cssr") == fileName+strlen(fileName)-5) {
-    format = FORMAT_CSSR;
-    ncoord = readCSSRCellParams(muls,Mm,fileName);
-  }
-  if (strstr(fileName,".pdb") == fileName+strlen(fileName)-4) {
-    format = FORMAT_PDB;
-    printf("Cannot read Protein Data Bank format yet - sorry!\n");
-    return NULL;
-  }
-  if (strstr(fileName,".xyz") == fileName+strlen(fileName)-4) {
-    format = FORMAT_XYZ;
-    printf("Cannot read XYZ format yet - sorry!\n");
-    return NULL;
-  }
-  if (strstr(fileName,".cfg") == fileName+strlen(fileName)-4) {
-    format = FORMAT_CFG;
-    ncoord = readCFGCellParams(muls,Mm,fileName);
-    // return readCFGUnitCell(natom,fileName,muls);
-  }
-  if (strstr(fileName,".dat") == fileName+strlen(fileName)-4) {
-    format = FORMAT_DAT;
-    ncoord = readDATCellParams(muls,Mm,fileName);
-    // return readCFGUnitCell(natom,fileName,muls);
-  }
-  if (format == FORMAT_UNKNOWN) {
-    printf("Cannot read anything else than .cssr, .cfg, or .pdb files (%s)!\n",fileName);
-    return NULL;
-  }
+  CalculateCellDimensions();
 
   if (ncoord == 0) {
     printf("Error reading configuration file %s - ncoord =0\n",fileName);
@@ -333,6 +316,20 @@ void CCrystal::ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies
 } // end of readUnitCell
 
 
+// Uses m_Mm to calculate ax, by, cz, and alpha, beta, gamma
+void CCrystal::CalculateCellDimensions()
+{
+  m_ax = sqrt(m_Mm[0][0]*m_Mm[0][0]+m_Mm[0][1]*m_Mm[0][1]+m_Mm[0][2]*m_Mm[0][2]);
+  m_by = sqrt(m_Mm[1][0]*m_Mm[1][0]+m_Mm[1][1]*m_Mm[1][1]+m_Mm[1][2]*m_Mm[1][2]);
+  m_cz = sqrt(m_Mm[2][0]*m_Mm[2][0]+m_Mm[2][1]*m_Mm[2][1]+m_Mm[2][2]*m_Mm[2][2]);
+  m_cGamma = atan2(m_Mm[1][1],m_Mm[1][0]);
+  m_cBeta = acos(m_Mm[2][0]/m_cz);
+  m_cAlpha = acos(m_Mm[2][1]*sin(m_cGamma)/m_c+cos(m_cBeta)*cos(m_cGamma));
+  m_cGamma /= (float)PI180;
+  m_cBeta  /= (float)PI180;
+  m_cAlpha /= (float)PI180;
+}
+
 // TODO: old version return a pointer to new atom positions.  Can we do this in place?
 //		If not, just set atoms to the new vector.
 void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int handleVacancies) {
@@ -354,14 +351,14 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 
 
 	// if (iseed == 0) iseed = -(long) time( NULL );
-	Ncells = muls->nCellX * muls->nCellY * muls->nCellZ;
+	Ncells = m_nCellX * m_nCellY * m_nCellZ;
 
 	/* calculate maximum length in supercell box, which is naturally 
 	* the room diagonal:
 
-	maxLength = sqrt(muls->cubex*muls->cubex+
-	muls->cubey*muls->cubey+
-	muls->cubez*muls->cubez);
+	maxLength = sqrt(m_cubex*m_cubex+
+	m_cubey*m_cubey+
+	m_cubez*m_cubez);
 	*/
 
 	if (Mm == NULL) {
@@ -389,26 +386,26 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 
 
 	dx = 0; dy = 0; dz = 0;
-	dx = muls->xOffset;
-	dy = muls->yOffset;
+	dx = m_xOffset;
+	dy = m_yOffset;
 	/* find the rotated unit cell vectors .. 
 	* muls does still hold the single unit cell vectors in ax,by, and c
 	*/
 	// makeCellVectMuls(muls, axCell, byCell, czCell);
-	// We need to copy the transpose of muls->Mm to Mm.
+	// We need to copy the transpose of m_Mm to Mm.
 	// we therefore cannot use the following command:
-	// memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
-	for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
+	// memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
+	for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=m_Mm[iy][ix];
 
 	memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
 	inverse_3x3(MmOrigInv[0],MmOrig[0]);
 	/* remember that the angles are in rad: */
-	rotateMatrix(Mm[0],Mm[0],muls->ctiltx,muls->ctilty,muls->ctiltz);
+	rotateMatrix(Mm[0],Mm[0],m_ctiltx,m_ctilty,m_ctiltz);
 	/*
 	// This is wrong, because it implements Mrot*(Mm'):
-	rotateVect(axCell,axCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
-	rotateVect(byCell,byCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
-	rotateVect(czCell,czCell,muls->ctiltx,muls->ctilty,muls->ctiltz);
+	rotateVect(axCell,axCell,m_ctiltx,m_ctilty,m_ctiltz);
+	rotateVect(byCell,byCell,m_ctiltx,m_ctilty,m_ctiltz);
+	rotateVect(czCell,czCell,m_ctiltx,m_ctilty,m_ctiltz);
 	*/
 	inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
 	/* find out how far we will have to go in unit of unit cell vectors.
@@ -426,7 +423,7 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 	nymin = nymax = (int)floor(b[0][1]-dy); 
 	nzmin = nzmax = (int)floor(b[0][2]-dz);
 	for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
-		a[0][0]=ix*muls->cubex-dx; a[0][1]=iy*muls->cubey-dy; a[0][2]=iz*muls->cubez-dz;
+		a[0][0]=ix*m_cubex-dx; a[0][1]=iy*m_cubey-dy; a[0][2]=iz*m_cubez-dz;
 
 		// matrixProduct(a,1,3,Mminv,3,3,b);
 		matrixProduct(Mminv,3,3,a,3,1,b);
@@ -461,17 +458,17 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 		// printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
 		//   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
 		memcpy(&newAtom,&unitAtoms[iatom],sizeof(atom));
-		for (jz=0;jz<muls->atomKinds;jz++)	if (muls->Znums[jz] == newAtom.Znum) break;
+		for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == newAtom.Znum) break;
 		// allocate more memory, if there is a new element
 		/*
 		if (jz == atomKinds) {
 			atomKinds++;
-			if (atomKinds > muls->atomKinds) {
-				muls->Znums = (int *)realloc(muls->Znums,atomKinds*sizeof(int));
-				muls->atomKinds = atomKinds;
+			if (atomKinds > m_atomKinds) {
+				m_Znums = (int *)realloc(m_Znums,atomKinds*sizeof(int));
+				m_atomKinds = atomKinds;
 				// printf("%d kinds (%d)\n",atomKinds,atoms[i].Znum);
 			}  
-			muls->Znums[jz] = newAtom.Znum;
+			m_Znums[jz] = newAtom.Znum;
 		}
 		*/
 		/////////////////////////////////////////////////////
@@ -534,7 +531,7 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 					}
 					// if (jChoice != iatom) memcpy(&newAtom,unitAtoms+jChoice,sizeof(atom));
 					if (jChoice != iatom) {
-						for (jz=0;jz<muls->atomKinds;jz++)	if (muls->Znums[jz] == unitAtoms[jChoice].Znum) break;
+						for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == unitAtoms[jChoice].Znum) break;
 					}
 
 
@@ -542,9 +539,9 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 
 					// here we need to call phononDisplacement:
 					// phononDisplacement(u,muls,iatom,ix,iy,iz,atomCount,atoms[i].dw,*natom,atoms[i].Znum);
-					if (muls->Einstein == 1) {
+					if (m_Einstein == 1) {
 						// phononDisplacement(u,muls,iatom,ix,iy,iz,1,newAtom.dw,10,newAtom.Znum);
-						if (muls->tds) {
+						if (m_tds) {
 							phononDisplacement(u,muls,jChoice,ix,iy,iz,1,unitAtoms[jChoice].dw,atomSize,jz);
 							a[0][0] = aOrig[0][0]+u[0]; a[0][1] = aOrig[0][1]+u[1]; a[0][2] = aOrig[0][2]+u[2];
 						}
@@ -564,9 +561,9 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 					x  = b[0][0]+dx; 
 					y  = b[0][1]+dy; 
 					z  = b[0][2]+dz; 
-					if ((x >= 0) && (x <= muls->cubex) &&
-						(y >= 0) && (y <= muls->cubey) &&
-						(z >= 0) && (z <= muls->cubez)) {
+					if ((x >= 0) && (x <= m_cubex) &&
+						(y >= 0) && (y <= m_cubey) &&
+						(z >= 0) && (z <= m_cubez)) {
 							// matrixProduct(a,1,3,Mm,3,3,b);
 							matrixProduct(Mm,3,3,a,3,1,b);
 							atoms[atomCount].x		= b[0][0]+dx; 
@@ -589,10 +586,10 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 		} /* ix ... */
 		iatom = jequal;
 	} /* iatom ... */
-	if (muls->printLevel > 2) printf("Removed %d atoms because of multiple occupancy or occupancy < 1\n",jVac);
-	muls->ax = muls->cubex;
-	muls->by = muls->cubey;
-	muls->c  = muls->cubez;
+	if (m_printLevel > 2) printf("Removed %d atoms because of multiple occupancy or occupancy < 1\n",jVac);
+	m_ax = m_cubex;
+	m_by = m_cubey;
+	m_c  = m_cubez;
 	*natom = atomCount;
 	// call phononDisplacement again to update displacement data:
 	phononDisplacement(u,muls,iatom,ix,iy,iz,0,newAtom.dw,*natom,jz);
@@ -621,12 +618,12 @@ void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,in
 	// seed for random number generation
 	static long idum = -1;
 
-	ncx = muls->nCellX;
-	ncy = muls->nCellY;
-	ncz = muls->nCellZ;
+	ncx = m_nCellX;
+	ncy = m_nCellY;
+	ncz = m_nCellZ;
 	u = (double *)malloc(3*sizeof(double));
 
-	atomKinds = muls->atomKinds;
+	atomKinds = m_atomKinds;
 	//////////////////////////////////////////////////////////////////////////////
 	// Look for atoms which share the same position:
 	jVac = 0;  // no atoms have been removed yet
@@ -650,7 +647,7 @@ void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,in
 			// Keep a record of the kinds of atoms we are reading
 		}
 		if (jequal == i-1) {
-			for (jz=0;jz<atomKinds;jz++)	if (muls->Znums[jz] == atoms[i].Znum) break;
+			for (jz=0;jz<atomKinds;jz++)	if (m_Znums[jz] == atoms[i].Znum) break;
 		}
 
 		////////////////
@@ -660,8 +657,8 @@ void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,in
 		* to the original unit cell (icx=icy=icz=0), we cannot use those positions			
 		* as unit cell coordinates for the other atoms anymore
 		*/
-		// printf("Will start phonon displacement (%f)\n",muls->tds,muls->temperature);
-		// for (jz=0;jz<muls->atomKinds;jz++)	if (atoms[i].Znum == muls->Znums[jz]) break;
+		// printf("Will start phonon displacement (%f)\n",m_tds,m_temperature);
+		// for (jz=0;jz<m_atomKinds;jz++)	if (atoms[i].Znum == m_Znums[jz]) break;
 
 		for (icx=ncx-1;icx>=0;icx--) {
 			for (icy=ncy-1;icy>=0;icy--) {
@@ -708,12 +705,12 @@ void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,in
 
 						// Keep a record of the kinds of atoms we are reading
 						for (jz=0;jz<atomKinds;jz++) {
-							if (muls->Znums[jz] == atoms[jChoice].Znum) break;
+							if (m_Znums[jz] == atoms[jChoice].Znum) break;
 						}
 					}
 					// printf("i2=%d, %d (%d) [%g %g %g]\n",i2,jequal,jz,atoms[jequal].x,atoms[jequal].y,atoms[jequal].z);
 
-					// this function does nothing, if muls->tds == 0
+					// this function does nothing, if m_tds == 0
 					// if (j % 5 == 0) printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
 					phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 					// printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
@@ -728,7 +725,7 @@ void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,in
 		} // for (icx=ncx-1;icx>=0;icx--)
 		i=jequal;
 	} // for (i=ncoord-1;i>=0;)
-	if ((jVac > 0 ) &&(muls->printLevel)) printf("Removed %d atoms because of occupancies < 1 or multiple atoms in the same place\n",jVac);
+	if ((jVac > 0 ) &&(m_printLevel)) printf("Removed %d atoms because of occupancies < 1 or multiple atoms in the same place\n",jVac);
 
 }
 
@@ -774,14 +771,14 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 	static double *axCell,*byCell,*czCell,*uf,*b;
 	static double wobScale = 0,sq3,scale=0;
 
-	if (muls->tds == 0) return 0;
+	if (m_tds == 0) return 0;
 
 	/***************************************************************************
 	* We will give a statistics report, everytime, when we find atomCount == 0
 	***************************************************************************/
 
 	if (atomCount == 0) {
-							   for (ix=0;ix<muls->atomKinds;ix++) {
+							   for (ix=0;ix<m_atomKinds;ix++) {
 								   // u2Collect += u2[ix]/u2Count[ix];
 								   // uxCollect += ux/maxAtom; uyCollect += uy/maxAtom; uzCollect += uz/maxAtom;
 								   /*
@@ -794,11 +791,11 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 								   // printf("Count: %d %g\n",u2Count[ix],u2[ix]);
 								   u2[ix] /= u2Count[ix];
 								   if (runCount > 0) 
-									   muls->u2avg[ix] = sqrt(((runCount-1)*(muls->u2avg[ix]*muls->u2avg[ix])+u2[ix])/runCount);
+									   m_u2avg[ix] = sqrt(((runCount-1)*(m_u2avg[ix]*m_u2avg[ix])+u2[ix])/runCount);
 								   else
-									   muls->u2avg[ix] = sqrt(u2[ix]);
+									   m_u2avg[ix] = sqrt(u2[ix]);
 
-								   muls->u2[ix]    = sqrt(u2[ix]);
+								   m_u2[ix]    = sqrt(u2[ix]);
 
 								   u2[ix]=0; u2Count[ix]=0;
 							   }
@@ -814,12 +811,12 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 		b = double1D(3,"uf");
 
 									   axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
-		// memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
-		// We need to copy the transpose of muls->Mm to Mm.
+		// memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
+		// We need to copy the transpose of m_Mm to Mm.
 		// we therefore cannot use the following command:
-		// memcpy(Mm[0],muls->Mm[0],3*3*sizeof(double));
-		// or Mm = muls->Mm;
-		for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=muls->Mm[iy][ix];
+		// memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
+		// or Mm = m_Mm;
+		for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=m_Mm[iy][ix];
 
 		
 									   // makeCellVectMuls(muls, axCell, byCell, czCell);
@@ -881,16 +878,16 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 												   * int_-infty^infty exp(-x^2/2) x^2 dx = sqrt(pi)
 												   * introduced in order to match the wobble factor with <u^2>
 												   */
-							   scale = (float) sqrt(muls->tds_temp/300.0) ;
+							   scale = (float) sqrt(m_tds_temp/300.0) ;
 							   iseed = -(long)(time(NULL));
 						   }
 
 
-						   if ((muls->Einstein == 0) && (fpPhonon == NULL)) {
-                                                     if ((fpPhonon = fopen(muls->phononFile.c_str(),"r")) == NULL) {
+						   if ((m_Einstein == 0) && (fpPhonon == NULL)) {
+                                                     if ((fpPhonon = fopen(m_phononFile.c_str(),"r")) == NULL) {
 								   printf("Cannot find phonon mode file, will use random displacements!");
-								   muls->Einstein = 1;
-								   //muls->phononFile = NULL;
+								   m_Einstein = 1;
+								   //m_phononFile = NULL;
 							   }
 							   else {
 
@@ -932,11 +929,11 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 									   for (idd=0;idd<Ns;idd++) for (iy=0;iy<3;iy++) {
 										   // quantize the energy distribution:
 										   // tanh and exp give different results will therefore use exp
-										   // nkomega = (int)(1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp));
-										   // wobble  =      (1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/muls->tds_temp)-0.5);
-										   // nkomega = (int)(1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*id]/muls->tds_temp)-1)+0.5);
+										   // nkomega = (int)(1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/m_tds_temp));
+										   // wobble  =      (1.0/tanh(THZ_HBAR_2KB*omega[ix][iy+3*id]/m_tds_temp)-0.5);
+										   // nkomega = (int)(1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*id]/m_tds_temp)-1)+0.5);
 										   if (omega[ix][iy+3*idd] > 1e-4) {
-											   wobble = muls->tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*idd]/muls->tds_temp)-1)):0;
+											   wobble = m_tds_temp>0 ? (1.0/(exp(THZ_HBAR_KB*omega[ix][iy+3*idd]/m_tds_temp)-1)):0;
 											   // if (ix == 0) printf("%g: %d %g\n",omega[ix][iy+3*id],nkomega,wobble);
 											   wobble = sqrt((wobble+0.5)/(2*PID*Nk*2*massPrim[idd]*omega[ix][iy+3*idd]* THZ_AMU_HBAR));  
 										   }
@@ -960,7 +957,7 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 						   // 
 						   // in the previous bracket: the phonon file is only read once.
 						   /////////////////////////////////////////////////////////////////////////////////////
-						   if ((muls->Einstein == 0) && (atomCount == maxAtom-1)) {
+						   if ((m_Einstein == 0) && (atomCount == maxAtom-1)) {
 							   if (Nk > 800)
 								   printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
 							   for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
@@ -972,7 +969,7 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
    /********************************************************************************
 	* Do the Einstein model independent vibrations !!!
 	*******************************************************************************/
-	if (muls->Einstein) {	    
+	if (m_Einstein) {	    
 	   /* convert the Debye-Waller factor to sqrt(<u^2>) */
 	   wobble = scale*sqrt(dw*wobScale);
 	   u[0] = (wobble*sq3 * gasdev( &iseed ));
@@ -993,7 +990,7 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 	   /*
 	   matrixProduct(&uf,1,3,Mm,3,3,&b);
 	   if (atomCount % 5 == 0) {
-			printf("Z = %d, DW = %g, u=[%g %g %g]\n       u'=[%g %g %g]\n",muls->Znums[ZnumIndex],dw,u[0],u[1],u[2],b[0],b[1],b[2]);
+			printf("Z = %d, DW = %g, u=[%g %g %g]\n       u'=[%g %g %g]\n",m_Znums[ZnumIndex],dw,u[0],u[1],u[2],b[0],b[1],b[2]);
 			showMatrix(Mm,3,3,"Mm");
 			showMatrix(MmInv,3,3,"MmInv");
 	   }
@@ -1025,21 +1022,21 @@ int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
 	   // Book keeping:
 		u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
 		ux += u[0]; uy += u[1]; uz += u[2];
-		u[0] /= muls->ax;
-		u[1] /= muls->by;
-		u[2] /= muls->c;
+		u[0] /= m_ax;
+		u[1] /= m_by;
+		u[2] /= m_c;
 		u2Count[ZnumIndex]++;
 
    } /* end of if Einstein */
 
 	// printf("%d ... %d\n",ZnumIndex,u2Size);
-   // printf("atomCount: %d (%d) %d %d\n",atomCount,muls->Einstein,ZnumIndex,u2Size);
+   // printf("atomCount: %d (%d) %d %d\n",atomCount,m_Einstein,ZnumIndex,u2Size);
 
 
 	/*
 	// Used for Debugging the memory leak on Aug. 20, 2010:
 	if (_CrtCheckMemory() == 0) {
-	   printf("Found bad memory check in phononDisplacement! %d %d\n",ZnumIndex,muls->atomKinds);
+	   printf("Found bad memory check in phononDisplacement! %d %d\n",ZnumIndex,m_atomKinds);
 	}
 	*/
 

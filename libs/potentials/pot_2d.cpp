@@ -72,11 +72,11 @@ void C2DPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt a
   // skip atoms that are beyond the cell's boundaries
   if (!m_periodicZ)
     {
-      if (atomZ > c) return;
-      if ((atomZ >=0));
+      if (atomZ > m_crystal->GetCZ() || atomZ<0) return;
     }
 
-  AddAtomToSlicesRealSpaceLUT(atom, atomX, atomY, atomZ);
+  // Calls parent class method, which in turn calls method below after computing ix, iy, iAtomZ
+  AddAtomRealSpace(atom, atomX, atomY, atomZ);
 }
 
 void C2DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom, 

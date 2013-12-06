@@ -21,6 +21,8 @@
 #include "../imagelib_fftw3.hpp"
 #include "../config_readers.hpp"
 #include "../memory_fftw3.hpp"
+#include "../crystal.hpp"
+#include "scatfactsRez.hpp"
 #include <map>
 
 #ifndef POTENTIAL_BASE_H
@@ -47,10 +49,10 @@ public:
   virtual void ReadPotential(std::string &fileName);
   virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;
-  void AddAtomRealSpace(std::vector<atom>::iterator &atom, unsigned iatom);
+  void AddAtomRealSpace(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);
   virtual void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
-                                 float_tt atomBoxX, unsigned int ix, 
-                                 float_tt atomBoxY, unsigned int iy, 
+                                 float_tt atomX, unsigned int ix, 
+                                 float_tt atomY, unsigned int iy, 
                                  float_tt atomZ, unsigned int iatomZ)=0;
 
   complex_tt **GetSlice(unsigned idx){return m_trans[idx];}
@@ -63,6 +65,7 @@ protected:
   void Initialize();
 
   ImageIOPtr m_imageIO;
+  StructurePtr m_crystal;
   complex_tt ***m_trans;
   unsigned m_nx, m_ny;
   // resolutions

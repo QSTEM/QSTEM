@@ -1,18 +1,37 @@
+/*
+  QSTEM - image simulation for TEM/STEM/CBED
+  Copyright (C) 2000-2010  Christoph Koch
+  Copyright (C) 2010-2013  Christoph Koch, Michael Sarahan
+  
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 #include "pot_3d_fft.hpp"
+
+// for memset
+#include <cstring>
 
 C3DFFTPotential::C3DFFTPotential(ConfigReaderPtr &configReader) : C3DPotential(configReader)
 {
-}
-
-void C3DFFTPotential::makeSlices(int nlayer, char *fileName, atom *center)
-{
-  for (unsigned i = 0;i<nlayer;i++) 
-	{
-		  if (m_cz[0] != m_cz[i])
-		  {
-			  printf("Warning: slice thickness not constant, will give wrong results (iz=%d)!\n",i);
-		  }
-  }
+  for (unsigned i = 0;i<m_nslices;i++) 
+    {
+      if (m_cz[0] != m_cz[i])
+        {
+          printf("Warning: slice thickness not constant, will give wrong results (iz=%d)!\n",i);
+        }
+    }
 }
 
 
@@ -22,6 +41,8 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
                          float_tt atomZ)
 {
   unsigned iAtomZ = (int)floor(atomZ/m_sliceThickness+0.5);
+  
+  unsigned nzSub, Nr, Nz_lut;
       
   unsigned iax0 = iAtomX-m_iRadX < 0 ? 0 : iAtomX-m_iRadX;
   unsigned iax1 = iAtomX+m_iRadX >= m_nx ? m_nx-1 : iAtomX+m_iRadX;
@@ -30,53 +51,53 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
   // if within the potential map range:
   if ((iax0 < m_nx) && (iax1 >= 0) && (iay0 < m_ny) && (iay1 >= 0)) {
     // define range of sampling from atomZ-/+atomRadius
-    unsigned iaz0 = iAtomZ-m_iRadZ < 0 ? -iAtomZ : -m_iRadZ;
+    int iaz0 = iAtomZ-m_iRadZ < 0 ? -iAtomZ : -m_iRadZ;
     unsigned iaz1 = iAtomZ+m_iRadZ >= m_nslices ? m_nslices-iAtomZ-1 : m_iRadZ;
     if ((iAtomZ+iaz0 <        m_nslices) && (iAtomZ+iaz1 >= 0)) {
       // retrieve the pointer for this atom
-      complex_tt *atPotPtr = getAtomPotential3D(atom->Znum,m_tds ? 0 : atom->dw,nzSub,Nr,Nz_lut);
+      complex_tt *atPotPtr = GetAtomPotential3D(atom->Znum,m_tds ? 0 : atom->dw,nzSub,Nr,Nz_lut);
 #if USE_Q_POT_OFFSETS
       // retrieve the pointer to the array of charge-dependent potential offset
       // This function will return NULL; if the charge of this atom is zero:
-      atPotOffsPtr = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,m_tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut,atoms[iatom].q);
+      atPotOffsPtr = GetAtomPotentialOffset3D(atom->Znum,muls,m_tds ? 0 : atoms[iatom].dw,nzSub,Nr,Nz_lut,atom->q);
 #endif // USE_Q_POT_OFFSETS
-      iOffsLimHi = Nr*(Nz_lut-1);
-      iOffsLimLo = -Nr*(Nz_lut-1);
-      iOffsStep = nzSub*Nr;
+      unsigned iOffsLimHi = Nr*(Nz_lut-1);
+      int iOffsLimLo = -Nr*(Nz_lut-1);
+      unsigned iOffsStep = nzSub*Nr;
 
       // Slices around the slice that this atom is located in must be affected by this atom:
       // iaz must be relative to the first slice of the atom potential box.
       for (unsigned iax=iax0; iax <= iax1; iax++) {
-        potPtr = &(m_trans[iAtomZ+iaz0][iax][iay0][0]);
+        float_tt *potPtr = &(m_trans[iAtomZ+iaz0][iax][iay0][0]);
 
         //////////////////////////////////////////////////////////////////////
         // Computation of Radius must be made faster by using pre-calculated ddx
         // and LUT for sqrt:
         // use of sqrt slows down from 120sec to 180 sec.
-        x2 = iax*dx - atomBoxX; x2 *= x2;
+        float_tt x2 = iax*m_dx - atomBoxX; x2 *= x2;
         for (unsigned iay=iay0; iay <= iay1; iay++) {
           // printf("iax=%d, iay=%d\n",iax,iay);
-          y2 = iay*dy - atomBoxY; y2 *= y2;
-          r = sqrt(x2+y2);
+          float_tt y2 = iay*m_dy - atomBoxY; y2 *= y2;
+          float_tt r = sqrt(x2+y2);
           // r = (x2+y2);
-          ddr = r/dr;
-          ir  = (int)floor(ddr);
+          float_tt ddr = r/m_dr;
+          unsigned ir  = (int)floor(ddr);
           // add in different slices, once r has been defined
           if (ir < Nr-1) {
             ddr = ddr-(double)ir;
-            ptr = potPtr;
+            float_tt *ptr = potPtr;
             
-            dOffsZ = (iAtomZ+iaz0-atomZ/m_sliceThickness)*nzSub;
+            float_tt dOffsZ = (iAtomZ+iaz0-atomZ/m_sliceThickness)*nzSub;
 #if Z_INTERPOLATION
-            iOffsZ = (int)dOffsZ;
-            ddz = fabs(dOffsZ - (double)iOffsZ);
+            unsigned iOffsZ = (unsigned)dOffsZ;
+            ddz = fabs(dOffsZ - (float_tt)iOffsZ);
 #else
-            iOffsZ = (int)(dOffsZ+0.5);
+            unsigned iOffsZ = (int)(dOffsZ+0.5);
 #endif
             iOffsZ *= Nr;
             
-            for (iaz=iaz0; iaz <= iaz1; iaz++) {
-              potVal = 0;
+            for (int iaz=iaz0; iaz <= iaz1; iaz++) {
+              float_tt potVal = 0;
               if (iOffsZ < 0) {
                 if (iOffsZ > iOffsLimLo) {
                   // do the real part by linear interpolation in r-dimension:
@@ -111,7 +132,7 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
 #if USE_Q_POT_OFFSETS
                       // add the charge-dependent potential offset
                       if (atPotOffsPtr != NULL) {
-                        potVal += atoms[iatom].q*((1-ddz)*((1-ddr)*atPotOffsPtr[ir+iOffsZ][0]+ddr*atPotOffsPtr[ir+1+iOffsZ][0])+
+                        potVal += atom->q*((1-ddz)*((1-ddr)*atPotOffsPtr[ir+iOffsZ][0]+ddr*atPotOffsPtr[ir+1+iOffsZ][0])+
                                                   ddz *((1-ddr)*atPotOffsPtr[ir+iOffsZ+Nr][0]+ddr*atPotOffsPtr[ir+1+iOffsZ+Nr][0]));
                       }
 #endif // USE_Q_POT_OFFSETS
@@ -120,7 +141,7 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
 #if USE_Q_POT_OFFSETS
                       // add the charge-dependent potential offset
                       if (atPotOffsPtr != NULL) {
-                        potVal += atoms[iatom].q*((1-ddr)*atPotOffsPtr[ir+iOffsZ][0]+ddr*atPotOffsPtr[ir+1+iOffsZ][0]);                                                                                                
+                        potVal += atom->q*((1-ddr)*atPotOffsPtr[ir+iOffsZ][0]+ddr*atPotOffsPtr[ir+1+iOffsZ][0]);                                                 
                       }
 #endif // USE_Q_POT_OFFSETS
 #endif // Z_INTERPOLATION
@@ -129,7 +150,7 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
                   } // if iOffsZ >=0
                   *ptr += potVal; // ptr = potPtr = m_trans[...]
                             
-                  ptr += sliceStep;        // advance to the next slice
+                  ptr += m_sliceStep;        // advance to the next slice
                   // add the remaining potential to the next slice:
                   // if (iaz < iaz1)        *ptr += (1-ddz)*potVal;
                   iOffsZ += iOffsStep;
@@ -156,8 +177,10 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
   unsigned iay0 = iAtomY-m_iRadY;
   unsigned iay1 = iAtomY+m_iRadY;
 
+  unsigned nzSub, Nr, Nz_lut;
+
   // define range of sampling from atomZ-/+atomRadius
-  unsigned iaz0 = iAtomZ-m_iRadZ < 0 ? -iAtomZ : -m_iRadZ;
+  int iaz0 = iAtomZ-m_iRadZ < 0 ? -iAtomZ : -m_iRadZ;
   unsigned iaz1 = iAtomZ+m_iRadZ >= m_nslices ? m_nslices-iAtomZ-1 : m_iRadZ;
   // if (iatom < 2) printf("iatomZ: %d, %d cz=%g, %g: %d, %d\n",iAtomZ,iaz0,m_sliceThickness,atomZ,(int)(-2.5-atomZ),(int)(atomZ+2.5));
   // printf("%d: iatomZ: %d, %d cz=%g, %g\n",iatom,iAtomZ,iaz0,m_sliceThickness,atomZ);
@@ -169,14 +192,14 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
     // This function will return NULL; if the charge of this atom is zero:
     complex_tt *atPotOffsPtr = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,m_tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut,atoms[iatom].q);
 #endif // USE_Q_POT_OFFSETS
-    iOffsLimHi =        Nr*(Nz_lut-1);
-    iOffsLimLo = -Nr*(Nz_lut-1);
-    iOffsStep = nzSub*Nr;
+    unsigned iOffsLimHi =        Nr*(Nz_lut-1);
+    int iOffsLimLo = -Nr*(Nz_lut-1);
+    unsigned iOffsStep = nzSub*Nr;
 
     // Slices around the slice that this atom is located in must be affected by this atom:
     // iaz must be relative to the first slice of the atom potential box.
     for (unsigned iax=iax0; iax < iax1; iax++) {
-      potPtr = &(m_trans[iAtomZ+iaz0][(iax+2*m_nx) % m_nx][(iay0+2*m_ny) % m_ny][0]);
+      float_tt *potPtr = &(m_trans[iAtomZ+iaz0][(iax+2*m_nx) % m_nx][(iay0+2*m_ny) % m_ny][0]);
       // potPtr = &(m_trans[iAtomZ-iaz0+iaz][iax][iay0][0]);
       float_tt x2 = iax*m_dx - atomBoxX;        x2 *= x2;
       for (unsigned iay=iay0; iay < iay1; ) {
@@ -188,20 +211,20 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
         // add in different slices, once r has been defined
         if (ir < Nr-1) {
           ddr = ddr-(double)ir;
-          ptr = potPtr;
+          float_tt *ptr = potPtr;
           // Include interpolation in z-direction as well (may do it in a very smart way here !):
                         
-          dOffsZ = (iAtomZ+iaz0-atomZ/m_sliceThickness)*nzSub;
+          float_tt dOffsZ = (iAtomZ+iaz0-atomZ/m_sliceThickness)*nzSub;
 #if Z_INTERPOLATION
-          iOffsZ = (int)dOffsZ;
-          ddz         = fabs(dOffsZ - (double)iOffsZ);
+          unsigned iOffsZ = (int)dOffsZ;
+          float_tt ddz         = fabs(dOffsZ - (double)iOffsZ);
 #else // Z_INTERPOLATION
-          iOffsZ = (int)(dOffsZ+0.5);
+          unsigned iOffsZ = (int)(dOffsZ+0.5);
 #endif // Z_INTERPOLATION
           iOffsZ *= Nr;
                         
-          for (unsigned iaz=iaz0; iaz <= iaz1; iaz++) {
-            potVal = 0;
+          for (int iaz=iaz0; iaz <= iaz1; iaz++) {
+            float_tt potVal = 0;
             // iOffsZ = (int)(fabs(iAtomZ+iaz-atomZ/m_sliceThickness)*nzSub+0.5);
             if (iOffsZ < 0) {
               if (iOffsZ > iOffsLimLo) {
@@ -255,7 +278,7 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
             }
             *ptr += potVal;
             
-            ptr += sliceStep; // advance to the next slice
+            ptr += m_sliceStep; // advance to the next slice
             // add the remaining potential to the next slice:
             // if (iaz < iaz1) *ptr += (1-ddz)*potVal;
             iOffsZ += iOffsStep;
@@ -279,7 +302,8 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
 * Create Lookup table for 3D potential due to neutral atoms
 ********************************************************************************/
 #define PHI_SCALE 47.87658
-complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,int &Nr,int &Nz_lut) {
+complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
+                                                unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut) {
 	/*
   int ix,iy,iz,iiz,ind3d,iKind,izOffset;
   double zScale,kzmax,zPos,xPos;
@@ -306,31 +330,33 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
   // largest k that we'll admit
   float_tt kmax2;
 
+  complex_tt **atPot=NULL, *temp=NULL;
+
+  unsigned nx, ny, nz, nzPerSlice;
+  std::vector<float_tt> splinb(N_SF), splinc(N_SF), splind(N_SF);
+
   // scattering factors in:
   // float scatPar[4][30]
   if (atPot == NULL) {
-    splinb = double1D(N_SF, "splinb" );
-    splinc = double1D(N_SF, "splinc" );
-    splind = double1D(N_SF, "splind" );
-
-    
-    unsigned nx = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dx);
-    unsigned ny = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
+    nx = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dx);
+    ny = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
     // The FFT-resolution in the z-direction must be high enough to avoid
     // artifacts due to premature cutoff of the rec. space scattering factor
     // we will therefore make it roughly the same as the x-resolution
     // However, we will make sure that a single slice contains an integer number
     // of sampling points.
-    unsigned nzPerSlice = (int)floor(OVERSAMPLING*m_sliceThickness/m_dx);
+    nzPerSlice = (int)floor(OVERSAMPLING*m_sliceThickness/m_dx);
     // make nzPerSlice odd:
     if (2.0*(nzPerSlice >> 1) == nzPerSlice) nzPerSlice += 1;
     // Total number of z-positions should be twice that of atomRadius/sliceThickness
-    unsigned nz = (2*(int)ceil(m_atomRadius/m_sliceThickness))*nzPerSlice;
+    nz = (2*(int)ceil(m_atomRadius/m_sliceThickness))*nzPerSlice;
     if (m_printLevel > 1) printf("Will use %d sampling points per slice, total nz=%d (%d)\n",nzPerSlice,nz,nzPerSlice >> 1);
 
     dkx = 0.5*OVERSAMPLING/(nx*m_dx); // nx*m_dx is roughly 2*m_atomRadius
     dkz = nzPerSlice/(nz*m_sliceThickness);
     kmax2 = 0.5*nx*dkx/OVERSAMPLING; 
+    // Don't square kmax2 yet!
+
 
     printf("dkx = %g, nx = %d, kmax2 = %g\n",dkx,nx,kmax2);
     if (m_printLevel > 1) printf("Cutoff scattering angle: kmax=%g (1/A), dk=(%g,%g %g)\n",kmax2,dkx,dkx,dkz);
@@ -339,17 +365,17 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
     scatPar[0][N_SF-3] = kmax2;
     // adjust the resolution of the lookup table if necessary
     if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3]) {
-
+      unsigned ix=0;
       if (1) {
         // set additional scattering parameters to zero:
-        for (unsigned ix = 0;ix < N_SF-10;ix++) {
+        for (ix;ix < N_SF-10;ix++) {
           if (scatPar[0][N_SF-4-ix] < scatPar[0][N_SF-3]-0.001*(ix+1)) break;
           scatPar[0][N_SF-4-ix] = scatPar[0][N_SF-3]-0.001*(ix+1);
           for (unsigned iy=1; iy<N_ELEM;iy++) scatPar[iy][N_SF-4-ix] = 0;
         }
       }
       else {
-        for (unsigned ix = 0;ix < 20;ix++) {
+        for (ix;ix < 20;ix++) {
           if (scatPar[0][N_SF-4-ix] < scatPar[0][N_SF-3]) break;
           scatPar[0][N_SF-4-ix] = scatPar[0][N_SF-3];
           for (unsigned iy=1; iy<N_ELEM;iy++) scatPar[iy][N_SF-4-ix] = scatPar[iy][N_SF-3];        
@@ -358,30 +384,30 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
       if (m_printLevel > 1) printf("getAtomPotential3D: set resolution of scattering factor to %g/A!\n",
                                        scatPar[0][N_SF-4-ix]);
     }        // end of if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3])
-    smax2 *= smax2;
-    //kmax2 *= kmax2;
     // allocate a list of pointers for the element-specific potential lookup table
-    atPot = (fftwf_complex **)malloc((NZMAX+1)*sizeof(fftwf_complex *));
-    for (unsigned ix=0;ix<=NZMAX;ix++) atPot[ix] = NULL;
+    atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
+    for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
     temp = (complex_tt*) fftw_malloc(nx*nz*sizeof(complex_tt));
   }
+
+  // Now kmax2 is actually kmax**2.
+  kmax2 *= kmax2;
+
   // initialize this atom, if it has not been done yet:
-  if (atPot[Znum] == NULL) {
-    iKind = Znum;
-    
+  if (atPot[Znum] == NULL) {    
     // setup cubic spline interpolation:
-    splinh(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF);
+    splinh(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF);
     
     // allocate a 3D array:
     atPot[Znum] = (complex_tt*) fftw_malloc(nx*nz/4*sizeof(complex_tt));
     memset(temp,0,nx*nz*sizeof(complex_tt));
-    kzmax         = dkz*nz/2.0;
+    float_tt kzmax         = dkz*nz/2.0;
     // define x-and z-position of atom center:
     // The atom should sit in the top-left corner,
     // however (nzPerSlice+1)/2 above zero in z-direction
-    xPos = -2.0*PI*0.0; // or m_dx*nx/(OVERSAMPLING), if in center
-    izOffset = (nzPerSlice-1)/2;
-    zPos = -2.0*PI*(m_sliceThickness/nzPerSlice*(izOffset));
+    float_tt xPos = -2.0*PI*0.0; // or m_dx*nx/(OVERSAMPLING), if in center
+    unsigned izOffset = (nzPerSlice-1)/2;
+    float_tt zPos = -2.0*PI*(m_sliceThickness/nzPerSlice*(izOffset));
 
     // What this look-up procedure will do is to supply V(r,z) computed from fe(q).
     // Since V(r,z) is rotationally symmetric we might as well compute
@@ -405,20 +431,20 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
           // f = fe3D(Znum,k2,m_tds,1.0,m_scatFactor);
           // multiply scattering factor with Debye-Waller factor:
           // printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
-          f = seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s2))*exp(-s2*B*0.25);
+          float_tt f = seval(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF,sqrt(s2))*exp(-s2*B*0.25);
           // perform the qy-integration for qy <> 0:
           for (unsigned iy=1;iy<nx;iy++) {
-            s3 = dkx*iy;
+            float_tt s3 = dkx*iy;
             s3 = s3*s3+s2;
             if (s3<kmax2) {
-              f += 2*seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s3))*exp(-s3*B*0.25);
+              f += 2*seval(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF,sqrt(s3))*exp(-s3*B*0.25);
             }
             else break;
           }
           f *= dkx;
           // note that the factor 2 is missing in the phase (2pi k*r)
           // this places the atoms in the center of the box.
-          phase        = kx*xPos + kz*zPos;
+          float_tt phase        = kx*xPos + kz*zPos;
           temp[ind3d][0] = f*cos(phase); // *zScale
           temp[ind3d][1] = f*sin(phase); // *zScale
           // if ((kx==0) && (ky==0)) printf(" f=%g (%g, [%g, %g])\n",f,f*zScale,atPot[Znum][ind3d][0],atPot[Znum][ind3d][1]);
@@ -437,11 +463,11 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
 #endif        
     // This converts the 2D kx-kz map of the scattering factor to a 2D real space map.
 #if FLOAT_PRECISION ==1
-    plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftwf_plan plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 #else
-    plan = fftw_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_plan plan = fftw_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_destroy_plan(plan);
 #endif
@@ -450,10 +476,11 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
     // It is certainly debatable whether this is a good apprach, or not.
     // printf("Setting up %d x %d potential for Znum=%d, (atom kind %d), Omega=%g\n",nx,nz,Znum,iKind,dkx*dky*dkz);
     // min = atPot[Znum][ny/2+nx/2*ny+nz/2*nx*ny][0];
-    for (ix=0;ix<nx/2;ix++) for (iz=0;iz<nz/2;iz++) {
-        ind3d = ix+iz*nx/2;
+    for (unsigned ix=0;ix<nx/2;ix++) for (unsigned iz=0;iz<nz/2;iz++) {
+        float_tt zScale=0;
+        unsigned ind3d = ix+iz*nx/2;
         // Integrate over nzPerSlice neighboring layers here:::::::::
-        for (zScale=0,iiz=-izOffset;iiz<=izOffset;iiz++) {
+        for (int iiz=-izOffset;iiz<=izOffset;iiz++) {
           if (iz+izOffset+iiz < nz/2) zScale += temp[ix+(iz+izOffset+iiz)*nx][0];
         }
         if (zScale < 0) zScale = 0;
@@ -481,8 +508,8 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
     ptr = atPot[Znum];
     imageio->WriteComplexImage((void**)ptr, fileName);
 #endif        
-    if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential array for Z=%d (%d, B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
-                                     nx/2,nz/2,Znum,iKind,B,dkx,dkx,dkz,izOffset);
+    if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential array for Z=%d (B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
+                                     nx/2,nz/2,Znum,B,dkx,dkx,dkz,izOffset);
   }
   Nz_lut = nz/2;
   nzSub  = nzPerSlice;
@@ -494,7 +521,8 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(int Znum, double B,int &nzSub,in
 /********************************************************************************
 * Lookup function for 3D potential offset due to charged atoms (ions)
 ********************************************************************************/
-fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(int Znum, double B,int &nzSub,int &Nr,int &Nz_lut,float_tt q) {
+fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut,float_tt q) {
+  /*
   int ix,iy,iz,iiz,ind3d,iKind,izOffset;
   double zScale,kzmax,zPos,xPos;
   fftwf_plan plan;
@@ -510,19 +538,26 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(int Znum, double B,int 
   static double *splinb=NULL;
   static double *splinc=NULL;
   static double *splind=NULL;
-
+  */
 
   // if there is no charge to this atom, return NULL:
   if (q == 0) return NULL;
+#if !USE_REZ_SFACTS
+    printf("Using charged atoms only works with scattering factors by Rez et al!\n",Znum);
+    exit(0);
+#endif
 
+
+  unsigned nx, ny, nz, nzPerSlice;
+  float_tt dkx, dky, dkz;
+  std::vector<float_tt> splinb(N_SF), splinc(N_SF), splind(N_SF);
+  float_tt kmax2;
+
+  complex_tt **atPot=NULL;
 
   // scattering factors in:
   // float scatPar[4][30]
   if (atPot == NULL) {
-    splinb = double1D(N_SF, "splinb" );
-    splinc = double1D(N_SF, "splinc" );
-    splind = double1D(N_SF, "splind" );
-
 
     nx = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dx);
     ny = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
@@ -548,20 +583,20 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(int Znum, double B,int 
     scatParOffs[0][N_SF-2] = 1.1*kmax2;
     scatParOffs[0][N_SF-3] = kmax2;
     if (scatParOffs[0][N_SF-4] > scatParOffs[0][N_SF-3]) {
-
+      unsigned ix=0;
       if (1) {
         // set additional scattering parameters to zero:
-        for (ix = 0;ix < N_SF-10;ix++) {
+        for (ix;ix < N_SF-10;ix++) {
           if (scatParOffs[0][N_SF-4-ix] < scatParOffs[0][N_SF-3]-0.001*(ix+1)) break;
           scatParOffs[0][N_SF-4-ix] = scatParOffs[0][N_SF-3]-0.001*(ix+1);
-          for (iy=1; iy<N_ELEM;iy++) scatParOffs[iy][N_SF-4-ix] = 0;        
+          for (unsigned iy=1; iy<N_ELEM;iy++) scatParOffs[iy][N_SF-4-ix] = 0;        
         }
       }
       else {
-        for (ix = 0;ix < 20;ix++) {
+        for (ix;ix < 20;ix++) {
           if (scatParOffs[0][N_SF-4-ix] < scatParOffs[0][N_SF-3]) break;
           scatParOffs[0][N_SF-4-ix] = scatParOffs[0][N_SF-3];
-          for (iy=1; iy<N_ELEM;iy++) scatParOffs[iy][N_SF-4-ix] = scatParOffs[iy][N_SF-3];        
+          for (unsigned iy=1; iy<N_ELEM;iy++) scatParOffs[iy][N_SF-4-ix] = scatParOffs[iy][N_SF-3];        
         }
       }        
       if (m_printLevel > 1) printf("getAtomPotentialOffset3D: reduced angular range of scattering factor to %g/A!\n",
@@ -569,71 +604,63 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(int Znum, double B,int 
     } // end of if (scatParOffs[0][N_SF-4] > scatParOffs[0][N_SF-3])
     kmax2 *= kmax2;
 
-    atPot = (fftwf_complex **)malloc((NZMAX+1)*sizeof(fftwf_complex *));
-    for (ix=0;ix<=NZMAX;ix++) atPot[ix] = NULL;
-    temp = (fftwf_complex*)fftwf_malloc(nx*nz*sizeof(fftwf_complex));
+    atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
+    for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
   }
   // initialize this atom, if it has not been done yet:
   if (atPot[Znum] == NULL) {
-#if USE_REZ_SFACTS
-    iKind = Znum;
-#else
-    printf("Using charged atoms only works with scattering factors by Rez et al!\n",Znum);
-    exit(0);
-#endif
-
-
     // setup cubic spline interpolation:
-    splinh(scatParOffs[0],scatParOffs[iKind],splinb,splinc,splind,N_SF);
+    splinh(scatParOffs[0],scatParOffs[Znum],&splinb[0],&splinc[0],&splind[0],N_SF);
 
-    atPot[Znum] = (fftwf_complex*)fftwf_malloc(nx*nz/4*sizeof(fftwf_complex));
-    memset(temp,0,nx*nz*sizeof(fftwf_complex));
-    kzmax         = dkz*nz/2.0;
+    atPot[Znum] = (complex_tt*)fftw_malloc(nx*nz/4*sizeof(complex_tt));
+    complex_tt *temp=(complex_tt *)fftw_malloc(nx*nz*sizeof(complex_tt));
+    memset(temp, 0, nx*nz*sizeof(complex_tt));
+
+    float_tt kzmax         = dkz*nz/2.0;
     // define x-and z-position of atom center:
     // The atom should sit in the top-left corner,
     // however (nzPerSlice+1)/2 above zero in z-direction
-    xPos = -2.0*PI*0.0; // or m_dx*nx/(OVERSAMPLING), if in center
-    izOffset = (nzPerSlice-1)/2;
-    zPos = -2.0*PI*(m_sliceThickness/nzPerSlice*(izOffset));
+    float_tt xPos = -2.0*PI*0.0; // or m_dx*nx/(OVERSAMPLING), if in center
+    unsigned izOffset = (nzPerSlice-1)/2;
+    float_tt zPos = -2.0*PI*(m_sliceThickness/nzPerSlice*(izOffset));
 
     // kzborder = dkz*(nz/(2*OVERSAMP_Z) -1);
-    for (iz=0;iz<nz;iz++) {
-      kz = dkz*(iz<nz/2 ? iz : iz-nz);
+    for (unsigned iz=0;iz<nz;iz++) {
+      float_tt kz = dkz*(iz<nz/2 ? iz : iz-nz);
       // We also need to taper off the potential in z-direction
       // in order to avoid cutoff artifacts.
       // zScale = fabs(kz) <= kzborder ? 1.0 : 0.5+0.5*cos(M_PI*(fabs(kz)-kzborder)/(kzmax-kzborder));
       // printf("iz=%d, kz=%g, zScale=%g ",iz,kz,zScale);
-      for (ix=0;ix<nx;ix++) {
-        kx = dkx*(ix<nx/2 ? ix : ix-nx);        
-        s2 = (kx*kx+kz*kz);
+      for (unsigned ix=0;ix<nx;ix++) {
+        float_tt kx = dkx*(ix<nx/2 ? ix : ix-nx);        
+        float_tt s2 = (kx*kx+kz*kz);
         // if this is within the allowed circle:
         if (s2<kmax2) {
-          ind3d = ix+iz*nx;
+          unsigned ind3d = ix+iz*nx;
           // f = fe3D(Znum,k2,m_tds,1.0,m_scatFactor);
           // multiply scattering factor with Debye-Waller factor:
           // printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
-          f = seval(scatParOffs[0],scatParOffs[iKind],splinb,splinc,splind,N_SF,sqrt(s2))*exp(-s2*B*0.25);
+          float_tt f = seval(scatParOffs[0],scatParOffs[Znum],&splinb[0],&splinc[0],&splind[0],N_SF,
+                             sqrt(s2))*exp(-s2*B*0.25);
           // perform the qy-integration for qy <> 0:
-          for (iy=1;iy<nx;iy++) {
-            s3 = dky*iy;
+          for (unsigned iy=1;iy<nx;iy++) {
+            float_tt s3 = dky*iy;
             s3 = s3*s3+s2;
             if (s3<kmax2) {
-              f += 2*seval(scatPar[0],scatPar[iKind],splinb,splinc,splind,N_SF,sqrt(s3))*exp(-s3*B*0.25);
+              f += 2*seval(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF,sqrt(s3))*exp(-s3*B*0.25);
             }
             else break;
           }
           f *= dkx;
           // note that the factor 2 is missing in the phase (2pi k*r)
           // this places the atoms in the center of the box.
-          phase = kx*xPos + kz*zPos;
+          float_tt phase = kx*xPos + kz*zPos;
           temp[ind3d][0] = f*cos(phase);        // *zScale
           temp[ind3d][1] = f*sin(phase);        // *zScale
           // if ((kx==0) && (ky==0)) printf(" f=%g (%g, [%g, %g])\n",f,f*zScale,atPot[Znum][ind3d][0],atPot[Znum][ind3d][1]);
         }
       }
-    } // for iz ...
-
-
+    } // for iz....
 
 
 #if SHOW_SINGLE_POTENTIAL
@@ -644,21 +671,25 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(int Znum, double B,int 
     imageio->WriteComplexImage((void**)temp, fileName);
 #endif        
 
-    plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+#if FLOAT_PRECISION ==1
+    fftwf_plan plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
-    // dx2 = m_dx*m_dx/(OVERSAMPLING*OVERSAMPLING);
-    // dy2 = m_dy*m_dy/(OVERSAMPLING*OVERSAMPLING);
-    // dz2 = m_sliceThickness*m_sliceThickness/(OVERSAMP_Z*OVERSAMP_Z);
+#else
+    fftw_plan plan = fftw_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_execute(plan);
+    fftw_destroy_plan(plan);
+#endif
     // We also make sure that the potential touches zero at least somewhere. This will avoid
     // sharp edges that could produce ringing artifacts.
     // It is certainly debatable whether this is a good apprach, or not.
     // printf("Setting up %d x %d potential for Znum=%d, (atom kind %d), Omega=%g\n",nx,nz,Znum,iKind,dkx*dky*dkz);
     // min = atPot[Znum][ny/2+nx/2*ny+nz/2*nx*ny][0];
-    for (ix=0;ix<nx/2;ix++) for (iz=0;iz<nz/2;iz++) {
-        ind3d = ix+iz*nx/2;
+    for (unsigned ix=0;ix<nx/2;ix++) for (unsigned iz=0;iz<nz/2;iz++) {
+        unsigned ind3d = ix+iz*nx/2;
+        float_tt zScale=0;
         // Integrate over nzPerSlice neighboring layers here:::::::::
-        for (zScale=0,iiz=-izOffset;iiz<=izOffset;iiz++) {
+        for (int iiz=-izOffset;iiz<=izOffset;iiz++) {
           if (iz+izOffset+iiz < nz/2) zScale += temp[ix+(iz+izOffset+iiz)*nx][0];
         }
         if (zScale < 0) zScale = 0;
@@ -680,15 +711,166 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(int Znum, double B,int 
     ptr = atPot[Znum];
     imageio->WriteComplexImage((void**)ptr, fileName);
 #endif        
-    if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential offset array for Z=%d (%d, B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
-                                     nx/2,nz/2,Znum,iKind,B,dkx,dky,dkz,izOffset);
-  }
-  *Nz_lut = nz/2;
-  *nzSub = nzPerSlice;
-  *Nr         = nx/2;
+    if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential offset array for Z=%d (B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
+                                     nx/2,nz/2,Znum,B,dkx,dky,dkz,izOffset);
+    // free the temp memory
+    fftw_free(temp);
+  } // end of creating atom if not exist...
+  Nz_lut = nz/2;
+  nzSub  = nzPerSlice;
+  Nr     = nx/2;
   return atPot[Znum];
 }
 // #undef SHOW_SINGLE_POTENTIAL
 // end of fftwf_complex *getAtomPotential3D(...)
 
 
+/*------------------ splinh() -----------------------------*/
+/*
+        fit a quasi-Hermite cubic spline
+        
+        [1] Spline fit as in H.Akima, J. ACM 17(1970)p.589-602
+                'A New Method of Interpolation and Smooth
+                Curve Fitting Based on Local Procedures'
+
+        [2] H.Akima, Comm. ACM, 15(1972)p.914-918
+
+        E. Kirkland 4-JUL-85
+        changed zero test to be a small nonzero number 8-jul-85 ejk
+        converted to C 24-jun-1995 ejk
+
+        The inputs are:
+                x[n] = array of x values in ascending order, each X(I) must
+                        be unique
+                y[n] = array of y values corresponding to X(N)
+                n = number of data points must be 2 or greater
+
+        The outputs are (with z=x-x(i)):
+                b[n] = array of spline coeficients for (x-x[i])
+                c[n] = array of spline coeficients for (x-x[i])**2
+                d[n] = array of spline coeficients for (x-x[i])**3
+                ( x[i] <= x <= x[i+1] )
+        To interpolate y(x) = yi + bi*z + c*z*z + d*z*z*z
+
+        The coeficients b[i], c[i], d[i] refer to the x[i] to x[i+1]
+        interval. NOTE that the last set of coefficients,
+        b[n-1], c[n-1], d[n-1] are meaningless.
+*/
+void C3DFFTPotential::splinh( float_tt x[], float_tt y[],
+         float_tt b[], float_tt c[], float_tt d[], int n)
+{
+#define SMALL 1.0e-25
+
+  int i, nm1, nm4;
+  float_tt m1, m2, m3, m4, m5, t1, t2, m54, m43, m32, m21, x43;
+  
+  if( n < 4) return;
+  
+  /* Do the first end point (special case),
+and get starting values */
+  
+  m5 = ( y[3] - y[2] ) / ( x[3] - x[2] );        /* mx = slope at pt x */
+  m4 = ( y[2] - y[1] ) / ( x[2] - x[1] );
+  m3 = ( y[1] - y[0] ) / ( x[1] - x[0] );
+  
+  m2 = m3 + m3 - m4;        /* eq. (9) of reference [1] */
+  m1 = m2 + m2 - m3;
+  
+  m54 = fabs( m5 - m4);
+  m43 = fabs( m4 - m3);
+  m32 = fabs( m3 - m2);
+  m21 = fabs( m2 - m1);
+  
+  if ( (m43+m21) > SMALL )
+    t1 = ( m43*m2 + m21*m3 ) / ( m43 + m21 );
+  else
+    t1 = 0.5 * ( m2 + m3 );
+  
+  /* Do everything up to the last end points */
+  
+  nm1 = n-1;
+  nm4 = n-4;
+  
+  for( i=0; i<nm1; i++) {
+    
+    if( (m54+m32) > SMALL )
+      t2= (m54*m3 + m32*m4) / (m54 + m32);
+    else
+      t2 = 0.5* ( m3 + m4 );
+    
+    x43 = x[i+1] - x[i];
+    b[i] = t1;
+    c[i] = ( 3.0*m3 - t1 - t1 - t2 ) /x43;
+    d[i] = ( t1 + t2 - m3 - m3 ) / ( x43*x43 );
+    
+    m1 = m2;
+    m2 = m3;
+    m3 = m4;
+    m4 = m5;
+    if( i < nm4 ) {
+      m5 = ( y[i+4] - y[i+3] ) / ( x[i+4] - x[i+3] );
+    } else {
+      m5 = m4 + m4 - m3;
+    }
+    
+    m21 = m32;
+    m32 = m43;
+    m43 = m54;
+    m54 = fabs( m5 - m4 );
+    t1 = t2;
+  }
+  
+  return;
+  
+} /* end splinh() */
+
+/*----------------------- seval() ----------------------*/
+/*
+        Interpolate from cubic spline coefficients
+
+        E. Kirkland 4-JUL-85
+        modified to do a binary search for efficiency 13-Oct-1994 ejk
+        converted to C 26-jun-1995 ejk
+        fixed problem on end-of-range 16-July-1995 ejk
+
+        The inputs are:
+                x[n] = array of x values in ascending order, each x[i] must
+                        be unique
+                y[n] = array of y values corresponding to x[n]
+                b[n] = array of spline coeficients for (x-x[i])
+                c[n] = array of spline coeficients for (x-x[i])**2
+                d[n] = array of spline coeficients for (x-x[i])**3
+                n = number of data points
+                x0 = the x value to interpolate at
+                (x[i] <= x <= x[i+1]) and all inputs remain unchanged
+
+        The value returned is the interpolated y value.
+
+        The coeficients b[i], c[i], d[i] refer to the x[i] to x[i+1]
+        interval. NOTE that the last set of coefficients,
+        b[n-1], c[n-1], d[n-1] are meaningless.
+*/
+float_tt C3DFFTPotential::seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+         float_tt *d, int n, float_tt x0 )
+{
+  int i, j, k;
+  float_tt z, seval1;
+  
+  /* exit if x0 is outside the spline range */
+  if( x0 <= x[0] ) i = 0;
+  else if( x0 >= x[n-2] ) i = n-2;
+  else {
+    i = 0;
+    j = n;
+    do{ k = ( i + j ) / 2 ;
+    if( x0 < x[k] ) j = k;
+    else if( x0 >= x[k] ) i = k;
+    } while ( (j-i) > 1 );
+  }
+  
+  z = x0 - x[i];
+  seval1 = y[i] + ( b[i] + ( c[i] + d[i] *z ) *z) *z;
+  
+  return( seval1 );
+  
+} /* end seval() */

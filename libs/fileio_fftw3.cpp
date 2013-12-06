@@ -54,7 +54,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define NPDTMAX 8       /* number of parameters for doyle turner sfacts */
 #define NPMAX	12	/* number of parameters for each Z */
 #define NZMIN	1	/* min Z in featom.tab */
-#define NZMAX	98      /* max Z (in featom.dat ZMAX=103) */
+//#define NZMAX	98      /* max Z (in featom.dat ZMAX=103) */
 #define	NCMAX	132	/* characters per line to read */
 #define NPARAM	64	/* number of parameters in tiff files */
 

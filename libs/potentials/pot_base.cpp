@@ -44,11 +44,11 @@ void CPotential::Initialize()
   m_boxNy = (int)(m_atomRadius/m_ddy+2.0);  
 
   m_c = m_sliceThickness * m_nslices;
-  m_dr = m_dx/OVERSAMP_X; // define step width in which radial V(r,z) is defined
+  m_dr = m_dx/OVERSAMPLING; // define step width in which radial V(r,z) is defined
   m_iRadX = (int)ceil(m_atomRadius/m_dx);
   m_iRadY = (int)ceil(m_atomRadius/m_dy);
   m_iRadZ = (int)ceil(m_atomRadius/m_sliceThickness);
-  m_iRad2 = iRadX*iRadX+iRadY*iRadY;
+  m_iRad2 = m_iRadX*m_iRadX+m_iRadY*m_iRadY;
   m_atomRadius2 = m_atomRadius * m_atomRadius;
 
   m_cz.resize(m_nslices);
@@ -429,11 +429,10 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
 } // end of make3DSlices
 
 
-void CPotential::AddAtomRealSpace(std::vector<atom>::iterator &atom, unsigned iatom)
+void CPotential::AddAtomRealSpace(std::vector<atom>::iterator &atom, 
+                                  float_tt atomX, float_tt atomY, float_tt atomZ)
 {
-  float_tt atomX = atom->x - m_offsetX;
-  float_tt atomY = atom->y - m_offsetY;
-  float_tt atomZ;
+  unsigned iatom = atom-m_atoms.begin();
 
   CenterAtomZ(atom, atomZ);
   

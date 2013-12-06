@@ -28,15 +28,23 @@ public:
   CCrystal(ConfigReaderPtr &configReader);
   ~CCrystal();
   
-  void ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies);
-  void TiltBoxed(int ncoord,&atoms,int handleVacancies);
-  void PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
-                          int icz,int atomCount,double dw,int maxAtom,int ZnumIndex);
+  void ReadUnitCell(char *fileName, int handleVacancies);
+  void TiltBoxed(int ncoord,int handleVacancies);
+  void PhononDisplacement(double *u,int id,int icx,int icy,
+                          int icz,double dw,int maxAtom,int ZnumIndex);
   void ReplicateUnitCell(int handleVacancies);
+
+  float_tt GetCZ(){return m_cz;}
   
 protected:
+  unsigned m_natoms;
   std::vector<atom> m_atoms;
-}
+  float_tt **m_Mm;
+  float_tt m_ax, m_by, m_cz;
+  float_tt m_cAlpha, m_cBeta, m_cGamma;
+};
+
+typedef boost::shared_ptr<CCrystal> StructurePtr;
 
 #endif
 

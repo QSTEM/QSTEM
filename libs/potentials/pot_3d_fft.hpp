@@ -15,6 +15,10 @@ protected:
                          float_tt atomBoxX, unsigned int ix, 
                          float_tt atomBoxY, unsigned int iy, 
                          float_tt atomZ);
-  complex_tt *GetAtomPotential3D(int Znum, double B,int &nzSub,int &Nr,int &Nz_lut);
-  complex_tt *GetAtomPotentialOffset3D(int Znum, double B,int &nzSub,int &Nr,int &Nz_lut,float_tt q);
+  complex_tt *GetAtomPotential3D(unsigned Znum, float_tt B,unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut);
+  complex_tt *GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut,float_tt q);
+  void splinh( float_tt x[], float_tt y[],
+                   float_tt b[], float_tt c[], float_tt d[], int n);
+  float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+                  float_tt *d, int n, float_tt x0 );
 };

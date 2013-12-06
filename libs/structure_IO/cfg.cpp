@@ -146,8 +146,8 @@ int CStructureCfg::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,c
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int CStructureCfg::ReadCellParams(MULS *muls, double **Mm, char *fileName) {
-	int ncoord,i;
+int CStructureCfg::ReadCellParams(unsigned &ncoord; double **Mm, char *fileName) {
+	int i;
 	char buf[256];
 	double lengthScale;
 
@@ -190,15 +190,6 @@ int CStructureCfg::ReadCellParams(MULS *muls, double **Mm, char *fileName) {
 
 	for (i=0;i<9;i++) Mm[0][i] *= lengthScale;
 
-	muls->ax = sqrt(Mm[0][0]*Mm[0][0]+Mm[0][1]*Mm[0][1]+Mm[0][2]*Mm[0][2]);
-	muls->by = sqrt(Mm[1][0]*Mm[1][0]+Mm[1][1]*Mm[1][1]+Mm[1][2]*Mm[1][2]);
-	muls->c  = sqrt(Mm[2][0]*Mm[2][0]+Mm[2][1]*Mm[2][1]+Mm[2][2]*Mm[2][2]);
-	muls->cGamma = atan2(Mm[1][1],Mm[1][0]);
-	muls->cBeta = acos(Mm[2][0]/muls->c);
-	muls->cAlpha = acos(Mm[2][1]*sin(muls->cGamma)/muls->c+cos(muls->cBeta)*cos(muls->cGamma));
-	muls->cGamma /= (float)PI180;
-	muls->cBeta  /= (float)PI180;
-	muls->cAlpha /= (float)PI180;
 	if (ncoord < 1) {
 		printf("Number of atoms in CFG file not specified!\n");
 		ncoord = 0;
