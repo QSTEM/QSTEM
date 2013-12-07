@@ -19,12 +19,79 @@
 
 
 #include "crystal.hpp"
-#include <boost/array.hpp>
+#include "config_readers.hpp"
+#include <boost/array>
+#include <boost/filesystem>
 
 
-CCrystal::CCrystal(std::string &structureFilename)
+CCrystal::CCrystal(ConfigReaderPtr &configReader)
 {
+  configReader->ReadStructureFileName(std::string &directory, std::string &filename)
+  configReader->ReadNCells(m_nCellX, m_nCellY, m_nCellZ);
+  m_reader = GetStructureReader(fileName);
   m_Mm = boost::Array();
+}
+
+void CCrystal::Init(unsigned run_number)
+{
+  ncoord = reader->GetNCoord();
+  reader->ReadCellParams(m_Mm);
+  
+  CalculateCellDimensions();
+    if (m_printLevel>=3)
+      printf("Read %d atoms from %s, tds: %d\n",natom,fileName,m_tds);
+    muls->natom = natom;
+    muls->atoms = atoms;
+
+	minX = maxX = atoms[0].x;
+    minY = maxY = atoms[0].y;
+    minZ = maxZ = atoms[0].z;
+
+    for (i=0;i<natom;i++) {
+      if (atoms[i].x < minX) minX = atoms[i].x;
+      if (atoms[i].x > maxX) maxX = atoms[i].x;
+      if (atoms[i].y < minY) minY = atoms[i].y;
+      if (atoms[i].y > maxY) maxY = atoms[i].y;
+      if (atoms[i].z < minZ) minZ = atoms[i].z;
+      if (atoms[i].z > maxZ) maxZ = atoms[i].z;
+    }
+    /*
+      printf("Root of mean square TDS displacement: %f A (wobble=%g at %gK) %g %g %g\n",
+      sqrt(u2/natom),wobble,(*muls).tds_temp,ux,uy,uz);
+    */
+    if (muls->printLevel >= 2) {
+      printf("range of thermally displaced atoms (%d atoms): \n",natom);
+      printf("X: %g .. %g\n",minX,maxX);
+      printf("Y: %g .. %g\n",minY,maxY);
+      printf("Z: %g .. %g\n",minZ,maxZ);
+    }
+    /*
+      define the center of our unit cell by moving the atom specified
+      by "center" at position (0.5,0.5,0.0)
+    */
+          
+    if (center != NULL) {
+      dx = (*muls).ax/2.0f - (*center).x;        
+      dy = (*muls).by/2.0f - (*center).y;        
+      dz = -(*center).z;
+      for (i=0;i<natom;i++) {
+        atoms[i].x += dx;
+        if (atoms[i].x < 0.0f) atoms[i].x += (*muls).ax;
+        else if (atoms[i].x > (*muls).ax) atoms[i].x -= (*muls).ax;
+        atoms[i].y += dy;
+        if (atoms[i].y < 0.0f) atoms[i].y += (*muls).by;
+        else if (atoms[i].y > (*muls).by) atoms[i].y -= (*muls).by;
+        atoms[i].z += dz;
+        if (atoms[i].z < 0.0f) atoms[i].z += (*muls).c;
+        else if (atoms[i].z > (*muls).c) atoms[i].z -= (*muls).c;
+      }
+    }
+
+    /**********************************************************
+     * Sort the atoms in z.
+     *********************************************************/
+    qsort(atoms,natom,sizeof(atom),atomCompare);
+    WriteStructure(run_number);
 }
 
 // This function reads the atomic positions from fileName and also adds 
@@ -58,11 +125,7 @@ void CCrystal::ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies
   }
   */
 
-  StructureReaderPtr reader = GetStructureReader(fileName);
-  ncoord = reader->GetNCoord();
-  reader->ReadCellParams(m_Mm);
   
-  CalculateCellDimensions();
 
   if (ncoord == 0) {
     printf("Error reading configuration file %s - ncoord =0\n",fileName);
@@ -89,6 +152,9 @@ void CCrystal::ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies
    * allocate the arrays 
    ************************************************************/
 
+  reader->Initialize(m_atoms);
+
+
   natom = ncoord*ncx*ncy*ncz;
   atoms.resize(natom);
 
@@ -98,6 +164,8 @@ void CCrystal::ReadUnitCell(unsigned &natom, char *fileName, int handleVacancies
    * Read actual Data
    ***********************************************************/
   for(jz=0,i=ncoord-1; i>=0; i--) {
+
+    
     
     switch (format) {
     case FORMAT_CFG: 
@@ -333,270 +401,269 @@ void CCrystal::CalculateCellDimensions()
 // TODO: old version return a pointer to new atom positions.  Can we do this in place?
 //		If not, just set atoms to the new vector.
 void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int handleVacancies) {
-	int atomKinds = 0;
-	int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
-	static double *axCell,*byCell,*czCell=NULL;
-	static double **Mm = NULL, **Mminv = NULL, **MpRed = NULL, **MpRedInv = NULL;
-	static double **MbPrim = NULL, **MbPrimInv = NULL, **MmOrig = NULL,**MmOrigInv=NULL;
-	static double **a = NULL,**aOrig = NULL,**b= NULL,**bfloor=NULL,**blat=NULL;
-	static double *uf;
-	static int oldAtomSize = 0;
-	double x,y,z,dx,dy,dz; 
-	double totOcc,lastOcc,choice;
-	std::vector<atom> unitAtoms, newAtom;
-	int nxmin,nxmax,nymin,nymax,n zmin,nzmax,jz;
-	int Ncells;
-	static double *u;
-	static long idum = -1;
+  int atomKinds = 0;
+  int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
+  static double *axCell,*byCell,*czCell=NULL;
+  static double **Mm = NULL, **Mminv = NULL, **MpRed = NULL, **MpRedInv = NULL;
+  static double **MbPrim = NULL, **MbPrimInv = NULL, **MmOrig = NULL,**MmOrigInv=NULL;
+  static double **a = NULL,**aOrig = NULL,**b= NULL,**bfloor=NULL,**blat=NULL;
+  static double *uf;
+  static int oldAtomSize = 0;
+  double x,y,z,dx,dy,dz; 
+  double totOcc,lastOcc,choice;
+  std::vector<atom> unitAtoms, newAtom;
+  int nxmin,nxmax,nymin,nymax,n zmin,nzmax,jz;
+  int Ncells;
+  static double *u;
+  static long idum = -1;
 
 
-	// if (iseed == 0) iseed = -(long) time( NULL );
-	Ncells = m_nCellX * m_nCellY * m_nCellZ;
+  // if (iseed == 0) iseed = -(long) time( NULL );
+  Ncells = m_nCellX * m_nCellY * m_nCellZ;
 
-	/* calculate maximum length in supercell box, which is naturally 
-	* the room diagonal:
+  /* calculate maximum length in supercell box, which is naturally 
+   * the room diagonal:
 
-	maxLength = sqrt(m_cubex*m_cubex+
-	m_cubey*m_cubey+
-	m_cubez*m_cubez);
-	*/
+   maxLength = sqrt(m_cubex*m_cubex+
+   m_cubey*m_cubey+
+   m_cubez*m_cubez);
+  */
 
-	if (Mm == NULL) {
-		MmOrig		= double2D(3,3,"MmOrig");
-		MmOrigInv	= double2D(3,3,"MmOrigInv");
-		MbPrim		= double2D(3,3,"MbPrim");	// double version of primitive lattice basis 
-		MbPrimInv	= double2D(3,3,"MbPrim"); // double version of inverse primitive lattice basis 
-		MpRed		= double2D(3,3,"MpRed");    /* conversion lattice to obtain red. prim. coords 
-												* from reduced cubic rect.
-												*/
-		MpRedInv	= double2D(3,3,"MpRedInv");    /* conversion lattice to obtain red. cub. coords 
-												   * from reduced primitive lattice coords
-												   */
-		Mm			= double2D(3,3,"Mm");
-		Mminv		= double2D(3,3,"Mminv");
-		axCell = Mm[0]; byCell = Mm[1]; czCell = Mm[2];
-		a			= double2D(1,3,"a");
-		aOrig		= double2D(1,3,"aOrig");
-		b			= double2D(1,3,"b");
-		bfloor		= double2D(1,3,"bfloor");
-		blat		= double2D(1,3,"blat");
-		uf			= (double *)malloc(3*sizeof(double));
-		u			= (double *)malloc(3*sizeof(double));
-	}
+  if (Mm == NULL) {
+    MmOrig		= double2D(3,3,"MmOrig");
+    MmOrigInv	= double2D(3,3,"MmOrigInv");
+    MbPrim		= double2D(3,3,"MbPrim");	// double version of primitive lattice basis 
+    MbPrimInv	= double2D(3,3,"MbPrim"); // double version of inverse primitive lattice basis 
+    MpRed		= double2D(3,3,"MpRed");    /* conversion lattice to obtain red. prim. coords 
+                                                     * from reduced cubic rect.
+                                                     */
+    MpRedInv	= double2D(3,3,"MpRedInv");    /* conversion lattice to obtain red. cub. coords 
+                                                * from reduced primitive lattice coords
+                                                */
+    Mm			= double2D(3,3,"Mm");
+    Mminv		= double2D(3,3,"Mminv");
+    axCell = Mm[0]; byCell = Mm[1]; czCell = Mm[2];
+    a			= double2D(1,3,"a");
+    aOrig		= double2D(1,3,"aOrig");
+    b			= double2D(1,3,"b");
+    bfloor		= double2D(1,3,"bfloor");
+    blat		= double2D(1,3,"blat");
+    uf			= (double *)malloc(3*sizeof(double));
+    u			= (double *)malloc(3*sizeof(double));
+  }
 
 
-	dx = 0; dy = 0; dz = 0;
-	dx = m_xOffset;
-	dy = m_yOffset;
-	/* find the rotated unit cell vectors .. 
-	* muls does still hold the single unit cell vectors in ax,by, and c
-	*/
-	// makeCellVectMuls(muls, axCell, byCell, czCell);
-	// We need to copy the transpose of m_Mm to Mm.
-	// we therefore cannot use the following command:
-	// memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
-	for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=m_Mm[iy][ix];
+  dx = 0; dy = 0; dz = 0;
+  dx = m_xOffset;
+  dy = m_yOffset;
+  /* find the rotated unit cell vectors .. 
+   * muls does still hold the single unit cell vectors in ax,by, and c
+   */
+  // makeCellVectMuls(muls, axCell, byCell, czCell);
+  // We need to copy the transpose of m_Mm to Mm.
+  // we therefore cannot use the following command:
+  // memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
+  for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=m_Mm[iy][ix];
 
-	memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
-	inverse_3x3(MmOrigInv[0],MmOrig[0]);
-	/* remember that the angles are in rad: */
-	rotateMatrix(Mm[0],Mm[0],m_ctiltx,m_ctilty,m_ctiltz);
-	/*
-	// This is wrong, because it implements Mrot*(Mm'):
-	rotateVect(axCell,axCell,m_ctiltx,m_ctilty,m_ctiltz);
-	rotateVect(byCell,byCell,m_ctiltx,m_ctilty,m_ctiltz);
-	rotateVect(czCell,czCell,m_ctiltx,m_ctilty,m_ctiltz);
-	*/
-	inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
-	/* find out how far we will have to go in unit of unit cell vectors.
-	* when creating the supercell by checking the number of unit cell vectors 
-	* necessary to reach every corner of the supercell box.
-	*/
-	// showMatrix(MmOrig,3,3,"Morig");
-	// printf("%d %d\n",(int)Mm, (int)MmOrig);
-	memset(a[0],0,3*sizeof(double));
-	// matrixProduct(a,1,3,Mminv,3,3,b);
-	matrixProduct(Mminv,3,3,a,3,1,b);
-	// showMatrix(Mm,3,3,"M");
-	// showMatrix(Mminv,3,3,"M");
-	nxmin = nxmax = (int)floor(b[0][0]-dx); 
-	nymin = nymax = (int)floor(b[0][1]-dy); 
-	nzmin = nzmax = (int)floor(b[0][2]-dz);
-	for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
-		a[0][0]=ix*m_cubex-dx; a[0][1]=iy*m_cubey-dy; a[0][2]=iz*m_cubez-dz;
+  memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
+  inverse_3x3(MmOrigInv[0],MmOrig[0]);
+  /* remember that the angles are in rad: */
+  rotateMatrix(Mm[0],Mm[0],m_ctiltx,m_ctilty,m_ctiltz);
+  /*
+  // This is wrong, because it implements Mrot*(Mm'):
+  rotateVect(axCell,axCell,m_ctiltx,m_ctilty,m_ctiltz);
+  rotateVect(byCell,byCell,m_ctiltx,m_ctilty,m_ctiltz);
+  rotateVect(czCell,czCell,m_ctiltx,m_ctilty,m_ctiltz);
+  */
+  inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
+  /* find out how far we will have to go in unit of unit cell vectors.
+   * when creating the supercell by checking the number of unit cell vectors 
+   * necessary to reach every corner of the supercell box.
+   */
+  // showMatrix(MmOrig,3,3,"Morig");
+  // printf("%d %d\n",(int)Mm, (int)MmOrig);
+  memset(a[0],0,3*sizeof(double));
+  // matrixProduct(a,1,3,Mminv,3,3,b);
+  matrixProduct(Mminv,3,3,a,3,1,b);
+  // showMatrix(Mm,3,3,"M");
+  // showMatrix(Mminv,3,3,"M");
+  nxmin = nxmax = (int)floor(b[0][0]-dx); 
+  nymin = nymax = (int)floor(b[0][1]-dy); 
+  nzmin = nzmax = (int)floor(b[0][2]-dz);
+  for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
+        a[0][0]=ix*m_cubex-dx; a[0][1]=iy*m_cubey-dy; a[0][2]=iz*m_cubez-dz;
 
-		// matrixProduct(a,1,3,Mminv,3,3,b);
-		matrixProduct(Mminv,3,3,a,3,1,b);
+        // matrixProduct(a,1,3,Mminv,3,3,b);
+        matrixProduct(Mminv,3,3,a,3,1,b);
 
-		// showMatrix(b,1,3,"b");
-		if (nxmin > (int)floor(b[0][0])) nxmin=(int)floor(b[0][0]);
-		if (nxmax < (int)ceil( b[0][0])) nxmax=(int)ceil( b[0][0]);
-		if (nymin > (int)floor(b[0][1])) nymin=(int)floor(b[0][1]);
-		if (nymax < (int)ceil( b[0][1])) nymax=(int)ceil( b[0][1]);
-		if (nzmin > (int)floor(b[0][2])) nzmin=(int)floor(b[0][2]);
-		if (nzmax < (int)ceil( b[0][2])) nzmax=(int)ceil( b[0][2]);	  
-	}
+        // showMatrix(b,1,3,"b");
+        if (nxmin > (int)floor(b[0][0])) nxmin=(int)floor(b[0][0]);
+        if (nxmax < (int)ceil( b[0][0])) nxmax=(int)ceil( b[0][0]);
+        if (nymin > (int)floor(b[0][1])) nymin=(int)floor(b[0][1]);
+        if (nymax < (int)ceil( b[0][1])) nymax=(int)ceil( b[0][1]);
+        if (nzmin > (int)floor(b[0][2])) nzmin=(int)floor(b[0][2]);
+        if (nzmax < (int)ceil( b[0][2])) nzmax=(int)ceil( b[0][2]);	  
+      }
 
-	// nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;
+  // nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;
         
-	unitAtoms.resize(ncoord);
-	memcpy(&unitAtoms[0],&atoms[0],ncoord*sizeof(atom));
-	atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
-	if (atomSize != oldAtomSize) {
-          atoms.resize(atomSize);
-          oldAtomSize = atomSize;
-	}
-	// showMatrix(Mm,3,3,"Mm");
-	// showMatrix(Mminv,3,3,"Mminv");
-	// printf("Range: (%d..%d, %d..%d, %d..%d)\n",
-	// nxmin,nxmax,nymin,nymax,nzmin,nzmax);
+  unitAtoms.resize(ncoord);
+  memcpy(&unitAtoms[0],&atoms[0],ncoord*sizeof(atom));
+  atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
+  if (atomSize != oldAtomSize) {
+    atoms.resize(atomSize);
+    oldAtomSize = atomSize;
+  }
+  // showMatrix(Mm,3,3,"Mm");
+  // showMatrix(Mminv,3,3,"Mminv");
+  // printf("Range: (%d..%d, %d..%d, %d..%d)\n",
+  // nxmin,nxmax,nymin,nymax,nzmin,nzmax);
 
-	atomCount = 0;  
-	jVac = 0;
-	memset(u,0,3*sizeof(double));
-	for (iatom=0;iatom<ncoord;) {
-		// printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
-		//   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
-		memcpy(&newAtom,&unitAtoms[iatom],sizeof(atom));
-		for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == newAtom.Znum) break;
-		// allocate more memory, if there is a new element
-		/*
-		if (jz == atomKinds) {
-			atomKinds++;
-			if (atomKinds > m_atomKinds) {
-				m_Znums = (int *)realloc(m_Znums,atomKinds*sizeof(int));
-				m_atomKinds = atomKinds;
-				// printf("%d kinds (%d)\n",atomKinds,atoms[i].Znum);
-			}  
-			m_Znums[jz] = newAtom.Znum;
-		}
-		*/
-		/////////////////////////////////////////////////////
-		// look for atoms at equal position
-		if ((handleVacancies) && (newAtom.Znum > 0)) {
-			totOcc = newAtom.occ;
-			for (jequal=iatom+1;jequal<ncoord;jequal++) {
-				// if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
-				// the total occupany and the counter jequal.
-				if ((fabs(newAtom.x-unitAtoms[jequal].x) < 1e-6) && (fabs(newAtom.y-unitAtoms[jequal].y) < 1e-6) && (fabs(newAtom.z-unitAtoms[jequal].z) < 1e-6)) {
-					totOcc += unitAtoms[jequal].occ;
-				}
-				else break;
-			} // jequal-loop
-		}
-		else {
-			jequal = iatom+1;
-			totOcc = 1;
-		}
-
-
-
-		// printf("%d: %d\n",atomCount,jz);
-		for (ix=nxmin;ix<=nxmax;ix++) {
-			for (iy=nymin;iy<=nymax;iy++) {
-				for (iz=nzmin;iz<=nzmax;iz++) {
-					// atom position in cubic reduced coordinates: 
-					aOrig[0][0] = ix+newAtom.x; aOrig[0][1] = iy+newAtom.y; aOrig[0][2] = iz+newAtom.z;
-
-					// Now is the time to remove atoms that are on the same position or could be vacancies:
-					// if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
-					// do something about it:
-					// All we need to decide is whether to include the atom at all (if totOcc < 1
-					// of which of the atoms at equal positions to include
-					jChoice = iatom;  // This will be the atom we wil use.
-					if ((totOcc < 1) || (jequal > iatom+1)) { // found atoms at equal positions or an occupancy less than 1!
-						// ran1 returns a uniform random deviate between 0.0 and 1.0 exclusive of the endpoint values. 
-						// 
-						// if the total occupancy is less than 1 -> make sure we keep this
-						// if the total occupancy is greater than 1 (unphysical) -> rescale all partial occupancies!
-						if (totOcc < 1.0) choice = ran1(&idum);   
-						else choice = totOcc*ran1(&idum);
-						// printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
-						lastOcc = 0;
-						for (i2=iatom;i2<jequal;i2++) {
-							// atoms[atomCount].Znum = unitAtoms[i2].Znum; 
-							// if choice does not match the current atom:
-							// choice will never be 0 or 1(*totOcc) 
-							if ((choice <lastOcc) || (choice >=lastOcc+unitAtoms[i2].occ)) {
-								// printf("Removing atom %d, Z=%d\n",jCell+i2,atoms[jCell+i2].Znum);
-								// atoms[atomCount].Znum =  0;  // vacancy
-								jVac++;
-							}
-							else {
-								jChoice = i2;
-							}
-							lastOcc += unitAtoms[i2].occ;
-						}
-						// printf("Keeping atom %d (%d), Z=%d\n",jChoice,iatom,unitAtoms[jChoice].Znum);
-					}
-					// if (jChoice != iatom) memcpy(&newAtom,unitAtoms+jChoice,sizeof(atom));
-					if (jChoice != iatom) {
-						for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == unitAtoms[jChoice].Znum) break;
-					}
+  atomCount = 0;  
+  jVac = 0;
+  memset(u,0,3*sizeof(double));
+  for (iatom=0;iatom<ncoord;) {
+    // printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
+    //   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
+    memcpy(&newAtom,&unitAtoms[iatom],sizeof(atom));
+    for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == newAtom.Znum) break;
+    // allocate more memory, if there is a new element
+    /*
+      if (jz == atomKinds) {
+      atomKinds++;
+      if (atomKinds > m_atomKinds) {
+      m_Znums = (int *)realloc(m_Znums,atomKinds*sizeof(int));
+      m_atomKinds = atomKinds;
+      // printf("%d kinds (%d)\n",atomKinds,atoms[i].Znum);
+      }  
+      m_Znums[jz] = newAtom.Znum;
+      }
+    */
+    /////////////////////////////////////////////////////
+    // look for atoms at equal position
+    if ((handleVacancies) && (newAtom.Znum > 0)) {
+      totOcc = newAtom.occ;
+      for (jequal=iatom+1;jequal<ncoord;jequal++) {
+        // if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
+        // the total occupany and the counter jequal.
+        if ((fabs(newAtom.x-unitAtoms[jequal].x) < 1e-6) && (fabs(newAtom.y-unitAtoms[jequal].y) < 1e-6) && (fabs(newAtom.z-unitAtoms[jequal].z) < 1e-6)) {
+          totOcc += unitAtoms[jequal].occ;
+        }
+        else break;
+      } // jequal-loop
+    }
+    else {
+      jequal = iatom+1;
+      totOcc = 1;
+    }
 
 
 
+    // printf("%d: %d\n",atomCount,jz);
+    for (ix=nxmin;ix<=nxmax;ix++) {
+      for (iy=nymin;iy<=nymax;iy++) {
+        for (iz=nzmin;iz<=nzmax;iz++) {
+          // atom position in cubic reduced coordinates: 
+          aOrig[0][0] = ix+newAtom.x; aOrig[0][1] = iy+newAtom.y; aOrig[0][2] = iz+newAtom.z;
 
-					// here we need to call phononDisplacement:
-					// phononDisplacement(u,muls,iatom,ix,iy,iz,atomCount,atoms[i].dw,*natom,atoms[i].Znum);
-					if (m_Einstein == 1) {
-						// phononDisplacement(u,muls,iatom,ix,iy,iz,1,newAtom.dw,10,newAtom.Znum);
-						if (m_tds) {
-							phononDisplacement(u,muls,jChoice,ix,iy,iz,1,unitAtoms[jChoice].dw,atomSize,jz);
-							a[0][0] = aOrig[0][0]+u[0]; a[0][1] = aOrig[0][1]+u[1]; a[0][2] = aOrig[0][2]+u[2];
-						}
-						else {
-							a[0][0] = aOrig[0][0]; a[0][1] = aOrig[0][1]; a[0][2] = aOrig[0][2];
-						}
-					}
-					else {
-						printf("Cannot handle phonon-distribution mode for boxed sample yet - sorry!!\n");
-						exit(0);
-					}
-					// matrixProduct(aOrig,1,3,Mm,3,3,b);
-					matrixProduct(Mm,3,3,aOrig,3,1,b);
-
-					// if (atomCount < 2) {showMatrix(a,1,3,"a");showMatrix(b,1,3,"b");}
-					// b now contains atom positions in cartesian coordinates */
-					x  = b[0][0]+dx; 
-					y  = b[0][1]+dy; 
-					z  = b[0][2]+dz; 
-					if ((x >= 0) && (x <= m_cubex) &&
-						(y >= 0) && (y <= m_cubey) &&
-						(z >= 0) && (z <= m_cubez)) {
-							// matrixProduct(a,1,3,Mm,3,3,b);
-							matrixProduct(Mm,3,3,a,3,1,b);
-							atoms[atomCount].x		= b[0][0]+dx; 
-							atoms[atomCount].y		= b[0][1]+dy; 
-							atoms[atomCount].z		= b[0][2]+dz; 
-							atoms[atomCount].dw		= unitAtoms[jChoice].dw;
-							atoms[atomCount].occ	= unitAtoms[jChoice].occ;
-							atoms[atomCount].q		= unitAtoms[jChoice].q;
-							atoms[atomCount].Znum	= unitAtoms[jChoice].Znum;
-								
-							atomCount++;	
-							/*
-							if (unitAtoms[jChoice].Znum > 22)
-								printf("Atomcount: %d, Z = %d\n",atomCount,unitAtoms[jChoice].Znum);
-							*/
-					}
-
-				} /* iz ... */
-			} /* iy ... */
-		} /* ix ... */
-		iatom = jequal;
-	} /* iatom ... */
-	if (m_printLevel > 2) printf("Removed %d atoms because of multiple occupancy or occupancy < 1\n",jVac);
-	m_ax = m_cubex;
-	m_by = m_cubey;
-	m_c  = m_cubez;
-	*natom = atomCount;
-	// call phononDisplacement again to update displacement data:
-	phononDisplacement(u,muls,iatom,ix,iy,iz,0,newAtom.dw,*natom,jz);
+          // Now is the time to remove atoms that are on the same position or could be vacancies:
+          // if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
+          // do something about it:
+          // All we need to decide is whether to include the atom at all (if totOcc < 1
+          // of which of the atoms at equal positions to include
+          jChoice = iatom;  // This will be the atom we wil use.
+          if ((totOcc < 1) || (jequal > iatom+1)) { // found atoms at equal positions or an occupancy less than 1!
+            // ran1 returns a uniform random deviate between 0.0 and 1.0 exclusive of the endpoint values. 
+            // 
+            // if the total occupancy is less than 1 -> make sure we keep this
+            // if the total occupancy is greater than 1 (unphysical) -> rescale all partial occupancies!
+            if (totOcc < 1.0) choice = ran1(&idum);   
+            else choice = totOcc*ran1(&idum);
+            // printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
+            lastOcc = 0;
+            for (i2=iatom;i2<jequal;i2++) {
+              // atoms[atomCount].Znum = unitAtoms[i2].Znum; 
+              // if choice does not match the current atom:
+              // choice will never be 0 or 1(*totOcc) 
+              if ((choice <lastOcc) || (choice >=lastOcc+unitAtoms[i2].occ)) {
+                // printf("Removing atom %d, Z=%d\n",jCell+i2,atoms[jCell+i2].Znum);
+                // atoms[atomCount].Znum =  0;  // vacancy
+                jVac++;
+              }
+              else {
+                jChoice = i2;
+              }
+              lastOcc += unitAtoms[i2].occ;
+            }
+            // printf("Keeping atom %d (%d), Z=%d\n",jChoice,iatom,unitAtoms[jChoice].Znum);
+          }
+          // if (jChoice != iatom) memcpy(&newAtom,unitAtoms+jChoice,sizeof(atom));
+          if (jChoice != iatom) {
+            for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == unitAtoms[jChoice].Znum) break;
+          }
 
 
-	free(unitAtoms);
-	return atoms;
+
+
+          // here we need to call phononDisplacement:
+          // phononDisplacement(u,muls,iatom,ix,iy,iz,atomCount,atoms[i].dw,*natom,atoms[i].Znum);
+          if (m_Einstein == 1) {
+            // phononDisplacement(u,muls,iatom,ix,iy,iz,1,newAtom.dw,10,newAtom.Znum);
+            if (m_tds) {
+              phononDisplacement(u,muls,jChoice,ix,iy,iz,1,unitAtoms[jChoice].dw,atomSize,jz);
+              a[0][0] = aOrig[0][0]+u[0]; a[0][1] = aOrig[0][1]+u[1]; a[0][2] = aOrig[0][2]+u[2];
+            }
+            else {
+              a[0][0] = aOrig[0][0]; a[0][1] = aOrig[0][1]; a[0][2] = aOrig[0][2];
+            }
+          }
+          else {
+            printf("Cannot handle phonon-distribution mode for boxed sample yet - sorry!!\n");
+            exit(0);
+          }
+          // matrixProduct(aOrig,1,3,Mm,3,3,b);
+          matrixProduct(Mm,3,3,aOrig,3,1,b);
+          
+          // if (atomCount < 2) {showMatrix(a,1,3,"a");showMatrix(b,1,3,"b");}
+          // b now contains atom positions in cartesian coordinates */
+          x  = b[0][0]+dx; 
+          y  = b[0][1]+dy; 
+          z  = b[0][2]+dz; 
+          if ((x >= 0) && (x <= m_cubex) &&
+              (y >= 0) && (y <= m_cubey) &&
+              (z >= 0) && (z <= m_cubez)) {
+            // matrixProduct(a,1,3,Mm,3,3,b);
+            matrixProduct(Mm,3,3,a,3,1,b);
+            atoms[atomCount].x		= b[0][0]+dx; 
+            atoms[atomCount].y		= b[0][1]+dy; 
+            atoms[atomCount].z		= b[0][2]+dz; 
+            atoms[atomCount].dw		= unitAtoms[jChoice].dw;
+            atoms[atomCount].occ	= unitAtoms[jChoice].occ;
+            atoms[atomCount].q		= unitAtoms[jChoice].q;
+            atoms[atomCount].Znum	= unitAtoms[jChoice].Znum;
+            
+            atomCount++;	
+            /*
+              if (unitAtoms[jChoice].Znum > 22)
+              printf("Atomcount: %d, Z = %d\n",atomCount,unitAtoms[jChoice].Znum);
+            */
+          }
+          
+        } /* iz ... */
+      } /* iy ... */
+    } /* ix ... */
+    iatom = jequal;
+  } /* iatom ... */
+  if (m_printLevel > 2) printf("Removed %d atoms because of multiple occupancy or occupancy < 1\n",jVac);
+  m_ax = m_cubex;
+  m_by = m_cubey;
+  m_c  = m_cubez;
+  *natom = atomCount;
+  // call phononDisplacement again to update displacement data:
+  phononDisplacement(u,iatom,ix,iy,iz,0,newAtom.dw,*natom,jz);
+
+  //free(unitAtoms);
+  //return atoms;
 }  // end of 'tiltBoxed(...)'
 
 
@@ -610,123 +677,122 @@ void CCrystal::TiltBoxed(int ncoord,int &natom, std::vector<atom> &atoms,int han
 // memory for the whole atom-array of size natom has already been allocated
 // but the sites beyond natom are still empty.
 void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,int handleVacancies) {
-	int i,j,i2,jChoice,ncx,ncy,ncz,icx,icy,icz,jz,jCell,jequal,jVac;
-	int 	atomKinds = 0;
-	double totOcc;
-	double choice,lastOcc;
-	double *u;
-	// seed for random number generation
-	static long idum = -1;
+  int i,j,i2,jChoice,ncx,ncy,ncz,icx,icy,icz,jz,jCell,jequal,jVac;
+  int 	atomKinds = 0;
+  double totOcc;
+  double choice,lastOcc;
+  double *u;
+  // seed for random number generation
+  static long idum = -1;
 
-	ncx = m_nCellX;
-	ncy = m_nCellY;
-	ncz = m_nCellZ;
-	u = (double *)malloc(3*sizeof(double));
+  ncx = m_nCellX;
+  ncy = m_nCellY;
+  ncz = m_nCellZ;
+  u = (double *)malloc(3*sizeof(double));
 
-	atomKinds = m_atomKinds;
-	//////////////////////////////////////////////////////////////////////////////
-	// Look for atoms which share the same position:
-	jVac = 0;  // no atoms have been removed yet
-	for (i=ncoord-1;i>=0;) {
+  atomKinds = m_atomKinds;
+  //////////////////////////////////////////////////////////////////////////////
+  // Look for atoms which share the same position:
+  jVac = 0;  // no atoms have been removed yet
+  for (i=ncoord-1;i>=0;) {
 
-		////////////////
-		if ((handleVacancies) && (atoms[i].Znum > 0)) {
-			totOcc = atoms[i].occ;
-			for (jequal=i-1;jequal>=0;jequal--) {
-				// if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
-				// the total occupany and the counter jequal.
-				if ((fabs(atoms[i].x-atoms[jequal].x) < 1e-6) && (fabs(atoms[i].y-atoms[jequal].y) < 1e-6) && (fabs(atoms[i].z-atoms[jequal].z) < 1e-6)) {
-					totOcc += atoms[jequal].occ;
-				}
-				else break;
-			} // jequal-loop
-		}
-		else {
-			jequal = i-1;
-			totOcc = 1;
-			// Keep a record of the kinds of atoms we are reading
-		}
-		if (jequal == i-1) {
-			for (jz=0;jz<atomKinds;jz++)	if (m_Znums[jz] == atoms[i].Znum) break;
-		}
+    ////////////////
+    if ((handleVacancies) && (atoms[i].Znum > 0)) {
+      totOcc = atoms[i].occ;
+      for (jequal=i-1;jequal>=0;jequal--) {
+        // if there is anothe ratom that comes close to within 0.1*sqrt(3) A we will increase 
+        // the total occupany and the counter jequal.
+        if ((fabs(atoms[i].x-atoms[jequal].x) < 1e-6) && (fabs(atoms[i].y-atoms[jequal].y) < 1e-6) && (fabs(atoms[i].z-atoms[jequal].z) < 1e-6)) {
+          totOcc += atoms[jequal].occ;
+        }
+        else break;
+      } // jequal-loop
+    }
+    else {
+      jequal = i-1;
+      totOcc = 1;
+      // Keep a record of the kinds of atoms we are reading
+    }
+    if (jequal == i-1) {
+      for (jz=0;jz<atomKinds;jz++)	if (m_Znums[jz] == atoms[i].Znum) break;
+    }
 
-		////////////////
-		memset(u,0,3*sizeof(double));
-		/* replicate unit cell ncx,y,z times: */
-		/* We have to start with the last atoms first, because once we added the displacements 
-		* to the original unit cell (icx=icy=icz=0), we cannot use those positions			
-		* as unit cell coordinates for the other atoms anymore
-		*/
-		// printf("Will start phonon displacement (%f)\n",m_tds,m_temperature);
-		// for (jz=0;jz<m_atomKinds;jz++)	if (atoms[i].Znum == m_Znums[jz]) break;
+    ////////////////
+    memset(u,0,3*sizeof(double));
+    /* replicate unit cell ncx,y,z times: */
+    /* We have to start with the last atoms first, because once we added the displacements 
+     * to the original unit cell (icx=icy=icz=0), we cannot use those positions			
+     * as unit cell coordinates for the other atoms anymore
+     */
+    // printf("Will start phonon displacement (%f)\n",m_tds,m_temperature);
+    // for (jz=0;jz<m_atomKinds;jz++)	if (atoms[i].Znum == m_Znums[jz]) break;
 
-		for (icx=ncx-1;icx>=0;icx--) {
-			for (icy=ncy-1;icy>=0;icy--) {
-				for (icz=ncz-1;icz>=0;icz--) {
-					jCell = (icz+icy*ncz+icx*ncy*ncz)*ncoord;
-					j = jCell+i;
-					/* We will also add the phonon displacement to the atomic positions now: */
-					atoms[j].dw = atoms[i].dw;
-					atoms[j].occ = atoms[i].occ;
-					atoms[j].q = atoms[i].q;
-					atoms[j].Znum = atoms[i].Znum; 
-
-					// Now is the time to remove atoms that are on the same position or could be vacancies:
-					// if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
-					// do something about it:
-					jChoice = i;
-					if ((totOcc < 1) || (jequal < i-1)) { // found atoms at equal positions or an occupancy less than 1!
+    for (icx=ncx-1;icx>=0;icx--) {
+      for (icy=ncy-1;icy>=0;icy--) {
+        for (icz=ncz-1;icz>=0;icz--) {
+          jCell = (icz+icy*ncz+icx*ncy*ncz)*ncoord;
+          j = jCell+i;
+          /* We will also add the phonon displacement to the atomic positions now: */
+          atoms[j].dw = atoms[i].dw;
+          atoms[j].occ = atoms[i].occ;
+          atoms[j].q = atoms[i].q;
+          atoms[j].Znum = atoms[i].Znum; 
+          
+          // Now is the time to remove atoms that are on the same position or could be vacancies:
+          // if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
+          // do something about it:
+          jChoice = i;
+          if ((totOcc < 1) || (jequal < i-1)) { // found atoms at equal positions or an occupancy less than 1!
 						// ran1 returns a uniform random deviate between 0.0 and 1.0 exclusive of the endpoint values. 
 						// 
 						// if the total occupancy is less than 1 -> make sure we keep this
 						// if the total occupancy is greater than 1 (unphysical) -> rescale all partial occupancies!
-						if (totOcc < 1.0) choice = ran1(&idum);   
-						else choice = totOcc*ran1(&idum);
-						// printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
-						lastOcc = 0;
-						for (i2=i;i2>jequal;i2--) {
-							atoms[jCell+i2].dw = atoms[i2].dw;
-							atoms[jCell+i2].occ = atoms[i2].occ;
-							atoms[jCell+i2].q = atoms[i2].q;
-							atoms[jCell+i2].Znum = atoms[i2].Znum; 
+            if (totOcc < 1.0) choice = ran1(&idum);   
+            else choice = totOcc*ran1(&idum);
+            // printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
+            lastOcc = 0;
+            for (i2=i;i2>jequal;i2--) {
+              atoms[jCell+i2].dw = atoms[i2].dw;
+              atoms[jCell+i2].occ = atoms[i2].occ;
+              atoms[jCell+i2].q = atoms[i2].q;
+              atoms[jCell+i2].Znum = atoms[i2].Znum; 
 
-							// if choice does not match the current atom:
-							// choice will never be 0 or 1(*totOcc) 
-							if ((choice <lastOcc) || (choice >=lastOcc+atoms[i2].occ)) {
-								// printf("Removing atom %d, Z=%d\n",jCell+i2,atoms[jCell+i2].Znum);
-								atoms[jCell+i2].Znum =  0;  // vacancy
-								jVac++;
-							}
-							else {
-								jChoice = i2;
-							}
-							lastOcc += atoms[i2].occ;
-						}
+              // if choice does not match the current atom:
+              // choice will never be 0 or 1(*totOcc) 
+              if ((choice <lastOcc) || (choice >=lastOcc+atoms[i2].occ)) {
+                // printf("Removing atom %d, Z=%d\n",jCell+i2,atoms[jCell+i2].Znum);
+                atoms[jCell+i2].Znum =  0;  // vacancy
+                jVac++;
+              }
+              else {
+                jChoice = i2;
+              }
+              lastOcc += atoms[i2].occ;
+            }
+            
+            // Keep a record of the kinds of atoms we are reading
+            for (jz=0;jz<atomKinds;jz++) {
+              if (m_Znums[jz] == atoms[jChoice].Znum) break;
+            }
+          }
+          // printf("i2=%d, %d (%d) [%g %g %g]\n",i2,jequal,jz,atoms[jequal].x,atoms[jequal].y,atoms[jequal].z);
+          
+          // this function does nothing, if m_tds == 0
+          // if (j % 5 == 0) printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
+          phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
+          // printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
 
-						// Keep a record of the kinds of atoms we are reading
-						for (jz=0;jz<atomKinds;jz++) {
-							if (m_Znums[jz] == atoms[jChoice].Znum) break;
-						}
-					}
-					// printf("i2=%d, %d (%d) [%g %g %g]\n",i2,jequal,jz,atoms[jequal].x,atoms[jequal].y,atoms[jequal].z);
-
-					// this function does nothing, if m_tds == 0
-					// if (j % 5 == 0) printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
-					phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
-					// printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
-
-					for (i2=i;i2>jequal;i2--) {
-						atoms[jCell+i2].x = atoms[i2].x+icx+u[0];
-						atoms[jCell+i2].y = atoms[i2].y+icy+u[1];
-						atoms[jCell+i2].z = atoms[i2].z+icz+u[2];
-					}
-				}  // for (icz=ncz-1;icz>=0;icz--)
-			} // for (icy=ncy-1;icy>=0;icy--) 
-		} // for (icx=ncx-1;icx>=0;icx--)
-		i=jequal;
-	} // for (i=ncoord-1;i>=0;)
-	if ((jVac > 0 ) &&(m_printLevel)) printf("Removed %d atoms because of occupancies < 1 or multiple atoms in the same place\n",jVac);
-
+          for (i2=i;i2>jequal;i2--) {
+            atoms[jCell+i2].x = atoms[i2].x+icx+u[0];
+            atoms[jCell+i2].y = atoms[i2].y+icy+u[1];
+            atoms[jCell+i2].z = atoms[i2].z+icz+u[2];
+          }
+        }  // for (icz=ncz-1;icz>=0;icz--)
+      } // for (icy=ncy-1;icy>=0;icy--) 
+    } // for (icx=ncx-1;icx>=0;icx--)
+    i=jequal;
+  } // for (i=ncoord-1;i>=0;)
+  if ((jVac > 0 ) &&(m_printLevel)) printf("Removed %d atoms because of occupancies < 1 or multiple atoms in the same place\n",jVac);
 }
 
 
@@ -750,7 +816,7 @@ void CCrystal::ReplicateUnitCell(int ncoord,int *natom,MULS *muls,atom* atoms,in
 ********************************************************************************/ 
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 //  j == atomCount
-int CCrystal::PhononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
+int CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
 	int icz,int atomCount,double dw,int maxAtom,int ZnumIndex) {
 	int ix,iy,idd; // iz;
 	static FILE *fpPhonon = NULL;
@@ -1071,4 +1137,21 @@ int CCrystal::AtomCompareZYX(const void *atPtr1,const void *atPtr2) {
 		}
 	}
 	return comp;
+}
+
+void CCrystal::WriteStructure(unsigned run_number)
+{
+  m_structureIOPlugin->Write(m_atoms, run_number);
+  /*
+  if ((*muls).cfgFile != NULL) {
+    sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
+    // append the TDS run number
+    if (strcmp(buf+strlen(buf)-4,".cfg") == 0) *(buf+strlen(buf)-4) = '\0';
+    if (muls->tds) sprintf(buf+strlen(buf),"_%d.cfg",muls->avgCount);
+    else sprintf(buf+strlen(buf),".cfg");
+      
+    // printf("Will write CFG file <%s> (%d)\n",buf,muls->tds)
+    writeCFG(atoms,natom,buf,muls);
+  }
+  */
 }

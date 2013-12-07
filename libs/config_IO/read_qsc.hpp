@@ -32,7 +32,8 @@ public:
   void ReadOutputLevel(int &printLevel, int &saveLevel, 
                                unsigned &displayPotCalcInterval, unsigned &displayProgInterval);
   void ReadOutputName(std::string &fileOrFolderName);
-  void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv);
+  void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ);
+  void ReadNSubSlabs(unsigned &cellDiv);
   void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack);
   void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                       float_tt &cubex, float_tt &cubey, float_tt &cubez,
@@ -59,7 +60,7 @@ public:
   void ReadStructureFactorType(int &type);
   void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
                                    bool &lbeams, unsigned &nbout);
-  void ReadStructureFileName(std::string &directory, std::string &filename);
+  void ReadStructureFileName(boost::filesystem::path &structure_file); // 
   
   void ReadNumberOfDetectors(int &numDetectors);
   void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, std::string &name, 

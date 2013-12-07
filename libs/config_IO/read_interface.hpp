@@ -22,6 +22,7 @@
 
 #include "stemtypes_fftw3.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
 #include <string>
 #include <vector>
 
@@ -38,7 +39,8 @@ public:
     ReadOutputLevel(printLevel, saveLevel, displayPotCalcInterval, dummy);
   }
   virtual void ReadOutputName(std::string &fileOrFolderName)=0;
-  virtual void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv)=0;
+  virtual void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ)=0;
+  virtual void ReadNSubSlabs(unsigned &cellDiv)=0;
   virtual void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)=0;
   virtual void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                       float_tt &cubex, float_tt &cubey, float_tt &cubez,
@@ -72,7 +74,7 @@ public:
     unsigned dummy_u;
     ReadScanParameters(scanXStart, dummy_f, dummy_u, scanYStart, dummy_f, dummy_u);
   }
-  virtual void ReadStructureFileName(std::string &directory, std::string &filename)=0;
+  virtual void ReadStructureFileName(boost::filesystem::path &structureFile)=0;
 
   virtual void ReadNumberOfDetectors(int &numDetectors)=0;
   virtual void ReadDetectorParameters(int det_idx, float_tt &rInside, float_tt &rOutside, std::string &name, 

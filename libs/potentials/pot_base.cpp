@@ -27,6 +27,7 @@ CPotential::CPotential(ConfigReaderPtr &configReader)
   configReader->ReadPotentialOutputParameters(m_savePotential, m_saveProjectedPotential, m_plotPotential);
   configReader->ReadAtomRadius(m_atomRadius);
   configReader->ReadSliceParameters(m_centerSlices, m_sliceThickness, m_nslices, m_outputInterval, m_zOffset);
+  configReader->ReadSliceOffset(m_offsetX, m_offsetY);
   Initialize();
 }
 
@@ -59,7 +60,7 @@ void CPotential::Initialize()
   else
     m_cz[0] = m_sliceThickness;
 
-  m_slicePos[0] = m_czOffset;
+  m_slicePos[0] = m_zOffset;
 }
 
 /****************************************************************************
@@ -179,96 +180,16 @@ void CPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y
 }
 
 
-void CPotential::ReadPotential(std::string &fileName)
+void CPotential::ReadPotential(std::string &fileName, unsigned subSlabIdx)
 {
   /*************************************************************************
    * read the potential that has been created externally!
    */
-    for (unsigned i=(divCount+1)*m_nslices-1, unsigned j=0;i>=(divCount)*m_nslices;i--,j++) {
-      ReadSlice(fileName, m_trans[j], i);
+  unsigned slice_idx=0;
+  for (unsigned i=(subSlabIdx+1)*m_nslices-1;i>=(subSlabIdx)*m_nslices;i--,slice_idx++) {
+      ReadSlice(fileName, m_trans[slice_idx], i);
     }
     return;
-}
-
-void CPotential::ReadAtoms()
-{
-    /*
-      the following function makes an array of natom atoms from
-      the input file (with x,y,z,dw,occ);
-    */
-    // the last parameter is handleVacancies. If it is set to 1 vacancies
-    
-    // and multiple occupancies will be handled.
-    m_atoms = readUnitCell(m_natom,fileName,muls,1);
-    if (m_printLevel>=3)
-      printf("Read %d atoms from %s, tds: %d\n",natom,fileName,m_tds);
-    muls->natom = natom;
-    muls->atoms = atoms;
-
-	minX = maxX = atoms[0].x;
-    minY = maxY = atoms[0].y;
-    minZ = maxZ = atoms[0].z;
-
-    for (i=0;i<natom;i++) {
-      if (atoms[i].x < minX) minX = atoms[i].x;
-      if (atoms[i].x > maxX) maxX = atoms[i].x;
-      if (atoms[i].y < minY) minY = atoms[i].y;
-      if (atoms[i].y > maxY) maxY = atoms[i].y;
-      if (atoms[i].z < minZ) minZ = atoms[i].z;
-      if (atoms[i].z > maxZ) maxZ = atoms[i].z;
-    }
-    /*
-      printf("Root of mean square TDS displacement: %f A (wobble=%g at %gK) %g %g %g\n",
-      sqrt(u2/natom),wobble,(*muls).tds_temp,ux,uy,uz);
-    */
-    if (muls->printLevel >= 2) {
-      printf("range of thermally displaced atoms (%d atoms): \n",natom);
-      printf("X: %g .. %g\n",minX,maxX);
-      printf("Y: %g .. %g\n",minY,maxY);
-      printf("Z: %g .. %g\n",minZ,maxZ);
-    }
-    /*
-      define the center of our unit cell by moving the atom specified
-      by "center" at position (0.5,0.5,0.0)
-    */
-          
-    if (center != NULL) {
-      dx = (*muls).ax/2.0f - (*center).x;        
-      dy = (*muls).by/2.0f - (*center).y;        
-      dz = -(*center).z;
-      for (i=0;i<natom;i++) {
-        atoms[i].x += dx;
-        if (atoms[i].x < 0.0f) atoms[i].x += (*muls).ax;
-        else if (atoms[i].x > (*muls).ax) atoms[i].x -= (*muls).ax;
-        atoms[i].y += dy;
-        if (atoms[i].y < 0.0f) atoms[i].y += (*muls).by;
-        else if (atoms[i].y > (*muls).by) atoms[i].y -= (*muls).by;
-        atoms[i].z += dz;
-        if (atoms[i].z < 0.0f) atoms[i].z += (*muls).c;
-        else if (atoms[i].z > (*muls).c) atoms[i].z -= (*muls).c;
-      }
-    }
-
-    /**********************************************************
-     * Sort the atoms in z.
-     *********************************************************/
-    qsort(atoms,natom,sizeof(atom),atomCompare);
-    if ((*muls).cfgFile != NULL) {
-      sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
-      // append the TDS run number
-      if (strcmp(buf+strlen(buf)-4,".cfg") == 0) *(buf+strlen(buf)-4) = '\0';
-      if (muls->tds) sprintf(buf+strlen(buf),"_%d.cfg",muls->avgCount);
-      else sprintf(buf+strlen(buf),".cfg");
-      
-      // printf("Will write CFG file <%s> (%d)\n",buf,muls->tds)
-      writeCFG(atoms,natom,buf,muls);
-      
-      if (muls->readPotential) {
-        sprintf(buf,"nanopot %s/%s %d %d %d %s",muls->folder,muls->cfgFile,
-                ny,nx,muls->slices*muls->cellDiv,muls->folder);
-        system(buf);
-      }
-    }
 }
 
 void CPotential::SliceSetup()
@@ -281,7 +202,7 @@ void CPotential::SliceSetup()
        
   for (unsigned i=1;i<m_nslices;i++) {
     if (sliceFp == NULL) m_cz[i] = m_cz[0];
-    /* don't need to all be the same, yes they do for fast 3D-FFT method! */
+    /* need to all be the same for fast 3D-FFT method, otherwise OK to be different */
     else {
       fgets(buf,BUF_LEN,sliceFp);
       m_cz[i] = atof(buf);
@@ -302,7 +223,7 @@ void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
    * The z-offset 0.5*cz[0] will position atoms at z=0 into the middle of the first
    * slice.
    */
-    z = atom->z-m_c*(float_tt)(m_cellDiv-m_divCount-1) + m_czOffset
+    z = atom->z-m_c*(float_tt)(m_cellDiv-m_divCount-1) + m_zOffset
       -(0.5*m_sliceThickness*(1-(int)m_centerSlices));
 }
 
@@ -312,8 +233,9 @@ void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 * Call this function with center = NULL, if you don't
 * want the array to be shifted.
 ****************************************************/
-void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center) 
+void CPotential::makeSlices(int nlayer,char *fileName, atom *center) 
 {
+  time_t time0, time1;
   /* return, if there is nothing to do */
   if (nlayer <1)
     return;
@@ -333,8 +255,8 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
     
   } /* end of if divCount==cellDiv-1 ... */
   else {
-    natom = muls->natom;
-    atoms = muls->atoms;
+    natom = m_natom;
+    atoms = m_atoms;
   }
 
   SliceSetup();
@@ -342,12 +264,6 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
   // reset the potential to zero:
   memset((void *)&(m_trans[0][0][0][0]),0,
          m_nslices*m_nx*m_ny*sizeof(complex_tt));
-
-  nyAtBox = 2*OVERSAMP_X*(int)ceil(m_atomRadius/m_dy);
-  nxyAtBox = nyAtBox*(2*OVERSAMP_X*(int)ceil(m_atomRadius/m_dx));
-  nyAtBox2 = 2*nyAtBox;
-  nxyAtBox2 = 2*nxyAtBox;
-  sliceStep = 2*m_nx*m_ny;
 
   /****************************************************************
    * Loop through all the atoms and add their potential
@@ -361,69 +277,56 @@ void CPotential::makeSlices(MULS *muls,int nlayer,char *fileName, atom *center)
     // make sure we skip vacancies:
     while (atom->Znum == 0) atom++;
     size_t iatom=atom-m_atoms.begin();
-    if ((muls->printLevel >= 4) && (muls->displayPotCalcInterval > 0) && ((iatom+1) % (muls->displayPotCalcInterval)) == 0) 
+    if ((m_printLevel >= 4) && (m_displayPotCalcInterval > 0) && ((iatom+1) % (m_displayPotCalcInterval)) == 0) 
       {
         printf("Adding potential for atom %d (Z=%d, pos=[%.1f, %.1f, %.1f])\n",iatom+1,atom->Znum,
                atom->x, atom->y, atom->z);
       }
-    // make sure that slices are centered for 2D and 3D differently:
-    CenterAtomZ(atom, atomZ);
-
     /* atom coordinates in cartesian coords
      * The x- and y-position will be offset by the starting point
      * of the actually needed array of projected potential
      */
-    atomX = atom->x - m_potOffsetX;
-    atomY = atom->y - m_potOffsetY;
+    float_tt atomX = atom->x - m_offsetX;
+    float_tt atomY = atom->y - m_offsetY;
+    float_tt atomZ;
+    // make sure that slices are centered for 2D and 3D differently:
+    CenterAtomZ(atom, atomZ);
 
     AddAtomToSlices(atom, atomX, atomY, atomZ);
 
     } /* for iatom =0 ... */
   time(&time1);
-  if (muls->printLevel) 
-      printf("%g sec used for real space potential calculation (%g sec per atom)\n",difftime(time1,time0),difftime(time1,time0)/iatom);
+  if (m_printLevel) 
+    printf("%g sec used for real space potential calculation (%g sec per atom)\n",difftime(time1,time0),difftime(time1,time0)/m_atoms.size());
     else
-      if (muls->printLevel) printf("%g sec used for real space potential calculation\n",difftime(time1,time0));
+      if (m_printLevel) printf("%g sec used for real space potential calculation\n",difftime(time1,time0));
 
 
   /*************************************************/
   /* Save the potential slices                                         */
   
-  if (muls->savePotential) {
-    for (iz = 0;iz<nlayer;iz++){
+  if (m_savePotential) {
+    for (unsigned iz = 0;iz<nlayer;iz++){
       // find the maximum value of each layer:
-      potVal = muls->trans[iz][0][0][0];
-      for (ddx=potVal,ddy = potVal,ix=0;ix<muls->potNy*muls->potNx;potVal = muls->trans[iz][0][++ix][0]) {
+      float_tt potVal = m_trans[iz][0][0][0];
+      float_tt ddx = potVal;
+      float_tt ddy = potVal;
+      for (unsigned ix=0;ix<m_ny*m_nx;potVal = m_trans[iz][0][++ix][0]) {
         if (ddy<potVal) ddy = potVal;
         if (ddx>potVal) ddx = potVal;
       }
       
       WriteSlice(iz);
       
-      if (muls->printLevel >= 3)
+      if (m_printLevel >= 3)
         printf("Saving (complex) potential layer %d to file %s (r: %g..%g)\n",iz,filename,ddx,ddy);
 
-      params["Thickness"]=muls->sliceThickness;
+      params["Thickness"]=m_sliceThickness;
       sprintf(buf,"Projected Potential (slice %d)",iz);
-      imageIO->WriteComplexImage((void **)muls->trans[iz], params, std::string(buf));
+      imageIO->WriteComplexImage((void **)m_trans[iz], params, std::string(buf));
     } // loop through all slices
   } /* end of if savePotential ... */
-  if (muls->saveTotalPotential) {
-    if (tempPot == NULL) tempPot = float2D(muls->potNx,muls->potNy,"total projected potential");
-    
-    for (ix=0;ix<muls->potNx;ix++) for (iy=0;iy<muls->potNy;iy++) {
-        tempPot[ix][iy] = 0;
-        for (iz=0;iz<nlayer;iz++) tempPot[ix][iy] += muls->trans[iz][ix][iy][0];
-      }
-
-    for (ddx=tempPot[0][0],ddy = potVal,ix=0;ix<muls->potNy*muls->potNx;potVal = tempPot[0][++ix]) {
-      if (ddy<potVal) ddy = potVal;
-      if (ddx>potVal) ddx = potVal;
-    }
-    if (muls->printLevel >= 2)
-      printf("Saving total projected potential to file %s (r: %g..%g)\n",filename,ddx,ddy);
-    params["Thickness"]=muls->sliceThickness;
-    sprintf(buf,"Projected Potential (sum of %d slices)",muls->slices);
+  if (m_saveTotalPotential) {
     WriteProjectedPotential();
   }
 } // end of make3DSlices
@@ -438,8 +341,8 @@ void CPotential::AddAtomRealSpace(std::vector<atom>::iterator &atom,
   
   /* Warning: will assume constant slice thickness ! */
   /* do not round here: atomX=0..dx -> iAtomX=0 */
-  unsigned iAtomX = (int)floor(atomX/dx);
-  unsigned iAtomY = (int)floor(atomY/dy);
+  unsigned iAtomX = (int)floor(atomX/m_dx);
+  unsigned iAtomY = (int)floor(atomY/m_dy);
   unsigned iAtomZ = (int)floor(atomZ/m_cz[0]);
 
   if (m_displayPotCalcInterval > 0) {
@@ -450,34 +353,57 @@ void CPotential::AddAtomRealSpace(std::vector<atom>::iterator &atom,
     }
   }
 
-  for (iax = -iRadX;iax<=iRadX;iax++) {
+  for (int iax = -m_iRadX;iax<=m_iRadX;iax++) {
     if (!m_periodicXY) {
       if (iax+iAtomX < 0) {
         iax = -iAtomX;
-        if (abs(iax)>iRadX) break;
+        if (abs(iax)>m_iRadX) break;
       }
-      if (iax+iAtomX >= nx) break;
+      if (iax+iAtomX >= m_nx) break;
     }
-    x = (double)(iAtomX+iax)*dx-atomX;
-    ix = (iax+iAtomX+16*nx) % nx;        /* shift into the positive range */
-    for (iay=-iRadY;iay<=iRadY;iay++) {
-      if ((*muls).nonPeriod) {
+    float_tt x = (iAtomX+iax)*m_dx-atomX;
+    unsigned ix = (iax+iAtomX+16*m_nx) % m_nx;        /* shift into the positive range */
+    for (int iay=-m_iRadY;iay<=m_iRadY;iay++) {
+      if (!m_periodicXY) {
         if (iay+iAtomY < 0) {
           iay = -iAtomY;
-          if (abs(iay)>iRadY) break;
+          if (abs(iay)>m_iRadY) break;
         }
-        if (iay+iAtomY >= ny)        break;
+        if (iay+iAtomY >= m_ny)        break;
       }
-      y = (double)(iAtomY+iay)*dy-atomY;
-      iy = (iay+iAtomY+16*ny) % ny;         /* shift into the positive range */
-      r2sqr = x*x + y*y;
-      if (r2sqr <= atomRadius2) 
+      float_tt y = (iAtomY+iay)*m_dy-atomY;
+      unsigned iy = (iay+iAtomY+16*m_ny) % m_ny;         /* shift into the positive range */
+      float_tt r2sqr = x*x + y*y;
+      if (r2sqr <= m_atomRadius2) 
         {
           // This (virtual) method is meant to be implemented by subclasses, 
           //    for specific functionality varying by dimensionality.
-          _AddAtomRealSpace(atom, x, ix, y, iy, atomZ, iatomZ);
+          _AddAtomRealSpace(atom, x, ix, y, iy, atomZ, iAtomZ);
         }
     }
   }
 }
 
+void CPotential::WriteSlice()
+{
+}
+
+void CPotential::WriteProjectedPotential()
+{
+    if (tempPot == NULL) tempPot = float2D(m_nx,m_ny,"total projected potential");
+    
+    for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
+        tempPot[ix][iy] = 0;
+        for (iz=0;iz<nlayer;iz++) tempPot[ix][iy] += m_trans[iz][ix][iy][0];
+      }
+
+    for (ddx=tempPot[0][0],ddy = potVal,ix=0;ix<m_ny*m_nx;potVal = tempPot[0][++ix]) {
+      if (ddy<potVal) ddy = potVal;
+      if (ddx>potVal) ddx = potVal;
+    }
+    if (m_printLevel >= 2)
+      printf("Saving total projected potential to file (r: %g..%g)\n",ddx,ddy);
+    params["Thickness"]=m_sliceThickness;
+    sprintf(buf,"Projected Potential (sum of %d slices)",m_nslices);  
+    WriteImage();
+}

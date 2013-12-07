@@ -46,7 +46,7 @@ public:
   virtual void Refresh();
   // TODO: need abstracted structure reader
   virtual void ReadAtoms();
-  virtual void ReadPotential(std::string &fileName);
+  virtual void ReadPotential(std::string &fileName, unsigned subSlabIdx);
   virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;
   void AddAtomRealSpace(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);
@@ -97,12 +97,16 @@ protected:
   unsigned m_iRadX, m_iRadY, m_iRadZ, m_iRad2;
   bool m_periodicXY, m_periodicZ;
 
+  float_tt m_offsetX, m_offsetY;
+
   // ********* multi-slab parameters ********
   unsigned m_cellDiv; // How many sub-slabs the model is divided into
   unsigned m_divCount; // How many sub-slabs we've already processed
 
-  int m_printLevel;
+  int m_printLevel, m_displayPotCalcInterval;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;
+
+  
 
 };
 

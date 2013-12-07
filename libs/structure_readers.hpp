@@ -17,39 +17,26 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CRYSTAL_H
-#define CRYSTAL_H
+#ifndef STRUCTURE_READERS_H
+#define STRUCTURE_READERS_H
 
-#include "stemtypes_fftw3.hpp"
-#include "structure_readers.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
-class CCrystal
+//#include "structure_IO/structureInterface.hpp"
+#include "structure_IO/cfg.hpp"
+
+StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
 {
-public:
-  CCrystal(ConfigReaderPtr &configReader);
-  ~CCrystal();
-  
-  void ReadUnitCell(char *fileName, int handleVacancies);
-  void TiltBoxed(int ncoord,int handleVacancies);
-  void PhononDisplacement(double *u,int id,int icx,int icy,
-                          int icz,double dw,int maxAtom,int ZnumIndex);
-  void ReplicateUnitCell(int handleVacancies);
+  std::string extension = structure_file.extension().string();
+  boost::algorithm::to_lower(extension);
+  if (extension == ".cfg")
+    return StructureReaderPtr(new CStructureCfg(structure_file));
+}
 
-  float_tt GetCZ(){return m_cz;}
-  
-protected:
-  unsigned m_natoms;
-  std::vector<atom> m_atoms;
-  float_tt **m_Mm;
-  float_tt m_ax, m_by, m_cz;
-  float_tt m_cAlpha, m_cBeta, m_cGamma;
-  unsigned m_nCellX, m_nCellY, m_nCellZ;
-  StructureReaderPtr m_reader;
-};
-
-typedef boost::shared_ptr<CCrystal> StructurePtr;
 
 #endif
+
 
 
 

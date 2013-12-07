@@ -20,15 +20,20 @@
 #ifndef CFG_STRUCTURE_H
 #define CFG_STRUCTURE_H
 
+#include "structureInterface.hpp"
+#include <boost/filesystem.hpp>
+
 class CStructureCfg : public IStructureIO
 {
 public:
-  int Write(atom *atoms,int natoms,char *fileName,MULS *muls);
+  CStructureCfg(boost::filesystem::path &structure_file);
+  ~CStructureCfg();
+  int Write(unsigned run_number);
   int WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
                   double a,double b,double c);
-  int ReadCellParams(MULS *muls, double **Mm, char *fileName);
-  int ReadNextAtom(atom *newAtom, int flag, char *fileName);
-}
+  int ReadCellParams(float_tt **Mm);
+  int ReadNextAtom(atom *newAtom, int flag);
+};
 
 
 #endif

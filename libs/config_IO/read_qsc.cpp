@@ -64,33 +64,38 @@ void CQscReader::ReadOutputLevel(int &printLevel, int &saveLevel,
 }
 
 // TODO: this should remove quotes from the output directory/filename
-void CQscReader::ReadStructureFileName(std::string &directory, std::string &fileOrDirName)
+void CQscReader::ReadStructureFileName(boost::filesystem::path &structure_path)
 {
   if (!readparam("filename:",buf,1)) exit(0); 
-
-  boost::filesystem::path structure_path = boost::filesystem::path(buf);
-  
-  // TODO: use boost::filesystem to do any manipulation necessary
-
-  directory = structure_path.parent_path().string();
-  fileOrDirName = structure_path.filename().string();
+  structure_path = boost::filesystem::path(buf);
 }
 
-void CQscReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ, int &cellDiv)
+void CQscReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ)
 {
-  char *strPtr;
   if (readparam("NCELLX:",buf,1)) sscanf(buf,"%d",&(nCellX));
   if (readparam("NCELLY:",buf,1)) sscanf(buf,"%d",&(nCellY));
 
+  if (readparam("NCELLZ:",buf,1)) {
+    sscanf(buf,"%s",answer);
+    nCellZ = atoi(answer);
+  }
+}
+
+void CQscReader::ReadNSubSlabs(unsigned &cellDiv)
+{
+  char *strPtr;
+
+  // This is stored on the same line as nCellZ, hence the duplication.
+  //    We don't store nCellZ again here.
   if (readparam("NCELLZ:",buf,1)) {
     sscanf(buf,"%s",answer);
     if ((strPtr = strchr(answer,'/')) != NULL) {
       strPtr[0] = '\0';
       cellDiv = atoi(strPtr+1);
     }
-    nCellZ = atoi(answer);
   }
 }
+
   /*************************************************
    * Read the beam tilt parameters
    */

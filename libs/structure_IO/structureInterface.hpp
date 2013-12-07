@@ -20,15 +20,18 @@
 #ifndef STRUCTURE_INTERFACE_H
 #define STRUCTURE_INTERFACE_H
 
+#include <boost/shared_ptr.hpp>
+#include "../stemtypes_fftw3.hpp"
+#include <string>
+
 class IStructureIO
 {
-  virtual int Write();
-  virtual int ReadCellParams(std::string &filename, float_tt &ax, float_tt &by, float_tt &cz,
-                             float_tt &cAlpha, float_tt &cBeta, float_tt &cGamma);
-  virtual int ReadNextAtom(atom *newAtom, int flag, char *fileName);
+  virtual int Write(unsigned run_number)=0;
+  virtual int ReadCellParams(float_tt **Mm)=0;
+  virtual int ReadNextAtom(atom *newAtom, int flag)=0;
+};
 
-
-}
+typedef boost::shared_ptr<IStructureIO> StructureReaderPtr;
 
 /*--------------------- ReadLine() -----------------------*/
 /*
