@@ -19,6 +19,9 @@
 
 #include "pot_base.hpp"
 
+static std::string kPotFileName = "potslice";
+static int BUF_LEN = 256;
+
 CPotential::CPotential(ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
@@ -186,14 +189,21 @@ void CPotential::ReadPotential(std::string &fileName, unsigned subSlabIdx)
    * read the potential that has been created externally!
    */
   unsigned slice_idx=0;
-  for (unsigned i=(subSlabIdx+1)*m_nslices-1;i>=(subSlabIdx)*m_nslices;i--,slice_idx++) {
+  for (unsigned i=(subSlabIdx+1)*m_nslices-1;i>=(subSlabIdx)*m_nslices;i--,slice_idx++) 
+    {
       ReadSlice(fileName, m_trans[slice_idx], i);
     }
     return;
 }
 
+void CPotential::ReadSlice(std::string &fileName, complex_tt **, unsigned idx)
+{
+}
+
 void CPotential::SliceSetup()
 {
+  FILE *sliceFp;
+  char buf[BUF_LEN];
   /**************************************************************
    *        setup the slices with their start and end positions
    *        then loop through all the atoms and add their potential to
@@ -233,7 +243,7 @@ void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 * Call this function with center = NULL, if you don't
 * want the array to be shifted.
 ****************************************************/
-void CPotential::makeSlices(int nlayer,char *fileName, atom *center) 
+void CPotential::MakeSlices(int nlayer,char *fileName, atom *center) 
 {
   time_t time0, time1;
   /* return, if there is nothing to do */
@@ -252,12 +262,7 @@ void CPotential::makeSlices(int nlayer,char *fileName, atom *center)
    */
   if (m_divCount == m_cellDiv-1) {
     ReadAtoms();
-    
   } /* end of if divCount==cellDiv-1 ... */
-  else {
-    natom = m_natom;
-    atoms = m_atoms;
-  }
 
   SliceSetup();
 
@@ -315,18 +320,16 @@ void CPotential::makeSlices(int nlayer,char *fileName, atom *center)
         if (ddy<potVal) ddy = potVal;
         if (ddx>potVal) ddx = potVal;
       }
-      
-      WriteSlice(iz);
-      
+            
       if (m_printLevel >= 3)
-        printf("Saving (complex) potential layer %d to file %s (r: %g..%g)\n",iz,filename,ddx,ddy);
+        printf("Saving (complex) potential layer %d to file (r: %g..%g)\n",iz,ddx,ddy);
 
-      params["Thickness"]=m_sliceThickness;
-      sprintf(buf,"Projected Potential (slice %d)",iz);
-      imageIO->WriteComplexImage((void **)m_trans[iz], params, std::string(buf));
+      WriteSlice(iz);
+
+      //imageIO->WriteComplexImage((void **)m_trans[iz], params, std::string(buf));
     } // loop through all slices
   } /* end of if savePotential ... */
-  if (m_saveTotalPotential) {
+  if (m_saveProjectedPotential) {
     WriteProjectedPotential();
   }
 } // end of make3DSlices
@@ -384,26 +387,188 @@ void CPotential::AddAtomRealSpace(std::vector<atom>::iterator &atom,
   }
 }
 
-void CPotential::WriteSlice()
+void CPotential::WriteSlice(unsigned idx)
 {
+    char buf[255];
+    std::map<std::string, double> params;
+    params["Thickness"]=m_sliceThickness;
+    sprintf(buf,"Projected Potential (slice %d)",idx);
+    std::string comment = buf;
+    m_imageIO->WriteComplexImage((void **)m_trans[idx], kPotFileName, params, comment);
 }
 
 void CPotential::WriteProjectedPotential()
 {
-    if (tempPot == NULL) tempPot = float2D(m_nx,m_ny,"total projected potential");
+  std::map<std::string, double> params;
+  char buf[255];
+  float_tt **tempPot = float2D(m_nx,m_ny,"total projected potential");
+  float_tt potVal=0;
     
-    for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
-        tempPot[ix][iy] = 0;
-        for (iz=0;iz<nlayer;iz++) tempPot[ix][iy] += m_trans[iz][ix][iy][0];
-      }
-
-    for (ddx=tempPot[0][0],ddy = potVal,ix=0;ix<m_ny*m_nx;potVal = tempPot[0][++ix]) {
-      if (ddy<potVal) ddy = potVal;
-      if (ddx>potVal) ddx = potVal;
+  for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
+      tempPot[ix][iy] = 0;
+      for (unsigned iz=0;iz<m_nslices;iz++) tempPot[ix][iy] += m_trans[iz][ix][iy][0];
     }
-    if (m_printLevel >= 2)
-      printf("Saving total projected potential to file (r: %g..%g)\n",ddx,ddy);
-    params["Thickness"]=m_sliceThickness;
-    sprintf(buf,"Projected Potential (sum of %d slices)",m_nslices);  
-    WriteImage();
+
+  float_tt ddx=tempPot[0][0], ddy=potVal;
+  for (unsigned ix=0;ix<m_ny*m_nx;potVal = tempPot[0][++ix]) {
+    if (ddy<potVal) ddy = potVal;
+    if (ddx>potVal) ddx = potVal;
+  }
+  if (m_printLevel >= 2)
+    printf("Saving total projected potential to file (r: %g..%g)\n",ddx,ddy);
+  params["Thickness"]=m_sliceThickness;
+  sprintf(buf,"Projected Potential (sum of %d slices)",m_nslices);
+  std::string comment = buf;
+  std::string fileName = "ProjectedPot";
+  m_imageIO->WriteRealImage((void **)tempPot, fileName, params, comment);
 }
+
+/*------------------ splinh() -----------------------------*/
+/*
+        fit a quasi-Hermite cubic spline
+        
+        [1] Spline fit as in H.Akima, J. ACM 17(1970)p.589-602
+                'A New Method of Interpolation and Smooth
+                Curve Fitting Based on Local Procedures'
+
+        [2] H.Akima, Comm. ACM, 15(1972)p.914-918
+
+        E. Kirkland 4-JUL-85
+        changed zero test to be a small nonzero number 8-jul-85 ejk
+        converted to C 24-jun-1995 ejk
+
+        The inputs are:
+                x[n] = array of x values in ascending order, each X(I) must
+                        be unique
+                y[n] = array of y values corresponding to X(N)
+                n = number of data points must be 2 or greater
+
+        The outputs are (with z=x-x(i)):
+                b[n] = array of spline coeficients for (x-x[i])
+                c[n] = array of spline coeficients for (x-x[i])**2
+                d[n] = array of spline coeficients for (x-x[i])**3
+                ( x[i] <= x <= x[i+1] )
+        To interpolate y(x) = yi + bi*z + c*z*z + d*z*z*z
+
+        The coeficients b[i], c[i], d[i] refer to the x[i] to x[i+1]
+        interval. NOTE that the last set of coefficients,
+        b[n-1], c[n-1], d[n-1] are meaningless.
+*/
+void CPotential::splinh( float_tt x[], float_tt y[],
+         float_tt b[], float_tt c[], float_tt d[], int n)
+{
+#define SMALL 1.0e-25
+
+  int i, nm1, nm4;
+  float_tt m1, m2, m3, m4, m5, t1, t2, m54, m43, m32, m21, x43;
+  
+  if( n < 4) return;
+  
+  /* Do the first end point (special case),
+and get starting values */
+  
+  m5 = ( y[3] - y[2] ) / ( x[3] - x[2] );        /* mx = slope at pt x */
+  m4 = ( y[2] - y[1] ) / ( x[2] - x[1] );
+  m3 = ( y[1] - y[0] ) / ( x[1] - x[0] );
+  
+  m2 = m3 + m3 - m4;        /* eq. (9) of reference [1] */
+  m1 = m2 + m2 - m3;
+  
+  m54 = fabs( m5 - m4);
+  m43 = fabs( m4 - m3);
+  m32 = fabs( m3 - m2);
+  m21 = fabs( m2 - m1);
+  
+  if ( (m43+m21) > SMALL )
+    t1 = ( m43*m2 + m21*m3 ) / ( m43 + m21 );
+  else
+    t1 = 0.5 * ( m2 + m3 );
+  
+  /* Do everything up to the last end points */
+  
+  nm1 = n-1;
+  nm4 = n-4;
+  
+  for( i=0; i<nm1; i++) {
+    
+    if( (m54+m32) > SMALL )
+      t2= (m54*m3 + m32*m4) / (m54 + m32);
+    else
+      t2 = 0.5* ( m3 + m4 );
+    
+    x43 = x[i+1] - x[i];
+    b[i] = t1;
+    c[i] = ( 3.0*m3 - t1 - t1 - t2 ) /x43;
+    d[i] = ( t1 + t2 - m3 - m3 ) / ( x43*x43 );
+    
+    m1 = m2;
+    m2 = m3;
+    m3 = m4;
+    m4 = m5;
+    if( i < nm4 ) {
+      m5 = ( y[i+4] - y[i+3] ) / ( x[i+4] - x[i+3] );
+    } else {
+      m5 = m4 + m4 - m3;
+    }
+    
+    m21 = m32;
+    m32 = m43;
+    m43 = m54;
+    m54 = fabs( m5 - m4 );
+    t1 = t2;
+  }
+  
+  return;
+  
+} /* end splinh() */
+
+/*----------------------- seval() ----------------------*/
+/*
+        Interpolate from cubic spline coefficients
+
+        E. Kirkland 4-JUL-85
+        modified to do a binary search for efficiency 13-Oct-1994 ejk
+        converted to C 26-jun-1995 ejk
+        fixed problem on end-of-range 16-July-1995 ejk
+
+        The inputs are:
+                x[n] = array of x values in ascending order, each x[i] must
+                        be unique
+                y[n] = array of y values corresponding to x[n]
+                b[n] = array of spline coeficients for (x-x[i])
+                c[n] = array of spline coeficients for (x-x[i])**2
+                d[n] = array of spline coeficients for (x-x[i])**3
+                n = number of data points
+                x0 = the x value to interpolate at
+                (x[i] <= x <= x[i+1]) and all inputs remain unchanged
+
+        The value returned is the interpolated y value.
+
+        The coeficients b[i], c[i], d[i] refer to the x[i] to x[i+1]
+        interval. NOTE that the last set of coefficients,
+        b[n-1], c[n-1], d[n-1] are meaningless.
+*/
+float_tt CPotential::seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+         float_tt *d, int n, float_tt x0 )
+{
+  int i, j, k;
+  float_tt z, seval1;
+  
+  /* exit if x0 is outside the spline range */
+  if( x0 <= x[0] ) i = 0;
+  else if( x0 >= x[n-2] ) i = n-2;
+  else {
+    i = 0;
+    j = n;
+    do{ k = ( i + j ) / 2 ;
+    if( x0 < x[k] ) j = k;
+    else if( x0 >= x[k] ) i = k;
+    } while ( (j-i) > 1 );
+  }
+  
+  z = x0 - x[i];
+  seval1 = y[i] + ( b[i] + ( c[i] + d[i] *z ) *z) *z;
+  
+  return( seval1 );
+  
+} /* end seval() */

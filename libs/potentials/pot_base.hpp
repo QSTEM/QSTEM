@@ -39,7 +39,7 @@ public:
   ~CPotential();
 
   void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
-  virtual void makeSlices(int nlayer,char *fileName,atom *center);
+  virtual void MakeSlices(int nlayer,char *fileName,atom *center);
   virtual void initSTEMSlices();
   // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
   //    shake)
@@ -50,11 +50,9 @@ public:
   virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;
   void AddAtomRealSpace(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);
-  virtual void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
-                                 float_tt atomX, unsigned int ix, 
-                                 float_tt atomY, unsigned int iy, 
-                                 float_tt atomZ, unsigned int iatomZ)=0;
-
+  
+  void WriteSlice(unsigned idx);
+  void WriteProjectedPotential();
   complex_tt **GetSlice(unsigned idx){return m_trans[idx];}
 
   // public members (should be moved to protected, and given getters/setters...
@@ -63,6 +61,13 @@ public:
 
 protected:
   void Initialize();
+  void SliceSetup();
+  void ReadSlice(std::string &fileName, complex_tt **, unsigned idx);
+  virtual void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
+                                 float_tt atomX, unsigned int ix, 
+                                 float_tt atomY, unsigned int iy, 
+                                 float_tt atomZ, unsigned int iatomZ)=0;
+
 
   ImageIOPtr m_imageIO;
   StructurePtr m_crystal;
@@ -103,10 +108,15 @@ protected:
   unsigned m_cellDiv; // How many sub-slabs the model is divided into
   unsigned m_divCount; // How many sub-slabs we've already processed
 
+  bool m_equalDivs;
+
   int m_printLevel, m_displayPotCalcInterval;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;
 
-  
+  void splinh( float_tt x[], float_tt y[],
+                   float_tt b[], float_tt c[], float_tt d[], int n);
+  float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
+                  float_tt *d, int n, float_tt x0 );  
 
 };
 

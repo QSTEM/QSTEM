@@ -17,4 +17,6 @@ protected:
                          float_tt atomBoxY, unsigned int iy, 
                          float_tt atomZ);
   complex_tt *GetAtomPotential2D(int Znum, double B);
+private:
+  unsigned m_nyAtBox, m_nxyAtBox, m_nyAtBox2, m_nxyAtBox2; //Size of atom box in pixels
 };

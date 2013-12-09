@@ -45,6 +45,13 @@ public:
                       std::map<std::string, double> &params,
                       std::string &comment, 
                       std::vector<unsigned> &position);
+  // If you want a comment and parameters, but no position
+  inline void WriteRealImage(void **pix, std::string &fileName, std::map<std::string, double> &parameters, 
+                             std::string &comment)
+  {
+    std::vector<unsigned> position;
+    WriteRealImage(pix, fileName, parameters, comment, position);
+  }
   // If you want to add a comment, but no parameters
   inline void WriteRealImage(void **pix, std::string &fileName, std::string &comment,
                              std::vector<unsigned> position=std::vector<unsigned>())
@@ -74,7 +81,14 @@ public:
                          std::map<std::string, double> &params,
                          std::string &comment,
                          std::vector<unsigned> &position);
-  
+  // If you want a comment and parameters, but no position
+  inline void WriteComplexImage(void **pix, std::string &fileName, std::map<std::string, double> &parameters, 
+                             std::string &comment)
+  {
+    std::vector<unsigned> position;
+    WriteComplexImage(pix, fileName, parameters, comment, position);
+  }
+
   // If you want to add a comment, but no parameters
   inline void WriteComplexImage(void **pix, std::string &fileName, std::string &comment,
                              std::vector<unsigned> position=std::vector<unsigned>())

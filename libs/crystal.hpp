@@ -21,7 +21,9 @@
 #define CRYSTAL_H
 
 #include "stemtypes_fftw3.hpp"
+#include "config_readers.hpp"
 #include "structure_readers.hpp"
+#include <string>
 
 class CCrystal
 {
@@ -29,22 +31,34 @@ public:
   CCrystal(ConfigReaderPtr &configReader);
   ~CCrystal();
   
-  void ReadUnitCell(char *fileName, int handleVacancies);
-  void TiltBoxed(int ncoord,int handleVacancies);
+  void Init(unsigned run_number);
+  void ReadUnitCell(bool handleVacancies);
+  void TiltBoxed(int ncoord,bool handleVacancies);
   void PhononDisplacement(double *u,int id,int icx,int icy,
                           int icz,double dw,int maxAtom,int ZnumIndex);
   void ReplicateUnitCell(int handleVacancies);
+  void WriteStructure(unsigned run_number);
 
   float_tt GetCZ(){return m_cz;}
   
 protected:
-  unsigned m_natoms;
   std::vector<atom> m_atoms;
   float_tt **m_Mm;
   float_tt m_ax, m_by, m_cz;
   float_tt m_cAlpha, m_cBeta, m_cGamma;
+  float_tt m_cubex, m_cubey, m_cubez;
+  float_tt m_offsetX, m_offsetY;
+  float_tt m_ctiltx, m_ctilty, m_ctiltz;
   unsigned m_nCellX, m_nCellY, m_nCellZ;
   StructureReaderPtr m_reader;
+  
+  bool m_tds, m_Einstein;
+  float_tt m_tds_temp;  // The temperature for TDS calculations
+
+  int m_printLevel;
+
+  static int AtomCompareZnum(const void *atPtr1,const void *atPtr2);
+  static int AtomCompareZYX(const void *atPtr1,const void *atPtr2);
 };
 
 typedef boost::shared_ptr<CCrystal> StructurePtr;
