@@ -24,15 +24,21 @@
 #include "../stemtypes_fftw3.hpp"
 #include <string>
 
-class IStructureIO
+class IStructureInput
 {
-  virtual int Write(unsigned run_number)=0;
+public:
   virtual int ReadCellParams(float_tt **Mm)=0;
-  virtual int ReadNextAtom(atom *newAtom, int flag)=0;
+  virtual int ReadAtoms(std::vector<atom> &atoms)=0;
+  //virtual int ReadNextAtom(atom *newAtom, int flag)=0;
 };
 
-typedef boost::shared_ptr<IStructureIO> StructureReaderPtr;
+class IStructureOutput
+{
+  virtual int Write(std::vector<atom> &atoms, unsigned run_number)=0;
+};
 
+typedef boost::shared_ptr<IStructureInput> StructureReaderPtr;
+typedef boost::shared_ptr<IStructureOutput> StructureWriterPtr;
 /*--------------------- ReadLine() -----------------------*/
 /*
 read a full line from a file and 

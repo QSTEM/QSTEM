@@ -23,17 +23,32 @@
 #include "structureInterface.hpp"
 #include <boost/filesystem.hpp>
 
-class CStructureCfg : public IStructureIO
+class CCfgReader : public IStructureInput
 {
 public:
-  CStructureCfg(boost::filesystem::path &structure_file);
-  ~CStructureCfg();
-  int Write(unsigned run_number);
-  int WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
-                  double a,double b,double c);
+  CCfgReader(boost::filesystem::path &structure_file);
+  ~CCfgReader();
+  
   int ReadCellParams(float_tt **Mm);
   int ReadNextAtom(atom *newAtom, int flag);
+  int ReadAtoms(std::vector<atom> &atoms);
 };
 
+class CCfgWriter : public IStructureOutput
+{
+  int Write(std::vector <atom> &atoms, unsigned run_number);
+  int WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
+                  double a,double b,double c);
+};
 
 #endif
+
+
+
+
+
+
+
+
+
+

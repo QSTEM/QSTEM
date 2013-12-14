@@ -25,6 +25,8 @@
 #include "structure_readers.hpp"
 #include <string>
 
+#include <boost/filesystem.hpp>
+
 class CCrystal
 {
 public:
@@ -42,7 +44,8 @@ public:
   float_tt GetCZ(){return m_cz;}
   
 protected:
-  std::vector<atom> m_atoms;
+  std::vector<atom> m_atoms; // The atoms after duplication, tilt, and phonon shaking
+  std::vector<atom> m_baseAtoms; // The atoms read directly from the input file (no alteration)
   float_tt **m_Mm;
   float_tt m_ax, m_by, m_cz;
   float_tt m_cAlpha, m_cBeta, m_cGamma;
@@ -51,11 +54,17 @@ protected:
   float_tt m_ctiltx, m_ctilty, m_ctiltz;
   unsigned m_nCellX, m_nCellY, m_nCellZ;
   StructureReaderPtr m_reader;
+
+std::vector<unsigned> m_Znums; // Z numbers for the atom types that are present
+
+boost::filesystem::path m_phononFile;
   
   bool m_tds, m_Einstein;
   float_tt m_tds_temp;  // The temperature for TDS calculations
 
   int m_printLevel;
+
+  void OffsetCenter(atom &center);
 
   static int AtomCompareZnum(const void *atPtr1,const void *atPtr2);
   static int AtomCompareZYX(const void *atPtr1,const void *atPtr2);

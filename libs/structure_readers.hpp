@@ -31,7 +31,7 @@ StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
   std::string extension = structure_file.extension().string();
   boost::algorithm::to_lower(extension);
   if (extension == ".cfg")
-    return StructureReaderPtr(new CStructureCfg(structure_file));
+    return StructureReaderPtr(new CCfgReader(structure_file));
 }
 
 
