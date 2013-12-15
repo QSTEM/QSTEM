@@ -36,8 +36,8 @@ public:
   void Init(unsigned run_number);
   void ReadUnitCell(bool handleVacancies);
   void TiltBoxed(int ncoord,bool handleVacancies);
-  void PhononDisplacement(double *u,int id,int icx,int icy,
-                          int icz,double dw,int maxAtom,int ZnumIndex);
+  void PhononDisplacement(float_tt *u,int id,int icx,int icy,
+                          int icz,float_tt dw,int maxAtom,unsigned ZnumIndex);
   void ReplicateUnitCell(int handleVacancies);
   void WriteStructure(unsigned run_number);
 
@@ -55,9 +55,10 @@ protected:
   unsigned m_nCellX, m_nCellY, m_nCellZ;
   StructureReaderPtr m_reader;
 
-std::vector<unsigned> m_Znums; // Z numbers for the atom types that are present
+  std::vector<unsigned> m_Znums; // Z numbers for the atom types that are present
+  std::vector<float_tt> m_u2, m_u2avg;
 
-boost::filesystem::path m_phononFile;
+  boost::filesystem::path m_phononFile;
   
   bool m_tds, m_Einstein;
   float_tt m_tds_temp;  // The temperature for TDS calculations
@@ -65,6 +66,13 @@ boost::filesystem::path m_phononFile;
   int m_printLevel;
 
   void OffsetCenter(atom &center);
+
+  void Inverse_3x3 (float_tt *res, const float_tt *a);
+  void RotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
+  void MatrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt **c);
+  void RotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
+
+
 
   static int AtomCompareZnum(const void *atPtr1,const void *atPtr2);
   static int AtomCompareZYX(const void *atPtr1,const void *atPtr2);

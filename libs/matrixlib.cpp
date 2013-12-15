@@ -44,7 +44,7 @@ static float sqrarg = 0.0f;
 #define SIGN(a,b) ((b) >= 0 ? (a) : -(a))    // Magnitude of a times sign of b.
 #define SQR(a) (((sqrarg=(a)) == 0.0) ? 0.0 : sqrarg*sqrarg)
 
-void ludcmp(double **a, int n, int *indx, double *d) {
+void ludcmp(float_tt **a, int n, int *indx, float_tt *d) {
   /* Given a matrix a[1..n][1..n], this routine replaces it by the
      LU decomposition of a rowwise permutation of itself. 
      a and n are input. a is output, arranged as in equation (2.3.14) above; 
@@ -55,12 +55,12 @@ void ludcmp(double **a, int n, int *indx, double *d) {
      lubksb to solve linear equations or invert a matrix. 
   */
   int i,imax=0,j,k; 
-  double big,dum,sum,temp; 
-  double *vv; 
+  float_tt big,dum,sum,temp; 
+  float_tt *vv; 
   /*
     vv stores the implicit scaling of each row.
   */ 
-  vv=double1D(n,"vv"); 
+  vv=float1D(n,"vv"); 
   *d=1.0; //No row interchanges yet. 
   for (i=0;i<n;i++) { 
     // Loop over rows to get the implicit scaling information.
@@ -126,7 +126,7 @@ void ludcmp(double **a, int n, int *indx, double *d) {
   // free_vector(vv,1,n); 
 }
 
-void lubksb(double **a, int n, int *indx, double b[]) { 
+void lubksb(float_tt **a, int n, int *indx, float_tt b[]) { 
   /*
     Solves the set of n linear equations A   X = B. 
     Herea[0..n-1][0..n-1] is input, not as the matrix A but rather 
@@ -140,7 +140,7 @@ void lubksb(double **a, int n, int *indx, double b[]) {
     so it is e cient for use in matrix inversion. 
   */ 
   int i,ii=-1,ip,j; 
-  double sum; 
+  float_tt sum; 
   for (i=0;i<n;i++) { 
     /* When ii is set to a positive value, it will become the index 
        of the  rst nonvanishing element of b. Wenow do the forward 
@@ -175,12 +175,12 @@ void lubksb(double **a, int n, int *indx, double b[]) {
 void inverse() {
   /*
   // #define N
-  double **a,**y,d,*col; 
+  float_tt **a,**y,d,*col; 
   int i,j,*indx;
   ludcmp(a,N,indx,&d); // Decompose the matrix just once. 
   for(j=1;j<=N;j++) { 
     // Find inverse by columns. 
-    memset(col,0,N*sizeof(double));
+    memset(col,0,N*sizeof(float_tt));
     // for(i=1;i<=N;i++) col[i]=0.0; 
     col[j]=1.0; 
     lubksb(a,N,indx,col); 
@@ -194,9 +194,9 @@ void inverse() {
  Input:     m - matrix (3x3) address
  Output:    returns the determinant of 'm'
 ******************************************************************************/
-double det_3x3 (const double *mat)
+float_tt det_3x3 (const float_tt *mat)
 {
-    double det;
+    float_tt det;
 
     det = mat[0] * (mat[4] * mat[8] - mat[7] * mat[5])
         - mat[1] * (mat[3] * mat[8] - mat[6] * mat[5])
@@ -209,7 +209,7 @@ double det_3x3 (const double *mat)
  Routine:   trans_3x3
  Input:     Mstarget,Msource - matrix (3x3)
 ******************************************************************************/
-void trans_3x3 (double *Mt, const double *Ms)
+void trans_3x3 (float_tt *Mt, const float_tt *Ms)
 {
   int i,j;
   for (i=0;i<2;i++) for (j=0;j<3;j++) Mt[i*3+j] = Ms[j*3+i];
@@ -222,9 +222,9 @@ void trans_3x3 (double *Mt, const double *Ms)
  Input:     m - matrix (3x3) address
  Output:    returns the inverse matrix of 'm'
 ******************************************************************************/
-void inverse_3x3 (double *res, const double *a)
+void inverse_3x3 (float_tt *res, const float_tt *a)
 {
-    double det = det_3x3 (a);
+    float_tt det = det_3x3 (a);
 
     // printf("det: %g\n",det);
 
@@ -263,9 +263,9 @@ void inverse_3x3 (double *res, const double *a)
  * the matrix M will be preserved
  * The invMM matrix will be of size M X M
  */
-double **invMM(double **Mmatrix, int N, int M) {
+float_tt **invMM(float_tt **Mmatrix, int N, int M) {
   static int Mold = 0; // Nold = 0, 
-  static double **invMMmatrix = NULL;
+  static float_tt **invMMmatrix = NULL;
   // int i;
 
   if (N > M) return NULL;
@@ -275,26 +275,26 @@ double **invMM(double **Mmatrix, int N, int M) {
     if (invMMmatrix != NULL) {
       free(invMMmatrix[0]); free(invMMmatrix);
     }
-    invMMmatrix = double2D(M,M,"invMMmatrix");
+    invMMmatrix = float2D(M,M,"invMMmatrix");
   }
   
   return invMMmatrix;
 }
 
 
-void svdcmp1(double **a, int m, int n, double w[], double **v) {
+void svdcmp1(float_tt **a, int m, int n, float_tt w[], float_tt **v) {
   /* Given a matrix a[1..m][1..n], this routine computes its singular value decomposition,
      A = U   W   V T . 
      The matrix U replaces a on output. The diagonal matrix of singular values 
      W is out- put as a vector w[1..n]. The matrix V (not the transpose V T ) is output
      as v[1..n][1..n].
   */
-  // uses:  double pythag(double a, double b); 
+  // uses:  float_tt pythag(float_tt a, float_tt b); 
   int flag,i,its,j,jj,k,l=0,nm=0; 
-  double anorm,c,f,g,h,s,scale,x,y,z,*rv1; 
+  float_tt anorm,c,f,g,h,s,scale,x,y,z,*rv1; 
 
   // rv1=vector(1,n); we will just alloacte memory for n+1 elements
-  rv1 = (double *)malloc((n+1)*sizeof(double));
+  rv1 = (float_tt *)malloc((n+1)*sizeof(float_tt));
   g=scale=anorm=0.0; // Householder reduction to bidiagonal form. 
   for (i=1;i<=n;i++) { 
     l=i+1; 
@@ -349,7 +349,7 @@ void svdcmp1(double **a, int m, int n, double w[], double **v) {
   for (i=n;i>=1;i--) { // Accumulation of right-hand transformations. 
     if(i < n) { 
       if (g) { 
-	for (j=l;j<=n;j++) // Double division to avoid possible under ow. 
+	for (j=l;j<=n;j++) // Float_Tt division to avoid possible under ow. 
 	  v[j][i]=(a[i][j]/a[i][l])/g; 
 	for (j=l;j<=n;j++) { 
 	  for (s=0.0,k=l;k<=n;k++) s += a[i][k]*v[k][j]; 
@@ -481,10 +481,10 @@ void svdcmp1(double **a, int m, int n, double w[], double **v) {
 }
 
 
-double pythag(double a, double b) {
+float_tt pythag(float_tt a, float_tt b) {
   /* Computes (a 2 + b 2 ) 1=2 without destructive under ow or over ow.
    */ 
-  double absa,absb; 
+  float_tt absa,absb; 
   absa=fabs(a); 
   absb=fabs(b); 
   if (absa > absb) 
@@ -497,14 +497,14 @@ double pythag(double a, double b) {
 /* This function will calculate the 3-dimensional vector cross product 
  * c = [a x b]
  */
-void crossProduct(const double *a, const double *b, double *c) {
+void crossProduct(const float_tt *a, const float_tt *b, float_tt *c) {
   c[0] = a[1]*b[2]-a[2]*b[1];
   c[1] = a[2]*b[0]-a[0]*b[2];
   c[2] = a[0]*b[1]-a[1]*b[0];
   return;
 }
 
-double dotProduct(const double *a, const double *b) {
+float_tt dotProduct(const float_tt *a, const float_tt *b) {
   return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 }
 
@@ -513,7 +513,7 @@ double dotProduct(const double *a, const double *b) {
  * in reversed order, i.e. a[0]=z, a[1]=y, a[2]=x.
  */
 
-void vectDiff_f(float *a, double *b, double *c,int revFlag) {
+void vectDiff_f(float *a, float_tt *b, float_tt *c,int revFlag) {
   if (revFlag > 0) {
     c[0] = a[0]-b[0];
     c[1] = a[1]-b[1];
@@ -529,7 +529,7 @@ void vectDiff_f(float *a, double *b, double *c,int revFlag) {
 
 
 
-void showMatrix(double **M,int Nx, int Ny,char *name) {
+void showMatrix(float_tt **M,int Nx, int Ny,char *name) {
   int i,j;
 
   printf("%s:\n",name);
@@ -546,17 +546,17 @@ void showMatrix(double **M,int Nx, int Ny,char *name) {
  * forward(1) (x,y,z), or reversed(-1) (z,y,x) order.
  * This is important for using the reversed order in the atom struct.
  */
-double findLambda(plane *p, float *point, int revFlag) {
-  static double **M=NULL;
-  static double **Minv=NULL;
-  static double *diff=NULL;
-  double lambda; /* dummy variable */
+float_tt findLambda(plane *p, float *point, int revFlag) {
+  static float_tt **M=NULL;
+  static float_tt **Minv=NULL;
+  static float_tt *diff=NULL;
+  float_tt lambda; /* dummy variable */
 
 
   if ((M == NULL) || (Minv == NULL) || (diff==NULL)) {
-    M = double2D(3,3,"M");
-    Minv = double2D(3,3,"Minv");
-    diff = double1D(3,"diff");
+    M = float2D(3,3,"M");
+    Minv = float2D(3,3,"Minv");
+    diff = float1D(3,"diff");
   }
 
   /*
@@ -596,18 +596,18 @@ double findLambda(plane *p, float *point, int revFlag) {
  * in case the angles don't change.
  * The same vector can be specified as input, as well as output vector.
  */
-void rotateVect(double *vectIn,double *vectOut, double phi_x, double phi_y, double phi_z) {
-  static double **Mrot = NULL;
-  static double *vectOutTemp = NULL;
-  static double sphi_x=0, sphi_y=0, sphi_z=0;
-  //  static double *vectOut = NULL;
+void rotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
+  static float_tt **Mrot = NULL;
+  static float_tt *vectOutTemp = NULL;
+  static float_tt sphi_x=0, sphi_y=0, sphi_z=0;
+  //  static float_tt *vectOut = NULL;
   // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
   if (Mrot == NULL) {
-    Mrot = double2D(3,3,"Mrot");
-    memset(Mrot[0],0,9*sizeof(double));
+    Mrot = float2D(3,3,"Mrot");
+    memset(Mrot[0],0,9*sizeof(float_tt));
     Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
-    vectOutTemp = double1D(3,"vectOutTemp");
+    vectOutTemp = float1D(3,"vectOutTemp");
   }
   if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
     Mrot[0][0] = cos(phi_z)*cos(phi_y);
@@ -629,24 +629,24 @@ void rotateVect(double *vectIn,double *vectOut, double phi_x, double phi_y, doub
   vectOutTemp[0] = Mrot[0][0]*vectIn[0]+Mrot[0][1]*vectIn[1]+Mrot[0][2]*vectIn[2];
   vectOutTemp[1] = Mrot[1][0]*vectIn[0]+Mrot[1][1]*vectIn[1]+Mrot[1][2]*vectIn[2];
   vectOutTemp[2] = Mrot[2][0]*vectIn[0]+Mrot[2][1]*vectIn[1]+Mrot[2][2]*vectIn[2];
-  memcpy(vectOut,vectOutTemp,3*sizeof(double));
+  memcpy(vectOut,vectOutTemp,3*sizeof(float_tt));
 
   return;
 }
 
-void rotateMatrix(double *matrixIn,double *matrixOut, double phi_x, double phi_y, double phi_z) {
+void rotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
 int i,j,k;
-static double **Mrot = NULL;
-static double *matrixOutTemp = NULL;
-static double sphi_x=0, sphi_y=0, sphi_z=0;
-// static double *vectOut = NULL;
+static float_tt **Mrot = NULL;
+static float_tt *matrixOutTemp = NULL;
+static float_tt sphi_x=0, sphi_y=0, sphi_z=0;
+// static float_tt *vectOut = NULL;
 // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
 if (Mrot == NULL) {
-	Mrot = double2D(3,3,"Mrot");
-	memset(Mrot[0],0,9*sizeof(double));
+	Mrot = float2D(3,3,"Mrot");
+	memset(Mrot[0],0,9*sizeof(float_tt));
 	Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
-	matrixOutTemp = double1D(9,"vectOutTemp");
+	matrixOutTemp = float1D(9,"vectOutTemp");
 }
 if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
 	Mrot[0][0] = cos(phi_z)*cos(phi_y);
@@ -665,11 +665,11 @@ if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
 	sphi_y = phi_y;
 	sphi_z = phi_z;
 }
-memset(matrixOutTemp,0,9*sizeof(double));
+memset(matrixOutTemp,0,9*sizeof(float_tt));
 for (i=0;i<3;i++) for (j=0;j<3;j++) for (k=0;k<3;k++) {
 	matrixOutTemp[i*3+j] += Mrot[i][k]*matrixIn[k*3+j];
 }
-memcpy(matrixOut,matrixOutTemp,9*sizeof(double));
+memcpy(matrixOut,matrixOutTemp,9*sizeof(float_tt));
 
 return;
 }
@@ -687,7 +687,7 @@ return;
  * gamma = angle between by and ax.
  */
 // #define SQR(x) ((x)*(x))
-void makeCellVect(grainBox *grain, double *vax, double *vby, double *vcz) {
+void makeCellVect(grainBox *grain, float_tt *vax, float_tt *vby, float_tt *vcz) {
   
   if ((grain->alpha == 90) && (grain->beta == 90) && (grain->gamma == 90)) {
     printf("Orthogonal unit cell\n");
@@ -719,7 +719,7 @@ void makeCellVect(grainBox *grain, double *vax, double *vby, double *vcz) {
 }
 /* just like the function above, but with angles from the MULS struct */
 
-void makeCellVectMuls(MULS *muls, double *vax, double *vby, double *vcz) {
+void makeCellVectMuls(MULS *muls, float_tt *vax, float_tt *vby, float_tt *vcz) {
   
   if ((muls->cAlpha == 90) && (muls->cBeta == 90) && (muls->cGamma == 90)) {
     printf("Orthogonal unit cell\n");
@@ -746,12 +746,12 @@ void makeCellVectMuls(MULS *muls, double *vax, double *vby, double *vcz) {
   }
 }
 
-double vectLength(double *vect) {
+float_tt vectLength(float_tt *vect) {
   return sqrt(vect[0]*vect[0]+vect[1]*vect[1]+vect[2]*vect[2]);
 }
 
 /* c = a*b */
-void matrixProduct(double **a,int Nxa, int Nya, double **b,int Nxb, int Nyb, double **c) {
+void matrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt **c) {
   int i,j,k;
 
   if (Nya != Nxb) {
@@ -775,7 +775,7 @@ void matrixProduct(double **a,int Nxa, int Nya, double **b,int Nxb, int Nyb, dou
 
 
 /* c = a*b */
-void matrixProductInt(double **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, double **c) {
+void matrixProductInt(float_tt **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, float_tt **c) {
   int i,j,k;
 
   if (Nya != Nxb) {
@@ -793,7 +793,7 @@ void matrixProductInt(double **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, dou
   */
   for (i=0;i<Nxa;i++) for (j=0;j<Nyb;j++) {
       c[0][i*Nyb+j] = 0.0;
-      for (k=0;k<Nya;k++) c[0][i*Nyb+j] += a[0][i*Nya+k] * (double)(b[0][k*Nyb+j]);
+      for (k=0;k<Nya;k++) c[0][i*Nyb+j] += a[0][i*Nya+k] * (float_tt)(b[0][k*Nyb+j]);
     }
 }
 

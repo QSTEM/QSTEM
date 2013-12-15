@@ -21,7 +21,9 @@
 #include "crystal.hpp"
 #include "config_readers.hpp"
 #include <boost/array.hpp>
+
 #include "memory_fftw3.hpp"
+
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_01.hpp>
@@ -126,12 +128,12 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
   // float_t dw,occ,dx,dy,dz,r;
   int i,i2,j,ix,iy,iz,atomKinds=0;
   // char s1[16],s2[16],s3[16];
-  double boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
-  double boxCenterX,boxCenterY,boxCenterZ,boxCenterXrot,boxCenterYrot,boxCenterZrot,bcX,bcY,bcZ;
-  double x,y,z,totOcc;
-  double choice,lastOcc;
-  double *u = NULL;
-  double **Mm = NULL;
+  float_tt boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
+  float_tt boxCenterX,boxCenterY,boxCenterZ,boxCenterXrot,boxCenterYrot,boxCenterZrot,bcX,bcY,bcZ;
+  float_tt x,y,z,totOcc;
+  float_tt choice,lastOcc;
+  float_tt *u = NULL;
+  float_tt **Mm = NULL;
   static int ncoord_old = 0;
 
   printFlag = m_printLevel;
@@ -205,23 +207,13 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
     for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == m_baseAtoms[i].Znum) break;
     // allocate more memory, if there is a new element
     if (jz == atomKinds) {
-       m_Znums.push_back(atoms[i].Znum)
+      m_Znums.push_back(m_atoms[i].Znum);
+      if (m_tds)
+        {
+          m_u2.resize(m_Znums.size());
+          m_u2avg.resize(m_Znums.size());
+        }
     }
-
-    
-  } // for 1=ncoord-1:-1:0  - we've just read all the atoms.
-  if (m_tds) {
-    if (m_u2 == NULL) {
-      // printf("AtomKinds: %d\n",m_atomKinds);
-      m_u2 = (double *)malloc(atomKinds*sizeof(double));
-      memset(m_u2,0,atomKinds*sizeof(double));
-    }
-    if (m_u2avg == NULL) {
-      m_u2avg = (double *)malloc(m_Znums.size()*sizeof(double));
-      memset(m_u2avg,0,m_Znums.size()*sizeof(double));
-    }
-  }
-
 
   ////////////////////////////////////////////////////////////////
   // Close the file for further reading, and restore file pointer 
@@ -235,7 +227,7 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
   if ((m_cubex > 0) && (m_cubey > 0) && (m_cubez > 0)) {
     /* at this point the atoms should have fractional coordinates */
     // printf("Entering tiltBoxed\n");
-    TiltBoxed(ncoord,m_baseAtoms,handleVacancies);
+    TiltBoxed(ncoord,handleVacancies);
     // printf("ncoord: %d, natom: %d\n",ncoord,*natom);
   }
   else {  // work in NCell mode
@@ -243,7 +235,7 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
     // add the phonon displacement in this condition, because there we can 
     // actually do the correct Eigenmode treatment.
     // but we will probably just do Einstein vibrations anyway:
-    ReplicateUnitCell(ncoord,natom,muls,m_baseAtoms,handleVacancies);
+    ReplicateUnitCell(handleVacancies);
     /**************************************************************
      * now, after we read all of the important coefficients, we
      * need to decide if this is workable
@@ -326,16 +318,16 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
 
     if ((m_ctiltx != 0) || (m_ctilty != 0) || (m_ctiltz != 0)) {			
       for(i=0;i<(natom);i++) {
-        u[0] = atoms[i].x-boxCenterX; 
-        u[1] = atoms[i].y-boxCenterY; 
-        u[2] = atoms[i].z-boxCenterZ; 
+        u[0] = m_atoms[i].x-boxCenterX; 
+        u[1] = m_atoms[i].y-boxCenterY; 
+        u[2] = m_atoms[i].z-boxCenterZ; 
         RotateVect(u,u,m_ctiltx,m_ctilty,m_ctiltz);  // simply applies rotation matrix
         u[0] += boxCenterX;
         u[1] += boxCenterY; 
         u[2] += boxCenterZ; 
-        atoms[i].x = u[0];
-        atoms[i].y = u[1]; 
-        atoms[i].z = u[2]; 
+        m_atoms[i].x = u[0];
+        m_atoms[i].y = u[1]; 
+        m_atoms[i].z = u[2]; 
         // boxXmin = boxXmin>u[0] ? u[0] : boxXmin; boxXmax = boxXmax<u[0] ? u[0] : boxXmax; 
         // boxYmin = boxYmin>u[1] ? u[1] : boxYmin; boxYmax = boxYmax<u[1] ? u[1] : boxYmax; 
         // boxZmin = boxZmin>u[2] ? u[2] : boxZmin; boxZmax = boxZmax<u[2] ? u[2] : boxZmax; 
@@ -343,9 +335,9 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
     } /* if tilts != 0 ... */
     
     for(i=0;i<(natom);i++) {
-      atoms[i].x-=boxXmin; 
-      atoms[i].y-=boxYmin; 
-      atoms[i].z-=boxZmin; 
+      m_atoms[i].x-=boxXmin; 
+      m_atoms[i].y-=boxYmin; 
+      m_atoms[i].z-=boxZmin; 
     }
     m_ax = boxXmax-boxXmin;
     m_by = boxYmax-boxYmin;
@@ -361,13 +353,13 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
     // Do this after the rotation!
     if ((m_offsetX != 0) || (m_offsetY != 0)) {
       for(i=0;i<natom;i++) {
-        atoms[i].x += m_offsetX; 
-        atoms[i].y += m_offsetY; 
+        m_atoms[i].x += m_offsetX; 
+        m_atoms[i].y += m_offsetY; 
       }		 
     }
   } // end of Ncell mode conversion to cartesian coords and tilting.
-} // end of readUnitCell
-
+  } // end of loop over atoms
+}
 
 // Uses m_Mm to calculate ax, by, cz, and alpha, beta, gamma
 void CCrystal::CalculateCellDimensions()
@@ -388,19 +380,18 @@ void CCrystal::CalculateCellDimensions()
 void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   int atomKinds = 0;
   int iatom,jVac,jequal,jChoice,i2,ix,iy,iz,atomCount = 0,atomSize;
-  static double *axCell,*byCell,*czCell=NULL;
-  static double **Mm = NULL, **Mminv = NULL, **MpRed = NULL, **MpRedInv = NULL;
-  static double **MbPrim = NULL, **MbPrimInv = NULL, **MmOrig = NULL,**MmOrigInv=NULL;
-  static double **a = NULL,**aOrig = NULL,**b= NULL,**bfloor=NULL,**blat=NULL;
-  static double *uf;
+  static float_tt *axCell,*byCell,*czCell=NULL;
+  static float_tt **Mm = NULL, **Mminv = NULL, **MpRed = NULL, **MpRedInv = NULL;
+  static float_tt **MbPrim = NULL, **MbPrimInv = NULL, **MmOrig = NULL,**MmOrigInv=NULL;
+  static float_tt **a = NULL,**aOrig = NULL,**b= NULL,**bfloor=NULL,**blat=NULL;
+  static float_tt *uf;
   static int oldAtomSize = 0;
   double x,y,z,dx,dy,dz; 
   double totOcc,lastOcc,choice;
   std::vector<atom> unitAtoms;
   atom newAtom;
-  int nxmin,nxmax,nymin,nymax,n zmin,nzmax,jz;
   int Ncells;
-  static double *u;
+  static float_tt *u;
 
   unsigned jz;
 
@@ -417,26 +408,26 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   */
 
   if (Mm == NULL) {
-    MmOrig		= double2D(3,3,"MmOrig");
-    MmOrigInv	= double2D(3,3,"MmOrigInv");
-    MbPrim		= double2D(3,3,"MbPrim");	// double version of primitive lattice basis 
-    MbPrimInv	= double2D(3,3,"MbPrim"); // double version of inverse primitive lattice basis 
-    MpRed		= double2D(3,3,"MpRed");    /* conversion lattice to obtain red. prim. coords 
+    MmOrig		= float2D(3,3,"MmOrig");
+    MmOrigInv	= float2D(3,3,"MmOrigInv");
+    MbPrim		= float2D(3,3,"MbPrim");	// double version of primitive lattice basis 
+    MbPrimInv	= float2D(3,3,"MbPrim"); // double version of inverse primitive lattice basis 
+    MpRed		= float2D(3,3,"MpRed");    /* conversion lattice to obtain red. prim. coords 
                                                      * from reduced cubic rect.
                                                      */
-    MpRedInv	= double2D(3,3,"MpRedInv");    /* conversion lattice to obtain red. cub. coords 
+    MpRedInv	= float2D(3,3,"MpRedInv");    /* conversion lattice to obtain red. cub. coords 
                                                 * from reduced primitive lattice coords
                                                 */
-    Mm			= double2D(3,3,"Mm");
-    Mminv		= double2D(3,3,"Mminv");
+    Mm			= float2D(3,3,"Mm");
+    Mminv		= float2D(3,3,"Mminv");
     axCell = Mm[0]; byCell = Mm[1]; czCell = Mm[2];
-    a			= double2D(1,3,"a");
-    aOrig		= double2D(1,3,"aOrig");
-    b			= double2D(1,3,"b");
-    bfloor		= double2D(1,3,"bfloor");
-    blat		= double2D(1,3,"blat");
-    uf			= (double *)malloc(3*sizeof(double));
-    u			= (double *)malloc(3*sizeof(double));
+    a			= float2D(1,3,"a");
+    aOrig		= float2D(1,3,"aOrig");
+    b			= float2D(1,3,"b");
+    bfloor		= float2D(1,3,"bfloor");
+    blat		= float2D(1,3,"blat");
+    uf			= (float_tt *)malloc(3*sizeof(float_tt));
+    u			= (float_tt *)malloc(3*sizeof(float_tt));
   }
 
 
@@ -453,16 +444,16 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   for (ix=0;ix<3;ix++) for (iy=0;iy<3;iy++) Mm[ix][iy]=m_Mm[iy][ix];
 
   memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
-  inverse_3x3(MmOrigInv[0],MmOrig[0]);
+  Inverse_3x3(MmOrigInv[0],MmOrig[0]);
   /* remember that the angles are in rad: */
-  rotateMatrix(Mm[0],Mm[0],m_ctiltx,m_ctilty,m_ctiltz);
+  RotateMatrix(Mm[0],Mm[0],m_ctiltx,m_ctilty,m_ctiltz);
   /*
   // This is wrong, because it implements Mrot*(Mm'):
   rotateVect(axCell,axCell,m_ctiltx,m_ctilty,m_ctiltz);
   rotateVect(byCell,byCell,m_ctiltx,m_ctilty,m_ctiltz);
   rotateVect(czCell,czCell,m_ctiltx,m_ctilty,m_ctiltz);
   */
-  inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
+  Inverse_3x3(Mminv[0],Mm[0]);  // computes Mminv from Mm!
   /* find out how far we will have to go in unit of unit cell vectors.
    * when creating the supercell by checking the number of unit cell vectors 
    * necessary to reach every corner of the supercell box.
@@ -471,17 +462,18 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   // printf("%d %d\n",(int)Mm, (int)MmOrig);
   memset(a[0],0,3*sizeof(double));
   // matrixProduct(a,1,3,Mminv,3,3,b);
-  matrixProduct(Mminv,3,3,a,3,1,b);
+  MatrixProduct(Mminv,3,3,a,3,1,b);
   // showMatrix(Mm,3,3,"M");
   // showMatrix(Mminv,3,3,"M");
-  nxmin = nxmax = (int)floor(b[0][0]-dx); 
-  nymin = nymax = (int)floor(b[0][1]-dy); 
-  nzmin = nzmax = (int)floor(b[0][2]-dz);
+  unsigned nxmax, nymax, nzmax;
+  unsigned nxmin = nxmax = (int)floor(b[0][0]-dx); 
+  unsigned nymin = nymax = (int)floor(b[0][1]-dy); 
+  unsigned nzmin = nzmax = (int)floor(b[0][2]-dz);
   for (ix=0;ix<=1;ix++) for (iy=0;iy<=1;iy++)	for (iz=0;iz<=1;iz++) {
         a[0][0]=ix*m_cubex-dx; a[0][1]=iy*m_cubey-dy; a[0][2]=iz*m_cubez-dz;
 
         // matrixProduct(a,1,3,Mminv,3,3,b);
-        matrixProduct(Mminv,3,3,a,3,1,b);
+        MatrixProduct(Mminv,3,3,a,3,1,b);
 
         // showMatrix(b,1,3,"b");
         if (nxmin > (int)floor(b[0][0])) nxmin=(int)floor(b[0][0]);
@@ -513,7 +505,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
     // printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
     //   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
     memcpy(&newAtom,&unitAtoms[iatom],sizeof(atom));
-    for (jz=0;jz<m_atomKinds;jz++)	if (m_Znums[jz] == newAtom.Znum) break;
+    for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == newAtom.Znum) break;
     // allocate more memory, if there is a new element
     /*
       if (jz == atomKinds) {
@@ -608,7 +600,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
             exit(0);
           }
           // matrixProduct(aOrig,1,3,Mm,3,3,b);
-          matrixProduct(Mm,3,3,aOrig,3,1,b);
+          MatrixProduct(Mm,3,3,aOrig,3,1,b);
           
           // if (atomCount < 2) {showMatrix(a,1,3,"a");showMatrix(b,1,3,"b");}
           // b now contains atom positions in cartesian coordinates */
@@ -619,7 +611,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
               (y >= 0) && (y <= m_cubey) &&
               (z >= 0) && (z <= m_cubez)) {
             // matrixProduct(a,1,3,Mm,3,3,b);
-            matrixProduct(Mm,3,3,a,3,1,b);
+            MatrixProduct(Mm,3,3,a,3,1,b);
             atoms[atomCount].x		= b[0][0]+dx; 
             atoms[atomCount].y		= b[0][1]+dy; 
             atoms[atomCount].z		= b[0][2]+dz; 
@@ -670,7 +662,6 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
   int 	atomKinds = 0;
   double totOcc;
   double choice,lastOcc;
-  double *u;
   // seed for random number generation
   static long idum = -1;
 
@@ -680,11 +671,10 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
   std::vector<float_tt> u(3,0);
   //u = (double *)malloc(3*sizeof(double));
 
-  atomKinds = m_atomKinds;
   //////////////////////////////////////////////////////////////////////////////
   // Look for atoms which share the same position:
   jVac = 0;  // no atoms have been removed yet
-  for (i=ncoord-1;i>=0;) {
+  for (i=m_atoms.size()-1;i>=0;) {
 
     ////////////////
     if ((handleVacancies) && (m_atoms[i].Znum > 0)) {
@@ -704,7 +694,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
       // Keep a record of the kinds of atoms we are reading
     }
     if (jequal == i-1) {
-      for (jz=0;jz<atomKinds;jz++)	if (m_Znums[jz] == m_atoms[i].Znum) break;
+      for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == m_atoms[i].Znum) break;
     }
 
     ////////////////
@@ -803,8 +793,8 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
 ********************************************************************************/ 
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 //  j == atomCount
-void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
-                                  int icz,double dw,int maxAtom,int ZnumIndex) {
+void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
+                                  int icz,float_tt dw,int maxAtom,int ZnumIndex) {
   int ix,iy,idd; // iz;
   static FILE *fpPhonon = NULL;
   static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
@@ -812,17 +802,17 @@ void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
   static float_tt **omega;     // array of eigenvalues for every k-vector 
   static complex_tt ***eigVecs;  // array of eigenvectors for every k-vector
   static float_tt **kVecs;     // array for Nk 3-dim k-vectors
-  static double **q1=NULL, **q2=NULL;
+  static float_tt **q1=NULL, **q2=NULL;
   int ik,lambda,icoord; // Ncells, nkomega;
   double kR,kRi,kRr,wobble;
-  static double *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
+  static float_tt *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
   // static double uxCollect=0,uyCollect=0,uzCollect=0;
   static int *u2Count = NULL,*u2CountT,runCount = 1,u2Size = -1;
   static long iseed=0;
-  static double **Mm=NULL,**MmInv=NULL;
-  // static double **MmOrig=NULL,**MmOrigInv=NULL;
-  static double *axCell,*byCell,*czCell,*uf,*b;
-  static double wobScale = 0,sq3,scale=0;
+  static float_tt **Mm=NULL,**MmInv=NULL;
+  // static float_tt **MmOrig=NULL,**MmOrigInv=NULL;
+  static float_tt *axCell,*byCell,*czCell,*uf,*b;
+  static float_tt wobScale = 0,sq3,scale=0;
 
   if (m_tds == 0) return;
 
@@ -856,12 +846,12 @@ void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
     ux=0; uy=0; uz=0; 
   }
   if (Mm == NULL) {
-    // MmOrig = double2D(3,3,"MmOrig");
-    // MmOrigInv = double2D(3,3,"MmOrigInv");
-    Mm = double2D(3,3,"Mm");
-    MmInv = double2D(3,3,"Mminv");
-    uf = double1D(3,"uf");
-    b = double1D(3,"uf");
+    // MmOrig = float2D(3,3,"MmOrig");
+    // MmOrigInv = float2D(3,3,"MmOrigInv");
+    Mm = float2D(3,3,"Mm");
+    MmInv = float2D(3,3,"Mminv");
+    uf = float1D(3,"uf");
+    b = float1D(3,"uf");
     
     axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
     // memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
@@ -874,12 +864,12 @@ void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
     
     // makeCellVectMuls(muls, axCell, byCell, czCell);
     // memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
-    inverse_3x3(MmInv[0],Mm[0]);
+    Inverse_3x3(MmInv[0],Mm[0]);
   }
   if (ZnumIndex >= u2Size) {
     
     // printf("created phonon displacements %d!\n",ZnumIndex);
-    u2 = (double *)realloc(u2,(ZnumIndex+1)*sizeof(double));
+    u2 = (float_tt *)realloc(u2,(ZnumIndex+1)*sizeof(double));
     u2Count = (int *)realloc(u2Count,(ZnumIndex+1)*sizeof(int));
 							   
     // printf("%d .... %d\n",ZnumIndex,u2Size);
@@ -952,11 +942,11 @@ void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
       fread(&Ns,sizeof(int),1,fpPhonon);
       massPrim =(float *)malloc(Ns*sizeof(float));  // masses for every atom in primitive basis
       fread(massPrim,sizeof(float),Ns,fpPhonon);
-      kVecs = float32_2D(Nk,3,"kVecs");
-      omega = float32_2D(Nk,3*Ns,"omega");          /* array of eigenvalues for every k-vector 
-                                                     * omega is given in THz, but the 2pi-factor
-                                                     * is still there, i.e. f=omega/2pi
-                                                     */
+      kVecs = float2D(Nk,3,"kVecs");
+      omega = float2D(Nk,3*Ns,"omega");          /* array of eigenvalues for every k-vector 
+                                                  * omega is given in THz, but the 2pi-factor
+                                                  * is still there, i.e. f=omega/2pi
+                                                  */
       eigVecs = complex3D(Nk,3*Ns,3*Ns,"eigVecs"); // array of eigenvectors for every k-vector
       for (ix=0;ix<Nk;ix++) {
         fread(kVecs[ix],sizeof(float),3,fpPhonon);  // k-vector
@@ -1000,8 +990,8 @@ void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
       }
       // printf("Temperature: %g K\n",Ttotal);
       // printf("%d %d %d\n",(int)(0.4*(double)Nk/11.0),(int)(0.6*(double)Nk),Nk);
-      q1 = double2D(3*Ns,Nk,"q1");
-      q2 = double2D(3*Ns,Nk,"q2");
+      q1 = float2D(3*Ns,Nk,"q1");
+      q2 = float2D(3*Ns,Nk,"q2");
       
     }
     fclose(fpPhonon);    
@@ -1038,7 +1028,7 @@ void CCrystal::PhononDisplacement(double *u,int id,int icx,int icy,
     /* Finally we must convert the displacement for this atom back into its fractional
      * coordinates so that we can add it to the current position in vector a
      */
-    matrixProduct(&u,1,3,MmInv,3,3,&uf);
+    MatrixProduct(&u,1,3,MmInv,3,3,&uf);
 // test:
     /*
       matrixProduct(&uf,1,3,Mm,3,3,&b);
@@ -1142,3 +1132,33 @@ void CCrystal::WriteStructure(unsigned run_number)
   }
   */
 }
+
+
+// *******************  Matrix manipulation ***********************
+//    For now, use our own internal routines as has been done always.
+//    For the future, consider using a linear algebra library instead - Eigen, BLAS/ATLAS/MKL/GOTO
+
+#include "matrixlib.hpp"
+
+void CCrystal::Inverse_3x3 (float_tt *res, const float_tt *a)
+{
+  // use function from matrixlib for now
+  return inverse_3x3(res, a);
+}
+
+void CCrystal::RotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z)
+{
+  return rotateVect(vectIn, vectOut, phi_x, phi_y, phi_z);
+}
+
+void CCrystal::MatrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt **c)
+{
+  return matrixProduct(a, Nxa, Nya, b, Nxb, Nyb, c);
+}
+
+void CCrystal::RotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z)
+{
+  return rotateMatrix(matrixIn, matrixOut, phi_x, phi_y, phi_z);
+}
+
+// ******************  end matrix manipulation

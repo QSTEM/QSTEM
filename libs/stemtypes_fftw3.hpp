@@ -69,12 +69,12 @@ typedef double float_tt;
 const float_tt PI = 2*acos(0.0);
 
 typedef struct atomStruct {
-  float z,y,x;
+  float_tt z,y,x;
   // float dx,dy,dz;  // thermal displacements
-  float dw;      // Debye-Waller factor
-  float occ;     // occupancy
-  float q;       // charge 
-  int Znum;
+  float_tt dw;      // Debye-Waller factor
+  float_tt occ;     // occupancy
+  float_tt q;       // charge 
+  unsigned Znum;
 } atom;
 
 typedef boost::shared_ptr<atom> atomPtr;
@@ -83,50 +83,50 @@ typedef boost::shared_ptr<atom> atomPtr;
  * a point (point) and 2 vectors (vect1, vect2)
  */
 typedef struct planeStruct {
-  double normX,normY,normZ;
-  double vect1X,vect1Y,vect1Z;
-  double vect2X,vect2Y,vect2Z;
-  double pointX,pointY,pointZ;
+  float_tt normX,normY,normZ;
+  float_tt vect1X,vect1Y,vect1Z;
+  float_tt vect2X,vect2Y,vect2Z;
+  float_tt pointX,pointY,pointZ;
 } plane;
 
 typedef boost::shared_ptr<plane> planePtr;
 
 typedef struct grainBoxStruct {
-  int amorphFlag;
-  double density,rmin, rFactor;  /* density, atomic distance, reduced atomic distance
+  bool amorphFlag;
+  float_tt density,rmin, rFactor;  /* density, atomic distance, reduced atomic distance
 				  * for amorphous material.  Red. r is for making a hex.
 				  * closed packed structure, which will fill all space, 
 				  * but will only be sparsely filled, and later relaxed.
 				  */ 
   char *name;
   atom *unitCell; /* definition of unit cell */
-  int natoms;     /* number of atoms in unit cell */
-  double ax,by,cz; /* unit cell parameters */
-  double alpha, beta, gamma; /* unit cell parameters */
-  double tiltx,tilty,tiltz;
-  double shiftx,shifty,shiftz;
+  unsigned natoms;     /* number of atoms in unit cell */
+  float_tt ax,by,cz; /* unit cell parameters */
+  float_tt alpha, beta, gamma; /* unit cell parameters */
+  float_tt tiltx,tilty,tiltz;
+  float_tt shiftx,shifty,shiftz;
   plane *planes;   /* pointer to array of bounding planes */
-  double sphereRadius, sphereX,sphereY,sphereZ; /* defines a sphere instead of a grain with straight edges */
+  float_tt sphereRadius, sphereX,sphereY,sphereZ; /* defines a sphere instead of a grain with straight edges */
   int nplanes; /* number of planes in array planes */
 } grainBox;
 
 typedef boost::shared_ptr<grainBox> grainBoxPtr;
 
 typedef struct superCellBoxStruct {
-  double cmx,cmy,cmz;  /* fractional center of mass coordinates */
-  double ax,by,cz;
-  int natoms;
+  float_tt cmx,cmy,cmz;  /* fractional center of mass coordinates */
+  float_tt ax,by,cz;
+  unsigned natoms;
   atom *atoms; /* contains all the atoms within the super cell */
 } superCellBox;
 
 typedef boost::shared_ptr<superCellBox> superCellBoxPtr;
 
 typedef struct atomBoxStruct {
-  int used;   /* indicate here whether this atom is used in the
+  bool used;   /* indicate here whether this atom is used in the
 		 particular problem */
-  int nx,ny,nz;
+  unsigned nx,ny,nz;
   float_tt dx,dy,dz;
-  double B;
+  float_tt B;
   complex_tt ***potential;   /* 3D array containg 1st quadrant of real space potential */
   float_tt ***rpotential;   /* 3D array containg 1st quadrant of real space potential */
 } atomBox;
