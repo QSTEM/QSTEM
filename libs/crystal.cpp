@@ -203,17 +203,20 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
     // Keep a record of the kinds of atoms we are reading
 
     // TODO: why not use something like a set for this?  What is jz actually used for?
-
+    /*
     for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == m_baseAtoms[i].Znum) break;
     // allocate more memory, if there is a new element
     if (jz == atomKinds) {
-      m_Znums.push_back(m_atoms[i].Znum);
-      if (m_tds)
-        {
-          m_u2.resize(m_Znums.size());
-          m_u2avg.resize(m_Znums.size());
-        }
-    }
+    */
+    if (std::find(m_Znums.begin(), m_Znums.end(), m_baseAtoms[i].Znum)==m_Znums.end())
+      {
+        m_Znums.push_back(m_atoms[i].Znum);
+        if (m_tds)
+          {
+            m_u2[m_baseAtoms[i].Znum]=0;
+            m_u2avg[m_baseAtoms[i].Znum]=0;
+          }
+      }
 
   ////////////////////////////////////////////////////////////////
   // Close the file for further reading, and restore file pointer 
@@ -487,7 +490,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   // nxmin--;nxmax++;nymin--;nymax++;nzmin--;nzmax++;
         
   unitAtoms.resize(ncoord);
-  memcpy(&unitAtoms[0],&atoms[0],ncoord*sizeof(atom));
+  memcpy(&unitAtoms[0],&m_baseAtoms[0],ncoord*sizeof(atom));
   atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
   if (atomSize != oldAtomSize) {
     atoms.resize(atomSize);
@@ -536,7 +539,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
       totOcc = 1;
     }
 
-
+    unsigned atomCount = 0;
 
     // printf("%d: %d\n",atomCount,jz);
     for (ix=nxmin;ix<=nxmax;ix++) {
@@ -588,7 +591,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
           if (m_Einstein == 1) {
             // phononDisplacement(u,muls,iatom,ix,iy,iz,1,newAtom.dw,10,newAtom.Znum);
             if (m_tds) {
-              PhononDisplacement(u,jChoice,ix,iy,iz,1,unitAtoms[jChoice].dw,atomSize,jz);
+              PhononDisplacement(u,jChoice,ix,iy,iz,1,atomSize,unitAtoms[jChoice]);
               a[0][0] = aOrig[0][0]+u[0]; a[0][1] = aOrig[0][1]+u[1]; a[0][2] = aOrig[0][2]+u[2];
             }
             else {
@@ -607,18 +610,20 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
           x  = b[0][0]+dx; 
           y  = b[0][1]+dy; 
           z  = b[0][2]+dz; 
+
+          // include atoms that are within the box
           if ((x >= 0) && (x <= m_cubex) &&
               (y >= 0) && (y <= m_cubey) &&
               (z >= 0) && (z <= m_cubez)) {
             // matrixProduct(a,1,3,Mm,3,3,b);
             MatrixProduct(Mm,3,3,a,3,1,b);
-            atoms[atomCount].x		= b[0][0]+dx; 
-            atoms[atomCount].y		= b[0][1]+dy; 
-            atoms[atomCount].z		= b[0][2]+dz; 
-            atoms[atomCount].dw		= unitAtoms[jChoice].dw;
-            atoms[atomCount].occ	= unitAtoms[jChoice].occ;
-            atoms[atomCount].q		= unitAtoms[jChoice].q;
-            atoms[atomCount].Znum	= unitAtoms[jChoice].Znum;
+            m_atoms[atomCount].x		= b[0][0]+dx; 
+            m_atoms[atomCount].y		= b[0][1]+dy; 
+            m_atoms[atomCount].z		= b[0][2]+dz; 
+            m_atoms[atomCount].dw		= unitAtoms[jChoice].dw;
+            m_atoms[atomCount].occ	        = unitAtoms[jChoice].occ;
+            m_atoms[atomCount].q		= unitAtoms[jChoice].q;
+            m_atoms[atomCount].Znum	        = unitAtoms[jChoice].Znum;
             
             atomCount++;	
             /*
@@ -693,9 +698,10 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
       totOcc = 1;
       // Keep a record of the kinds of atoms we are reading
     }
-    if (jequal == i-1) {
-      for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == m_atoms[i].Znum) break;
-    }
+
+    //if (jequal == i-1) {
+    //  for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == m_atoms[i].Znum) break;
+    //}
 
     ////////////////
     /* replicate unit cell ncx,y,z times: */
@@ -748,15 +754,15 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
             }
             
             // Keep a record of the kinds of atoms we are reading
-            for (jz=0;jz<atomKinds;jz++) {
-              if (m_Znums[jz] == m_atoms[jChoice].Znum) break;
-            }
+            //for (jz=0;jz<atomKinds;jz++) {
+            //  if (m_Znums[jz] == m_atoms[jChoice].Znum) break;
+            //}
           }
           // printf("i2=%d, %d (%d) [%g %g %g]\n",i2,jequal,jz,atoms[jequal].x,atoms[jequal].y,atoms[jequal].z);
           
           // this function does nothing, if m_tds == 0
           // if (j % 5 == 0) printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
-          PhononDisplacement(u,jChoice,icx,icy,icz,j,m_atoms[jChoice].dw,*natom,jz);
+          PhononDisplacement(u,jChoice,icx,icy,icz,j,*natom,m_atoms[jChoice]);
           // printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
 
           for (i2=i;i2>jequal;i2--) {
@@ -794,7 +800,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 //  j == atomCount
 void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
-                                  int icz,float_tt dw,int maxAtom,int ZnumIndex) {
+                                  int icz,int maxAtom,atom &atom,bool printReport) {
   int ix,iy,idd; // iz;
   static FILE *fpPhonon = NULL;
   static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
@@ -805,14 +811,18 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   static float_tt **q1=NULL, **q2=NULL;
   int ik,lambda,icoord; // Ncells, nkomega;
   double kR,kRi,kRr,wobble;
-  static float_tt *u2=NULL,*u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
+  static float_tt *u2T,ux=0,uy=0,uz=0; // u2Collect=0; // Ttotal=0;
+  std::map<unsigned, float_tt> u2; 
+  std::map<unsigned, unsigned>u2Count;
   // static double uxCollect=0,uyCollect=0,uzCollect=0;
-  static int *u2Count = NULL,*u2CountT,runCount = 1,u2Size = -1;
+  static int *u2CountT,runCount = 1,u2Size = -1;
   static long iseed=0;
   static float_tt **Mm=NULL,**MmInv=NULL;
   // static float_tt **MmOrig=NULL,**MmOrigInv=NULL;
   static float_tt *axCell,*byCell,*czCell,*uf,*b;
   static float_tt wobScale = 0,sq3,scale=0;
+
+  float_tt dw = atom.dw;
 
   if (m_tds == 0) return;
 
@@ -820,8 +830,11 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
    * We will give a statistics report, everytime, when we find atomCount == 0
    ***************************************************************************/
 
-  if (atomCount == 0) {
-    for (ix=0;ix<m_Znums.size();ix++) {
+  if (printReport) {
+    std::vector<unsigned>::iterator z=m_Znums.begin();
+    for(z; z!=m_Znums.end(); ++z)
+      {
+        //for (ix=0;ix<m_Znums.size();ix++) {
       // u2Collect += u2[ix]/u2Count[ix];
       // uxCollect += ux/maxAtom; uyCollect += uy/maxAtom; uzCollect += uz/maxAtom;
       /*
@@ -832,15 +845,14 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
         runCount);
       */
       // printf("Count: %d %g\n",u2Count[ix],u2[ix]);
-      u2[ix] /= u2Count[ix];
+        u2[(*z)] /= u2Count[(*z)];
       if (runCount > 0) 
-        m_u2avg[ix] = sqrt(((runCount-1)*(m_u2avg[ix]*m_u2avg[ix])+u2[ix])/runCount);
+        m_u2avg[(*z)] = sqrt(((runCount-1)*(m_u2avg[(*z)]*m_u2avg[(*z)])+u2[(*z)])/runCount);
       else
-        m_u2avg[ix] = sqrt(u2[ix]);
+        m_u2avg[(*z)] = sqrt(u2[(*z)]);
+      m_u2[(*z)]    = sqrt(u2[(*z)]);
       
-      m_u2[ix]    = sqrt(u2[ix]);
-      
-      u2[ix]=0; u2Count[ix]=0;
+      u2[(*z)]=0; u2Count[(*z)]=0;
     }
     runCount++;
     ux=0; uy=0; uz=0; 
@@ -866,6 +878,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
     // memcpy(MmOrig[0],Mm[0],3*3*sizeof(double));
     Inverse_3x3(MmInv[0],Mm[0]);
   }
+  /*
   if (ZnumIndex >= u2Size) {
     
     // printf("created phonon displacements %d!\n",ZnumIndex);
@@ -888,7 +901,8 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
     // printf("%d ..... %d\n",ZnumIndex,u2Size);
 
     u2Size = ZnumIndex+1;
-  }  
+  } 
+  */ 
 
   
   /***************************************************************************
@@ -1000,7 +1014,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   // 
   // in the previous bracket: the phonon file is only read once.
   /////////////////////////////////////////////////////////////////////////////////////
-  if ((m_Einstein == 0) && (atomCount == maxAtom-1)) {
+  if ((!m_Einstein) && (atomCount == maxAtom-1)) {
     if (Nk > 800)
       printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
@@ -1020,9 +1034,9 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
     u[2] = (wobble*sq3 * gasdev(_rng));
     ///////////////////////////////////////////////////////////////////////
     // Book keeping:
-    u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
+    u2[atom.Znum] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
     ux += u[0]; uy += u[1]; uz += u[2];
-    u2Count[ZnumIndex]++;
+    u2Count[atom.Znum]++;
     
 
     /* Finally we must convert the displacement for this atom back into its fractional
@@ -1043,7 +1057,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   }
   else {
     // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
-    printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",ZnumIndex,Ns,Nk,id,Nk,3*Ns,3*Ns);
+    printf("created phonon displacements %d, %d, %d %d (eigVecs: %d %d %d)!\n",atom.Znum,Ns,Nk,id,Nk,3*Ns,3*Ns);
     /* loop over k and lambda:  */
     memset(u,0,3*sizeof(double));
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
@@ -1063,12 +1077,12 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
      */ 
     ///////////////////////////////////////////////////////////////////////
     // Book keeping:
-    u2[ZnumIndex] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
+    u2[atom.Znum] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
     ux += u[0]; uy += u[1]; uz += u[2];
     u[0] /= m_ax;
     u[1] /= m_by;
     u[2] /= m_cz;
-    u2Count[ZnumIndex]++;
+    u2Count[atom.Znum]++;
 
   } /* end of if Einstein */
   

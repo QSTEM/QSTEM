@@ -24,6 +24,7 @@
 #include "config_readers.hpp"
 #include "structure_readers.hpp"
 #include <string>
+#include <map>
 
 #include <boost/filesystem.hpp>
 
@@ -37,7 +38,7 @@ public:
   void ReadUnitCell(bool handleVacancies);
   void TiltBoxed(int ncoord,bool handleVacancies);
   void PhononDisplacement(float_tt *u,int id,int icx,int icy,
-                          int icz,float_tt dw,int maxAtom,unsigned ZnumIndex);
+                          int icz,int maxAtom,atom &atom,bool printReport);
   void ReplicateUnitCell(int handleVacancies);
   void WriteStructure(unsigned run_number);
 
@@ -56,7 +57,7 @@ protected:
   StructureReaderPtr m_reader;
 
   std::vector<unsigned> m_Znums; // Z numbers for the atom types that are present
-  std::vector<float_tt> m_u2, m_u2avg;
+  std::map<unsigned, float_tt> m_u2, m_u2avg;
 
   boost::filesystem::path m_phononFile;
   
