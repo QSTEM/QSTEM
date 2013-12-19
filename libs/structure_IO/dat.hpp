@@ -17,39 +17,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CFG_STRUCTURE_H
-#define CFG_STRUCTURE_H
-
 #include "structureInterface.hpp"
-#include <boost/filesystem.hpp>
 
-class CCfgReader : public IStructureInput
+class CDatReader : public IStructureInput
 {
 public:
-  CCfgReader(boost::filesystem::path &structure_file);
-  ~CCfgReader();
-  
-  int ReadCellParams(float_tt **Mm);
-  int ReadAtoms(std::vector<atom> &atoms);
+  virtual int ReadCellParams(float_tt **Mm);
+  virtual int ReadAtoms(std::vector<atom> &atoms);
 protected:
-  int ReadNextAtom(atom *newAtom, int flag);
+  virtual int ReadNextAtom(atom *newAtom, int flag);
 };
-
-class CCfgWriter : public IStructureOutput
-{
-  int Write(std::vector <atom> &atoms, unsigned run_number);
-  int WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
-                  double a,double b,double c);
-};
-
-#endif
-
-
-
-
-
-
-
-
-
-

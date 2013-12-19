@@ -35,6 +35,8 @@ boost::random::uniform_01<float_tt> ran1;    // This returns uniform random valu
 boost::random::normal_distribution<float_tt> gasdev(0,1); // This returns uniform random values with a Gaussian normal distribution
 
 #define PID 3.14159265358979 /* pi */
+#define PI180 1.7453292519943e-2
+
 #define THZ_AMU_HBAR 0.15745702964189 /* A°^2*THz*amu/(hbar) */
 // 4.46677327584453 /* 1e10/sqrt(THz*amu/(pi*hbar)) */
 #define THZ_HBAR_KB 1.90963567802059 /* THz*hbar/kB */
@@ -73,6 +75,7 @@ void CCrystal::Init(unsigned run_number)
     if (m_atoms[i].z < minZ) minZ = m_atoms[i].z;
     if (m_atoms[i].z > maxZ) maxZ = m_atoms[i].z;
   }
+
   /*
     printf("Root of mean square TDS displacement: %f A (wobble=%g at %gK) %g %g %g\n",
     sqrt(u2/natom),wobble,m_tds_temp,ux,uy,uz);
@@ -83,7 +86,9 @@ void CCrystal::Init(unsigned run_number)
     printf("Y: %g .. %g\n",minY,maxY);
     printf("Z: %g .. %g\n",minZ,maxZ);
   }
-  OffsetCenter(center);
+
+  // 20131218 - MCS - center is not actually used in old code.  Ignore it here.
+  //OffsetCenter(center);
 
   /**********************************************************
    * Sort the atoms in z.
@@ -147,11 +152,6 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
   }
   */
 
-  if (ncoord == 0) {
-    printf("Error reading configuration file %s - ncoord =0\n",fileName);
-    return;
-  }
-
   ncx = m_nCellX;
   ncy = m_nCellY;
   ncz = m_nCellZ;
@@ -172,7 +172,7 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
    * allocate the arrays 
    ************************************************************/
 
-  reader->Initialize(m_baseAtoms);
+  //m_reader->Initialize(m_baseAtoms);
 
   unsigned natom = m_baseAtoms.size()*ncx*ncy*ncz;
   m_atoms.resize(natom);
@@ -184,21 +184,14 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
    ***********************************************************/
   for(i=m_baseAtoms.size()-1; i>=0; i--) {
 
-    if (reader->ReadNextAtom(&m_baseAtoms[i],0)<0)
-      {
-        printf("number of atoms does not agree with atoms in file!\n");
-        return;
-      }
-
+    // TODO: this check belongs in potential, as it is essentially checking if we have a valid potential for the Z.
+    /*
     if((m_baseAtoms[i].Znum < 1 ) || (m_baseAtoms[i].Znum > N_ELEM)) {
-      /* for (j=ncoord-1;j>=i;j--)
-         printf("%2d: %d (%g,%g,%g)\n",j,atoms[j].Znum,atoms[j].x,
-         atoms[j].y,atoms[j].z);
-      */
-      printf("Error: bad atomic number %d in file %s (atom %d [%d: %g %g %g])\n",
-             m_baseAtoms[i].Znum,fileName,i,m_baseAtoms[i].Znum,m_baseAtoms[i].x,m_baseAtoms[i].y,m_baseAtoms[i].z);
+      printf("Error: bad atomic number %d (atom %d [%d: %g %g %g])\n",
+             m_baseAtoms[i].Znum,i,m_baseAtoms[i].Znum,m_baseAtoms[i].x,m_baseAtoms[i].y,m_baseAtoms[i].z);
       return;
     }
+    */
 
     // Keep a record of the kinds of atoms we are reading
 
@@ -220,7 +213,7 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
 
   ////////////////////////////////////////////////////////////////
   // Close the file for further reading, and restore file pointer 
-  reader->CloseFile();
+  //m_reader->CloseFile();
 
   // First, we will sort the atoms by position:
   if (handleVacancies) {
@@ -372,7 +365,7 @@ void CCrystal::CalculateCellDimensions()
   m_cz = sqrt(m_Mm[2][0]*m_Mm[2][0]+m_Mm[2][1]*m_Mm[2][1]+m_Mm[2][2]*m_Mm[2][2]);
   m_cGamma = atan2(m_Mm[1][1],m_Mm[1][0]);
   m_cBeta = acos(m_Mm[2][0]/m_cz);
-  m_cAlpha = acos(m_Mm[2][1]*sin(m_cGamma)/m_c+cos(m_cBeta)*cos(m_cGamma));
+  m_cAlpha = acos(m_Mm[2][1]*sin(m_cGamma)/m_cz+cos(m_cBeta)*cos(m_cGamma));
   m_cGamma /= (float)PI180;
   m_cBeta  /= (float)PI180;
   m_cAlpha /= (float)PI180;
@@ -493,7 +486,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   memcpy(&unitAtoms[0],&m_baseAtoms[0],ncoord*sizeof(atom));
   atomSize = (1+(nxmax-nxmin)*(nymax-nymin)*(nzmax-nzmin)*ncoord);
   if (atomSize != oldAtomSize) {
-    atoms.resize(atomSize);
+    m_atoms.resize(atomSize);
     oldAtomSize = atomSize;
   }
   // showMatrix(Mm,3,3,"Mm");
@@ -581,7 +574,8 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
           }
           // if (jChoice != iatom) memcpy(&newAtom,unitAtoms+jChoice,sizeof(atom));
           if (jChoice != iatom) {
-            if (std::find(m_Znums.begin(), m_Znums.end(), unitAtoms[jChoice].Znum)!=m_Znums.end())
+            std::vector<unsigned>::iterator item = std::find(m_Znums.begin(), m_Znums.end(), unitAtoms[jChoice].Znum);
+            if (item!=m_Znums.end())
               jz=item-m_Znums.begin();
             //for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == unitAtoms[jChoice].Znum) break;
           }
@@ -591,7 +585,9 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
           if (m_Einstein == 1) {
             // phononDisplacement(u,muls,iatom,ix,iy,iz,1,newAtom.dw,10,newAtom.Znum);
             if (m_tds) {
-              PhononDisplacement(u,jChoice,ix,iy,iz,1,atomSize,unitAtoms[jChoice]);
+              // 20131218 MCS
+              // final "false" is whether to print report in PhononDisplacement.  I think it's vestigial code...
+              PhononDisplacement(u,jChoice,ix,iy,iz,unitAtoms[jChoice],false);
               a[0][0] = aOrig[0][0]+u[0]; a[0][1] = aOrig[0][1]+u[1]; a[0][2] = aOrig[0][2]+u[2];
             }
             else {
@@ -641,9 +637,8 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   m_ax = m_cubex;
   m_by = m_cubey;
   m_cz  = m_cubez;
-  *natom = atomCount;
   // call phononDisplacement again to update displacement data:
-  PhononDisplacement(u,iatom,ix,iy,iz,0,newAtom.dw,*natom,jz);
+  PhononDisplacement(u,iatom,ix,iy,iz,newAtom,false);
 
   //free(unitAtoms);
   //return atoms;
@@ -713,7 +708,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
     for (icx=ncx-1;icx>=0;icx--) {
       for (icy=ncy-1;icy>=0;icy--) {
         for (icz=ncz-1;icz>=0;icz--) {
-          jCell = (icz+icy*ncz+icx*ncy*ncz)*ncoord;
+          jCell = (icz+icy*ncz+icx*ncy*ncz)*m_baseAtoms.size();
           j = jCell+i;
           /* We will also add the phonon displacement to the atomic positions now: */
           m_atoms[j].dw = m_atoms[i].dw;
@@ -762,7 +757,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
           
           // this function does nothing, if m_tds == 0
           // if (j % 5 == 0) printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
-          PhononDisplacement(u,jChoice,icx,icy,icz,j,*natom,m_atoms[jChoice]);
+          PhononDisplacement(&u[0],jChoice,icx,icy,icz,m_atoms[jChoice],false);
           // printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
 
           for (i2=i;i2>jequal;i2--) {
@@ -800,7 +795,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
 //  phononDisplacement(u,muls,jChoice,icx,icy,icz,j,atoms[jChoice].dw,*natom,jz);
 //  j == atomCount
 void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
-                                  int icz,int maxAtom,atom &atom,bool printReport) {
+                                  int icz,atom &atom,bool printReport) {
   int ix,iy,idd; // iz;
   static FILE *fpPhonon = NULL;
   static int Nk, Ns;        // number of k-vectors and atoms per primitive unit cell
@@ -1014,7 +1009,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   // 
   // in the previous bracket: the phonon file is only read once.
   /////////////////////////////////////////////////////////////////////////////////////
-  if ((!m_Einstein) && (atomCount == maxAtom-1)) {
+  if ((!m_Einstein) ){//&& (atomCount == maxAtom-1)) {
     if (Nk > 800)
       printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
@@ -1132,7 +1127,7 @@ int CCrystal::AtomCompareZYX(const void *atPtr1,const void *atPtr2) {
 
 void CCrystal::WriteStructure(unsigned run_number)
 {
-  m_structureIOPlugin->Write(m_atoms, run_number);
+  m_structureWriter->Write(m_atoms, run_number);
   /*
   if (m_cfgFile != NULL) {
     sprintf(buf,"%s/%s",m_folder,m_cfgFile);

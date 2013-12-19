@@ -23,21 +23,26 @@
 #include <boost/shared_ptr.hpp>
 #include "../stemtypes_fftw3.hpp"
 #include <string>
+#include <vector>
+
+#include <cstring>
+#include "../readparams.hpp"
 
 class IStructureInput
 {
 public:
   virtual int ReadCellParams(float_tt **Mm)=0;
   virtual int ReadAtoms(std::vector<atom> &atoms)=0;
-  //virtual int ReadNextAtom(atom *newAtom, int flag)=0;
-};
-
-class IStructureOutput
-{
-  virtual int Write(std::vector<atom> &atoms, unsigned run_number)=0;
 };
 
 typedef boost::shared_ptr<IStructureInput> StructureReaderPtr;
+
+class IStructureOutput
+{
+public:
+  virtual int Write(std::vector<atom> &atoms, unsigned run_number)=0;
+};
+
 typedef boost::shared_ptr<IStructureOutput> StructureWriterPtr;
 /*--------------------- ReadLine() -----------------------*/
 /*
