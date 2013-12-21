@@ -37,6 +37,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include "readparams.hpp"
 
+#include "elTable.hpp"
+
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>
@@ -55,7 +57,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define NPMAX	12	/* number of parameters for each Z */
 #define NZMIN	1	/* min Z in featom.tab */
 //#define NZMAX	98      /* max Z (in featom.dat ZMAX=103) */
-#define	NCMAX	132	/* characters per line to read */
 #define NPARAM	64	/* number of parameters in tiff files */
 
 #define N_A 6.022e+23
@@ -70,15 +71,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define THZ_HBAR_2KB  3.81927135604119     /* THz*hbar/(2*kB) */
 #define THZ_HBAR_KB   1.90963567802059     /* THz*hbar/kB */
 #define AMU_THZ2_A2_KB   1.20274224623720     /* AMU*THz^2*A^2/kB */
-
-char *elTable = {
-	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
-	"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
-	"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
-	"I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
-	"YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-	"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"
-};
 
 #define MAX_MASS_INDEX 59
 int idArraySize=0;
@@ -161,31 +153,6 @@ MULS initMu() {
 // #undef NCINMAX 500
 // #undef NPARAM	64    /* number of parameters */
 
-
-
-int getZNumber(char *element) {
-	char *elem;
-#ifndef WIN32
-	char widows = '\n';
-	widows = (char)((int)widows + 3);
-
-	// fprintf(stderr,"getZnumber : element = *%s* \n",element); 
-	element[2] = '\0'; 
-	if ((atoi(element+1) != 0) || (element[1] == '\n')|| (element[1] == '\0') || element[1] == widows){
-		element[1] = ' ';
-		// fprintf(stderr,"getZnumber : element = *%s*  conversion \n",element); 
-	} 
-#else
-	element[2] = '\0';
-	if ((atoi(element+1) != 0) || (element[1] == '\n')|| (element[1] == '\0'))
-		element[1] = ' ';
-#endif
-	if ((elem = strstr(elTable,element)) == NULL)
-		return 0;	
-	else
-		return (int)(elem-elTable)/2+1;
-
-}
 
 #define CHARGE 0.0
 

@@ -21,11 +21,12 @@
 #define READ_QSC_H
 
 #include "read_interface.hpp"
+#include <boost/filesystem.hpp>
 
 class CQscReader : public IConfigReader
 {
 public:
-  CQscReader(std::string &filename);
+  CQscReader(boost::filesystem::path &filename);
   ~CQscReader();
 
   void ReadMode(int &mode);
@@ -84,9 +85,9 @@ public:
                        float_tt &phi55, float_tt &phi53, float_tt &phi51,
                        float_tt &phi66, float_tt &phi64, float_tt &phi62);
 protected:
-  char buf[1024];
+char buf[1024];
   char answer[256];
-  FILE *fpTemp;
+FILE *m_fp;
 };
 
 #endif

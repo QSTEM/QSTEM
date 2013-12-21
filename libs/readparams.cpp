@@ -35,87 +35,12 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #define COMMENT '%'
 #define PAR_BUF_LEN 1024
-#define STACK_SIZE 5
+//#define STACK_SIZE 5
 
-FILE *fp=NULL;
-FILE **fpStack = NULL;
+//FILE *fp=NULL;
+//FILE **fpStack = NULL;
 char parBuf[PAR_BUF_LEN];
 char commentChar=COMMENT;
-
-/********************************************************
- * open the parameter file and return 1 for success,
- * 0 for failure
- * If a file is already open, close it first
- *******************************************************/
-int parOpen(const char *fileName) {
-  int i;
-
-  if (fpStack == NULL) {
-    fpStack = (FILE **)malloc(STACK_SIZE*sizeof(FILE *));
-    for (i=0;i<STACK_SIZE;i++)
-      fpStack[i] = NULL;
-    fpStack[0] = fp;
-  }
-
-  if (fp!=NULL)
-    fclose(fp);
-
-  fp=fopen(fileName,"r");
-  return (fp != NULL);
-}
-
-/******************************************************
- * push the current FILE pointer on the stack, in order 
- * open a second (or up to 5th) parameter file
- */
-void parFpPush() {
-  int i;
-
-  if (fpStack == NULL) {
-    fpStack = (FILE **)malloc(STACK_SIZE*sizeof(FILE *));
-    for (i=0;i<STACK_SIZE;i++)
-      fpStack[i] = NULL;
-  }
-  else {
-    for (i=1;i<STACK_SIZE;i++)
-      fpStack[i] = fpStack[i-1];
-    fpStack[0] = fp; 
-  }
-  fp = NULL;
-}
-
-/******************************************************
- * discard the current file pointer (close, if not zero)
- * and make the previous one on the stack active
- ****************************************************/
-void parFpPull() {
-  int i;
-
-  parClose();
-  fp = fpStack[0];
-  for (i=1;i<STACK_SIZE;i++)
-    fpStack[i-1] = fpStack[i];
-  fpStack[STACK_SIZE-1] = NULL;
-}
-
-
-/********************************************************
- * Close the parameter file, if it is open
- *******************************************************/
-void parClose() {
-  if (fp!=NULL)
-    fclose(fp);
-  fp = NULL;
-}
-
-/*******************************************************
- * if for some reason a function needs to see the file 
- * pointer, it can obtain it by calling this function 
- ******************************************************/
-FILE *getFp() {
-  return fp;
-}
-
 
 /***********************************************************
  * setComment(char newComment) will set a new character as 
@@ -139,7 +64,7 @@ void setComment(char newComment) {
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(const char *title, char *parString, int wrapFlag) {
+int readparam(FILE *fp, const char *title, char *parString, int wrapFlag) {
   char *result;
   char *str=NULL,*comment;
   // int iresult;
@@ -184,7 +109,7 @@ int readparam(const char *title, char *parString, int wrapFlag) {
  * reset the parameter file pointer to zero, 
  * in order to look for the first occurence of something.
  *********************************************************/
-void resetParamFile() {
+void resetParamFile(FILE *fp) {
   if (fp !=NULL)
     fseek(fp, 0L, SEEK_SET);
 }
@@ -224,7 +149,7 @@ char *strnext(char *str,char *delim) {
  * (legal, i.e. at least 2 words, at least one after the colon)
  * parameter in the corresponding strings.
  ************************************************************/
-int readNextParam(char *title, char *parString) {
+int readNextParam(FILE *fp, char *title, char *parString) {
   char *result;
   char *str,*comment;
   // int iresult;
@@ -263,7 +188,7 @@ int readNextParam(char *title, char *parString) {
  * buf (at most bufLen characters).
  * Content of buf not altered, if unsuccessful
  ******************************************************************/ 
-int readNextLine(char *buf,int bufLen) {
+int readNextLine(FILE *fp, char *buf,int bufLen) {
   char *result;
  
   if (fp == NULL)
@@ -279,7 +204,4 @@ int readNextLine(char *buf,int bufLen) {
 
   return 1;  /* success */
 } 
-
-
-
 

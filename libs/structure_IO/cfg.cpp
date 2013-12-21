@@ -18,66 +18,87 @@
 */
 
 #include "cfg.hpp"
+#include "elTable.hpp"
 
-int CStructureCfg::Write(atom *atoms,int natoms,char *fileName,MULS *muls) {
-	FILE *fp;
-	int j;
-	char elem[16];
-	double ax,by,cz;
+CCfgReader::CCfgReader(boost::filesystem::path &filename)
+{
+  m_fp = fopen(filename.string().c_str(), "r" );
+  if( m_fp == NULL ) {
+    printf("Cannot open file %s\n",filename.string().c_str());
+    m_isValid=false;
+    return;
+  }
+  if (readparam(m_fp, ".NO_VELOCITY.",m_buf,1)) m_noVelocity = true; 
+  else m_noVelocity = false;
+  if (readparam(m_fp, "entry_count =",m_buf,1)) sscanf(m_buf,"%d",&m_entryCount);
+  if (!m_noVelocity) m_entryCount+=3;
+  m_atomData.resize(m_entryCount);
+  m_isValid=true;
+}
 
-	if (natoms < 1) {
-		printf("Atom array empty - no file written\n");
-		return 1;
-	}
+CCfgReader::~CCfgReader()
+{
+  fclose(m_fp);
+}
 
-	fp = fopen(fileName, "w" );
-	if( fp == NULL ) {
-		printf("Cannot open file %s\n",fileName);
-		return 0;
-	}
+CCfgWriter::CCfgWriter(boost::filesystem::path &path, float_tt ax, float_tt by, float_tt cz) :
+  m_ax(ax)
+  , m_by(by)
+  , m_cz(cz)
+{
+  m_fp = fopen(path.string().c_str(), "w" );
+  if( m_fp == NULL ) {
+    printf("Cannot open file %s\n",path.string().c_str());
+  }
+}
 
-	// ax = muls->ax > MIN_EDGE_LENGTH ? muls->ax : MIN_EDGE_LENGTH;
-	// by = muls->by > MIN_EDGE_LENGTH ? muls->by : MIN_EDGE_LENGTH;
-	// cz = muls->c  > MIN_EDGE_LENGTH ? muls->c  : MIN_EDGE_LENGTH;
-	ax = muls->ax;
-	by = muls->by;
-	cz = muls->c;
+CCfgWriter::~CCfgWriter()
+{
+  fclose(m_fp);
+}
 
-	fprintf(fp,"Number of particles = %d\n",natoms);
-	fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
-	fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
-	fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
-	fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
-	fprintf(fp,".NO_VELOCITY.\nentry_count = 6\n");
-	printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
+  int j;
+  char elem[16];
 
+  if (atoms.size() < 1) {
+    printf("Atom array empty - no file written\n");
+    return 1;
+  }
 
-	elem[2] = '\0';
-	elem[0] = elTable[2*atoms[0].Znum-2];
-	elem[1] = elTable[2*atoms[0].Znum-1];
-	// printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
-	if (elem[1] == ' ') elem[1] = '\0';
-	fprintf(fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
-	fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].x/ax,atoms[0].y/by,atoms[0].z/cz,
-		atoms[0].dw,atoms[0].occ,atoms[0].q);
+  fprintf(m_fp,"Number of particles = %d\n",atoms.size());
+  fprintf(m_fp,"A = 1.0 Angstrom (basic length-scale)\n");
+  fprintf(m_fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",m_ax);
+  fprintf(m_fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",m_by);
+  fprintf(m_fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",m_cz);
+  fprintf(m_fp,".NO_VELOCITY.\nentry_count = 6\n");
+  printf("ax: %g, by: %g, cz: %g n: %d\n",m_ax,m_by,m_cz,atoms.size());
 
 
+  elem[2] = '\0';
+  elem[0] = elTable[2*atoms[0].Znum-2];
+  elem[1] = elTable[2*atoms[0].Znum-1];
+  // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
+  if (elem[1] == ' ') elem[1] = '\0';
+  fprintf(m_fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
+  fprintf(m_fp,"%g %g %g %g %g %g\n",atoms[0].x/m_ax,atoms[0].y/m_by,atoms[0].z/m_cz,
+          atoms[0].dw,atoms[0].occ,atoms[0].q);
 
-	for (j=1;j<natoms;j++) {
-		if (atoms[j].Znum != atoms[j-1].Znum) {
-			elem[0] = elTable[2*atoms[j].Znum-2];
-			elem[1] = elTable[2*atoms[j].Znum-1];
-			if (elem[1] == ' ') elem[1] = '\0';
-			fprintf(fp,"%g\n%s\n",2.0*atoms[j].Znum,elem);
-			// printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
-		}
-		fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].x/ax,atoms[j].y/by,atoms[j].z/cz,
-			atoms[j].dw,atoms[j].occ,atoms[j].q);
-		// if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
-	} 
-	fclose(fp);
+  for (j=1;j<atoms.size();j++) {
+    if (atoms[j].Znum != atoms[j-1].Znum) {
+      elem[0] = elTable[2*atoms[j].Znum-2];
+      elem[1] = elTable[2*atoms[j].Znum-1];
+      if (elem[1] == ' ') elem[1] = '\0';
+      fprintf(m_fp,"%g\n%s\n",2.0*atoms[j].Znum,elem);
+      // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
+    }
+    fprintf(m_fp,"%g %g %g %g %g %g\n",atoms[j].x/m_ax,atoms[j].y/m_by,atoms[j].z/m_cz,
+            atoms[j].dw,atoms[j].occ,atoms[j].q);
+    // if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
+  } 
+  fclose(m_fp);
 
-	return 1;
+  return 1;
 }
 
 
@@ -88,7 +109,7 @@ int CStructureCfg::Write(atom *atoms,int natoms,char *fileName,MULS *muls) {
 
 // write CFG file using atomic positions stored in pos, Z's in Znum and DW-factors in dw
 // the unit cell is assumed to be cubic
-int CStructureCfg::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
+int CCfgWriter::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
                                    double a,double b,double c) {
   FILE *fp;
   int j;
@@ -146,57 +167,55 @@ int CStructureCfg::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,c
 * The following function returns the number of atoms in the specified
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
-int CStructureCfg::ReadCellParams(unsigned &ncoord; double **Mm, char *fileName) {
-	int i;
-	char buf[256];
-	double lengthScale;
+int CCfgReader::ReadCellParams(float_tt **Mm) {
+  int i;
+  char m_buf[256];
+  double lengthScale;
 
-	// printf("Paramter File pointer (1): %d\n",(int)getFp());
-	parFpPush(); /* push the current parameter file file pointer 
-				 * on the stack to make this function totaly 
-				 * transparent 
-				 */
-	if (!parOpen(fileName)) {
-		printf("Could not open CFG input file %s\n",fileName);
-		parFpPull();  /* restore old parameter file pointer */
-		return 0;
-	}
-	// printf("Paramter File pointer (2): %d\n",(int)getFp());
+  resetParamFile(m_fp);  
+  setComment('#');  
+  if (readparam(m_fp, "A =",m_buf,1)) sscanf(m_buf,"%lf",&lengthScale);
 
-	resetParamFile();  
-	setComment('#');  
-	if (readparam("Number of particles =",buf,1)) sscanf(buf,"%d",&ncoord);
-	if (readparam("A =",buf,1)) sscanf(buf,"%lf",&lengthScale);
+  if (readparam(m_fp, "H0(1,1) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+0);
+  if (readparam(m_fp, "H0(1,2) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+1);
+  if (readparam(m_fp, "H0(1,3) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+2);
 
-	if (readparam("H0(1,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+0);
-	if (readparam("H0(1,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+1);
-	if (readparam("H0(1,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+2);
+  if (readparam(m_fp, "H0(2,1) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+3);
+  if (readparam(m_fp, "H0(2,2) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+4);
+  if (readparam(m_fp, "H0(2,3) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+5);
 
-	if (readparam("H0(2,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+3);
-	if (readparam("H0(2,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+4);
-	if (readparam("H0(2,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+5);
+  if (readparam(m_fp, "H0(3,1) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+6);
+  if (readparam(m_fp, "H0(3,2) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+7);
+  if (readparam(m_fp, "H0(3,3) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+8);
 
-	if (readparam("H0(3,1) =",buf,1)) sscanf(buf,"%lf",Mm[0]+6);
-	if (readparam("H0(3,2) =",buf,1)) sscanf(buf,"%lf",Mm[0]+7);
-	if (readparam("H0(3,3) =",buf,1)) sscanf(buf,"%lf",Mm[0]+8);
-	/*
-	if (readparam(".NO_VELOCITY.",buf,1)) noVelocityFlag = 1; 
-	if (readparam("entry_count =",buf,1)) sscanf(buf,"%lf",&entryCount);
-	if (!noVelocityFlag) entryCount+=3;
-	*/
-	setComment('%');
-	parClose();   
-	parFpPull();  /* restore old parameter file pointer */
+  /*
+    if (readparam(".NO_VELOCITY.",m_buf,1)) noVelocityFlag = 1; 
+    if (readparam("entry_count =",m_buf,1)) sscanf(m_buf,"%lf",&entryCount);
+    if (!noVelocityFlag) entryCount+=3;
+  */
+  setComment('%');
+  
+  for (i=0;i<9;i++) Mm[0][i] *= lengthScale;
 
-	for (i=0;i<9;i++) Mm[0][i] *= lengthScale;
-
-	if (ncoord < 1) {
-		printf("Number of atoms in CFG file not specified!\n");
-		ncoord = 0;
-	}
-	return ncoord;
+  return 0;
 }
 
+int CCfgReader::ReadAtoms(std::vector<atom> &atoms)
+{
+  unsigned ncoord;
+
+  if (!m_isValid)
+    throw std::runtime_error("Invalid structure file in CCfgReader.");
+
+  resetParamFile(m_fp);
+  if (readparam(m_fp, "Number of particles =",m_buf,1)) sscanf(m_buf,"%d",&ncoord);
+  atoms.resize(ncoord);
+  for (unsigned i=0; i<ncoord; i++)
+    {
+      ReadNextAtom(&atoms[i]);
+    }
+
+}
 
 /*******************************************************************************
 * This function reads the atomic position and element data for a single atom
@@ -206,85 +225,58 @@ int CStructureCfg::ReadCellParams(unsigned &ncoord; double **Mm, char *fileName)
 * This function will return -1, if the end of file is reached prematurely, 0 otherwise.
 *******************************************************************************/
 
-int CStructureCfg::ReadNextAtom(atom *newAtom, int flag, char *fileName) {
-	static FILE *fp=NULL;
-	static int noVelocityFlag = 1,entryCount = 3,element = 1;
-	static char buf[NCMAX];
-	static double *atomData = NULL;
-	static double mass = 28;
-	char *str = NULL;
-	int j;
+int CCfgReader::ReadNextAtom(atom *newAtom) {
+  unsigned element;
+  char *str = NULL;
+  float_tt mass;
 
+  if (m_fp == NULL) {
+    printf("Invalid CFG file!\n");
+    return -1;
+  }
+  resetParamFile(m_fp);  
 
-	if (flag < 0) {
-		if (fp != NULL) {
-			parClose();   
-			parFpPull();  /* restore old parameter file pointer */      
-			fp = NULL;
-			setComment('%');
-		}
-		return -1;
-	}
+  if (fgets(m_buf,NCMAX,m_fp) == NULL) return -1;
+  /* check, if this is a new mass number */
+  str = strnext(m_buf," \t");
+  if ((atof(m_buf) >= 1.0) && ((str==NULL) || (*str == '#'))) {
+    mass = atof(m_buf);
+    // printf("nV: %d, eC: %d (%g)\n",noVelocityFlag, entryCount,atof(m_buf));
+    if (fgets(m_buf,NCMAX,m_fp) == NULL) return -1;    
+    element = getZNumber(m_buf); 
+    // printf("*** found element %d (%s %d) ***\n",element,m_buf,strlen(m_buf));
+    if (fgets(m_buf,NCMAX,m_fp) == NULL) return -1;
+  }
+  str = m_buf;
+  // skip leading spaces:
+  while (strchr(" \t",*str) != NULL) str++; 
+  for (unsigned j=0;j<m_entryCount;j++) {
+    if (str==NULL) {
+      printf("readNextCFGatom: Error: incomplete data line: >%s<\n",m_buf);
+      return -1;
+    }
+    m_atomData[j] = atof(str); str=strnext(str," \t");
+  }
 
-	if (fp == NULL) {
-		parFpPush();  /* save old parameter file pointer */      
-		if (!parOpen(fileName)) {
-			printf("Could not open CFG input file %s\n",fileName);
-			parFpPull();  /* restore old parameter file pointer */
-			return -1;
-		}
-		resetParamFile();  
-		if (readparam(".NO_VELOCITY.",buf,1)) noVelocityFlag = 1; 
-		else noVelocityFlag = 0;
-		if (readparam("entry_count =",buf,1)) sscanf(buf,"%d",&entryCount);
-		if (!noVelocityFlag) entryCount+=3;
-		fp = getFp();  /* get the file pointer from the parameter file routines */
-		atomData = (double *)malloc((entryCount+1)*sizeof(double));
-	}
+  newAtom->Znum = element;
+  newAtom->x    = m_atomData[0];
+  newAtom->y    = m_atomData[1];
+  newAtom->z    = m_atomData[2];
+  // newAtom->dw   = 0.45*28.0/((double)(2*element));	
+  // printf("Element: %d, mass=%g\n",element,mass);
+  newAtom->dw   = 0.45*28.0/mass;	
+  newAtom->occ  = 1.0;
+  newAtom->q    = 0.0;
+  // read the DW-factor
+  if (m_entryCount > 3+3*(1-(int)m_noVelocity)) 
+    newAtom->dw = m_atomData[3+3*(1-(int)m_noVelocity)];
+  // read the atom's occupancy:
+  if (m_entryCount > 4+3*(1-(int)m_noVelocity)) 
+    newAtom->occ = m_atomData[4+3*(1-(int)m_noVelocity)];
+  // read the atom's charge:
+  if (m_entryCount > 5+3*(1-(int)m_noVelocity)) 
+    newAtom->q = m_atomData[5+3*(1-(int)m_noVelocity)];
+  // printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	
 
-	if (fgets(buf,NCMAX,fp) == NULL) return -1;
-	/* check, if this is a new mass number */
-	str = strnext(buf," \t");
-	if ((atof(buf) >= 1.0) && ((str==NULL) || (*str == '#'))) {
-		mass = atof(buf);
-		// printf("nV: %d, eC: %d (%g)\n",noVelocityFlag, entryCount,atof(buf));
-		if (fgets(buf,NCMAX,fp) == NULL) return -1;    
-		element = getZNumber(buf); 
-		// printf("*** found element %d (%s %d) ***\n",element,buf,strlen(buf));
-		if (fgets(buf,NCMAX,fp) == NULL) return -1;
-	}
-	str = buf;
-	// skip leading spaces:
-	while (strchr(" \t",*str) != NULL) str++; 
-	for (j=0;j<entryCount;j++) {
-		if (str==NULL) {
-			printf("readNextCFGatom: Error: incomplete data line: >%s<\n",buf);
-			return -1;
-		}
-		atomData[j] = atof(str); str=strnext(str," \t");
-	}
-
-
-	newAtom->Znum = element;
-	newAtom->x    = atomData[0];
-	newAtom->y    = atomData[1];
-	newAtom->z    = atomData[2];
-	// newAtom->dw   = 0.45*28.0/((double)(2*element));	
-	// printf("Element: %d, mass=%g\n",element,mass);
-	newAtom->dw   = 0.45*28.0/mass;	
-	newAtom->occ  = 1.0;
-	newAtom->q    = 0.0;
-	// read the DW-factor
-	if (entryCount > 3+3*(1-noVelocityFlag)) 
-		newAtom->dw = atomData[3+3*(1-noVelocityFlag)];
-	// read the atom's occupancy:
-	if (entryCount > 4+3*(1-noVelocityFlag)) 
-		newAtom->occ = atomData[4+3*(1-noVelocityFlag)];
-	// read the atom's charge:
-	if (entryCount > 5+3*(1-noVelocityFlag)) 
-		newAtom->q = atomData[5+3*(1-noVelocityFlag)];
-	// printf("Atom: %d (%g %g %g), occ=%g, q=%g\n",newAtom->Znum,newAtom->x,newAtom->y,newAtom->z,newAtom->occ,newAtom->q);	
-
-
-	return 0;
+  return 0;
 }

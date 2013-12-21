@@ -28,36 +28,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef READPARAMS_H
 #define READPARAMS_H
 
-
-/********************************************************
- * open the parameter file and return 1 for success,
- * 0 for failure
- * If a file is already open, close it first
- *******************************************************/
-int parOpen(const char *fileName);
-
-/********************************************************
- * Close the parameter file, if it is open
- *******************************************************/
-void parClose();
-
-/******************************************************
- * push the current FILE pointer on the stack, in order 
- * open a second (or up to 5th) parameter file
- */
-void parFpPush();
-
-/******************************************************
- * discard the current file pointer (close, if not zero)
- * and make the previous one on the stack active
- ****************************************************/
-void parFpPull();
-
-/*******************************************************
- * if for some reason a function needs to see the file 
- * pointer, it can obtain it by calling this function 
- ******************************************************/
-FILE *getFp();
+#define	NCMAX	132	/* characters per line to read */
 
 /***********************************************************
  * setComment(char newComment) will set a new character as 
@@ -78,7 +49,7 @@ void setComment(char newComment);
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(const char *title, char *parString,int wrapFlag);
+int readparam(FILE *fp, const char *title, char *parString,int wrapFlag);
 
 
 /************************************************************
@@ -93,17 +64,17 @@ int readparam(const char *title, char *parString,int wrapFlag);
  * (legal, i.e. at least 2 words, at least one after the colon)
  * parameter in the corresponding strings.
  ************************************************************/
-int readNextParam(char *title, char *parString);
+int readNextParam(FILE *fp, char *title, char *parString);
 
 /******************************************************************
  * This function reads the next line of the file and copies it into
  * buf (at most bufLen characters).
  * Content of buf not altered, if unsuccessful
  ******************************************************************/ 
-int readNextLine(char *buf,int bufLen);
+int readNextLine(FILE *fp, char *buf,int bufLen);
 
 
-void resetParamFile();
+void resetParamFile(FILE *fp);
 
 char *strnext(char *str,char *delim);
 

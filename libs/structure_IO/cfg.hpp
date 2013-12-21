@@ -32,17 +32,39 @@ public:
   int ReadCellParams(float_tt **Mm);
   int ReadAtoms(std::vector<atom> &atoms);
 protected:
-  int ReadNextAtom(atom *newAtom, int flag);
+  int ReadNextAtom(atom *newAtomcom);
+private:
+  FILE *m_fp;
+  std::vector<float_tt> m_atomData; // One line of atom data read from a file
+  bool m_noVelocity;     // If true, the file does not provide velocity information
+  unsigned m_entryCount; // The number of columns on any given line of data from the file
+  bool m_isValid;  // If true, this object has a valid file to read atoms from.
+  char m_buf[256];
 };
 
 class CCfgWriter : public IStructureOutput
 {
+public:
+  CCfgWriter(boost::filesystem::path &structure_file, float_tt ax, float_tt by, float_tt cz);
+  ~CCfgWriter();
+
   int Write(std::vector <atom> &atoms, unsigned run_number);
   int WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
                   double a,double b,double c);
+private:
+  FILE *m_fp;
+  float_tt m_ax, m_by, m_cz;
+  
 };
 
 #endif
+
+
+
+
+
+
+
 
 
 

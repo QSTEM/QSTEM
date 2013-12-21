@@ -17,13 +17,22 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef DAT_STRUCTURE_H
+#define DAT_STRUCTURE_H
+
 #include "structureInterface.hpp"
+#include <boost/filesystem.hpp>
 
 class CDatReader : public IStructureInput
 {
 public:
-  virtual int ReadCellParams(float_tt **Mm);
-  virtual int ReadAtoms(std::vector<atom> &atoms);
+  CDatReader(boost::filesystem::path &structure_file);
+  ~CDatReader();
+  
+  int ReadCellParams(float_tt **Mm);
+  int ReadAtoms(std::vector<atom> &atoms);
 protected:
-  virtual int ReadNextAtom(atom *newAtom, int flag);
+  int ReadNextAtom(atom *newAtom, int flag);
 };
+
+#endif

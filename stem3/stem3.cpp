@@ -163,7 +163,6 @@ int main(int argc, char *argv[]) {
 		  printf("Mode not supported\n");
 	}
 
-	parClose();
 #if _DEBUG
 	_CrtDumpMemoryLeaks();
 #endif
@@ -443,11 +442,11 @@ void displayParams() {
 }
 
 
-void readArray(char *title,double *array,int N) {
+void readArray(FILE *fp, char *title,double *array,int N) {
 	int i;
 	char buf[512],*str;
 
-	if (!readparam(title,buf,1)) printf("%s array not found - exit\n",title), exit(0);
+	if (!readparam(fp, title,buf,1)) printf("%s array not found - exit\n",title), exit(0);
 	i=0;
 	str = buf;
 	if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t");
@@ -455,8 +454,8 @@ void readArray(char *title,double *array,int N) {
 		array[i++] = atof(str);
 		str = strnext(str," \t\n");
 		while (str == NULL) {
-			if (!readNextLine(buf,511)) 
-				printf("Incomplete reading of %s array - exit\n",title), exit(0);
+                  if (!readNextLine(fp, buf,511)) 
+                    printf("Incomplete reading of %s array - exit\n",title), exit(0);
 			str = buf;
 			if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t\n");
 		}  
@@ -1455,7 +1454,6 @@ void doTEM(WavePtr initialWave, PotPtr pot) {
           muls.totalSliceCount = 0;
           
           pCount = 0;
-          resetParamFile();
 
           /* make incident probe wave function with probe exactly in the center */
           /* if the potential array is not big enough, the probe can 
