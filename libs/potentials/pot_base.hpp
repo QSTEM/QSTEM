@@ -38,7 +38,7 @@ public:
   CPotential(ConfigReaderPtr &configReader);
   ~CPotential();
 
-  void DisplayParams();
+  virtual void DisplayParams();
 
   void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
   virtual void MakeSlices(int nlayer,char *fileName,atom *center);
@@ -56,6 +56,8 @@ public:
   void WriteSlice(unsigned idx);
   void WriteProjectedPotential();
   complex_tt **GetSlice(unsigned idx){return m_trans[idx];}
+
+  atom GetAtom(unsigned idx){return m_atoms[idx];}
 
   // public members (should be moved to protected, and given getters/setters...
   bool m_potential3D;
@@ -117,6 +119,12 @@ protected:
   unsigned m_displayPotCalcInterval;  /* show progress every .. atoms when computing potential */
   unsigned m_saveLevel;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;
+
+  int m_scatFactor;  // The scattering factor type.  One of: 0 (Doyle-Turner); 1 (Wieck-Kohl); 2 (Custom)
+  
+  std::string m_fileBase; // base filename for saving potential.  Will have slice index appended.
+
+  float_tt sfLUT(float_tt s,int atKind);
 
   void splinh( float_tt x[], float_tt y[],
                    float_tt b[], float_tt c[], float_tt d[], int n);

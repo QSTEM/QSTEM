@@ -34,6 +34,11 @@ C3DFFTPotential::C3DFFTPotential(ConfigReaderPtr &configReader) : C3DPotential(c
     }
 }
 
+void C3DFFTPotential::DisplayParams()
+{
+  CPotential::DisplayParams();
+  printf("* Potential calculation: 3D (FFT method)");
+}
 
 void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom, 
                          float_tt atomBoxX, unsigned int iAtomX, 

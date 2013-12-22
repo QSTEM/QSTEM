@@ -26,6 +26,12 @@ C3DPotential::C3DPotential(ConfigReaderPtr &configReader) : CPotential(configRea
         m_sliceStep = 2*m_nx*m_ny;
 }
 
+void C3DPotential::DisplayParams()
+{
+  CPotential::DisplayParams();
+  printf("* Potential calculation: 3D (real space method)");
+}
+
 void C3DPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B)
 {
   float_tt dx, dy, dz;

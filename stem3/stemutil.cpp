@@ -1394,49 +1394,6 @@ double fe3D(int Z, double q2,int tdsFlag,double scale,int scatFlag)
 }  /* end fe3D() */
 
 
-double sfLUT(double s,int atKind, MULS *muls)
-{
-   int i;
-   double sf;
-   static double *splinx=NULL;
-   static double **spliny=NULL;
-   static double **splinb=NULL;
-   static double **splinc=NULL;
-   static double **splind=NULL;
-   static int sfSize = 0;
-   static int atKinds = 0;
-   static double maxK = 0;
-
-   if(splinx == NULL) {
-     // splinx = s;
-     // spliny = sfC;
-     sfSize = muls->sfNk;
-     splinx = muls->sfkArray;
-     spliny = muls->sfTable;
-     atKinds = muls->atomKinds;
-     splinb = double2D(atKinds,sfSize, "splinb" );
-     splinc = double2D(atKinds,sfSize, "splinc" );
-     splind = double2D(atKinds,sfSize, "splind" );
-     maxK = splinx[sfSize-1];
-
-     for (i=0;i<atKinds;i++)
-       splinh(splinx,spliny[i],splinb[i],splinc[i],splind[i],sfSize);
-   }
-   
-   
-   /* now that everything is set up find the
-      scattering factor by interpolation in the table 
-   */
-   if (s > maxK) return 0.0;     
-   if (atKind < atKinds) {
-     sf = seval(splinx,spliny[atKind],splinb[atKind],splinc[atKind],splind[atKind],sfSize,s);
-     if (sf < 0) return 0.0;
-     return(sf);
-   }
-   printf("sfLUT: invalid atom kind (%d) - exit!\n",atKind);
-   exit(0);
-}  /* end sfLUT() */
-
 
 /* function bicubic from Matlab toolbox
  * zz = values of function F(z,x) F[iz][ix] = zz[iz*Nx+ix];

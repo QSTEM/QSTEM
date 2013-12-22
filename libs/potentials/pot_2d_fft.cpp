@@ -8,6 +8,11 @@ C2DFFTPotential::C2DFFTPotential(ConfigReaderPtr &configReader) : C2DPotential(c
   m_nxyAtBox2 = 2*m_nxyAtBox;
 }
 
+void C2DFFTPotential::DisplayParams()
+{
+  CPotential::DisplayParams();
+  printf("* Potential calculation: 2D (FFT method)");
+}
 
 void C2DFFTPotential::makeSlices(int nlayer, char *fileName, atom *center)
 {

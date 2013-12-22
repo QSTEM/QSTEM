@@ -29,9 +29,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 
 #define BW (2.0F/3.0F)	/* bandwidth limit */
-#define DOYLE_TURNER 0
-#define WEICK_KOHL 1
-#define CUSTOM 2
+
 // Mode definitions
 #define STEM    1
 #define CBED    2
@@ -44,6 +42,11 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define RAD2DEG 57.2958
 #define SQRT_2 1.4142135
 
+
+// Scattering factor types
+#define DOYLE_TURNER 0
+#define WEICK_KOHL 1
+#define CUSTOM 2
 
 ////////////////////////////////////////////////////////////////////////
 // Define physical constants

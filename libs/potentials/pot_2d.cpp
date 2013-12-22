@@ -5,6 +5,12 @@ C2DPotential::C2DPotential(ConfigReaderPtr &configReader) : CPotential(configRea
 	m_boxNz = 1;
 }
 
+void C2DPotential::DisplayParams()
+{
+  CPotential::DisplayParams();
+  printf("* Potential calculation: 2D (real space method)");
+}
+
 void C2DPotential::atomBoxLookUp(complex_tt &sum, int Znum, float_tt x, float_tt y, float_tt z, float_tt B) 
 {
   float_tt dx, dy;

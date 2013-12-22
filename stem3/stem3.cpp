@@ -59,7 +59,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "stemlib.hpp"
 #include "stemutil.hpp"
 // #include "weblib.hpp"
-#include "customslice.hpp"
+// 20131222 - customslice doesn't seem to actually be used.
+//#include "customslice.hpp"
 #include "data_containers.hpp"
 
 #include "readparams.hpp"
@@ -113,7 +114,6 @@ int main(int argc, char *argv[]) {
   timerTot = cputim();
   for (i=0;i<BUF_LEN;i++)
     cinTemp[i] = 0;
-  muls.nCellX = 1; muls.nCellY = 1; muls.nCellZ = 1; 
 
 #ifdef UNIX
   system("date");
@@ -142,29 +142,29 @@ int main(int argc, char *argv[]) {
   PotPtr potential = GetPotential(configReader);
   readFile(configReader);
 
-  displayParams();
+  displayParams(initialWave, potential);
 #ifdef _OPENMP
   omp_set_dynamic(1);
 #endif
 
-        int mode;
-        configReader->ReadMode(mode);
-	switch (mode) {
-        case CBED:   doCBED(initialWave, potential);   break;	
-        case STEM:   doSTEM(initialWave, potential);   break;
-        case TEM:    doTEM(initialWave, potential);    break;
-        case MSCBED: doMSCBED(initialWave, potential); break;
-        case TOMO:   doTOMO(initialWave, potential);   break;
-	  // case REFINE: doREFINE(); break;
-	  default:
-		  printf("Mode not supported\n");
-	}
+  int mode;
+  configReader->ReadMode(mode);
+  switch (mode) {
+  case CBED:   doCBED(initialWave, potential);   break;	
+  case STEM:   doSTEM(initialWave, potential);   break;
+  case TEM:    doTEM(initialWave, potential);    break;
+  case MSCBED: doMSCBED(initialWave, potential); break;
+  case TOMO:   doTOMO(initialWave, potential);   break;
+    // case REFINE: doREFINE(); break;
+  default:
+    printf("Mode not supported\n");
+  }
 
 #if _DEBUG
-	_CrtDumpMemoryLeaks();
+  _CrtDumpMemoryLeaks();
 #endif
 
-	return 0;
+  return 0;
 }
 
 /***************************************************************
@@ -193,166 +193,166 @@ void initMuls() {
 *
 ***********************************************************************/
 void displayProgress(int flag) {
-	// static double timer;
-	static double timeAvg = 0;
-	static double intensityAvg = 0;
-	static time_t time0,time1;
-	double curTime;
-	int jz;
+  // static double timer;
+  static double timeAvg = 0;
+  static double intensityAvg = 0;
+  static time_t time0,time1;
+  double curTime;
+  int jz;
 
-	if (flag < 0) {
-		time(&time0);
-		// timer = cputim();
-		return;
-	}
-	time(&time1);  
-	curTime = difftime(time1,time0);
-	/*   curTime = cputim()-timer;
-	if (curTime < 0) {
-	printf("timer: %g, curr. time: %g, diff: %g\n",timer,cputim(),curTime);
-	}
-	*/
-	if (muls.printLevel > 0) {
+  if (flag < 0) {
+    time(&time0);
+    // timer = cputim();
+    return;
+  }
+  time(&time1);  
+  curTime = difftime(time1,time0);
+  /*   curTime = cputim()-timer;
+       if (curTime < 0) {
+       printf("timer: %g, curr. time: %g, diff: %g\n",timer,cputim(),curTime);
+       }
+  */
+  if (muls.printLevel > 0) {
+    
+    if (muls.tds) {
+      timeAvg = ((muls.avgCount)*timeAvg+curTime)/(muls.avgCount+1);
+      intensityAvg = ((muls.avgCount)*intensityAvg+muls.intIntensity)/(muls.avgCount+1);
+      printf("\n********************** run %3d ************************\n",muls.avgCount+1);
+      // if (muls.avgCount < 1) {
+      printf("* <u>: %3d |",muls.Znums[0]);
+      for (jz=1;jz<muls.atomKinds;jz++) printf(" %8d |",muls.Znums[jz]);  
+      printf(" intensity | time(sec) |    chi^2  |\n");
+      // }
+      /*
+        printf("* %9g | %9g | %9g \n",muls.u2,muls.intIntensity,curTime);  
+        }
+        else {
+      */
+      printf("*");
+      for (jz=0;jz<muls.atomKinds;jz++) printf(" %8f |",(float)(muls.u2[jz]));  
+      printf(" %9f | %9f | %9f |\n",muls.intIntensity,curTime,muls.avgCount > 0 ? muls.chisq[muls.avgCount-1] : 0);
+      printf("*");
+      for (jz=0;jz<muls.atomKinds;jz++) printf(" %8f |",(float)(muls.u2avg[jz]));  
+      printf(" %9f | %9f \n",intensityAvg,timeAvg);
+    }
+    else {
+      printf("\n**************** finished after %.1f sec ******************\n",curTime);
+    }
+  }  // end of printLevel check.
 
-		if (muls.tds) {
-			timeAvg = ((muls.avgCount)*timeAvg+curTime)/(muls.avgCount+1);
-			intensityAvg = ((muls.avgCount)*intensityAvg+muls.intIntensity)/(muls.avgCount+1);
-			printf("\n********************** run %3d ************************\n",muls.avgCount+1);
-			// if (muls.avgCount < 1) {
-			printf("* <u>: %3d |",muls.Znums[0]);
-			for (jz=1;jz<muls.atomKinds;jz++) printf(" %8d |",muls.Znums[jz]);  
-			printf(" intensity | time(sec) |    chi^2  |\n");
-			// }
-			/*
-			printf("* %9g | %9g | %9g \n",muls.u2,muls.intIntensity,curTime);  
-			}
-			else {
-			*/
-			printf("*");
-			for (jz=0;jz<muls.atomKinds;jz++) printf(" %8f |",(float)(muls.u2[jz]));  
-			printf(" %9f | %9f | %9f |\n",muls.intIntensity,curTime,muls.avgCount > 0 ? muls.chisq[muls.avgCount-1] : 0);
-			printf("*");
-			for (jz=0;jz<muls.atomKinds;jz++) printf(" %8f |",(float)(muls.u2avg[jz]));  
-			printf(" %9f | %9f \n",intensityAvg,timeAvg);
-		}
-		else {
-			printf("\n**************** finished after %.1f sec ******************\n",curTime);
-		}
-	}  // end of printLevel check.
-
-	time(&time0);
-	//  timer = cputim();
+  time(&time0);
+  //  timer = cputim();
 
 }
 
-void displayParams() {
-	FILE *fpDir;
-	char systStr[64];
-	double k2max,temp;
-	int i,j;
-	static char Date[16],Time[16];
-	time_t caltime;
-	struct tm *mytime;
-	const double pi=3.1415926535897;
+void displayParams(WavePtr &wave, PotPtr &pot) {
+  FILE *fpDir;
+  char systStr[64];
+  double k2max,temp;
+  int i,j;
+  static char Date[16],Time[16];
+  time_t caltime;
+  struct tm *mytime;
+  const double pi=3.1415926535897;
 
-	if (muls.printLevel < 1) {
-          if ((fpDir = fopen(muls.folder.c_str(),"r"))) {
-			fclose(fpDir);
-			// printf(" (already exists)\n");
-		}
-		else {
-                  sprintf(systStr,"mkdir %s",muls.folder.c_str());
-			system(systStr);
-			// printf(" (created)\n");
-		}	  
-		return;
-	}
-	caltime = time( NULL );
-	mytime = localtime( &caltime );
-	strftime( Date, 12, "%Y:%m:%d", mytime );
-	strftime( Time, 9, "%H:%M:%S", mytime );
-
-	printf("\n*****************************************************\n");
-	printf("* Running program STEM3 (version %.2f) in %s mode\n",VERSION,
-		(muls.mode == STEM) ? "STEM" : (muls.mode==TEM) ? "TEM" : 
-		(muls.mode == CBED) ? "CBED" : (muls.mode==TOMO)? "TOMO" : 
-		"???"); 
-	printf("* Date: %s, Time: %s\n",Date,Time);
+  if (muls.printLevel < 1) {
+    if ((fpDir = fopen(muls.folder.c_str(),"r"))) {
+      fclose(fpDir);
+      // printf(" (already exists)\n");
+    }
+    else {
+      sprintf(systStr,"mkdir %s",muls.folder.c_str());
+      system(systStr);
+      // printf(" (created)\n");
+    }	  
+    return;
+  }
+  caltime = time( NULL );
+  mytime = localtime( &caltime );
+  strftime( Date, 12, "%Y:%m:%d", mytime );
+  strftime( Time, 9, "%H:%M:%S", mytime );
+  
+  printf("\n*****************************************************\n");
+  printf("* Running program STEM3 (version %.2f) in %s mode\n",VERSION,
+         (muls.mode == STEM) ? "STEM" : (muls.mode==TEM) ? "TEM" : 
+         (muls.mode == CBED) ? "CBED" : (muls.mode==TOMO)? "TOMO" : 
+         "???"); 
+  printf("* Date: %s, Time: %s\n",Date,Time);
 	
-	printf("* Input file:           %s\n",muls.atomPosFile);
-
-	/* create the data folder ... */
-	printf("* Data folder:          ./%s/ ",muls.folder.c_str()); 
-
-	
-	printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",muls.btiltx*RAD2DEG,muls.btilty*RAD2DEG,
-		(muls.tiltBack == 1 ? "on" : "off"));
-        printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
-	printf("* Slices per division:  %d (%gA thick slices [%scentered])\n",
-		muls.slices,muls.sliceThickness,(muls.centerSlices) ? "" : "not ");
-	printf("* Output every:         %d slices\n",muls.outputInterval);
+  printf("* Input file:           %s\n",muls.atomPosFile);
+  
+  /* create the data folder ... */
+  printf("* Data folder:          ./%s/ ",muls.folder.c_str()); 
 
 	
-	printf("* Beams:                %d x %d \n",muls.nx,muls.ny);  
+  printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",muls.btiltx*RAD2DEG,muls.btilty*RAD2DEG,
+         (muls.tiltBack == 1 ? "on" : "off"));
+  printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
+  printf("* Slices per division:  %d (%gA thick slices [%scentered])\n",
+         muls.slices,muls.sliceThickness,(muls.centerSlices) ? "" : "not ");
+  printf("* Output every:         %d slices\n",muls.outputInterval);
 
-	printf("* Aperture half angle:  %g mrad\n",muls.alpha);
-	printf("* AIS aperture:         ");
-	if (muls.aAIS > 0) printf("%g A\n",muls.aAIS);
-	else printf("none\n");
-	printf("* beam current:         %g pA\n",muls.beamCurrent);
-	printf("* dwell time:           %g msec (%g electrons)\n",
-		muls.dwellTime,muls.electronScale);
+	
+  printf("* Beams:                %d x %d \n",muls.nx,muls.ny);  
+  
+  printf("* Aperture half angle:  %g mrad\n",muls.alpha);
+  printf("* AIS aperture:         ");
+  if (muls.aAIS > 0) printf("%g A\n",muls.aAIS);
+  else printf("none\n");
+  printf("* beam current:         %g pA\n",muls.beamCurrent);
+  printf("* dwell time:           %g msec (%g electrons)\n",
+         muls.dwellTime,muls.electronScale);
 
-	printf("* Damping dE/E: %g / %g \n",sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I)*muls.v0*1e3,muls.v0*1e3);
+  printf("* Damping dE/E: %g / %g \n",sqrt(muls.dE_E*muls.dE_E+muls.dV_V*muls.dV_V+muls.dI_I*muls.dI_I)*muls.v0*1e3,muls.v0*1e3);
 
-	/* 
-	if (muls.ismoth) printf("Type 1 (=smooth aperture), ");
-	if (muls.gaussFlag) printf("will apply gaussian smoothing"); 
-	printf("\n");
-	*/
+  /* 
+     if (muls.ismoth) printf("Type 1 (=smooth aperture), ");
+     if (muls.gaussFlag) printf("will apply gaussian smoothing"); 
+     printf("\n");
+  */
 
-	/***************************************************/
-	/*  printf("Optimizing fftw plans according to probe array (%d x %dpixels = %g x %gA) ...\n",
-	muls.nx,muls.ny,muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
-	*/
-	k2max = muls.nx/(2.0*muls.potSizeX);
-	temp = muls.ny/(2.0*muls.potSizeY);
-	if( temp < k2max ) k2max = temp;
-	k2max = (BW * k2max);
+  /***************************************************/
+  /*  printf("Optimizing fftw plans according to probe array (%d x %dpixels = %g x %gA) ...\n",
+      muls.nx,muls.ny,muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
+  */
+  k2max = wave->m_nx/(2.0*muls.potSizeX);
+  temp = wave->m_ny/(2.0*muls.potSizeY);
+  if( temp < k2max ) k2max = temp;
+  k2max = (BW * k2max);
 
-	printf("* Real space res.:      %gA (=%gmrad)\n",
-		1.0/k2max,wavelength(muls.v0)*k2max*1000.0);
-	printf("* Reciprocal space res: dkx=%g, dky=%g\n",
-		1.0/(muls.nx*muls.resolutionX),1.0/(muls.ny*muls.resolutionY));
-	if (muls.mode == STEM) {
-		printf("*\n"
-			"* STEM parameters:\n");
-		printf("* Maximum scattering angle:  %.0f mrad\n",
-			0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
-                muls.detectors->PrintDetectors();
-		
-		printf("* Scan window:          (%g,%g) to (%g,%g)A, %d x %d = %d pixels\n",
-			muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
-			muls.scanXN,muls.scanYN,muls.scanXN*muls.scanYN);
-        } /* end of if mode == STEM */
+  printf("* Real space res.:      %gA (=%gmrad)\n",
+         1.0/k2max,wave->GetWavelength()*k2max*1000.0);
+  printf("* Reciprocal space res: dkx=%g, dky=%g\n",
+         1.0/(wave->m_nx*wave->m_dx),1.0/(wave->m_ny*wave->m_dy));
+  if (muls.mode == STEM) {
+    printf("*\n"
+           "* STEM parameters:\n");
+    printf("* Maximum scattering angle:  %.0f mrad\n",
+           0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
+    muls.detectors->PrintDetectors();
+    
+    printf("* Scan window:          (%g,%g) to (%g,%g)A, %d x %d = %d pixels\n",
+           muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
+           muls.scanXN,muls.scanYN,muls.scanXN*muls.scanYN);
+  } /* end of if mode == STEM */
 
-	/***********************************************************************
-	* TOMOGRAPHY Mode
-	**********************************************************************/
-        if (muls.mode == TOMO) {
-		printf("*\n"
-			"* TOMO parameters:\n");
-		printf("* Starting angle:       %g mrad (%g deg)\n",
-			muls.tomoStart,muls.tomoStart*0.18/pi);
-		printf("* Angular increase:     %g mrad (%g deg)\n",
-			muls.tomoStep,muls.tomoStep*0.180/pi);
-		printf("* Number of dp's:       %d\n",muls.tomoCount);
-		printf("* Zoom factor:          %g\n",muls.zoomFactor);
-	}
+  /***********************************************************************
+   * TOMOGRAPHY Mode
+   **********************************************************************/
+  if (muls.mode == TOMO) {
+    printf("*\n"
+           "* TOMO parameters:\n");
+    printf("* Starting angle:       %g mrad (%g deg)\n",
+           muls.tomoStart,muls.tomoStart*0.18/pi);
+    printf("* Angular increase:     %g mrad (%g deg)\n",
+           muls.tomoStep,muls.tomoStep*0.180/pi);
+    printf("* Number of dp's:       %d\n",muls.tomoCount);
+    printf("* Zoom factor:          %g\n",muls.zoomFactor);
+  }
 
-    printf("* TDS:                  %d runs)\n",muls.avgRuns);
+  printf("* TDS:                  %d runs)\n",muls.avgRuns);
 
-    printf("*\n*****************************************************\n");
+  printf("*\n*****************************************************\n");
 }
 
 
@@ -380,6 +380,8 @@ void readArray(FILE *fp, char *title,double *array,int N) {
 * readSFactLUT() reads the scattering factor lookup table from the 
 * input file
 **********************************************************************/
+/*
+// TODO: 20131222 - does not seem to be used anywhere
 void readSFactLUT() {
 	int Nk,i,j;
 	double **sfTable=NULL;
@@ -428,7 +430,7 @@ void readSFactLUT() {
 	muls.sfkArray = kArray;
 	muls.sfNk = Nk+1;
 }
-
+*/
 
 /************************************************************************
 * readFile() 
@@ -892,22 +894,25 @@ void readFile(ConfigReaderPtr &configReader) {
 * Important parameters: tomoStart, tomoStep, tomoCount, zoomFactor
 ***********************************************************************/
 void doTOMO(WavePtr initialWave, PotPtr pot) {
-	double boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
-	double mAx,mBy,mCz;
-	int ix,iy,iz,iTheta,i;
-	double u[3],**Mm = NULL;
-	double theta = 0;
-	atom *atoms = NULL;
-	char cfgFile[64],stemFile[128],scriptFile[64],diffAnimFile[64];
-	FILE *fpScript,*fpDiffAnim;
+  double boxXmin=0,boxXmax=0,boxYmin=0,boxYmax=0,boxZmin=0,boxZmax=0;
+  double mAx,mBy,mCz;
+  int ix,iy,iz,iTheta,i;
+  double u[3],**Mm = NULL;
+  double theta = 0;
+  atom *atoms = NULL;
+  char cfgFile[64],stemFile[128],scriptFile[64],diffAnimFile[64];
+  FILE *fpScript,*fpDiffAnim;
 
+  float_tt ax = pot->GetCellAX();
+  float_tt by = pot->GetCellBY();
+  float_tt cz = pot->GetCellCZ();
 
 	Mm = muls.Mm;
 	atoms = (atom *)malloc(muls.natom*sizeof(atom));
 
-	boxXmin = boxXmax = muls.ax/2.0;
-	boxYmin = boxYmax = muls.by/2.0;
-	boxZmin = boxZmax = muls.c/2.0;
+	boxXmin = boxXmax = ax/2.0;
+	boxYmin = boxYmax = by/2.0;
+	boxZmin = boxZmax = cz/2.0;
 
 	// For all tomography tilt angles:
 	for (iTheta = 0;iTheta < muls.tomoCount;iTheta++) {
@@ -915,13 +920,13 @@ void doTOMO(WavePtr initialWave, PotPtr pot) {
 		// Try different corners of the box, and see, how far they poke out.
 		for (ix=-1;ix<=1;ix++) for (iy=-1;iy<=1;iy++) for (iz=-1;iz<=1;iz++) {
 			// Make center of unit cell rotation center
-			u[0]=ix*muls.ax/2; u[1]=iy*muls.by/2.0; u[2]=iz*muls.c/2.0;
+			u[0]=ix*ax/2; u[1]=iy*by/2.0; u[2]=iz*cz/2.0;
 
 			// rotate about y-axis
 			rotateVect(u,u,0,theta*1e-3,0);
 
 			// shift origin back to old (0,0,0):
-			u[0]+=muls.ax/2; u[1]+=muls.by/2.0; u[2]+=muls.c/2.0;
+			u[0]+=ax/2; u[1]+=by/2.0; u[2]+=cz/2.0;
 
 			boxXmin = boxXmin>u[0] ? u[0] : boxXmin; boxXmax = boxXmax<u[0] ? u[0] : boxXmax; 
 			boxYmin = boxYmin>u[1] ? u[1] : boxYmin; boxYmax = boxYmax<u[1] ? u[1] : boxYmax; 
@@ -937,7 +942,7 @@ void doTOMO(WavePtr initialWave, PotPtr pot) {
 	printf("Minimum box size for tomography tilt series: %g x %g x %gA, zoom Factor: %g\n",
 		boxXmax,boxYmax,boxZmax,muls.zoomFactor);
 	boxXmax /= muls.zoomFactor;
-	boxYmax = boxXmax*muls.by/muls.ax;
+	boxYmax = boxXmax*by/ax;
 
 	// boxMin will now be boxCenter:
 	boxXmin = 0.5*boxXmax;
@@ -945,8 +950,8 @@ void doTOMO(WavePtr initialWave, PotPtr pot) {
 	boxZmin = 0.5*boxZmax;
 
 	// We have to save the original unit cell dimensions
-	mAx = muls.ax; mBy = muls.by; mCz = muls.c;
-	muls.ax=boxXmax; muls.by=boxYmax; muls.c=boxZmax;
+	mAx = ax; mBy = by; mCz = cz;
+	ax=boxXmax; by=boxYmax; cz=boxZmax;
 
 	printf("Will use box sizes: %g x %g x %gA (kept original aspect ratio). \n"
 		"Writing structure files now, please wait ...\n",
@@ -977,29 +982,30 @@ void doTOMO(WavePtr initialWave, PotPtr pot) {
 
 		// rotate the structure and write result to local atom array
 		for(i=0;i<(muls.natom);i++) {	
-			u[0] = muls.atoms[i].x - mAx/2.0; 
-			u[1] = muls.atoms[i].y - mBy/2.0; 
-			u[2] = muls.atoms[i].z - mCz/2.0; 
-			rotateVect(u,u,0,theta*1e-3,0);
-			atoms[i].x = u[0]+boxXmin;
-			atoms[i].y = u[1]+boxYmin; 
-			atoms[i].z = u[2]+boxZmin; 
-			atoms[i].Znum = muls.atoms[i].Znum;
-			atoms[i].occ = muls.atoms[i].occ;
-			atoms[i].dw = muls.atoms[i].dw;
+                  u[0] = pot->GetAtom(i).x - mAx/2.0; 
+                  u[1] = pot->GetAtom(i).y - mBy/2.0; 
+                  u[2] = pot->GetAtom(i).z - mCz/2.0; 
+                  rotateVect(u,u,0,theta*1e-3,0);
+                  atoms[i].x = u[0]+boxXmin;
+                  atoms[i].y = u[1]+boxYmin; 
+                  atoms[i].z = u[2]+boxZmin; 
+                  atoms[i].Znum = pot->GetAtom(i).Znum;
+                  atoms[i].occ = pot->GetAtom(i).occ;
+                  atoms[i].dw = pot->GetAtom(i).dw;
 		}
 
 		sprintf(cfgFile,"%s/tomo_%dmrad.cfg",muls.folder.c_str(),(int)theta);
 		sprintf(stemFile,"%s/tomo_%dmrad.dat",muls.folder.c_str(),(int)theta);
 		printf("Writing file %s | ",cfgFile);
-		writeCFG(atoms,muls.natom,cfgFile,&muls);
+		writeCFG(atoms,cfgFile,&muls);
 		sprintf(cfgFile,"tomo_%dmrad.cfg",(int)theta);
 		writeSTEMinput(stemFile,cfgFile,&muls);
 
 		// add to script files:
 		fprintf(fpScript,"stem tomo_%dmrad.dat\n",(int)theta);
 	}
-	muls.ax = mAx; muls.by = mBy; muls.c = mCz;
+        // TODO: this should probably set cell params on potential's crystal object
+	ax = mAx; by = mBy; cz = mCz;
 	sprintf(stemFile,"copy fparams.dat %s/",muls.folder.c_str());
 	system(stemFile);
 
@@ -1041,11 +1047,9 @@ void doCBED(WavePtr initialWave, PotPtr pot) {
   int oldMulsRepeat1 = 1;
   int oldMulsRepeat2 = 1;
   long iseed=0;
-  WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny, muls.resolutionX, muls.resolutionY, muls.input_ext, muls.output_ext));
-  ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, muls.input_ext, muls.output_ext));
   std::map<std::string, double> params;
-  params["dx"]=muls.resolutionX;
-  params["dy"]=muls.resolutionY;
+  params["dx"]=wave->m_dx;
+  params["dy"]=wave->m_dy;
   std::string comment;
 
   std::vector<unsigned> position(1);         // Used to indicate the number of averages
@@ -1087,7 +1091,8 @@ void doCBED(WavePtr initialWave, PotPtr pot) {
     probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
     muls.scanXStart = probeCenterX+probeOffsetX;
     muls.scanYStart = probeCenterY+probeOffsetY;
-    probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
+    wave->FormProbe();
+    //probe(&muls, wave,muls.scanXStart-muls.potOffsetX,muls.scanYStart-muls.potOffsetY);
     if (muls.saveLevel > 2) {
       wave->WriteProbe();
     } 	

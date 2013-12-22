@@ -74,11 +74,8 @@ void CPotential::DisplayParams()
   printf("* Print level:          %d\n",m_printLevel);
   printf("* Save level:           %d\n",m_saveLevel);
   if (m_savePotential)
-    printf("* Potential file name:  %s\n",m_fileBase);
-  printf("* Model:            ");
-  if (m_potential3D) printf("3D"); else printf("2D");
-  if (m_fftpotential) printf(" (FFT method)\n"); else printf(" (real-space method)\n");	
-  printf("*    Sampling:  %g x %g x %g A\n", m_dx,m_dy,m_sliceThickness);
+    printf("* Potential file name:  %s\n",m_fileBase.c_str());
+  printf("* Model Sampling:  %g x %g x %g A\n", m_dx,m_dy,m_sliceThickness);
 
   printf("* Pot. array offset:    (%g,%g,%g)A\n",m_offsetX,m_offsetY,m_zOffset);
   printf("* Potential periodic:   (x,y): %s, z: %s\n",
@@ -447,6 +444,53 @@ void CPotential::WriteProjectedPotential()
   std::string fileName = "ProjectedPot";
   m_imageIO->WriteRealImage((void **)tempPot, fileName, params, comment);
 }
+
+/*
+// TODO: this was taken from stemutils.  It seems to be used only in customslice, which then isn't used anywhere.
+float_tt CPotential::sfLUT(float_tt s,int atKind)
+{
+   int i;
+   double sf;
+   static double *splinx=NULL;
+   static double **spliny=NULL;
+   static double **splinb=NULL;
+   static double **splinc=NULL;
+   static double **splind=NULL;
+   static int sfSize = 0;
+   static int atKinds = 0;
+   static double maxK = 0;
+
+   if(splinx == NULL) {
+     // splinx = s;
+     // spliny = sfC;
+     sfSize = m_sfNk;
+     splinx = m_sfkArray;
+     spliny = m_sfTable;
+     atKinds = m_atoms.size();
+     splinb = double2D(atKinds,sfSize, "splinb" );
+     splinc = double2D(atKinds,sfSize, "splinc" );
+     splind = double2D(atKinds,sfSize, "splind" );
+     maxK = splinx[sfSize-1];
+
+     for (i=0;i<atKinds;i++)
+       splinh(splinx,spliny[i],splinb[i],splinc[i],splind[i],sfSize);
+   }
+   
+   
+   // now that everything is set up find the
+   //   scattering factor by interpolation in the table 
+   
+   if (s > maxK) return 0.0;     
+   if (atKind < atKinds) {
+     sf = seval(splinx,spliny[atKind],splinb[atKind],splinc[atKind],splind[atKind],sfSize,s);
+     if (sf < 0) return 0.0;
+     return(sf);
+   }
+   printf("sfLUT: invalid atom kind (%d) - exit!\n",atKind);
+   exit(0);
+}  // end sfLUT()
+*/
+
 
 /*------------------ splinh() -----------------------------*/
 /*

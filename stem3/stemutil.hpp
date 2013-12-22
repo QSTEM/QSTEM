@@ -53,9 +53,9 @@ typedef struct timeval timev;
 typedef struct timezone timez;
 
 
-int writeCFG(atom *atoms,int natoms,char *fileName, MULS *muls);
-int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
-		       int icz,int atomCount,double dw,int maxAtom, int Znum);
+//int writeCFG(atom *atoms,int natoms,char *fileName, MULS *muls);
+//int phononDisplacement(double *u,MULS *muls,int id,int icx,int icy,
+//		       int icz,int atomCount,double dw,int maxAtom, int Znum);
 
 void *memcopy(void *dest, const void *src, size_t n);
 // void saveSTEMimages(MULS *muls);
@@ -69,8 +69,6 @@ double v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // real
 double v3Datom(int Z, double r,int tdsFlag,int scatFlag);
 double vzatom( int Z, double radius,int tdsFlag,int scatFlag);
 
-double gasdev(long *idum);
-double rangauss( unsigned *iseed );
 int ReadfeTable(int scatFlag );
 int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg );
 int getZNumber(char *element);
@@ -84,7 +82,6 @@ int parlay( const char c[], int islice[], int nsmax, int lmax,
 	    int *nslice, int fperr );
 /* long powerof2( long n ); */
 double fe3D(int Z, double q2,int tdsFlag, double scale,int scatFlag);
-double sfLUT(double s,int atKind, MULS *muls);
 double bicubic(double **ff,int Nz, int Nx,double z,double x);
 int atomCompare(const void *atom1,const void *atom2);
 
