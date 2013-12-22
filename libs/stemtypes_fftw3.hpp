@@ -68,6 +68,9 @@ typedef double float_tt;
 
 const float_tt PI = 2*acos(0.0);
 
+// FFTW constants
+int k_fftMeasureFlag = FFTW_ESTIMATE;
+
 typedef struct atomStruct {
   float_tt z,y,x;
   // float dx,dy,dz;  // thermal displacements

@@ -30,14 +30,10 @@ class IConfigReader
 {
 public:
   virtual void ReadMode(int &mode)=0;
-  virtual void ReadOutputLevel(int &printLevel, int &saveLevel, 
-                               unsigned &displayPotCalcInterval, unsigned &displayProgInterval);
-  // only STEM mode has the displayProgInterval.  Provide this for other modes...
-  inline void ReadOutputLevel(int &printLevel, int &saveLevel, unsigned &displayPotCalcInterval)
-  {
-    unsigned dummy;
-    ReadOutputLevel(printLevel, saveLevel, displayPotCalcInterval, dummy);
-  }
+  virtual void ReadPrintLevel(unsigned &printLevel)=0;
+  virtual void ReadSaveLevel(unsigned &saveLevel)=0;
+  virtual void ReadPotentialOutputInterval(unsigned &displayPotCalcInterval)=0;
+  virtual void ReadSTEMProgressInterval(unsigned &displayProgInterval)=0;
   virtual void ReadOutputName(std::string &fileOrFolderName)=0;
   virtual void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ)=0;
   virtual void ReadNSubSlabs(unsigned &cellDiv)=0;

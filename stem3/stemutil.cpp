@@ -695,36 +695,6 @@ double v3Datom(int Z, double r,int tdsFlag,int scatFlag)
 }  /* end v3Datom() */
 
 
-
-
-/*--------------------- wavelength() -----------------------------------*/
-/*
-	return the electron wavelength (in Angstroms)
-	keep this is one place so I don't have to keep typing in these
-	constants (that I can never remember anyhow)
-
-	ref: Physics Vade Mecum, 2nd edit, edit. H. L. Anderson
-		(The American Institute of Physics, New York) 1989
-		page 4.
-
-	kev = electron energy in keV
-
-*/
-
-double wavelength( double kev )
-{
-  double w;
-  const double emass=510.99906; /* electron rest mass in keV */
-  const double hc=12.3984244; /* Planck's const x speed of light*/
-  
-  /* electron wavelength in Angstroms */
-  w = hc/sqrt( kev * ( 2*emass + kev ) );
-  
-  return( w );
-  
-}  /* end wavelength() */
-
-
 double getTime() {
 #ifdef WIN32
 	return (double)time(NULL);

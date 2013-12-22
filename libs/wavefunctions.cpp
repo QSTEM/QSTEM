@@ -79,6 +79,51 @@ WAVEFUNC::WAVEFUNC(ConfigReaderPtr &configReader)
   WAVEFUNC(m_nx, m_ny, m_resolutionX, m_resolutionY, ".img", ".img");
 }
 
+void WAVEFUNC::DisplayParams()
+{
+  printf("* Acc. voltage:         %g (lambda=%gA)\n",m_v0,Wavelength(m_v0));
+  printf("* C_3 (C_s):            %g mm\n",m_Cs*1e-7);
+  printf("* C_1 (Defocus):        %g nm%s\n",0.1*m_df0,
+         (m_Scherzer == 1) ? " (Scherzer)" : (m_Scherzer==2) ? " (opt.)":"");
+  printf("* Astigmatism:          %g nm, %g deg\n",0.1*m_astigMag,RAD2DEG*m_astigAngle);
+
+	// more aberrations:
+  if (m_a33 > 0)
+    printf("* a_3,3:                %g nm, phi=%g deg\n",m_a33*1e-1,m_phi33*RAD2DEG);
+  if (m_a31 > 0)
+    printf("* a_3,1:                %g nm, phi=%g deg\n",m_a31*1e-1,m_phi31*RAD2DEG);
+  
+  if (m_a44 > 0)
+    printf("* a_4,4:                %g um, phi=%g deg\n",m_a44*1e-4,m_phi44*RAD2DEG);
+  if (m_a42 > 0)
+    printf("* a_4,2:                %g um, phi=%g deg\n",m_a42*1e-4,m_phi42*RAD2DEG);
+
+  if (m_a55 > 0)
+    printf("* a_5,5:                %g um, phi=%g deg\n",m_a55*1e-4,m_phi55*RAD2DEG);
+  if (m_a53 > 0)
+    printf("* a_5,3:                %g um, phi=%g deg\n",m_a53*1e-4,m_phi53*RAD2DEG);
+  if (m_a51 > 0)
+    printf("* a_5,1:                %g um, phi=%g deg\n",m_a51*1e-4,m_phi51*RAD2DEG);
+
+  if (m_a66 > 0)
+    printf("* a_6,6:                %g um, phi=%g deg\n",m_a66*1e-7,m_phi66*RAD2DEG);
+  if (m_a64 > 0)
+    printf("* a_6,4:                %g um, phi=%g deg\n",m_a64*1e-7,m_phi64*RAD2DEG);
+  if (m_a62 > 0)
+    printf("* a_6,2:                %g um, phi=%g deg\n",m_a62*1e-7,m_phi62*RAD2DEG);
+  if (m_C5 != 0)
+    printf("* C_5:                  %g mm\n",m_C5*1e-7);
+  
+  printf("* C_c:                  %g mm\n",m_Cc*1e-7);
+
+  if (k_fftMeasureFlag == FFTW_MEASURE)
+    printf("* Probe array:          %d x %d pixels (optimized)\n",m_nx,m_ny);
+  else
+    printf("* Probe array:          %d x %d pixels (estimated)\n",m_nx,m_ny);
+  printf("*                       %g x %gA\n",
+         m_nx*m_resolutionX,m_ny*m_resolutionY);
+}
+
 void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
@@ -275,7 +320,29 @@ void WAVEFUNC::Transmit(PotPtr pot, unsigned sliceIdx) {
     } /* end for(iy.. ix .) */
 } /* end transmit() */
 
+/*--------------------- wavelength() -----------------------------------*/
+/*
+	return the electron wavelength (in Angstroms)
+	keep this is one place so I don't have to keep typing in these
+	constants (that I can never remember anyhow)
 
+	ref: Physics Vade Mecum, 2nd edit, edit. H. L. Anderson
+		(The American Institute of Physics, New York) 1989
+		page 4.
+
+	kev = electron energy in keV
+
+*/
+
+float_tt WAVEFUNC::Wavelength(float_tt kev)
+{
+  double w;
+  const double emass=510.99906; /* electron rest mass in keV */
+  const double hc=12.3984244; /* Planck's const x speed of light*/
+  
+  /* electron wavelength in Angstroms */
+  return hc/sqrt( kev * ( 2*emass + kev ) );
+}  /* end wavelength() */
 
 /**********************************************
 * This function creates a incident STEM probe 
@@ -392,9 +459,9 @@ void WAVEFUNC::FormProbe()
   scale = 1.0/sqrt((double)nx*(double)ny);
 
   /*
-    if ((muls.a33 == 0) && (muls.a31 == 0) && (muls.a44 == 0) && (muls.a42 == 0) &&
-    (muls.a55 == 0) && (muls.a53 == 0) && (muls.a51 == 0) && 
-    (muls.a66 == 0) && (muls.a64 == 0) && (muls.a62 == 0) && (muls.C5 == 0)) {
+    if ((m_a33 == 0) && (m_a31 == 0) && (m_a44 == 0) && (m_a42 == 0) &&
+    (m_a55 == 0) && (m_a53 == 0) && (m_a51 == 0) && 
+    (m_a66 == 0) && (m_a64 == 0) && (m_a62 == 0) && (m_C5 == 0)) {
     CsDefAstOnly = 1;
     }
   */

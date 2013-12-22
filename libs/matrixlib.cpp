@@ -718,7 +718,7 @@ void makeCellVect(grainBox *grain, float_tt *vax, float_tt *vby, float_tt *vcz) 
   }
 }
 /* just like the function above, but with angles from the MULS struct */
-
+/*
 void makeCellVectMuls(MULS *muls, float_tt *vax, float_tt *vby, float_tt *vcz) {
   
   if ((muls->cAlpha == 90) && (muls->cBeta == 90) && (muls->cGamma == 90)) {
@@ -745,6 +745,7 @@ void makeCellVectMuls(MULS *muls, float_tt *vax, float_tt *vby, float_tt *vcz) {
 			   cos(muls->cGamma*PI180))/sin(muls->cGamma*PI180));
   }
 }
+*/
 
 float_tt vectLength(float_tt *vect) {
   return sqrt(vect[0]*vect[0]+vect[1]*vect[1]+vect[2]*vect[2]);

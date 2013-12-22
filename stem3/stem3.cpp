@@ -78,9 +78,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 /* global variable: */
 MULS muls;
-// int fftMeasureFlag = FFTW_MEASURE;
-int fftMeasureFlag = FFTW_ESTIMATE;
-extern char *elTable;
 
 void makeAnotation(float_tt **pict,int nx,int ny,char *text);
 void initMuls();
@@ -281,83 +278,23 @@ void displayParams() {
 		(muls.mode == CBED) ? "CBED" : (muls.mode==TOMO)? "TOMO" : 
 		"???"); 
 	printf("* Date: %s, Time: %s\n",Date,Time);
-	printf("*****************************************************\n");
-	printf("* Print level:          %d\n",muls.printLevel);
-	printf("* Save level:           %d\n",muls.saveLevel);
+	
 	printf("* Input file:           %s\n",muls.atomPosFile);
-	if (muls.savePotential)
-		printf("* Potential file name:  %s\n",muls.fileBase);
+
 	/* create the data folder ... */
 	printf("* Data folder:          ./%s/ ",muls.folder.c_str()); 
+
 	
-
-	if ((muls.cubex == 0) || (muls.cubey == 0) || (muls.cubez == 0))
-		printf("* Unit cell:            ax=%g by=%g cz=%g\n",
-		muls.ax,muls.by,muls.c);
-	else {
-		printf("* Size of Cube:         ax=%g by=%g cz=%g\n",
-			muls.cubex,muls.cubey,muls.cubez);
-		printf("* Cube size adjusted:   %s\n",muls.adjustCubeSize ? "yes" : "no");
-	}
-
-	printf("* Super cell:           %d x %d x %d unit cells\n",muls.nCellX,muls.nCellY,muls.nCellZ);
-	printf("* Number of atoms:      %d (super cell)\n",muls.natom);
-	printf("* Crystal tilt:         x=%g deg, y=%g deg, z=%g deg\n",
-		muls.ctiltx*RAD2DEG,muls.ctilty*RAD2DEG,muls.ctiltz*RAD2DEG);
 	printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",muls.btiltx*RAD2DEG,muls.btilty*RAD2DEG,
 		(muls.tiltBack == 1 ? "on" : "off"));
-	printf("* Model dimensions:     ax=%gA, by=%gA, cz=%gA (after tilt)\n"
-		"*                       sampled every %g x %g x %g A\n",
-		muls.ax,muls.by,muls.c,muls.resolutionX,muls.resolutionY,muls.sliceThickness);
-	printf("* Atom species:         %d (Z=%d",muls.atomKinds,muls.Znums[0]);
-	for (i=1;i<muls.atomKinds;i++) printf(", %d",muls.Znums[i]); printf(")\n");
-	printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
+        printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
 	printf("* Slices per division:  %d (%gA thick slices [%scentered])\n",
 		muls.slices,muls.sliceThickness,(muls.centerSlices) ? "" : "not ");
 	printf("* Output every:         %d slices\n",muls.outputInterval);
 
-	printf("* Potential:            ");
-	if (muls.potential3D) printf("3D"); else printf("2D");
-	if (muls.fftpotential) printf(" (fast method)\n"); else printf(" (slow method)\n");	
-	printf("* Pot. array offset:    (%g,%g,%g)A\n",muls.potOffsetX,muls.potOffsetY,muls.czOffset);
-	printf("* Potential periodic:   (x,y): %s, z: %s\n",
-		(muls.periodicXY) ? "yes" : "no",(muls.periodicZ) ? "yes" : "no");
-
+	
 	printf("* Beams:                %d x %d \n",muls.nx,muls.ny);  
-	printf("* Acc. voltage:         %g (lambda=%gA)\n",muls.v0,wavelength(muls.v0));
-	printf("* C_3 (C_s):            %g mm\n",muls.Cs*1e-7);
-	printf("* C_1 (Defocus):        %g nm%s\n",0.1*muls.df0,
-		(muls.Scherzer == 1) ? " (Scherzer)" : (muls.Scherzer==2) ? " (opt.)":"");
-	printf("* Astigmatism:          %g nm, %g deg\n",0.1*muls.astigMag,RAD2DEG*muls.astigAngle);
 
-	// more aberrations:
-	if (muls.a33 > 0)
-		printf("* a_3,3:                %g nm, phi=%g deg\n",muls.a33*1e-1,muls.phi33*RAD2DEG);
-	if (muls.a31 > 0)
-		printf("* a_3,1:                %g nm, phi=%g deg\n",muls.a31*1e-1,muls.phi31*RAD2DEG);
-
-	if (muls.a44 > 0)
-		printf("* a_4,4:                %g um, phi=%g deg\n",muls.a44*1e-4,muls.phi44*RAD2DEG);
-	if (muls.a42 > 0)
-		printf("* a_4,2:                %g um, phi=%g deg\n",muls.a42*1e-4,muls.phi42*RAD2DEG);
-
-	if (muls.a55 > 0)
-		printf("* a_5,5:                %g um, phi=%g deg\n",muls.a55*1e-4,muls.phi55*RAD2DEG);
-	if (muls.a53 > 0)
-		printf("* a_5,3:                %g um, phi=%g deg\n",muls.a53*1e-4,muls.phi53*RAD2DEG);
-	if (muls.a51 > 0)
-		printf("* a_5,1:                %g um, phi=%g deg\n",muls.a51*1e-4,muls.phi51*RAD2DEG);
-
-	if (muls.a66 > 0)
-		printf("* a_6,6:                %g um, phi=%g deg\n",muls.a66*1e-7,muls.phi66*RAD2DEG);
-	if (muls.a64 > 0)
-		printf("* a_6,4:                %g um, phi=%g deg\n",muls.a64*1e-7,muls.phi64*RAD2DEG);
-	if (muls.a62 > 0)
-		printf("* a_6,2:                %g um, phi=%g deg\n",muls.a62*1e-7,muls.phi62*RAD2DEG);
-	if (muls.C5 != 0)
-		printf("* C_5:                  %g mm\n",muls.C5*1e-7);
-
-	printf("* C_c:                  %g mm\n",muls.Cc*1e-7);
 	printf("* Aperture half angle:  %g mrad\n",muls.alpha);
 	printf("* AIS aperture:         ");
 	if (muls.aAIS > 0) printf("%g A\n",muls.aAIS);
@@ -373,28 +310,7 @@ void displayParams() {
 	if (muls.gaussFlag) printf("will apply gaussian smoothing"); 
 	printf("\n");
 	*/
-	printf("* Temperature:          %gK\n",muls.tds_temp);
-	if (muls.tds)
-		printf("* TDS:                  yes (%d runs)\n",muls.avgRuns);
-	else
-		printf("* TDS:                  no\n"); 
 
-	/**********************************************************
-	* FFTW specific data structures (stores in row major order)
-	*/
-	if (fftMeasureFlag == FFTW_MEASURE)
-		printf("* Probe array:          %d x %d pixels (optimized)\n",muls.nx,muls.ny);
-	else
-		printf("* Probe array:          %d x %d pixels (estimated)\n",muls.nx,muls.ny);
-	printf("*                       %g x %gA\n",
-		muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
-
-	if (fftMeasureFlag == FFTW_MEASURE)
-		printf("* Potential array:      %d x %d (optimized)\n",muls.potNx,muls.potNy);
-	else
-		printf("* Potential array:      %d x %d (estimated)\n",muls.potNx,muls.potNy);
-	printf("*                       %g x %gA\n",muls.potSizeX,muls.potSizeY);
-	printf("* Scattering factors:   %d\n",muls.scatFactor);
 	/***************************************************/
 	/*  printf("Optimizing fftw plans according to probe array (%d x %dpixels = %g x %gA) ...\n",
 	muls.nx,muls.ny,muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
@@ -432,13 +348,11 @@ void displayParams() {
 			muls.tomoStep,muls.tomoStep*0.180/pi);
 		printf("* Number of dp's:       %d\n",muls.tomoCount);
 		printf("* Zoom factor:          %g\n",muls.zoomFactor);
-
-
 	}
 
-	printf("*\n*****************************************************\n");
+    printf("* TDS:                  %d runs)\n",muls.avgRuns);
 
-	/* k2max = muls.alpha * 0.001;  k2max = aperture in rad */
+    printf("*\n*****************************************************\n");
 }
 
 
@@ -523,6 +437,7 @@ void readSFactLUT() {
 * further setup accordingly
 *
 ***********************************************************************/
+/*
 void readFile(ConfigReaderPtr &configReader) {
 	char answer[256],*strptr;
 	FILE *fpTemp;
@@ -552,60 +467,47 @@ void readFile(ConfigReaderPtr &configReader) {
 
         configReader->ReadNCells(muls.nCellX, muls.nCellY, muls.nCellZ, muls.cellDiv);
 
-	/*************************************************
-	* Read the beam tilt parameters
-	*/
+	// Read the beam tilt parameters	
         configReader->ReadBeamTilt(muls.btiltx, muls.btilty, muls.tiltBack);
 
-	/*************************************************
-	* Read the crystal tilt parameters
-	*/
+	//Read the crystal tilt parameters
         configReader->ReadCrystalCubeAndTilt(muls.ctiltx, muls.ctilty, muls.ctiltz,
                                              muls.cubex, muls.cubey, muls.cubez,
                                              muls.adjustCubeSize);
 
-	/***************************************************************************
-	* temperature related data must be read before reading the atomic positions:
-	***************************************************************************/
+	// temperature related data must be read before reading the atomic positions:
+	//
         configReader->ReadTemperatureData(muls.tds, muls.tds_temp, muls.phononFile, muls.Einstein);
 
-	/**********************************************************************
-	* Read the atomic model positions !!!
-	*********************************************************************/
+	// Read the atomic model positions !!!
 	sprintf(muls.atomPosFile,muls.fileBase);
-	/* remove directory in front of file base: */
+	// remove directory in front of file base: 
 	while ((strptr = strchr(muls.fileBase,'\\')) != NULL) strcpy(muls.fileBase,strptr+1);
 
-	/* add a '_' to fileBase, if not existent */
+	// add a '_' to fileBase, if not existent 
 	if (strrchr(muls.fileBase,'_') != muls.fileBase+strlen(muls.fileBase)-1) {
 		if ((strPtr = strchr(muls.fileBase,'.')) != NULL) sprintf(strPtr,"_");
 		else strcat(muls.fileBase,"_");
 	}
 	if (strchr(muls.atomPosFile,'.') == NULL) {
-		/*   
-		strPtr = strrchr(muls.atomPosFile,'_');
-		if (strPtr != NULL)
-		*(strPtr) = 0;
-		*/
-		/* take atomPosFile as is, or add an ending to it, if it has none yet
-		*/
-		if (strrchr(muls.atomPosFile,'.') == NULL) {
-			sprintf(buf,"%s.cssr",muls.atomPosFile);
-			if ((fpTemp=fopen(buf,"r")) == NULL) {
-				sprintf(buf,"%s.cfg",muls.atomPosFile);
-				if ((fpTemp=fopen(buf,"r")) == NULL) {
-					printf("Could not find input file %s.cssr or %s.cfg\n",
-						muls.atomPosFile,muls.atomPosFile);
-					exit(0);
-				}
-				strcat(muls.atomPosFile,".cfg");
-				fclose(fpTemp);
-			}
-			else {
-				strcat(muls.atomPosFile,".cssr");
-				fclose(fpTemp);
-			}
-		}
+          // take atomPosFile as is, or add an ending to it, if it has none yet
+          if (strrchr(muls.atomPosFile,'.') == NULL) {
+            sprintf(buf,"%s.cssr",muls.atomPosFile);
+            if ((fpTemp=fopen(buf,"r")) == NULL) {
+              sprintf(buf,"%s.cfg",muls.atomPosFile);
+              if ((fpTemp=fopen(buf,"r")) == NULL) {
+                printf("Could not find input file %s.cssr or %s.cfg\n",
+                       muls.atomPosFile,muls.atomPosFile);
+                exit(0);
+              }
+              strcat(muls.atomPosFile,".cfg");
+              fclose(fpTemp);
+            }
+            else {
+              strcat(muls.atomPosFile,".cssr");
+              fclose(fpTemp);
+            }
+          }
 	}
         configReader->ReadSliceOffset(muls.xOffset, muls.yOffset);
 
@@ -632,9 +534,7 @@ void readFile(ConfigReaderPtr &configReader) {
 	c =  muls.c/muls.nCellZ;
 
 
-	/*****************************************************************
-	* Done reading atomic positions 
-	****************************************************************/
+	// Done reading atomic positions 
 
         configReader->ReadProbeArraySize(muls.nx, muls.ny);
         configReader->ReadResolution(muls.resolutionX, muls.resolutionY);
@@ -687,17 +587,14 @@ void readFile(ConfigReaderPtr &configReader) {
 		if (muls.printLevel > 0) printf("Error: Number of slices = 0\n");
 		exit(0);
 	}
-	/* Find out whether we need to recalculate the potential every time, or not
-	*/
+	// Find out whether we need to recalculate the potential every time, or not
 
 	muls.equalDivs = ((!muls.tds)  && (muls.nCellZ % muls.cellDiv == 0) && 
 		(fabs(muls.slices*muls.sliceThickness-muls.c/muls.cellDiv) < 1e-5));
 
 	initMuls();  
 
-	/***********************************************************************
-	* Fit the resolution to the wave function array, if not specified different
-	*/
+	// Fit the resolution to the wave function array, if not specified different
 	if (muls.resolutionX == 0.0)
 		muls.resolutionX = muls.ax / (double)muls.nx;
 	if (muls.resolutionY == 0.0)
@@ -705,10 +602,8 @@ void readFile(ConfigReaderPtr &configReader) {
 
 
 
-	/************************************************************************
-	* Optional parameters:
-	* determine whether potential periodic or not, etc.:
-	*/
+	// Optional parameters:
+	// determine whether potential periodic or not, etc.:
         configReader->ReadPeriodicParameters(muls.periodicXY, muls.periodicZ);
 	if ((muls.periodicZ) && (muls.cellDiv > 1)) {
 		printf("****************************************************************\n"
@@ -760,9 +655,7 @@ void readFile(ConfigReaderPtr &configReader) {
 	}
 	// printf("Potential progress interval: %d\n",muls.displayPotCalcInterval);
 
-	/**********************************************************************
-	* Read STEM/CBED probe parameters 
-	*/
+	// Read STEM/CBED probe parameters 
 	muls.Cc = 0.0;
         configReader->ReadDoseParameters(muls.beamCurrent, muls.dwellTime);
         configReader->ReadProbeParameters(muls.dE_E, muls.dI_I, muls.dV_V, muls.alpha, muls.aAIS,
@@ -771,17 +664,17 @@ void readFile(ConfigReaderPtr &configReader) {
 	muls.electronScale = muls.beamCurrent*muls.dwellTime*MILLISEC_PICOAMP;
 	//////////////////////////////////////////////////////////////////////
 
-	/* memorize dE_E0, and fill the array of well defined energy deviations */
+	// memorize dE_E0, and fill the array of well defined energy deviations
 	dE_E0 = sqrt(muls.dE_E*muls.dE_E+
 		muls.dI_I*muls.dI_I+
 		muls.dV_V*muls.dV_V);
 	muls.dE_EArray = (double *)malloc((muls.avgRuns+1)*sizeof(double));
 	muls.dE_EArray[0] = 0.0;
 
-	/**********************************************************
-	* quick little fix to calculate gaussian energy distribution
-	* without using statistics (better for only few runs)
-	*/
+	//**********************************************************
+	// quick little fix to calculate gaussian energy distribution
+	// without using statistics (better for only few runs)
+	
 	if (muls.printLevel > 0) printf("avgRuns: %d\n",muls.avgRuns);
 	// serious bug in Visual C - dy comes out enormous.
 	//dy = sqrt((double)pi)/((double)2.0*(double)(muls.avgRuns));
@@ -850,15 +743,13 @@ void readFile(ConfigReaderPtr &configReader) {
 
 
 
-	/**********************************************************************
-	* Parameters for image display and directories, etc.
-	*/
+	//**********************************************************************
+	// Parameters for image display and directories, etc.
 
         configReader->ReadOutputName(muls.folder);
 
-	/*  readBeams(parFp); */  
-	/************************************************************************/  
-	/* read the different detector configurations                           */
+	//************************************************************************
+        // read the different detector configurations                           
 	resetParamFile();
 	muls.detectorNum = 0;
 
@@ -867,41 +758,35 @@ void readFile(ConfigReaderPtr &configReader) {
           // instantiating the detector manager creates the detectors
           muls.detectors = DetectorMgrPtr(new DetectorManager(configReader));
         }
-	/************************************************************************/   
-
         
-	/************************************************************************
-	* Tomography Parameters:
-	***********************************************************************/
+        // ************************************************************************
+        // Tomography Parameters:
 	if (muls.mode == TOMO) {     
           configReader->ReadTomoParameters(muls.tomoTilt, muls.tomoStart, muls.tomoStep, muls.tomoCount, 
                                            muls.zoomFactor);
           if ((muls.tomoStep == 0) && (muls.tomoStep > 1))
             muls.tomoStep = -2.0*muls.tomoStart/(double)(muls.tomoCount - 1);
 	}
-	/***********************************************************************/
 
 
-	/*******************************************************************
-	* Read in parameters related to the calculation of the projected
-	* Potential
-	*******************************************************************/
+	// *******************************************************************
+	// Read in parameters related to the calculation of the projected
+	// Potential
         configReader->ReadAtomRadius(muls.atomRadius);
         configReader->ReadStructureFactorType(muls.scatFactor);
 
 
-	/***************************************************************
-	* We now need to determine the size of the potential array, 
-	* and the offset from its edges in A.  We only need to calculate
-	* as much potential as we'll be illuminating later with the 
-	* electron beam.
-	**************************************************************/
+	// ***************************************************************
+	// We now need to determine the size of the potential array, 
+	// and the offset from its edges in A.  We only need to calculate
+	// as much potential as we'll be illuminating later with the 
+	// electron beam.
 
 	if ((muls.mode == STEM) || (muls.mode == CBED)) {
-		/* we are assuming that there is enough atomic position data: */
+		// we are assuming that there is enough atomic position data: 
 		muls.potOffsetX = muls.scanXStart - 0.5*muls.nx*muls.resolutionX;
 		muls.potOffsetY = muls.scanYStart - 0.5*muls.ny*muls.resolutionY;
-		/* adjust scanStop so that it coincides with a full pixel: */
+                // adjust scanStop so that it coincides with a full pixel: 
 		muls.potNx = (int)((muls.scanXStop-muls.scanXStart)/muls.resolutionX);
 		muls.potNy = (int)((muls.scanYStop-muls.scanYStart)/muls.resolutionY);
 		muls.scanXStop = muls.scanXStart+muls.resolutionX*muls.potNx;
@@ -919,10 +804,9 @@ void readFile(ConfigReaderPtr &configReader) {
 		muls.potOffsetX = muls.scanXStart - 0.5*muls.potSizeX;
 		muls.potOffsetY = muls.scanYStart - 0.5*muls.potSizeY;
 	}  
-	/**************************************************************
-	* Check to see if the given scan parameters really fit in cell 
-	* dimensions:
-	*************************************************************/
+	// **************************************************************
+	// Check to see if the given scan parameters really fit in cell 
+	// dimensions:
 	if ((muls.scanXN <=0) ||(muls.scanYN <=0)) {
 		printf("The number of scan pixels must be >=1\n");
 		exit(0);
@@ -934,12 +818,11 @@ void readFile(ConfigReaderPtr &configReader) {
 			printf("Scanning window is outside model dimensions (%g,%g .. %g,%g) [ax = %g, by = %g]!\n",muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,muls.ax,muls.by);
 			exit(0);
 	}
-	/*************************************************************
-	* read in the beams we want to plot in the pendeloesung plot
-	* Only possible if not in STEM or CBED mode 
-	*************************************************************/
-	muls.lbeams = 0;   /* flag for beam output */
-	muls.nbout = 0;    /* number of beams */
+	// *************************************************************
+	// read in the beams we want to plot in the pendeloesung plot
+	// Only possible if not in STEM or CBED mode 
+	muls.lbeams = 0;   // flag for beam output 
+        muls.nbout = 0;    // number of beams 
 	resetParamFile();
 	if ((muls.mode != STEM) && (muls.mode != CBED)) {
           configReader->ReadPendelloesungParameters(muls.hbeams, muls.kbeams, muls.lbeams, muls.nbout);
@@ -954,17 +837,17 @@ void readFile(ConfigReaderPtr &configReader) {
             }
 	}
 
-	/* TODO: possible breakage here - MCS 2013/04 - made muls.cfgFile be allocated on the struct
-	       at runtim - thus this null check doesn't make sense anymore.  Change cfgFile set
-	   Old comment:
-		if cfgFile != NULL, the program will later write a the atomic config to this file */
+	// TODO: possible breakage here - MCS 2013/04 - made muls.cfgFile be allocated on the struct
+	//       at runtim - thus this null check doesn't make sense anymore.  Change cfgFile set
+	//   Old comment:
+	//	if cfgFile != NULL, the program will later write a the atomic config to this file 
 	//muls.cfgFile = NULL;
 	if (readparam("CFG-file:",buf,1)) 
 	{
 		sscanf(buf,"%s",muls.cfgFile);
 	}
 
-	/* allocate memory for wave function */
+	// allocate memory for wave function 
 
 	potDimensions[0] = muls.potNx;
 	potDimensions[1] = muls.potNy;
@@ -994,8 +877,8 @@ void readFile(ConfigReaderPtr &configReader) {
 	// printf("%d %d %d %d\n",muls.nx,muls.ny,sizeof(complex_tt),(int)(&muls.wave[2][2])-(int)(&muls.wave[2][1]));
 
 
-} /* end of readFile() */
-
+} // end of readFile()
+*/
 
 
 /************************************************************************

@@ -30,8 +30,10 @@ public:
   ~CQscReader();
 
   void ReadMode(int &mode);
-  void ReadOutputLevel(int &printLevel, int &saveLevel, 
-                               unsigned &displayPotCalcInterval, unsigned &displayProgInterval);
+  void ReadPrintLevel(unsigned &printLevel);
+  void ReadSaveLevel(unsigned &saveLevel);
+  void ReadPotentialOutputInterval(unsigned &displayPotCalcInterval);
+  void ReadSTEMProgressInterval(unsigned &displayProgInterval);
   void ReadOutputName(std::string &fileOrFolderName);
   void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ);
   void ReadNSubSlabs(unsigned &cellDiv);

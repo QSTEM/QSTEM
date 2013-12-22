@@ -45,9 +45,9 @@ public:
   std::string m_fileStart;
   std::string m_avgName;
   std::string m_fileout;
-  unsigned m_detPosX, m_detPosY;
-  unsigned m_iPosX,m_iPosY;      /* integer position of probe position array */
-  unsigned m_nx, m_ny;			/* size of diffpat arrays */
+  unsigned m_detPosX, m_detPosY; 
+  unsigned m_iPosX,m_iPosY;           /* integer position of probe position array */
+  unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
   float_tt **m_diffpat;
   float_tt **m_avgArray;
   float_tt m_thickness;
@@ -65,6 +65,8 @@ public:
 
   float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
 protected:
+  int m_Scherzer;
+
   float_tt m_a33, m_a31;
   float_tt m_a44, m_a42;
   float_tt m_a55, m_a53, m_a51;
@@ -114,6 +116,8 @@ public:
   void Transmit(PotPtr pot, unsigned sliceIdx);
   void Propagate(float_tt dz);
   void FormProbe();
+
+  void DisplayParams();
 
   inline void WriteProbe()
   {
@@ -211,6 +215,8 @@ protected:
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
 
+
+  float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
 };
 

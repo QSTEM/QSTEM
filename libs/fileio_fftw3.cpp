@@ -131,13 +131,10 @@ MULS initMu() {
 
 
 	/* make multislice read the inout files and assign transr and transi: */
-	muls.trans = NULL;
 	muls.cz = NULL;  // (float_t *)malloc(muls.slices*sizeof(float_t));
 
 	muls.onlyFresnel = 0;
 	muls.showPhaseplate = 0;
-	muls.czOffset = 0;  /* defines the offset for the first slice in 
-						fractional coordinates        */
 	muls.normHolog = 0;
 	muls.gaussianProp = 0;
 

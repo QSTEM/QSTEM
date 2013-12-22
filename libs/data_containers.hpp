@@ -32,12 +32,7 @@ public:
   
   int mode;                             /* determine the mode that this program runs in
 					 * can be STEM, TEM, CBED ... */
-  int printLevel;                       /* Flag indicating how much output should appear
-					 * in the window. */
-  int saveLevel;
   int complete_pixels;  //the number of pixels completed so far
-
-  complex_tt ***trans;
 
 #if FLOAT_PRECISION == 1
   fftwf_plan fftPlanPotInv,fftPlanPotForw;
@@ -45,11 +40,6 @@ public:
   fftw_plan fftPlanPotInv,fftPlanPotForw;
 #endif
 
-  float_tt **diffpat;
-  float_tt czOffset;
-  float_tt xOffset;
-  float_tt yOffset;
-  
   std::string input_ext, output_ext; /* file extensions for data input/output */
 
   char cin2[1024];				/* stacking sequence */
@@ -60,13 +50,9 @@ public:
   char atomPosFile[512];
                                         /* and start wavefunction */	
   float_tt v0;				/* inc. beam energy */
-  float_tt resolutionX;                  /* real space pixelsize for wave function and potential */
-  float_tt resolutionY;                  /* real space pixelsize for wave function and potential */
-  float_tt ctiltx,ctilty,ctiltz;	        /* crystal tilt in mrad */
+  //float_tt resolutionX;                  /* real space pixelsize for wave function and potential */
+  //float_tt resolutionY;                  /* real space pixelsize for wave function and potential */
   char cfgFile[512];                        /* file name for writing tilted atomic configuration */
-  float_tt cubex,cubey,cubez;            /* dimension of crystal cube, if zero, then nx,ny,nz *
-					 * will be used */
-  bool adjustCubeSize;
   float_tt btiltx,btilty;   	        /* beam tilt in mrad*/
   bool tiltBack;               /* tilt back the wave below the specimen */
   std::vector<int> hbeams,kbeams;	/* arrays to hold recorded 
@@ -82,28 +68,17 @@ public:
   unsigned slices;                           /* number of different slices */
   bool centerSlices;                     /* flag indicating how to cut the sample */
   float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
-  float_tt ax,by,c;	                /* lattice parameters */
-  float_tt cAlpha,cBeta,cGamma;
-  double **Mm;                          /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
-  unsigned nCellX,nCellY,nCellZ;             /* number of unit cells in x-y-z dir*/
-  int natom;				/* number of atoms in "atoms" */
-  atom *atoms;				/* 3D atoms array */	
   float_tt atomRadius;                   /* for atom potential boxes */
   float_tt potOffsetX,potOffsetY;        /* offset of potential array from zero */
   float_tt potSizeX,potSizeY;            /* real space dimensions of potential array in A */
-  unsigned potNx,potNy;                      /* size of projected potential in pixels */
-  unsigned nx,ny;				/* size of wave function arrays */
   int avgCount;
-  //float_tt thickness;
 
   int showProbe;
   unsigned displayProgInterval;             /* show progress every .. beam positions */
-  unsigned displayPotCalcInterval;             /* show progress every .. beam positions */
 
   float_tt beamCurrent;  // pico Ampere
   float_tt dwellTime;    // msec
   float_tt electronScale;  // number of electrons
-
   
   int totalSliceCount;
   unsigned outputInterval;    // output results every n slices
@@ -146,17 +121,11 @@ public:
   bool fftpotential;    /* flag indicating that we should use FFT for V_proj calculation */
   bool plotPotential;
   bool storeSeries;
-  bool tds;
-  bool Einstein;        /* if set (default=set), the Einstein model will be used */
   std::string phononFile;    /* file name for detailed phonon modes */
-  int atomKinds;
-  int *Znums;
   double **rPotential;   /* array containing real space potential LUT for each atom kind present */
   double *sfkArray;
   double **sfTable;
   int sfNk;              /* number of k-points in sfTable and sfkArray */
-  double *u2,*u2avg;     /* (current/averaged) rms displacement of atoms */
-  float_tt tds_temp;
   bool savePotential;
   bool saveTotalPotential;
   bool readPotential;
@@ -165,9 +134,7 @@ public:
   float_tt intIntensity;
   std::string folder;
   unsigned avgRuns;
-  bool potential3D;
   int scatFactor;
-  int Scherzer;
   std::vector<double> chisq;
   int cellDiv;
   bool equalDivs;           // this flag indicates whether we can reuse already pre-calculated potential data

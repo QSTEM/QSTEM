@@ -66,7 +66,6 @@ double v3DatomLUT(int iz,double r,int tdsFlag,int scatFlag);
 double vzatomLUT( int Z, double r ,int tdsFlag,int scatFlag);
 double v3DzatomLUT(int Znum, float_tt r2D, float_tt z);  // real
 
-double wavelength( double kev );
 double v3Datom(int Z, double r,int tdsFlag,int scatFlag);
 double vzatom( int Z, double radius,int tdsFlag,int scatFlag);
 

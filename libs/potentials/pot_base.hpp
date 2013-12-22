@@ -38,6 +38,8 @@ public:
   CPotential(ConfigReaderPtr &configReader);
   ~CPotential();
 
+  void DisplayParams();
+
   void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
   virtual void MakeSlices(int nlayer,char *fileName,atom *center);
   virtual void initSTEMSlices();
@@ -72,7 +74,7 @@ protected:
   ImageIOPtr m_imageIO;
   StructurePtr m_crystal;
   complex_tt ***m_trans;
-  unsigned m_nx, m_ny;
+  unsigned m_nx, m_ny;    /* size of projected potential in pixels, possibly larger than wavefunc's nx/ny */
   // resolutions
   float_tt m_dx, m_dy, m_dz;
   // oversampled resolutions
@@ -86,9 +88,10 @@ protected:
 
   // *********** Slice parameters **********
   bool m_centerSlices;
-  float_tt m_sliceThickness, m_zOffset;
-  // nslices is the number of slices PER SUB-SLAB!  Not the total.
-  unsigned m_nslices, m_outputInterval;
+  float_tt m_sliceThickness;
+  float_tt m_zOffset; /* defines the offset for the first slice in fractional coordinates        */
+  unsigned m_nslices;   // nslices is the number of slices PER SUB-SLAB!  Not the total.
+  unsigned m_outputInterval;
   // vector of slice thicknesses.  Only really relevant when slice thickness is not uniform.
   std::vector<float_tt> m_cz;
   // vector of slice positions
@@ -110,14 +113,15 @@ protected:
 
   bool m_equalDivs;
 
-  int m_printLevel, m_displayPotCalcInterval;
+  unsigned m_printLevel;
+  unsigned m_displayPotCalcInterval;  /* show progress every .. atoms when computing potential */
+  unsigned m_saveLevel;
   bool m_savePotential, m_saveProjectedPotential, m_plotPotential;
 
   void splinh( float_tt x[], float_tt y[],
                    float_tt b[], float_tt c[], float_tt d[], int n);
   float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
-                  float_tt *d, int n, float_tt x0 );  
-
+                  float_tt *d, int n, float_tt x0 );
 };
 
 typedef boost::shared_ptr<CPotential> PotPtr;

@@ -98,6 +98,33 @@ void CCrystal::Init(unsigned run_number)
   WriteStructure(run_number);
 }
 
+void CCrystal::DisplayParams()
+{
+  
+
+  if ((m_cubex == 0) || (m_cubey == 0) || (m_cubez == 0))
+    printf("* Unit cell:            ax=%g by=%g cz=%g\n",
+           m_ax,m_by,m_cz);
+  else {
+    printf("* Size of Cube:         ax=%g by=%g cz=%g\n",
+           m_cubex,m_cubey,m_cubez);
+    printf("* Cube size adjusted:   %s\n",m_adjustCubeSize ? "yes" : "no");
+  }
+  printf("* Super cell:           %d x %d x %d unit cells\n",m_nCellX,m_nCellY,m_nCellZ);
+  printf("* Number of atoms:      %d (super cell)\n",m_atoms.size());
+  printf("* Crystal tilt:         x=%g deg, y=%g deg, z=%g deg\n",
+         m_ctiltx*RAD2DEG,m_ctilty*RAD2DEG,m_ctiltz*RAD2DEG);
+  printf("* Model dimensions:     ax=%gA, by=%gA, cz=%gA (after tilt)\n",
+		m_ax,m_by,m_cz);
+  printf("* Atom species:         %d (Z=%d",m_Znums.size(),m_Znums[0]);
+  for (unsigned i=1;i<m_Znums.size();i++) printf(", %d",m_Znums[i]); printf(")\n");
+  printf("* Temperature:          %gK\n",m_tds_temp);
+  if (m_tds)
+    printf("* TDS:                  yes\n");
+  else
+    printf("* TDS:                  no\n"); 
+}
+
 void CCrystal::OffsetCenter(atom &center)
 {
   /*
@@ -122,7 +149,7 @@ void CCrystal::OffsetCenter(atom &center)
 }
 
 // This function reads the atomic positions from fileName and also adds 
-// Thermal displacements to their positions, if muls.tds is turned on.
+// Thermal displacements to their positions, if m_tds is turned on.
 void CCrystal::ReadUnitCell(bool handleVacancies) 
 {
   int printFlag = 1;

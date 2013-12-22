@@ -23,21 +23,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "memory_fftw3.hpp"
 
 MULS::MULS():
-  cubex(0), cubey(0), cubez(0),
-  printLevel(2),
-  saveLevel(0),
-  displayPotCalcInterval(1000),
   cellDiv(1),
   btiltx(0),btilty(0),tiltBack(true),
-  ctiltx(0),ctilty(0),ctiltz(0),
-  natom(0),
-  atoms(NULL),
-  Znums(NULL),
-  atomKinds(0),
-  u2(NULL),
-  u2avg(NULL),
-  xOffset(0), yOffset(0),
-  resolutionX(0), resolutionY(0),
   centerSlices(false), sliceThickness(0),
   lpartl(0),
   atomRadius(5.0),
@@ -55,7 +42,6 @@ MULS::MULS():
   saveTotalPotential(false),
   plotPotential(false),
   fftpotential(true),
-  potential3D(true),
   avgRuns(10),
   storeSeries(false),
   potOffsetY(0),potOffsetX(0),
@@ -63,15 +49,13 @@ MULS::MULS():
   tomoStart(0),
   tomoStep(0),
   tomoCount(0),
-  trans(NULL),
   cz(NULL),
   scatFactor(DOYLE_TURNER),
   normHolog(0),
   gaussianProp(0),
   pendelloesung(NULL),
   onlyFresnel(NULL),
-  showPhaseplate(NULL),
-  czOffset(NULL)
+  showPhaseplate(NULL)
 {
 
 }

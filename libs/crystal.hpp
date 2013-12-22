@@ -42,29 +42,34 @@ public:
   void ReplicateUnitCell(int handleVacancies);
   void WriteStructure(unsigned run_number);
 
+  void DisplayParams();
+
   float_tt GetCZ(){return m_cz;}
   
 protected:
   std::vector<atom> m_atoms; // The atoms after duplication, tilt, and phonon shaking
   std::vector<atom> m_baseAtoms; // The atoms read directly from the input file (no alteration)
-  float_tt **m_Mm;
-  float_tt m_ax, m_by, m_cz;
+  float_tt **m_Mm;                     /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
+  float_tt m_ax, m_by, m_cz;           /* lattice parameters */
   float_tt m_cAlpha, m_cBeta, m_cGamma;
-  float_tt m_cubex, m_cubey, m_cubez;
+  float_tt m_cubex, m_cubey, m_cubez;  /* dimension of crystal cube, if zero, then nx,ny,nz *
+  //					 * will be used */
+  bool m_adjustCubeSize;  
   float_tt m_offsetX, m_offsetY;
-  float_tt m_ctiltx, m_ctilty, m_ctiltz;
-  unsigned m_nCellX, m_nCellY, m_nCellZ;
+  float_tt m_ctiltx, m_ctilty, m_ctiltz;  /* crystal tilt in mrad */
+  unsigned m_nCellX, m_nCellY, m_nCellZ;  /* number of unit cells in x-y-z dir*/
   StructureReaderPtr m_reader;
 
   std::vector<unsigned> m_Znums; // Z numbers for the atom types that are present
-  std::map<unsigned, float_tt> m_u2, m_u2avg;
+  std::map<unsigned, float_tt> m_u2, m_u2avg;  /* (current/averaged) rms displacement of atoms */
 
   boost::filesystem::path m_phononFile;
 
   StructureReaderPtr m_structureReader;
   StructureWriterPtr m_structureWriter;
   
-  bool m_tds, m_Einstein;
+  bool m_tds; // if set, TDS will be applied to atom positions
+  bool m_Einstein; /* if set (default=set), the Einstein model will be used */
   float_tt m_tds_temp;  // The temperature for TDS calculations
 
   int m_printLevel;

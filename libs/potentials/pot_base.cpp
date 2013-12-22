@@ -66,6 +66,31 @@ void CPotential::Initialize()
   m_slicePos[0] = m_zOffset;
 }
 
+void CPotential::DisplayParams()
+{
+  printf("*****************************************************\n");
+  printf("********* Potential Parameters **********************\n");
+  printf("*****************************************************\n");
+  printf("* Print level:          %d\n",m_printLevel);
+  printf("* Save level:           %d\n",m_saveLevel);
+  if (m_savePotential)
+    printf("* Potential file name:  %s\n",m_fileBase);
+  printf("* Model:            ");
+  if (m_potential3D) printf("3D"); else printf("2D");
+  if (m_fftpotential) printf(" (FFT method)\n"); else printf(" (real-space method)\n");	
+  printf("*    Sampling:  %g x %g x %g A\n", m_dx,m_dy,m_sliceThickness);
+
+  printf("* Pot. array offset:    (%g,%g,%g)A\n",m_offsetX,m_offsetY,m_zOffset);
+  printf("* Potential periodic:   (x,y): %s, z: %s\n",
+         (m_periodicXY) ? "yes" : "no",(m_periodicZ) ? "yes" : "no");
+  if (k_fftMeasureFlag == FFTW_MEASURE)
+    printf("* Potential array:      %d x %d (optimized)\n",m_nx,m_ny);
+  else
+    printf("* Potential array:      %d x %d (estimated)\n",m_nx,m_ny);
+  printf("*                       %g x %gA\n",m_nx*m_dx,m_ny*m_dy);
+  printf("* Scattering factors:   %d\n",m_scatFactor);
+}
+
 /****************************************************************************
 * function: atomBoxLookUp - looks up potential at position x, y, z, relative to atom center
 *
@@ -251,7 +276,7 @@ void CPotential::MakeSlices(int nlayer,char *fileName, atom *center)
     return;
 
   /* we need to keep track of which subdivision of the unit cell we are in
-   * If the cell is not subdivided, then muls.cellDiv-1 = 0.
+   * If the cell is not subdivided, then m_cellDiv-1 = 0.
    */
   if ((m_divCount == 0) || (m_equalDivs))
     m_divCount = m_cellDiv;

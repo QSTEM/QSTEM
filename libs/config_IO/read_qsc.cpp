@@ -49,16 +49,24 @@ void CQscReader::ReadMode(int &mode)
   }
 }
 
-void CQscReader::ReadOutputLevel(int &printLevel, int &saveLevel, 
-                                 unsigned &displayPotCalcInterval, unsigned &displayProgInterval)
+void CQscReader::ReadPrintLevel(unsigned int &printLevel)
 {
   if (readparam(m_fp,"print level:",buf,1)) sscanf(buf,"%d",&(printLevel));
-  if (readparam(m_fp,"save level:",buf,1)) sscanf(buf,"%d",&(saveLevel));
-  displayPotCalcInterval = 1000;
-  
-  if (readparam(m_fp,"potential progress interval:",buf,1)) 
-    sscanf(buf,"%d",&(displayPotCalcInterval));
+}
 
+void CQscReader::ReadSaveLevel(unsigned int &saveLevel)
+{
+  if (readparam(m_fp,"save level:",buf,1)) sscanf(buf,"%d",&(saveLevel));  
+}
+
+void CQscReader::ReadPotentialOutputInterval(unsigned &displayPotCalcInterval)
+{
+ if (readparam(m_fp,"potential progress interval:",buf,1)) 
+    sscanf(buf,"%d",&(displayPotCalcInterval));
+}
+
+void CQscReader::ReadSTEMProgressInterval(unsigned int &displayProgInterval)
+{
   if (readparam(m_fp,"propagation progress interval:",buf,1)) 
     sscanf(buf,"%d",&(displayProgInterval));
 }
