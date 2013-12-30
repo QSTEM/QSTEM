@@ -63,9 +63,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 //#include "customslice.hpp"
 #include "data_containers.hpp"
 
-#include "readparams.hpp"
-
-#include "config_readers.hpp"
+//#include "readparams.hpp"
 
 #define NCINMAX 1024
 #define NPARAM	64    /* number of parameters */
@@ -79,20 +77,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 /* global variable: */
 MULS muls;
-
-void makeAnotation(float_tt **pict,int nx,int ny,char *text);
-void initMuls();
-void writeIntPix(char *outFile,float_tt **pict,int nx,int ny);
-void runMuls(int lstart);
-void saveLineScan(int run);
-void readBeams(FILE *fp);
-void doCBED(WavePtr initialWave, PotPtr pot);
-void doSTEM(WavePtr initialWave, PotPtr pot);
-void doTEM(WavePtr initialWave, PotPtr pot);
-void doMSCBED(WavePtr initialWave, PotPtr pot);
-void doTOMO(WavePtr initialWave, PotPtr pot);
-void readFile(ConfigReaderPtr &configReader);
-void displayParams();
 
 void usage() {
 	printf("usage: stem [input file='stem.dat']\n\n");
@@ -1048,9 +1032,6 @@ void doCBED(WavePtr initialWave, PotPtr pot) {
   int oldMulsRepeat2 = 1;
   long iseed=0;
   std::map<std::string, double> params;
-  params["dx"]=wave->m_dx;
-  params["dy"]=wave->m_dy;
-  std::string comment;
 
   std::vector<unsigned> position(1);         // Used to indicate the number of averages
 
@@ -1277,7 +1258,7 @@ void doCBED(WavePtr initialWave, PotPtr pot) {
         printf("Writing Pendelloesung data\n");
         for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
           /* write the thicknes in the first column of the file */
-          fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+          fprintf(fp,"%g",iy*muls.cz/((float)(muls.slices*muls.cellDiv)));
           /* write the beam intensities in the following columns */
           for (ix=0;ix<muls.nbout;ix++) {
             fprintf(fp,"\t%g",avgPendelloesung[ix][iy]);
@@ -1320,7 +1301,6 @@ void doTEM(WavePtr initialWave, PotPtr pot) {
 	int oldMulsRepeat2 = 1;
 	long iseed=0;
 	std::map<std::string, double> params;
-	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx,muls.ny,muls.resolutionX,muls.resolutionY, muls.input_ext, muls.output_ext));
 	fftwf_complex **imageWave = NULL;
 
 	if (iseed == 0) iseed = -(long) time( NULL );
@@ -1355,25 +1335,25 @@ void doTEM(WavePtr initialWave, PotPtr pot) {
           //muls.nslic0 = 0;
           // produce an incident plane wave:
           if ((muls.btiltx == 0) && (muls.btilty == 0)) {
-            for (ix=0;ix<muls.nx;ix++) for (iy=0;iy<muls.ny;iy++) {
-                wave->wave[ix][iy][0] = 1;	wave->wave[ix][iy][1] = 0;
+            for (ix=0;ix<initialWave->m_nx;ix++) for (iy=0;iy<initialWave->m_ny;iy++) {
+                initialWave->m_wave[ix][iy][0] = 1;	initialWave->m_wave[ix][iy][1] = 0;
               }
           }
           else {
             // produce a tilted wave function (btiltx,btilty):
-            ktx = 2.0*pi*sin(muls.btiltx)/wavelength(muls.v0);
-            kty = 2.0*pi*sin(muls.btilty)/wavelength(muls.v0);
-            for (ix=0;ix<muls.nx;ix++) {
-              x = muls.resolutionX*(ix-muls.nx/2);
-              for (iy=0;iy<muls.ny;iy++) {
-                y = muls.resolutionY*(ix-muls.nx/2);
-                wave->wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
-                wave->wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
+            ktx = 2.0*pi*sin(muls.btiltx)/wavelength(initialWave->m_v0);
+            kty = 2.0*pi*sin(muls.btilty)/wavelength(initialWave->m_v0);
+            for (ix=0;ix<initialWave->m_nx;ix++) {
+              x = initialWave->m_dx*(ix-initialWave->m_nx/2);
+              for (iy=0;iy<initialWave->m_ny;iy++) {
+                y = initialWave->m_dx*(ix-initialWave->m_nx/2);
+                initialWave->m_wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
+                initialWave->m_wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
               }
             }
           }
 
-          result = readparam("sequence: ",buf,0);
+          result = readparam(fp, "sequence: ",buf,0);
           while (result) {
             if (((buf[0] < 'a') || (buf[0] > 'z')) && 
                 ((buf[0] < '1') || (buf[0] > '9')) &&

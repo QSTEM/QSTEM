@@ -108,12 +108,14 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	muls->nCellX = 1;
-	muls->nCellY = 1;
-	muls->nCellZ = 1;
-	muls->ctiltx = 0;
-	muls->ctilty = 0;
-	muls->ctiltz = 0;
+
+	CCrystal cryst;
+	cryst.m_nCellX = 1;
+	cryst.m_nCellY = 1;
+	cryst.m_nCellZ = 1;
+	cryst.m_ctiltx = 0;
+	cryst.m_ctilty = 0;
+	cryst.m_ctiltz = 0;
 	superCell.atoms = NULL;
 	superCell.natoms = 0;
 
@@ -192,9 +194,9 @@ int main(int argc, char *argv[]) {
 	str = strchr(outFileName,'.');
 	if (str == NULL) str=outFileName+strlen(outFileName);
 	sprintf(str,".cfg");
-	muls->ax = (float)superCell.ax;
-	muls->by = (float)superCell.by;
-	muls->c	= (float)superCell.cz;
+	cryst.m_ax = (float)superCell.ax;
+	cryst.m_by = (float)superCell.by;
+	cryst.m_cz	= (float)superCell.cz;
 
 	superCell.natoms = removeVacancies(superCell.atoms,superCell.natoms);
 
@@ -213,7 +215,7 @@ int main(int argc, char *argv[]) {
 				if (muls->Znums[ak] == superCell.atoms[j].Znum) count++;
 			}
 			printf("Z=%3d: %d\n",muls->Znums[ak],count);
-			switch (muls->Znums[ak]) {
+			switch (cryst.m_Znums[ak]) {
 			case  7: charge += count*(-3.0); break;
 			case  8: charge += count*(-2.0);  break;
 			case  38: charge += count*(2.0);  break;
@@ -326,16 +328,18 @@ int readParams(char *datFileName) {
 	char unitCellFile[64];
 	atom *tempCell;
 
+	FILE *fp=NULL;
+
 	if (!parOpen(datFileName)) {
 		printf("Could not open data input file %s\n",datFileName);
 		return 0;
 	}
-	resetParamFile();
-	while(readparam("crystal:",parStr,0)) nGrains++;  
-	resetParamFile();
-	while(readparam("amorph:",parStr,0)) nGrains++;  
-	resetParamFile();
-	while(readparam("special:",parStr,0)) nGrains++;  
+	resetParamFile(fp);
+	while(readparam(fp, "crystal:",parStr,0)) nGrains++;  
+	resetParamFile(fp);
+	while(readparam(fp, "amorph:",parStr,0)) nGrains++;  
+	resetParamFile(fp);
+	while(readparam(fp, "special:",parStr,0)) nGrains++;  
 	printf("Found data for %d grain(s) (crystalline frame work and amorphous)\n",nGrains);
 	if (nGrains == 0) return 0;
 
@@ -343,7 +347,7 @@ int readParams(char *datFileName) {
 	/* Now we will loop through all the grains and lok for the necessary 
 	* data for each grain 
 	*/
-	if (readparam("box:",parStr,1)) {
+	if (readparam(fp, "box:",parStr,1)) {
 		sscanf(parStr,"%lf %lf %lf",&(superCell.ax),&(superCell.by),&(superCell.cz));
 	}
 	else {
@@ -352,7 +356,7 @@ int readParams(char *datFileName) {
 	} 
 
 	/* reset the input file and advance to the next crystal row */
-	resetParamFile();
+	resetParamFile(fp);
 	/*
 	readparam("crystal:",parStr,0);
 	grains[0].name = (char *)malloc(NAME_BUF_LEN);
@@ -366,7 +370,7 @@ int readParams(char *datFileName) {
 	* translation: shiftx shifty shiftz
 	* plane: vectX vectY vectZ pointX pointY pointZ
 	*/
-	while (readNextParam(title,parStr)) {
+	while (readNextParam(fp, title,parStr)) {
 		// printf("%s\n",parStr);
 		/* if we found a new crystal ... */
 		if (strncmp(title,"crystal:",8) == 0) {
@@ -402,14 +406,14 @@ int readParams(char *datFileName) {
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			muls->nCellX = 1;
-			muls->nCellY = 1;
-			muls->nCellZ = 1;
-			muls->ctiltx = 0;
-			muls->ctilty = 0;
-			muls->ctiltz = 0;
-
-			muls->tds = 0;
+			cryst.m_nCellX = 1;
+			cryst.m_nCellY = 1;
+			cryst.m_nCellZ = 1;
+			cryst.m_ctiltx = 0;
+			cryst.m_ctilty = 0;
+			cryst.m_ctiltz = 0;
+			
+			cryst.m_tds = 0;
 			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			if (tempCell == NULL) {
 				printf("Error reading unit cell data - exit!\n");
@@ -428,12 +432,12 @@ int readParams(char *datFileName) {
 			grains[gCount].unitCell = (atom *)malloc(grains[gCount].natoms*sizeof(atom));
 			memcpy(grains[gCount].unitCell,tempCell,grains[gCount].natoms*sizeof(atom));
 
-			grains[gCount].alpha = muls->cAlpha;
-			grains[gCount].beta  = muls->cBeta;
-			grains[gCount].gamma = muls->cGamma;
-			grains[gCount].ax = muls->ax;
-			grains[gCount].by = muls->by;
-			grains[gCount].cz = muls->c;
+			grains[gCount].alpha = cryst.m_cAlpha;
+			grains[gCount].beta  = cryst.m_cBeta;
+			grains[gCount].gamma = cryst.m_cGamma;
+			grains[gCount].ax = cryst.m_ax;
+			grains[gCount].by = cryst.m_by;
+			grains[gCount].cz = cryst.m_c;
 		}
 		/***************************************************
 		* amorphous stuff
@@ -471,11 +475,11 @@ int readParams(char *datFileName) {
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			muls->nCellX = 1;
-			muls->nCellY = 1;
-			muls->nCellZ = 1;
-			muls->ctiltx = 0;
-			muls->ctilty = 0;
+			cryst.m_nCellX = 1;
+			cryst.m_nCellY = 1;
+			cryst.m_nCellZ = 1;
+			cryst.m_ctiltx = 0;
+			cryst.m_ctilty = 0;
 			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			grains[gCount].unitCell = (atom *)malloc(grains[gCount].natoms * sizeof(atom));
 			memcpy(grains[gCount].unitCell, tempCell, grains[gCount].natoms * sizeof(atom));

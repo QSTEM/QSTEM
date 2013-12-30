@@ -963,7 +963,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   
   
   if ((m_Einstein == 0) && (fpPhonon == NULL)) {
-    if ((fpPhonon = fopen(m_phononFile.c_str(),"r")) == NULL) {
+    if ((fpPhonon = fopen(m_phononFile.string().c_str(),"r")) == NULL) {
       printf("Cannot find phonon mode file, will use random displacements!");
       m_Einstein = 1;
       //m_phononFile = NULL;
