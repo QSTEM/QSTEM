@@ -9,4 +9,4 @@ Homepage here:
 http://qstem.org
 
 Build instructions here:
-https://github.com/QSTEM/QSTEM/wiki/Building-from-source
+http://qstem.org/?page_id=14
