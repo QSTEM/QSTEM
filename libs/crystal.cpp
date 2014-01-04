@@ -55,6 +55,17 @@ CCrystal::CCrystal(ConfigReaderPtr &configReader)
   m_reader->ReadAtoms(m_baseAtoms);
 }
 
+CCrystal::CCrystal(unsigned ncx, unsigned ncy, unsigned ncz, 
+	  float_tt tx, float_tt ty, float_tt tz	)
+	  : m_nCellX(ncx)
+	  , m_nCellY(ncy)
+	  , m_nCellZ(ncz)
+	  , m_ctiltx(tx)
+	  , m_ctilty(ty)
+	  , m_ctiltz(tz)
+{
+}
+
 void CCrystal::Init(unsigned run_number)
 {
   CalculateCellDimensions();
@@ -123,6 +134,20 @@ void CCrystal::DisplayParams()
     printf("* TDS:                  yes\n");
   else
     printf("* TDS:                  no\n"); 
+}
+
+void CCrystal::SetCellParameters(float_tt ax, float_tt by, float_tt cz)
+{
+	m_ax=ax;
+	m_by=by;
+	m_cz=cz;
+}
+
+void CCrystal::GetCellParameters(float_tt &ax, float_tt &by, float_tt &cz)
+{
+	ax=m_ax;
+	by=m_by;
+	cz=m_cz;
 }
 
 void CCrystal::OffsetCenter(atom &center)

@@ -51,6 +51,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include <omp.h>
 
+#include "stem3.hpp"
+
 #include "memory_fftw3.hpp"	/* memory allocation routines */
 #include "readparams.hpp"
 #include "imagelib_fftw3.hpp"
@@ -176,7 +178,7 @@ void initMuls() {
 /************************************************************************
 *
 ***********************************************************************/
-void displayProgress(int flag) {
+void displayProgress(int flag, MULS &muls, WavePtr &wave, StructurePtr &crystal) {
   // static double timer;
   static double timeAvg = 0;
   static double intensityAvg = 0;
@@ -198,13 +200,18 @@ void displayProgress(int flag) {
   */
   if (muls.printLevel > 0) {
     
-    if (muls.tds) {
+	  if (crystal->GetTDS()) {
       timeAvg = ((muls.avgCount)*timeAvg+curTime)/(muls.avgCount+1);
       intensityAvg = ((muls.avgCount)*intensityAvg+muls.intIntensity)/(muls.avgCount+1);
       printf("\n********************** run %3d ************************\n",muls.avgCount+1);
       // if (muls.avgCount < 1) {
-      printf("* <u>: %3d |",muls.Znums[0]);
-      for (jz=1;jz<muls.atomKinds;jz++) printf(" %8d |",muls.Znums[jz]);  
+
+	  std::vector<unsigned> atomTypes(crystal->GetAtomTypes());
+	  std::vector<unsigned>::iterator atom=atomTypes.begin(), end=atomTypes.end();
+
+      printf("* <u>: %3d |",(*atom++));
+	  while(atom!=end) printf(" %8d |",(*atom++));  
+
       printf(" intensity | time(sec) |    chi^2  |\n");
       // }
       /*
@@ -213,10 +220,14 @@ void displayProgress(int flag) {
         else {
       */
       printf("*");
-      for (jz=0;jz<muls.atomKinds;jz++) printf(" %8f |",(float)(muls.u2[jz]));  
+
+	  atom = atomTypes.begin();
+      while (atom!=end) printf(" %8f |",(float)(crystal->GetU2[(*atom++)]));  
       printf(" %9f | %9f | %9f |\n",muls.intIntensity,curTime,muls.avgCount > 0 ? muls.chisq[muls.avgCount-1] : 0);
       printf("*");
-      for (jz=0;jz<muls.atomKinds;jz++) printf(" %8f |",(float)(muls.u2avg[jz]));  
+
+	  atom = atomTypes.begin();
+	  while (atom!=end) printf(" %8f |",(float)(crystal->GetU2avg[(*atom++)]));  
       printf(" %9f | %9f \n",intensityAvg,timeAvg);
     }
     else {

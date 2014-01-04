@@ -32,6 +32,9 @@ class CCrystal
 {
 public:
   CCrystal(ConfigReaderPtr &configReader);
+  CCrystal(unsigned ncx, unsigned ncy, unsigned ncz,    // ncells in any given direction
+	  float_tt tx, float_tt ty, float_tt tz				// Tilts in any given direction
+	  );
   ~CCrystal();
   
   void Init(unsigned run_number);
@@ -44,7 +47,16 @@ public:
 
   void DisplayParams();
 
+  void SetCellParameters(float_tt ax, float_tt by, float_tt cz);
+
   float_tt GetCZ(){return m_cz;}
+  bool GetTDS(){return m_tds;}
+  void GetCellParameters(float_tt &ax, float_tt &by, float_tt &cz);
+  unsigned GetZnum(unsigned idx){return m_Znums[idx];}
+  std::vector<unsigned> GetAtomTypes(){return m_Znums;}
+  unsigned GetNumberOfAtomTypes(){return m_Znums.size();}
+  float_tt GetU2(unsigned znum){return m_u2[znum];}
+  float_tt GetU2avg(unsigned znum){return m_u2avg[znum];}
   
 protected:
   std::vector<atom> m_atoms; // The atoms after duplication, tilt, and phonon shaking
