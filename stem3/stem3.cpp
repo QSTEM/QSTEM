@@ -42,7 +42,6 @@ QSTEM - image simulation for TEM/STEM/CBED
 //#include <sys/stat.h>
 // #include <stat.h>
 
-#include "stem3.hpp"
 #include "experiments.hpp"
 
 //#include "readparams.hpp"
@@ -91,7 +90,7 @@ int main(int argc, char *argv[])
     }
   
   ExperimentPtr expt = GetExperiment(configReader);
-  expt->run();
+  expt->Run();
 
 #if _DEBUG
   _CrtDumpMemoryLeaks();
@@ -128,6 +127,7 @@ void initMuls() {
 *
 ***********************************************************************/
 
+/*
 void readArray(FILE *fp, char *title,double *array,int N) {
   int i;
   char buf[512],*str;
@@ -147,6 +147,7 @@ void readArray(FILE *fp, char *title,double *array,int N) {
     }  
   }
 }
+*/
 
 /***********************************************************************
 * readSFactLUT() reads the scattering factor lookup table from the 

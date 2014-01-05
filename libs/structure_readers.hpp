@@ -23,7 +23,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-//#include "structure_IO/structureInterface.hpp"
 #include "structure_IO/cfg.hpp"
 
 StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
@@ -34,16 +33,4 @@ StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
     return StructureReaderPtr(new CCfgReader(structure_file));
 }
 
-
 #endif
-
-
-
-
-
-
-
-
-
-
-
