@@ -29,7 +29,7 @@
 class IConfigReader
 {
 public:
-  virtual void ReadMode(int &mode)=0;
+  virtual void ReadMode(std::string &mode)=0;
   virtual void ReadPrintLevel(unsigned &printLevel)=0;
   virtual void ReadSaveLevel(unsigned &saveLevel)=0;
   virtual void ReadPotentialOutputInterval(unsigned &displayPotCalcInterval)=0;

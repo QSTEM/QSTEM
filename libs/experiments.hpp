@@ -17,17 +17,14 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "experiment_interface.hpp"
-#include "potential.hpp"
-#include "wavefunctions.hpp"
+#ifndef EXPERIMENTS_H
+#define EXPERIMENTS_H
 
-class CExperimentBase : public IExperiment
-{
-public:
-  virtual void DisplayProgress(int flag, MULS &muls, WavePtr &wave, StructurePtr &crystal);
-  virtual void SaveImages()=0;
-  virtual void run()=0;
-protected:
-  WavePtr m_wave;
-  PotPtr m_pot;
-}
+// Inlcude this so that we know what an ExperimentPtr is
+#include "experiments/experiment_interface.hpp"
+// Include this because we use ConfigReaderPtr below.
+#include "config_readers.hpp"
+
+ExperimentPtr GetExperiment(ConfigReaderPtr &configReader);
+
+#endif

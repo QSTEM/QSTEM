@@ -232,6 +232,7 @@ protected:
 
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
+  void fft_normalize(void **array,int nx, int ny);
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;

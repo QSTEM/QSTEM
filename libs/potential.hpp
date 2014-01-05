@@ -20,14 +20,21 @@
 #ifndef POTENTIAL_H
 #define POTENTIAL_H
 
+// Include this so that people know what a PotPtr is
 #include "potentials/pot_base.hpp"
-#include "potentials/pot_2d.hpp"
-#include "potentials/pot_2d_fft.hpp"
-#include "potentials/pot_3d.hpp"
-#include "potentials/pot_3d_fft.hpp"
-
+// Include this because we use ConfigReaderPtr below.
 #include "config_readers.hpp"
 
 PotPtr GetPotential(ConfigReaderPtr &configReader);
 
 #endif
+
+
+
+
+
+
+
+
+
+

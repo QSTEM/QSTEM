@@ -17,17 +17,43 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "experiment_interface.hpp"
-#include "potential.hpp"
-#include "wavefunctions.hpp"
+#include "experiments.hpp"
+#include "experiments/stem.hpp"
+#include "experiments/cbed.hpp"
+#include "experiments/tem.hpp"
 
-class CExperimentBase : public IExperiment
+ExperimentPtr GetExperiment(ConfigReaderPtr &configReader)
 {
-public:
-  virtual void DisplayProgress(int flag, MULS &muls, WavePtr &wave, StructurePtr &crystal);
-  virtual void SaveImages()=0;
-  virtual void run()=0;
-protected:
-  WavePtr m_wave;
-  PotPtr m_pot;
+  std::string mode;
+  configReader->ReadMode(mode);
+  if (mode == "STEM")
+    return ExperimentPtr(new CExperimentSTEM(configReader));
+  else if (mode == "TEM")
+    return ExperimentPtr(new CExperimentTEM(configReader));
+  else if (mode == "CBED")
+    return ExperimentPtr(new CExperimentCBED(configReader));
+  else
+    {
+      printf("Unrecognized experiment type: %s.  Exiting.", mode.c_str());
+      exit(-1);
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

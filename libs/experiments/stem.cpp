@@ -264,3 +264,15 @@ void CExperimentSTEM::displayParams()
            muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
            muls.scanXN,muls.scanYN,muls.scanXN*muls.scanYN);
 }
+
+
+/*****  saveSTEMImages *******/
+// Saves all detector images (STEM images) that are defined in muls.
+//   When saving intermediate STEM images is enabled, this also saves
+//   the intermediate STEM images for each detector.
+void SaveImages()
+{
+  std::map<std::string, double> params;
+  params["Runs Averaged"]=(double)muls->avgCount+1;
+  m_detectors->SaveDetectors(params);  
+}

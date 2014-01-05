@@ -29,7 +29,7 @@ public:
   CQscReader(boost::filesystem::path &filename);
   ~CQscReader();
 
-  void ReadMode(int &mode);
+  void ReadMode(std::string &mode);
   void ReadPrintLevel(unsigned &printLevel);
   void ReadSaveLevel(unsigned &saveLevel);
   void ReadPotentialOutputInterval(unsigned &displayPotCalcInterval);

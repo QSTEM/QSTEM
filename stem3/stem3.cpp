@@ -17,7 +17,7 @@ QSTEM - image simulation for TEM/STEM/CBED
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION 2.30
+#define VERSION 3.00
 #define VIB_IMAGE_TEST
 
 #ifndef _WIN32
@@ -28,60 +28,38 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
 #include <stdlib.h>
+
 #ifdef _WIN32
 #if _DEBUG
 #include <crtdbg.h>
 #endif
 #endif
+
 #include <string.h>
-#ifndef _WIN32
-#ifdef __cplusplus
-#include <cmath>
-#else
-#include <math.h>
-#endif
-#else
-#include <math.h>
-#endif
 
 #include <time.h>
-#include <ctype.h>
-#include <sys/stat.h>
+//#include <ctype.h>
+//#include <sys/stat.h>
 // #include <stat.h>
 
-#include <omp.h>
-
 #include "stem3.hpp"
-
-#include "memory_fftw3.hpp"	/* memory allocation routines */
-#include "readparams.hpp"
-#include "imagelib_fftw3.hpp"
-#include "fileio_fftw3.hpp"
-#include "matrixlib.hpp"
-#include "stemlib.hpp"
-#include "stemutil.hpp"
-// #include "weblib.hpp"
-// 20131222 - customslice doesn't seem to actually be used.
-//#include "customslice.hpp"
-#include "data_containers.hpp"
+#include "experiments.hpp"
 
 //#include "readparams.hpp"
 
-#define NCINMAX 1024
-#define NPARAM	64    /* number of parameters */
-#define MAX_SCANS 1   /* maximum number of linescans per graph window */
-#define PHASE_GRATING 0
+//#define NCINMAX 1024
+//#define NPARAM	64    /* number of parameters */
+//#define MAX_SCANS 1   /* maximum number of linescans per graph window */
+//#define PHASE_GRATING 0
 #define BUF_LEN 256
 
-#define DELTA_T 1     /* number of unit cells between pictures */
-#define PICTS 5      /* number of different thicknesses */
-#define NBITS 8	       /* number of bits for writeIntPix */
+//#define DELTA_T 1     /* number of unit cells between pictures */
+//#define PICTS 5      /* number of different thicknesses */
+//#define NBITS 8	       /* number of bits for writeIntPix */
 
-/* global variable: */
-MULS muls;
 
 void usage() {
-	printf("usage: stem [input file='stem.dat']\n\n");
+  printf("usage: stem [input file='stem.dat']\n\n");
 }
 
 
@@ -92,19 +70,8 @@ void usage() {
 **************************************************************/
 
 
-int main(int argc, char *argv[]) {
-  int i; 
-  double timerTot;
-  char cinTemp[BUF_LEN];
-
-  timerTot = cputim();
-  for (i=0;i<BUF_LEN;i++)
-    cinTemp[i] = 0;
-
-#ifdef UNIX
-  system("date");
-#endif
-
+int main(int argc, char *argv[]) 
+{
   std::string fileName;
   /*************************************************************
    * read in the parameters
@@ -122,29 +89,9 @@ int main(int argc, char *argv[]) {
       exit(0);
       usage();
     }
-        
-  // Read potential parameters and initialize a pot object
-  WavePtr initialWave = WavePtr(new WAVEFUNC(configReader));
-  PotPtr potential = GetPotential(configReader);
-  readFile(configReader);
-
-  displayParams(initialWave, potential);
-#ifdef _OPENMP
-  omp_set_dynamic(1);
-#endif
-
-  int mode;
-  configReader->ReadMode(mode);
-  switch (mode) {
-  case CBED:   doCBED(initialWave, potential);   break;	
-  case STEM:   doSTEM(initialWave, potential);   break;
-  case TEM:    doTEM(initialWave, potential);    break;
-    //case MSCBED: doMSCBED(initialWave, potential); break;
-    //case TOMO:   doTOMO(initialWave, potential);   break;
-    // case REFINE: doREFINE(); break;
-  default:
-    printf("Mode not supported\n");
-  }
+  
+  ExperimentPtr expt = GetExperiment(configReader);
+  expt->run();
 
 #if _DEBUG
   _CrtDumpMemoryLeaks();
@@ -159,6 +106,7 @@ int main(int argc, char *argv[]) {
 ***************************************************************
 **************************************************************/
 
+/*
 void initMuls() {
 	int sCount,i,slices;
 
@@ -174,93 +122,30 @@ void initMuls() {
 	for (i=0;i<NPARAM;i++)
 		muls.sparam[i] = 0.0;
 }
+*/
 
 /************************************************************************
 *
 ***********************************************************************/
 
-void displayParams(WavePtr &wave, PotPtr &pot) {
-  FILE *fpDir;
-  char systStr[64];
-  double k2max,temp;
-  int i,j;
-  static char Date[16],Time[16];
-  time_t caltime;
-  struct tm *mytime;
-  const double pi=3.1415926535897;
-
-  /*
-  if (wave->printLevel < 1) {
-    if ((fpDir = fopen(muls.folder.c_str(),"r"))) {
-      fclose(fpDir);
-      // printf(" (already exists)\n");
-    }
-    else {
-      sprintf(systStr,"mkdir %s",muls.folder.c_str());
-      system(systStr);
-      // printf(" (created)\n");
-    }	  
-    return;
-  }
-  */
-  caltime = time( NULL );
-  mytime = localtime( &caltime );
-  strftime( Date, 12, "%Y:%m:%d", mytime );
-  strftime( Time, 9, "%H:%M:%S", mytime );
-  
-  printf("\n*****************************************************\n");
-  printf("* Running program STEM3 (version %.2f) in %s mode\n",VERSION,
-         (muls.mode == STEM) ? "STEM" : (muls.mode==TEM) ? "TEM" : 
-         (muls.mode == CBED) ? "CBED" : (muls.mode==TOMO)? "TOMO" : 
-         "???"); 
-  printf("* Date: %s, Time: %s\n",Date,Time);
-	
-  printf("* Input file:           %s\n",muls.atomPosFile);
-  
-  /* create the data folder ... */
-  printf("* Data folder:          ./%s/ ",muls.folder.c_str()); 
-	
-  printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
-  printf("* Slices per division:  %d (%gA thick slices [%scentered])\n",
-         muls.slices,muls.sliceThickness,(muls.centerSlices) ? "" : "not ");
-  printf("* Output every:         %d slices\n",muls.outputInterval);
-  
-
-  /* 
-     if (muls.ismoth) printf("Type 1 (=smooth aperture), ");
-     if (muls.gaussFlag) printf("will apply gaussian smoothing"); 
-     printf("\n");
-  */
-
-  /***************************************************/
-  /*  printf("Optimizing fftw plans according to probe array (%d x %dpixels = %g x %gA) ...\n",
-      muls.nx,muls.ny,muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
-  */
-  
-  printf("* TDS:                  %d runs)\n",muls.avgRuns);
-
-  printf("*\n*****************************************************\n");
-}
-
-
 void readArray(FILE *fp, char *title,double *array,int N) {
-	int i;
-	char buf[512],*str;
+  int i;
+  char buf[512],*str;
 
-	if (!readparam(fp, title,buf,1)) printf("%s array not found - exit\n",title), exit(0);
-	i=0;
-	str = buf;
-	if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t");
-	while (i<N) {
-		array[i++] = atof(str);
-		str = strnext(str," \t\n");
-		while (str == NULL) {
-                  if (!readNextLine(fp, buf,511)) 
-                    printf("Incomplete reading of %s array - exit\n",title), exit(0);
-			str = buf;
-			if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t\n");
-		}  
-	}
+  if (!readparam(fp, title,buf,1)) printf("%s array not found - exit\n",title), exit(0);
+  i=0;
+  str = buf;
+  if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t");
+  while (i<N) {
+    array[i++] = atof(str);
+    str = strnext(str," \t\n");
+    while (str == NULL) {
+      if (!readNextLine(fp, buf,511)) 
+        printf("Incomplete reading of %s array - exit\n",title), exit(0);
+      str = buf;
+      if (strchr(" \t\n",*str) != NULL) str = strnext(str," \t\n");
+    }  
+  }
 }
 
 /***********************************************************************

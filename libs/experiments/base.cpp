@@ -20,6 +20,80 @@
 // This file defines a base class that should cover most multislice simulations.
 // Things like displaying progress after a multislice run, handling multiple runs, etc are covered here.
 
+
+
+CExperimentBase::CExperimentBase(ConfigReaderPtr &reader)
+{
+  // Read potential parameters and initialize a pot object
+  m_wave = WavePtr(new WAVEFUNC(configReader));
+  m_pot = GetPotential(configReader);
+  readFile(configReader);
+  displayParams(initialWave, potential);
+}
+
+void CExperimentBase::displayParams() {
+  FILE *fpDir;
+  char systStr[64];
+  double k2max,temp;
+  int i,j;
+  static char Date[16],Time[16];
+  time_t caltime;
+  struct tm *mytime;
+  const double pi=3.1415926535897;
+
+  /*
+  if (wave->printLevel < 1) {
+    if ((fpDir = fopen(muls.folder.c_str(),"r"))) {
+      fclose(fpDir);
+      // printf(" (already exists)\n");
+    }
+    else {
+      sprintf(systStr,"mkdir %s",muls.folder.c_str());
+      system(systStr);
+      // printf(" (created)\n");
+    }	  
+    return;
+  }
+  */
+  caltime = time( NULL );
+  mytime = localtime( &caltime );
+  strftime( Date, 12, "%Y:%m:%d", mytime );
+  strftime( Time, 9, "%H:%M:%S", mytime );
+  
+  printf("\n*****************************************************\n");
+  printf("* Running program STEM3 (version %.2f) in %s mode\n",VERSION,
+         (muls.mode == STEM) ? "STEM" : (muls.mode==TEM) ? "TEM" : 
+         (muls.mode == CBED) ? "CBED" : (muls.mode==TOMO)? "TOMO" : 
+         "???"); 
+  printf("* Date: %s, Time: %s\n",Date,Time);
+	
+  printf("* Input file:           %s\n",muls.atomPosFile);
+  
+  // create the data folder ... 
+  printf("* Data folder:          ./%s/ ",muls.folder.c_str()); 
+	
+  printf("* Super cell divisions: %d (in z direction) %s\n",muls.cellDiv,muls.equalDivs ? "equal" : "non-equal");
+  printf("* Slices per division:  %d (%gA thick slices [%scentered])\n",
+         muls.slices,muls.sliceThickness,(muls.centerSlices) ? "" : "not ");
+  printf("* Output every:         %d slices\n",muls.outputInterval);
+  
+
+  /* 
+     if (muls.ismoth) printf("Type 1 (=smooth aperture), ");
+     if (muls.gaussFlag) printf("will apply gaussian smoothing"); 
+     printf("\n");
+  */
+
+  /***************************************************/
+  /*  printf("Optimizing fftw plans according to probe array (%d x %dpixels = %g x %gA) ...\n",
+      muls.nx,muls.ny,muls.nx*muls.resolutionX,muls.ny*muls.resolutionY);
+  */
+  
+  printf("* TDS:                  %d runs)\n",muls.avgRuns);
+
+  printf("*\n*****************************************************\n");
+}
+
 void CExperimentBase::DisplayProgress(int flag, MULS &muls, WavePtr &wave, StructurePtr &crystal)
 {
   // static double timer;
@@ -79,4 +153,23 @@ void CExperimentBase::DisplayProgress(int flag, MULS &muls, WavePtr &wave, Struc
 
   time(&time0);
   //  timer = cputim();
+}
+
+
+////////////////////////////////////////////////////////////////
+// save the current wave function at this intermediate thickness:
+void CExperimentBase::InterimWave(int slice) {
+  int t;
+  char fileName[256]; 
+  std::map<std::string, double> params;
+
+  if ((slice < muls->slices*muls->cellDiv-1) && ((slice+1) % muls->outputInterval != 0)) return;
+  
+  t = (int)((slice)/muls->outputInterval);
+	
+  // produce the following filename:
+  // wave_avgCount_thicknessIndex.img or
+  // wave_thicknessIndex.img if tds is turned off
+  if (muls->tds) wave->WriteWave(muls->avgCount, t, "Wave Function", params);
+  else wave->WriteWave(t, "Wave Function", params);
 }

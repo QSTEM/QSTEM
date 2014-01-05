@@ -182,6 +182,15 @@ void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
   params["dx"]=m_dx;
   params["dy"]=m_dy;
   params["Thickness"]=m_thickness;
+  params["HT"] = m_v0;
+  params["Cs"] = m_Cs;
+  params["Defocus"] = m_df0;
+  params["Astigmatism Magnitude"] = m_astigMag;
+  params["Astigmatism Angle"] = m_astigAngle;
+  params["Focal Spread"] = m_Cc * sqrt(m_dE_E*m_dE_E+m_dV_V*m_dV_V+m_dI_I*m_dI_I);
+  params["Convergence Angle"] = m_alpha;
+  params["Beam Tilt X"] = m_btiltx;
+  params["Beam Tilt Y"] = m_btilty;
   m_imageIO->WriteComplexImage((void **)m_wave, fileName, params, comment, m_position);
 }
 
@@ -482,8 +491,8 @@ void WAVEFUNC::FormProbe()
   ixmid = nx/2;
   iymid = ny/2;
 
-  // df = muls->df0;
-  //v0 = muls->v0;
+  // df = m_df0;
+  //v0 = m_v0;
   
   /*  printf("Wavelength: %g A\n",wavlen);
    */
@@ -662,3 +671,18 @@ void WAVEFUNC::FormProbe()
   /**********************************************************/
 
 }  /* end probe() */
+
+void WAVEFUNC::fft_normalize(void **array,int nx, int ny) 
+{
+  int ix,iy;
+  double fftScale;
+
+  complex_tt **carray;
+  carray = (complex_tt **)array;
+
+  fftScale = 1.0/(double)(nx*ny);
+  for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
+      carray[ix][iy][0] *= fftScale;
+      carray[ix][iy][1] *= fftScale;
+    }
+}

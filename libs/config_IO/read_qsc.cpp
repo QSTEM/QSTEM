@@ -37,15 +37,11 @@ CQscReader::~CQscReader()
   fclose(m_fp);
 }
 
-void CQscReader::ReadMode(int &mode)
+void CQscReader::ReadMode(std::string &mode)
 {
-  mode = STEM;
+  mode="";
   if (readparam(m_fp,"mode:",buf,1)) {
-    if (strstr(buf,"STEM")) mode = STEM;
-    else if (strstr(buf,"TEM")) mode = TEM;
-    else if (strstr(buf,"CBED")) mode = CBED;
-    else if (strstr(buf,"TOMO")) mode = TOMO;
-    else if (strstr(buf,"REFINE")) mode = REFINE;
+    mode=buf;
   }
 }
 

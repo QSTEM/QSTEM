@@ -48,7 +48,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define NSMAX 1000	/* max number of slices */
 #define NLMAX	52	/* maximum number of layers */
 #define NCINMAX  500	/* max number of characers in stacking spec */
-#define NCMAX 256	/* max characters in file names */
+//#define NCMAX 256	/* max characters in file names */
 #define NPARAM	64	/* number of parameters */
 #define NZMIN	1	/* min Z in featom.tab */
 #define NZMAX	103	/* max Z in featom.tab */
@@ -208,7 +208,7 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 	int showEverySlice=1;
 	int islice,i,ix,iy,mRepeat;
 	float_tt cztot=0.0;
-	float_tt wavlen,scale,sum=0.0; //,zsum=0.0
+	float_tt wavlen,sum=0.0; //,zsum=0.0
 	// static int *layer=NULL;
 	float_tt x,y;
 	int absolute_slice;
@@ -216,10 +216,14 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 	char outStr[64];
 	double fftScale;
 
-	printFlag = (muls->printLevel > 3);
-	fftScale = 1.0/(muls->nx*wave->m_ny);
+        unsigned nx, ny;
 
-	wavlen = (float_tt)wavelength((*muls).v0);
+        wave->GetSizePixels(nx, ny);
+
+	printFlag = (muls->printLevel > 3);
+	fftScale = 1.0/(nx*ny);
+
+	wavlen = wave->GetWavelength();
 
 	/*  calculate the total specimen thickness and echo */
 	cztot=0.0;
@@ -228,8 +232,6 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 	}
 	if (printFlag)
 		printf("Specimen thickness: %g Angstroms\n", cztot);
-
-	scale = 1.0F / (((float_tt)wave->m_nx) * ((float_tt)wave->m_ny));
 
 	for (mRepeat = 0; mRepeat < muls->mulsRepeat1; mRepeat++) 
 	{
@@ -269,7 +271,7 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 			fftw_execute(wave->fftPlanWaveInv);
 #endif
 			// old code: fftwnd_one((*muls).fftPlanInv,(complex_tt *)wave[0][0], NULL);
-			fft_normalize((void **)wave->wave,muls->nx,muls->ny);
+			fft_normalize((void **)wave->wave,nx,ny);
 
 			// write the intermediate TEM wave function:
 
@@ -279,11 +281,10 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 			wave->thickness = (absolute_slice+1)*muls->sliceThickness;
 			if ((printFlag)) {
 				sum = 0.0;
-				for( ix=0; ix<(*muls).nx; ix++)  for( iy=0; iy<(*muls).ny; iy++) {
-					sum +=  wave->wave[ix][iy][0]* wave->wave[ix][iy][0] +
-						wave->wave[ix][iy][1]* wave->wave[ix][iy][1];
+				for( ix=0; ix<nx; ix++)  for( iy=0; iy<ny; iy++) {
+                                    sum +=  wave->GetIntensity(ix,iy);
 				}
-				sum *= scale;
+				sum *= fftScale;
 
 				sprintf(outStr,"position (%3d, %3d), slice %4d (%.2f), int. = %f", 
 					wave->detPosX, wave->detPosY,
@@ -341,7 +342,7 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 	// TODO: modifying shared value from multiple threads?
 	//  Is this sum supposed to be across multiple pixels?
 	//#pragma omp critical
-	wave->intIntensity = sum*scale;
+	wave->intIntensity = sum*fftScale;
 
 	if (printFlag) {
 		printf( "pix range %g to %g real,\n"
@@ -359,245 +360,189 @@ int runMulsSTEM(MULS *muls, WavePtr wave, PotPtr pot) {
 	return 0;
 }  // end of runMulsSTEM
 
-
-////////////////////////////////////////////////////////////////
-// save the current wave function at this intermediate thickness:
-void interimWave(MULS *muls,WavePtr wave,int slice) {
-	int t;
-	char fileName[256]; 
-        std::map<std::string, double> params;
-
-	if ((slice < muls->slices*muls->cellDiv-1) && ((slice+1) % muls->outputInterval != 0)) return;
-
-	t = (int)((slice)/muls->outputInterval);
-	// write the high tension, too:
-        
-        params["HT"] = muls->v0;
-        params["Cs"] = muls->Cs;
-        params["Defocus"] = muls->df0;
-        params["Astigmatism Magnitude"] = muls->astigMag;
-        params["Astigmatism Angle"] = muls->astigAngle;
-        params["Focal Spread"] = muls->Cc * sqrt(muls->dE_E*muls->dE_E+muls->dV_V*muls->dV_V+muls->dI_I*muls->dI_I);
-        params["Convergence Angle"] = muls->alpha;
-        params["Beam Tilt X"] = muls->btiltx;
-        params["Beam Tilt Y"] = muls->btilty;
-	
-	// produce the following filename:
-	// wave_avgCount_thicknessIndex.img or
-	// wave_thicknessIndex.img if tds is turned off
-	if (muls->tds) wave->WriteWave(muls->avgCount, t, "Wave Function", params);
-        else wave->WriteWave(t, "Wave Function", params);
-}
-
-/*****  saveSTEMImages *******/
-// Saves all detector images (STEM images) that are defined in muls.
-//   When saving intermediate STEM images is enabled, this also saves
-//   the intermediate STEM images for each detector.
-void saveSTEMImages(MULS *muls)
-{
-  std::map<std::string, double> params;
-  params["Runs Averaged"]=(double)muls->avgCount+1;
-  muls->detectors->SaveDetectors(params);  
-}
-
-
-void fft_normalize(void **array,int nx, int ny) {
-	int ix,iy;
-	double fftScale;
-
-        complex_tt **carray;
-	carray = (complex_tt **)array;
-
-	fftScale = 1.0/(double)(nx*ny);
-	for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-		carray[ix][iy][0] *= fftScale;
-		carray[ix][iy][1] *= fftScale;
-	}
-}
-
+/*
+// 20140105 - MCS - pretty sure this is archaic.  Commenting.
 void showPotential(fftw_complex ***pot,int nz,int nx,int ny,double dx,double dy,double dz) {
-	char *fileName = "potential.dat";
-	char systStr[256];
-	FILE *fp;
-	int ix,iz;
-	static fftw_complex *data = NULL;
-	int length;
-	float r;
+  char *fileName = "potential.dat";
+  char systStr[256];
+  FILE *fp;
+  int ix,iz;
+  static fftw_complex *data = NULL;
+  int length;
+  float r;
 
 
-	/*
-	make data array:
-	*/
-	length = (nx < ny) ? nx : ny ;
-	length +=2;
-	if (data == NULL)
-		data = (fftw_complex *)malloc(length * sizeof(fftw_complex));
+  //  make data array:
+  length = (nx < ny) ? nx : ny ;
+  length +=2;
+  if (data == NULL)
+    data = (fftw_complex *)malloc(length * sizeof(fftw_complex));
 
-	/* 
-	copy data to array
-	*/
-
-	for (ix=0;ix<nx;ix++) {
-		data[ix][0] = pot[0][ix][ix][0];
-		data[ix][1] = pot[0][ix][ix][1];
-		for (iz=1;iz<nz;iz++) {
-			data[ix][0] += 2*pot[iz][ix][ix][0];
-			data[ix][1] += 2*pot[iz][ix][ix][1];
-		}
-		/*    printf("ix: %d, pot: %g\n",ix,data[ix]); */
-	}
-
-	if ((fp = fopen(fileName,"w")) == NULL) {
-		printf("Could not open %s for writing!\n",fileName);
-		return;
-	}
-	for (ix=0;ix<nx;ix++) {
-		r = sqrt(ix*ix*(dx*dx+dy*dy));
-		fprintf(fp,"%g",r);
-		fprintf(fp,"\t%g\t%g",data[ix][0],data[ix][1]);
-		/*    for (iz = 0;iz < ((nz>10) ? 10 : nz);iz++) {
-		r = sqrt(ix*ix*(dx*dx+dy*dy)+iz*iz*dz*dz);      
-		fprintf(fp,"\t%g",pot[iz][ix][ix][0]*r);      
-		}
-		*/
-		fprintf(fp,"\n");
-	}
-	fclose(fp);
-
-	sprintf(systStr,"xmgr -nxy %s &",fileName);
-	system(systStr);
+  // copy data to array
+  
+  for (ix=0;ix<nx;ix++) {
+    data[ix][0] = pot[0][ix][ix][0];
+    data[ix][1] = pot[0][ix][ix][1];
+    for (iz=1;iz<nz;iz++) {
+      data[ix][0] += 2*pot[iz][ix][ix][0];
+      data[ix][1] += 2*pot[iz][ix][ix][1];
+    }
+    //  printf("ix: %d, pot: %g\n",ix,data[ix]); 
+  }
+  
+  if ((fp = fopen(fileName,"w")) == NULL) {
+    printf("Could not open %s for writing!\n",fileName);
+    return;
+  }
+  for (ix=0;ix<nx;ix++) {
+    r = sqrt(ix*ix*(dx*dx+dy*dy));
+    fprintf(fp,"%g",r);
+    fprintf(fp,"\t%g\t%g",data[ix][0],data[ix][1]);
+    //    for (iz = 0;iz < ((nz>10) ? 10 : nz);iz++) {
+    //      r = sqrt(ix*ix*(dx*dx+dy*dy)+iz*iz*dz*dz);      
+    //      fprintf(fp,"\t%g",pot[iz][ix][ix][0]*r);      
+    //      }
+    
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+  
+  sprintf(systStr,"xmgr -nxy %s &",fileName);
+  system(systStr);
 }
+*/
 
 
 /*****************************************************************
 * This function will write a data file with the pendeloesungPlot 
 * for selected beams
 ****************************************************************/
+/*
+// 20140105 - MCS - Vestigial?  Commenting...
 void writeBeams(MULS *muls, WavePtr wave, int ilayer, int absolute_slice) {
-	static char fileAmpl[32];
-	static char filePhase[32];
-	static char fileBeam[32];
-	static FILE *fp1 = NULL,*fpAmpl = NULL,*fpPhase=NULL;
-	int ib;
-	static std::vector<int> hbeam,kbeam;
-	static float_tt zsum = 0.0f,scale;
-	float_tt rPart,iPart,ampl,phase;
-	static char systStr[64];
-	// static int counter=0;
+  static char fileAmpl[32];
+  static char filePhase[32];
+  static char fileBeam[32];
+  static FILE *fp1 = NULL,*fpAmpl = NULL,*fpPhase=NULL;
+  int ib;
+  static std::vector<int> hbeam,kbeam;
+  static float_tt zsum = 0.0f,scale;
+  float_tt rPart,iPart,ampl,phase;
+  static char systStr[64];
+  // static int counter=0;
 
-	if (!muls->lbeams)
-		return;
+  if (!muls->lbeams)
+    return;
 
-	if ((muls->mode != REFINE) && ((*muls).mode != CBED)) {
-		if (ilayer < 0) {
-			if (fp1 != NULL) fclose(fp1);
-			if (fpAmpl != NULL) fclose(fpAmpl);
-			if (fpPhase != NULL) fclose(fpPhase);
-			fp1 = fpAmpl = fpPhase = NULL;
-			sprintf(systStr,"xmgr -nxy %s &",fileAmpl);
-			system(systStr);
-			return;
-		}
+  if ((muls->mode != REFINE) && ((*muls).mode != CBED)) {
+    if (ilayer < 0) {
+      if (fp1 != NULL) fclose(fp1);
+      if (fpAmpl != NULL) fclose(fpAmpl);
+      if (fpPhase != NULL) fclose(fpPhase);
+      fp1 = fpAmpl = fpPhase = NULL;
+      sprintf(systStr,"xmgr -nxy %s &",fileAmpl);
+      system(systStr);
+      return;
+    }
 
-		if ((fp1 == NULL) || (fpAmpl == NULL) || (fpPhase == NULL)) {
-			scale = 1.0F / ( ((float_tt)muls->nx) * ((float_tt)muls->ny) );
-			hbeam = (*muls).hbeams;
-			kbeam = (*muls).kbeams;
-			if ((hbeam.empty()) || (kbeam.empty())) {
-				printf("ERROR: hbeam or kbeam == NULL!\n");
-				exit(0);
-			}
+    if ((fp1 == NULL) || (fpAmpl == NULL) || (fpPhase == NULL)) {
+      scale = 1.0F / ( ((float_tt)muls->nx) * ((float_tt)muls->ny) );
+      hbeam = (*muls).hbeams;
+      kbeam = (*muls).kbeams;
+      if ((hbeam.empty()) || (kbeam.empty())) {
+        printf("ERROR: hbeam or kbeam == NULL!\n");
+        exit(0);
+      }
+      
+      sprintf(fileAmpl,"%s/beams_amp.dat",(*muls).folder.c_str());
+      sprintf(filePhase,"%s/beams_phase.dat",(*muls).folder.c_str());
+      sprintf(fileBeam,"%s/beams_all.dat",(*muls).folder.c_str());
+      fp1 = fopen(fileBeam, "w" );
+      fpAmpl = fopen( fileAmpl, "w" );
+      fpPhase = fopen( filePhase, "w" );
+      if(fp1==NULL) {
+        printf("can't open file %s\n", fileBeam);
+        exit(0);
+      }
+      if(fpAmpl==NULL) {
+        printf("can't open amplitude file %s\n",fileAmpl);
+        exit(0);
+      }
+      if(fpPhase==NULL) {
+        printf("can't open phase file %s\n", filePhase);
+        exit(0);
+      }
+      fprintf(fp1, " (h,k) = ");
+      for(ib=0; ib<(*muls).nbout; ib++) {
+        fprintf(fp1," (%d,%d)", muls->hbeams[ib],  muls->kbeams[ib]);
+      }
+      fprintf( fp1, "\n" );
+      fprintf( fp1, "nslice, (real,imag) (real,imag) ...\n\n");
+      for( ib=0; ib<muls->nbout; ib++)
+        {
+          // printf("beam: %d [%d,%d]",ib,hbeam[ib],kbeam[ib]);			
+          if(hbeam[ib] < 0 ) hbeam[ib] = muls->nx + hbeam[ib];
+          if(kbeam[ib] < 0 ) kbeam[ib] = muls->ny + kbeam[ib];
+          if(hbeam[ib] < 0 ) hbeam[ib] = 0;
+          if(kbeam[ib] < 0 ) kbeam[ib] = 0;
+          if(hbeam[ib] > muls->nx-1 ) hbeam[ib] = muls->nx-1;
+          if(kbeam[ib] > muls->ny-1 ) kbeam[ib] = muls->ny-1;
+          // printf(" => [%d,%d] %d %d\n",hbeam[ib],kbeam[ib],muls->nx,muls->ny);			
+        }
 
-			sprintf(fileAmpl,"%s/beams_amp.dat",(*muls).folder.c_str());
-			sprintf(filePhase,"%s/beams_phase.dat",(*muls).folder.c_str());
-			sprintf(fileBeam,"%s/beams_all.dat",(*muls).folder.c_str());
-			fp1 = fopen(fileBeam, "w" );
-			fpAmpl = fopen( fileAmpl, "w" );
-			fpPhase = fopen( filePhase, "w" );
-			if(fp1==NULL) {
-				printf("can't open file %s\n", fileBeam);
-				exit(0);
-			}
-			if(fpAmpl==NULL) {
-				printf("can't open amplitude file %s\n",fileAmpl);
-				exit(0);
-			}
-			if(fpPhase==NULL) {
-				printf("can't open phase file %s\n", filePhase);
-				exit(0);
-			}
-			fprintf(fp1, " (h,k) = ");
-			for(ib=0; ib<(*muls).nbout; ib++) {
-				fprintf(fp1," (%d,%d)", muls->hbeams[ib],  muls->kbeams[ib]);
-			}
-			fprintf( fp1, "\n" );
-			fprintf( fp1, "nslice, (real,imag) (real,imag) ...\n\n");
-			for( ib=0; ib<muls->nbout; ib++)
-			{
-				// printf("beam: %d [%d,%d]",ib,hbeam[ib],kbeam[ib]);			
-				if(hbeam[ib] < 0 ) hbeam[ib] = muls->nx + hbeam[ib];
-				if(kbeam[ib] < 0 ) kbeam[ib] = muls->ny + kbeam[ib];
-				if(hbeam[ib] < 0 ) hbeam[ib] = 0;
-				if(kbeam[ib] < 0 ) kbeam[ib] = 0;
-				if(hbeam[ib] > muls->nx-1 ) hbeam[ib] = muls->nx-1;
-				if(kbeam[ib] > muls->ny-1 ) kbeam[ib] = muls->ny-1;
-				// printf(" => [%d,%d] %d %d\n",hbeam[ib],kbeam[ib],muls->nx,muls->ny);			
-			}
-			/****************************************************/
-			/* setup of beam files, include the t=0 information */
-			fprintf( fpAmpl, "%g",0.0);
-			fprintf( fpPhase, "%g",0.0);
-			for( ib=0; ib<muls->nbout; ib++) {
-				ampl = 0.0;
-				if ((hbeam[ib] == 0) && (kbeam[ib]==0))
-					ampl = 1.0;
-				fprintf(fpAmpl,"\t%g",ampl);
-				fprintf(fpPhase,"\t%g",0.0);
-			}
-			fprintf( fpAmpl, "\n");
-			fprintf( fpPhase, "\n");
-		} /* end of if fp1 == NULL ... i.e. setup */
+      // setup of beam files, include the t=0 information 
+      fprintf( fpAmpl, "%g",0.0);
+      fprintf( fpPhase, "%g",0.0);
+      for( ib=0; ib<muls->nbout; ib++) {
+        ampl = 0.0;
+        if ((hbeam[ib] == 0) && (kbeam[ib]==0))
+          ampl = 1.0;
+        fprintf(fpAmpl,"\t%g",ampl);
+        fprintf(fpPhase,"\t%g",0.0);
+      }
+      fprintf( fpAmpl, "\n");
+      fprintf( fpPhase, "\n");
+    } // end of if fp1 == NULL ... i.e. setup 
 
 
-		zsum += (*muls).cz[ilayer];
+    zsum += (*muls).cz[ilayer];
 
-		fprintf( fp1, "%g", zsum);
-		fprintf( fpAmpl, "%g",zsum);
-		fprintf( fpPhase, "%g",zsum);
-		for( ib=0; ib<(*muls).nbout; ib++) {
-			fprintf(fp1, "\t%g\t%g",
-				rPart = scale*(*wave).wave[hbeam[ib]][kbeam[ib]][0],
-				iPart = scale*(*wave).wave[hbeam[ib]][kbeam[ib]][1]);
-			ampl = (float_tt)sqrt(rPart*rPart+iPart*iPart);
-			phase = (float_tt)atan2(iPart,rPart);	
-			fprintf(fpAmpl,"\t%g",ampl);
-			fprintf(fpPhase,"\t%g",phase);
-		}
-		fprintf( fp1, "\n");
-		fprintf( fpAmpl, "\n");
-		fprintf( fpPhase, "\n");
-	} /* end of if muls.mode != REFINE */
+    fprintf( fp1, "%g", zsum);
+    fprintf( fpAmpl, "%g",zsum);
+    fprintf( fpPhase, "%g",zsum);
+    for( ib=0; ib<(*muls).nbout; ib++) {
+      fprintf(fp1, "\t%g\t%g",
+              rPart = scale*(*wave).wave[hbeam[ib]][kbeam[ib]][0],
+              iPart = scale*(*wave).wave[hbeam[ib]][kbeam[ib]][1]);
+      ampl = (float_tt)sqrt(rPart*rPart+iPart*iPart);
+      phase = (float_tt)atan2(iPart,rPart);	
+      fprintf(fpAmpl,"\t%g",ampl);
+      fprintf(fpPhase,"\t%g",phase);
+    }
+    fprintf( fp1, "\n");
+    fprintf( fpAmpl, "\n");
+    fprintf( fpPhase, "\n");
+  } // end of if muls.mode != REFINE 
 	
-	if (muls->mode == TEM) {
-		if (muls->pendelloesung == NULL) {
-			muls->pendelloesung = 
-				float2D((*muls).nbout,
-				(*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2*(*muls).cellDiv,
-				"pendelloesung");
-			scale = 1.0/(muls->nx*muls->ny); 
-			printf("Allocated memory for pendelloesung plot (%d x %d)\n",
-				(*muls).nbout,(*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2);
-		}
-		for( ib=0; ib<muls->nbout; ib++) {
-			rPart = (*wave).wave[muls->hbeams[ib]][muls->kbeams[ib]][0];
-			iPart = (*wave).wave[muls->hbeams[ib]][muls->kbeams[ib]][1];
-			muls->pendelloesung[ib][absolute_slice] = scale*(float_tt)(rPart*rPart+iPart*iPart);
-			// printf("slice: %d beam: %d [%d,%d], intensity: %g\n",muls->nslic0,ib,muls->hbeam[ib],muls->kbeam[ib],muls->pendelloesung[ib][muls->nslic0]);			
-		} // end of ib=0 ... 
-	}
-	
+  if (muls->mode == TEM) {
+    if (muls->pendelloesung == NULL) {
+      muls->pendelloesung = 
+        float2D((*muls).nbout,
+                (*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2*(*muls).cellDiv,
+                "pendelloesung");
+      scale = 1.0/(muls->nx*muls->ny); 
+      printf("Allocated memory for pendelloesung plot (%d x %d)\n",
+             (*muls).nbout,(*muls).slices*(*muls).mulsRepeat1*(*muls).mulsRepeat2);
+    }
+    for( ib=0; ib<muls->nbout; ib++) {
+      rPart = (*wave).wave[muls->hbeams[ib]][muls->kbeams[ib]][0];
+      iPart = (*wave).wave[muls->hbeams[ib]][muls->kbeams[ib]][1];
+      muls->pendelloesung[ib][absolute_slice] = scale*(float_tt)(rPart*rPart+iPart*iPart);
+      // printf("slice: %d beam: %d [%d,%d], intensity: %g\n",muls->nslic0,ib,muls->hbeam[ib],muls->kbeam[ib],muls->pendelloesung[ib][muls->nslic0]);			
+    } // end of ib=0 ... 
+  }	
 }
-
+*/
 
 
 //////////////////////////////////////////////////////////////////////////////////
