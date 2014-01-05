@@ -38,16 +38,16 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
   m_thickness(0.0),
   m_nx(x),
   m_ny(y),
-  m_resolutionX(resX),
-  m_resolutionY(resY),
+  m_dx(resX),
+  m_dy(resY),
   m_params(std::map<std::string, double>()),
   m_propxr(std::vector<float_tt>(x)),
   m_propxi(std::vector<float_tt>(x)),
   m_propyr(std::vector<float_tt>(y)),
   m_propyi(std::vector<float_tt>(y))
 {
-  //m_wavlen = wavelength(m_v0);
-  m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
+  m_wavlen = Wavelength(m_v0);
+  //m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
 
   m_diffpat = float2D(m_nx,m_ny,"diffpat");
   m_avgArray = float2D(m_nx,m_ny,"avgArray");
@@ -70,17 +70,37 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
 WAVEFUNC::WAVEFUNC(ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
-  configReader->ReadResolution(m_resolutionX, m_resolutionY);
+  configReader->ReadResolution(m_dx, m_dy);
   configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
   configReader->ReadVoltage(m_v0);
   m_electronScale = m_beamCurrent*m_dwellTime*MILLISEC_PICOAMP;
 
   // TODO: need to figure out how user is going to specify input/output formats
-  WAVEFUNC(m_nx, m_ny, m_resolutionX, m_resolutionY, ".img", ".img");
+  WAVEFUNC(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
 }
 
 void WAVEFUNC::DisplayParams()
 {
+  printf("* Real space res.:      %gA (=%gmrad)\n",
+         1.0/m_k2max,GetWavelength()*m_k2max*1000.0);
+  printf("* Reciprocal space res: dkx=%g, dky=%g\n",
+         1.0/(m_nx*m_dx),1.0/(m_ny*m_dy));
+
+  printf("* Beams:                %d x %d \n",m_nx,m_ny);  
+
+  printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",m_btiltx*RAD2DEG,m_btilty*RAD2DEG,
+         (m_tiltBack == 1 ? "on" : "off"));
+  
+  printf("* Aperture half angle:  %g mrad\n",m_alpha);
+  printf("* AIS aperture:         ");
+  if (m_aAIS > 0) printf("%g A\n",m_aAIS);
+  else printf("none\n");
+  printf("* beam current:         %g pA\n",m_beamCurrent);
+  printf("* dwell time:           %g msec (%g electrons)\n",
+         m_dwellTime,m_electronScale);
+
+  printf("* Damping dE/E: %g / %g \n",sqrt(m_dE_E*m_dE_E+m_dV_V*m_dV_V+m_dI_I*m_dI_I)*m_v0*1e3,m_v0*1e3);
+
   printf("* Acc. voltage:         %g (lambda=%gA)\n",m_v0,Wavelength(m_v0));
   printf("* C_3 (C_s):            %g mm\n",m_Cs*1e-7);
   printf("* C_1 (Defocus):        %g nm%s\n",0.1*m_df0,
@@ -121,14 +141,46 @@ void WAVEFUNC::DisplayParams()
   else
     printf("* Probe array:          %d x %d pixels (estimated)\n",m_nx,m_ny);
   printf("*                       %g x %gA\n",
-         m_nx*m_resolutionX,m_ny*m_resolutionY);
+         m_nx*m_dx,m_ny*m_dy);
+}
+
+inline void WAVEFUNC::GetElectronScale(float_tt &electronScale)
+{
+  electronScale=m_electronScale;
+}
+
+inline void WAVEFUNC::GetSizePixels(unsigned &x, unsigned &y)
+{
+  x=m_nx;
+  y=m_ny;
+}
+
+inline void WAVEFUNC::GetPositionOffset(unsigned &x, unsigned &y)
+{
+  x=m_detPosX;
+  y=m_detPosY;
+}
+
+inline float_tt WAVEFUNC::GetK2(unsigned ix, unsigned iy)
+{
+  return m_kx2[ix]+m_ky2[iy];
+}
+
+inline float_tt WAVEFUNC::GetPixelIntensity(unsigned x, unsigned y)
+{
+  return m_wave[x][y][0]*m_wave[x][y][0] + m_wave[x][y][1]*m_wave[x][y][1];
+}
+
+inline void WAVEFUNC::SetDiffPatPixel(unsigned x, unsigned y, float_tt value)
+{
+  m_diffpat[x][y]=value;
 }
 
 void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
-  params["dx"]=m_resolutionX;
-  params["dy"]=m_resolutionY;
+  params["dx"]=m_dx;
+  params["dy"]=m_dy;
   params["Thickness"]=m_thickness;
   m_imageIO->WriteComplexImage((void **)m_wave, fileName, params, comment, m_position);
 }
@@ -136,8 +188,8 @@ void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
 void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
                             std::map<std::string, double> params)
 {
-  params["dx"]=1.0/(m_nx*m_resolutionX);
-  params["dy"]=1.0/(m_ny*m_resolutionY);
+  params["dx"]=1.0/(m_nx*m_dx);
+  params["dy"]=1.0/(m_ny*m_dy);
   params["Thickness"]=m_thickness;
   m_imageIO->WriteRealImage((void **)m_diffpat, fileName, params, comment, m_position);
 }
@@ -145,8 +197,8 @@ void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
   void WAVEFUNC::_WriteAvgArray(std::string &fileName, std::string comment, 
                                std::map<std::string, double> params)
 {
-  params["dx"]=1.0/(m_nx*m_resolutionX);
-  params["dy"]=1.0/(m_ny*m_resolutionY);
+  params["dx"]=1.0/(m_nx*m_dx);
+  params["dy"]=1.0/(m_ny*m_dy);
   params["Thickness"]=m_thickness;
   m_imageIO->WriteRealImage((void **)m_avgArray, fileName, params, comment, m_position);
 }
@@ -232,8 +284,8 @@ void WAVEFUNC::Propagate(float_tt dz)
   float_tt scale,t; 
   float_tt dzs=0;
 
-  ax = m_resolutionX*m_nx;
-  by = m_resolutionY*m_ny;
+  ax = m_dx*m_nx;
+  by = m_dy*m_ny;
 
   if (dz != dzs) {
     dzs = dz;
@@ -392,12 +444,12 @@ void WAVEFUNC::FormProbe()
   /* temporary fix, necessary, because fftw has rec. space zero 
      in center of image:
   */
-  ax = m_nx*m_resolutionX; 
-  by = m_ny*m_resolutionY; 
+  ax = m_nx*m_dx; 
+  by = m_ny*m_dy; 
   dx = ax-dx;
   dy = by-dy;
   // average resolution:
-  avgRes = sqrt(0.5*(m_resolutionX*m_resolutionX+m_resolutionY*m_resolutionY));
+  avgRes = sqrt(0.5*(m_dx*m_dx+m_dy*m_dy));
   edge = SMOOTH_EDGE*avgRes;
 
   /********************************************************
@@ -550,8 +602,8 @@ void WAVEFUNC::FormProbe()
   if (m_aAIS > 0) {
     for( ix=0; ix<m_nx; ix++) {
       for( iy=0; iy<m_ny; iy++) {
-        x = ix*m_resolutionX-dx;
-        y = iy*m_resolutionY-dy;
+        x = ix*m_dx-dx;
+        y = iy*m_dy-dy;
         r = sqrt(x*x+y*y);
         delta = r-0.5*m_aAIS+edge;
         if (delta > 0) {

@@ -84,56 +84,60 @@ void Detector::CollectIntensity(WavePtr &wave)
    *******************************************************************/
   int i,ix,iy,ixs,iys,t;
   float_tt k2;
-  double intensity,scale,scaleCBED,scaleDiff,intensity_save;
+  float_tt intensity,scale,scaleCBED,scaleDiff,intensity_save;
   char fileName[256],avgName[256]; 
   float_tt **diffpatAvg = NULL;
   int tCount = 0;
+  unsigned nx, ny, offsetX, offsetY;
+  float_tt electronScale;
 
   std::vector<std::vector<DetectorPtr> > detectors;
 
-  scale = wave->m_electronScale/((double)(wave->m_nx*wave->m_ny)*(wave->m_nx*wave->m_ny));
-  // scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
-  scaleDiff = 1.0/sqrt((double)(wave->m_nx*wave->m_ny));
+  wave->GetElectronScale(electronScale);
+  wave->GetSizePixels(nx, ny);
+  wave->GetPositionOffset(offsetX, offsetY);
 
-  int position_offset = wave->m_detPosY * m_nx + wave->m_detPosX;
+  scale = electronScale/((double)(nx*ny)*(nx*ny));
+  // scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
+  scaleDiff = 1.0/sqrt((double)(nx*ny));
+
+  int position_offset = offsetY * m_nx + offsetX;
 
   // Multiply each image by its number of averages and divide by it later again:
-  m_image[wave->m_detPosX][wave->m_detPosY]  *= m_Navg;	
-  m_image2[wave->m_detPosX][wave->m_detPosY] *= m_Navg;	
+  m_image[offsetX][offsetY]  *= m_Navg;	
+  m_image2[offsetX][offsetY] *= m_Navg;	
   m_error = 0;
 
   /* add the intensities in the already 
      fourier transformed wave function */
-  for (ix = 0; ix < wave->m_nx; ix++) 
+  for (ix = 0; ix < nx; ix++) 
     {
-      for (iy = 0; iy < wave->m_ny; iy++) 
+      for (iy = 0; iy < ny; iy++) 
         {
-          k2 = wave->m_kx2[ix]+wave->m_ky2[iy];
-          intensity = (wave->m_wave[ix][iy][0]*wave->m_wave[ix][iy][0]+
-                       wave->m_wave[ix][iy][1]*wave->m_wave[ix][iy][1]);
-          wave->m_diffpat[(ix+wave->m_nx/2)%wave->m_nx][(iy+wave->m_ny/2)%wave->m_ny] = intensity*scaleDiff;
+          k2 = wave->GetK2(ix, iy);
+          intensity = wave->GetPixelIntensity(ix,iy);
+          wave->SetDiffPatPixel((ix+nx/2)%nx,(iy+ny/2)%ny, intensity*scaleDiff);
           intensity *= scale;
           if ((k2 >= m_k2Inside) && (k2 <= m_k2Outside)) 
-              {
-                // detector in center of diffraction pattern:
-                if ((m_shiftX == 0) && (m_shiftY == 0)) 
-                  {
-                    m_image[wave->m_detPosX][wave->m_detPosY] += intensity;
-                    // misuse the error number for collecting this pixels raw intensity
-                    m_error += intensity;
-                  }
-                /* special case for shifted detectors: */		
-                else 
-                  {
-                    intensity_save = intensity;
-                    ixs = (ix+(int)m_shiftX+wave->m_nx) % wave->m_nx;
-                    iys = (iy+(int)m_shiftY+wave->m_ny) % wave->m_ny;	    
-                    intensity = scale * (wave->m_wave[ixs][iys][0]*wave->m_wave[ixs][iys][0]+
-                                         wave->m_wave[ixs][iys][1]*wave->m_wave[ixs][iys][1]);
-                    m_image[wave->m_detPosX][wave->m_detPosY] += intensity;
-                    // repurpose the error number for collecting this pixels raw intensity
-                    m_error += intensity;
-                    /* restore intensity, so that it will not be shifted for the other detectors */
+            {
+              // detector in center of diffraction pattern:
+              if ((m_shiftX == 0) && (m_shiftY == 0)) 
+                {
+                  m_image[offsetX][offsetY] += intensity;
+                  // misuse the error number for collecting this pixels raw intensity
+                  m_error += intensity;
+                }
+              /* special case for shifted detectors: */		
+              else 
+                {
+                  intensity_save = intensity;
+                  ixs = (ix+(int)m_shiftX+nx) % nx;
+                  iys = (iy+(int)m_shiftY+ny) % ny;	    
+                  intensity = scale * wave->GetPixelIntensity(ixs, iys);
+                  m_image[offsetX][offsetY] += intensity;
+                  // repurpose the error number for collecting this pixels raw intensity
+                  m_error += intensity;
+                  /* restore intensity, so that it will not be shifted for the other detectors */
                     intensity = intensity_save;
                   }
               } /* end of if k2 ... */
@@ -144,11 +148,11 @@ void Detector::CollectIntensity(WavePtr &wave)
   
   // Divide each image by its number of averages again:
   // add intensity squared to image2 for this detector and pixel, then rescale:
-  m_image2[wave->m_detPosX][wave->m_detPosY] += m_error*m_error;
-  m_image2[wave->m_detPosX][wave->m_detPosY] /= m_Navg+1;	
+  m_image2[offsetX][offsetY] += m_error*m_error;
+  m_image2[offsetX][offsetY] /= m_Navg+1;	
     
   // do the rescaling for the average image:
-  m_image[wave->m_detPosX][wave->m_detPosY] /= m_Navg+1;	
+  m_image[offsetX][offsetY] /= m_Navg+1;	
 }
 
 

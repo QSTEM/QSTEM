@@ -80,6 +80,7 @@ const char cname[] = "abcdefghijklmnopqrstuvwxyz"
 const double pid=PI;
 const double pid2=2*PI;
 
+/*
 // define all the scat facts (or just those for Sr, Ti, O, In, P, He,Cl, Si,Ca,Ba,Fe) from Rez et al / Doyle and Turner
 // the final 3 values must be zero to achieve a nice tapering off
 #if USE_REZ_SFACTS
@@ -138,7 +139,10 @@ double scatPar[N_ELEM][N_SF] = {{0.0000,0.0500,0.1000,0.1500,0.2000,0.2500,0.300
 1.4173,1.1500,0.9536,0.8049,0.6849,0.5114,0.3917,0.3098,0.2480,0.2031,0.1363,
 0.0957,0.0727,0.0569,0.0369,0.0258,0,0,0}};
 #endif  // USE_REZ_SFACTS
+*/
 
+/*
+// 20140104 - MCS - I think this is an unused, older way of saving output files.  commenting...
 void writePix(char *outFile,complex_tt **pict,MULS *muls,int iz) {
 	float_tt *sparam;
 	float_tt rmin,rmax;
@@ -169,7 +173,7 @@ void writePix(char *outFile,complex_tt **pict,MULS *muls,int iz) {
 		sparam[pDX] = (*muls).ax/(float_tt)(*muls).nx;
 		sparam[pDY] = (*muls).by/(float_tt)(*muls).ny;
 		sparam[pWAVEL] = (float_tt)wavelength((*muls).v0);
-		sparam[pNSLICES] = 0.0F;  /* ??? */
+		sparam[pNSLICES] = 0.0F;
 		sparam[pDEFOCUS] = 0.0;
 		sparam[pOAPERT] = 0.0;
 		sparam[pCS] = 0.0;
@@ -177,15 +181,14 @@ void writePix(char *outFile,complex_tt **pict,MULS *muls,int iz) {
 		sparam[pDDF] = 0.0;
 		sparam[pC]= (*muls).cz[iz];
 		result = 1;
-		/*
-		result = tcreateFloatPixFile(outFile,pict,(long)(*muls).nx,
-		(long)(*muls).ny,1,sparam);
-		*/
 
+		//result = tcreateFloatPixFile(outFile,pict,(long)(*muls).nx,
+		//(long)(*muls).ny,1,sparam);
+		
 		if (result != 1)
 			printf("\ncould not write output file %s\n",outFile);
 }
-
+*/
 
 
 
