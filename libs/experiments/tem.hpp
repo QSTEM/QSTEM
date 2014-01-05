@@ -17,18 +17,22 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef EXPERIMENT_TEM_H
+#define EXPERIMENT_TEM_H
+
 #include "base.hpp"
 
 class CExperimentTEM : public CExperimentBase
 {
 public:
-  CExperimentTEM::CExperimentTEM();
-  void run();
-  void displayParams();
+  CExperimentTEM(const ConfigReaderPtr &configReader);
+  void Run();
+  void DisplayParams();
 private:
-
+  void SaveImages();
 };
 
+#endif
 
 
 

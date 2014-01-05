@@ -19,7 +19,11 @@
 
 #include "cbed.hpp"
 
-void CExperimentCBED::run()
+CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
+{
+}
+
+void CExperimentCBED::Run()
 {
   int ix,iy,i,pCount,result;
   FILE *avgFp,*fp,*fpPos=0;

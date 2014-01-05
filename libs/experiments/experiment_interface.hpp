@@ -19,11 +19,16 @@
 
 #include "stemtypes_fftw3.hpp"
 
+#ifndef EXPERIMENT_INTERFACE_H
+#define EXPERIMENT_INTERFACE_H
+
 class IExperiment
 {
 public:
-  virtual void displayParams(){};
-  virtual void run()=0;
+  virtual void DisplayParams(){};
+  virtual void Run()=0;
 };
 
 typedef boost::shared_ptr<IExperiment> ExperimentPtr;
+
+#endif

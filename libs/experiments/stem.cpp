@@ -19,7 +19,11 @@
 
 #include "stem.hpp"
 
-void CExperimentSTEM::run()
+CExperimentSTEM::CExperimentSTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
+{
+}
+
+void CExperimentSTEM::Run()
 {
   int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
 	double timer, total_time=0;

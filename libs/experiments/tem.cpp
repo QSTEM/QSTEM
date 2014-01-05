@@ -17,7 +17,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-void CExperimentTEM::run()
+#include "tem.hpp"
+
+CExperimentTEM::CExperimentTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
+{
+}
+
+void CExperimentTEM::Run()
 {
   const double pi=3.1415926535897;
   int ix,iy,i,pCount,result;

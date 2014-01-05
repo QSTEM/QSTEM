@@ -17,25 +17,20 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef EXPERIMENT_STEM_H
+#define EXPERIMENT_STEM_H
+
 #include "base.hpp"
 
 class CExperimentSTEM : public CExperimentBase
 {
 public:
-  void run();
-  void displayParams();
+  CExperimentSTEM(const ConfigReaderPtr &configReader);
+  void Run();
+  void DisplayParams();
 private:
+  void SaveImages();
   unsigned m_stepsX, m_stepsY;
-
 };
 
-
-
-
-
-
-
-
-
-
-
+#endif

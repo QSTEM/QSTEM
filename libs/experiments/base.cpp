@@ -20,9 +20,7 @@
 // This file defines a base class that should cover most multislice simulations.
 // Things like displaying progress after a multislice run, handling multiple runs, etc are covered here.
 
-
-
-CExperimentBase::CExperimentBase(ConfigReaderPtr &reader)
+CExperimentBase::CExperimentBase(const ConfigReaderPtr &reader) : IExperiment()
 {
   // Read potential parameters and initialize a pot object
   m_wave = WavePtr(new WAVEFUNC(configReader));
@@ -173,3 +171,168 @@ void CExperimentBase::InterimWave(int slice) {
   if (muls->tds) wave->WriteWave(muls->avgCount, t, "Wave Function", params);
   else wave->WriteWave(t, "Wave Function", params);
 }
+
+/******************************************************************
+* runMulsSTEM() - do the multislice propagation in STEM/CBED mode
+* 
+*    Each probe position is running this function.  Each CPU is thus
+*      running a separate instance of the function.  It is nested in
+*      the main OpenMP parallel region - specifying critical, single, and
+*      barrier OpenMP pragmas should be OK.
+*
+* waver, wavei are expected to contain incident wave function 
+* they will be updated at return
+*****************************************************************/
+int CExperimentBase::runMuls() {
+  int printFlag = 0; 
+  int showEverySlice=1;
+  int islice,i,ix,iy,mRepeat;
+  float_tt cztot=0.0;
+  float_tt wavlen,sum=0.0; //,zsum=0.0
+  // static int *layer=NULL;
+  float_tt x,y;
+  int absolute_slice;
+
+  char outStr[64];
+  double fftScale;
+
+  unsigned nx, ny;
+
+  wave->GetSizePixels(nx, ny);
+
+  printFlag = (muls->printLevel > 3);
+  fftScale = 1.0/(nx*ny);
+
+  wavlen = wave->GetWavelength();
+
+  /*  calculate the total specimen thickness and echo */
+  cztot=0.0;
+  for( islice=0; islice<(*muls).slices; islice++) {
+    cztot += (*muls).cz[islice];
+  }
+  if (printFlag)
+    printf("Specimen thickness: %g Angstroms\n", cztot);
+
+  for (mRepeat = 0; mRepeat < muls->mulsRepeat1; mRepeat++) 
+    {
+      for( islice=0; islice < muls->slices; islice++ ) 
+        {
+          absolute_slice = (muls->totalSliceCount+islice);
+          
+          /***********************************************************************
+           * Transmit is a simple multiplication of wave with trans in real space
+           **********************************************************************/
+          wave->Transmit(pot, islice);   
+          /***************************************************** 
+           * remember: prop must be here to anti-alias
+           * propagate is a simple multiplication of wave with prop
+           * but it also takes care of the bandwidth limiting
+           *******************************************************/
+#if FLOAT_PRECISION == 1
+          fftwf_execute(wave->m_fftPlanWaveForw);
+#else
+          fftw_execute(wave->m_fftPlanWaveForw);
+#endif
+          wave->Propagate();
+          //propagate_slow(wave, muls->nx, muls->ny, muls);
+
+          muls->detectors->CollectIntensity(wave, muls->totalSliceCount+islice*(1+mRepeat));
+          //collectIntensity(muls, wave, muls->totalSliceCount+islice*(1+mRepeat));
+          
+          if (muls->mode != STEM) {
+            /* write pendelloesung plots, if this is not STEM */
+            writeBeams(muls,wave,islice, absolute_slice);
+          }
+
+          // go back to real space:
+#if FLOAT_PRECISION == 1
+          fftwf_execute(wave->fftPlanWaveInv);
+#else
+          fftw_execute(wave->fftPlanWaveInv);
+#endif
+          // old code: fftwnd_one((*muls).fftPlanInv,(complex_tt *)wave[0][0], NULL);
+          fft_normalize((void **)wave->wave,nx,ny);
+          
+          // write the intermediate TEM wave function:
+          
+          /********************************************************************
+           * show progress:
+           ********************************************************************/
+          wave->thickness = (absolute_slice+1)*muls->sliceThickness;
+          if ((printFlag)) {
+            sum = 0.0;
+            for( ix=0; ix<nx; ix++)  for( iy=0; iy<ny; iy++) {
+                sum +=  wave->GetIntensity(ix,iy);
+              }
+            sum *= fftScale;
+            
+            sprintf(outStr,"position (%3d, %3d), slice %4d (%.2f), int. = %f", 
+                    wave->detPosX, wave->detPosY,
+                    muls->totalSliceCount+islice,wave->thickness,sum );
+            if (showEverySlice)
+              printf("%s\n",outStr);
+            else {
+              printf("%s",outStr);
+              for (i=0;i<(int)strlen(outStr);i++) printf("\b");
+            }
+          }
+			
+          if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
+            {
+              // TODO (MCS 2013/04): this restructure probably broke this file saving - 
+              //   need to rewrite a function to save things for TEM/CBED?
+              // This used to call interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
+              interimWave(muls,wave,absolute_slice*(1+mRepeat)); 
+              muls->detectors->CollectIntensity(wave, absolute_slice*(1+mRepeat));
+              
+              //collectIntensity(muls,wave,absolute_slice*(1+mRepeat));
+            }
+        } /* end for(islice...) */
+      // collect intensity at the final slice
+      //collectIntensity(muls, wave, muls->totalSliceCount+muls->slices*(1+mRepeat));
+    } /* end of mRepeat = 0 ... */
+  if (printFlag) printf("\n***************************************\n");
+
+  // TODO: modifying shared value from multiple threads?
+  muls->rmin  = wave->wave[0][0][0];
+  //#pragma omp single
+  muls->rmax  = (*muls).rmin;
+  //#pragma omp single
+  muls->aimin = wave->wave[0][0][1];
+  //#pragma omp single
+  muls->aimax = (*muls).aimin;
+
+  sum = 0.0;
+  for( ix=0; ix<muls->nx; ix++)  
+    {
+    for( iy=0; iy<muls->ny; iy++) 
+      {
+        x =  wave->wave[ix][iy][0];
+        y =  wave->wave[ix][iy][1];
+        if( x < (*muls).rmin ) (*muls).rmin = x;
+        if( x > (*muls).rmax ) (*muls).rmax = x;
+        if( y < (*muls).aimin ) (*muls).aimin = y;
+        if( y > (*muls).aimax ) (*muls).aimax = y;
+        sum += x*x+y*y;
+      }
+    }
+  // TODO: modifying shared value from multiple threads?
+  //  Is this sum supposed to be across multiple pixels?
+  //#pragma omp critical
+  wave->intIntensity = sum*fftScale;
+
+  if (printFlag) {
+    printf( "pix range %g to %g real,\n"
+            "          %g to %g imag\n",  
+            (*muls).rmin,(*muls).rmax,(*muls).aimin,(*muls).aimax);
+    
+  }
+  if (muls->saveFlag) {
+    if ((muls->saveLevel > 1) || (muls->cellDiv > 1)) {
+      wave->WriteWave();
+      if (printFlag)
+        printf("Created complex image file %s\n",(*wave).fileout.c_str());
+    }
+  }
+  return 0;
+}  // end of runMulsSTEM

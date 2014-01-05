@@ -17,6 +17,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef EXPERIMENT_BASE_H
+#define EXPERIMENT_BASE_H
+
 #include "experiment_interface.hpp"
 #include "potential.hpp"
 #include "wavefunctions.hpp"
@@ -24,10 +27,14 @@
 class CExperimentBase : public IExperiment
 {
 public:
-  virtual void DisplayProgress(int flag, MULS &muls, WavePtr &wave, StructurePtr &crystal);
-  virtual void SaveImages()=0;
-  virtual void run()=0;
+  CExperimentBase(const ConfigReaderPtr &configReader);
+  virtual void DisplayProgress(int flag, WavePtr &wave, StructurePtr &crystal);
+  virtual void Run()=0;
 protected:
+  virtual void SaveImages()=0;
+
   WavePtr m_wave;
   PotPtr m_pot;
-}
+};
+
+#endif

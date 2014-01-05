@@ -17,23 +17,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef EXPERIMENT_CBED_H
+#define EXPERIMENT_CBED_H
+
 #include "base.hpp"
 
 class CExperimentCBED : public CExperimentBase
 {
 public:
-  void run();
-  void displayParams();
+  CExperimentCBED(const ConfigReaderPtr &configReader);
+  void Run();
+  void DisplayParams();
 private:
-
+  void SaveImages();
 };
 
-
-
-
-
-
-
-
-
-
+#endif
