@@ -94,6 +94,7 @@ double chargeTable[MAX_MASS_INDEX];
 // #define NPARAM	64    /* number of parameters */
 
 //MCS - why do we have this function and initMuls in stem3.cpp?
+/*
 MULS initMu() {
 	MULS muls;
 	int sCount,i,slices = 2;
@@ -102,11 +103,11 @@ MULS initMu() {
 
 	muls.slices = slices;
 
-	/* general setup: */
+	// general setup: 
 	muls.lpartl = 0;
 
 	// muls.wave = NULL;
-	muls.atomRadius = 5.0;  /* radius in A for making the potential boxes */
+	muls.atomRadius = 5.0;  // radius in A for making the potential boxes 
 
 	for (sCount =0;sCount<slices;sCount++)
 		muls.cin2[sCount] = 'a'+sCount;
@@ -130,7 +131,7 @@ MULS initMu() {
 	muls.tomoCount = 0;  // indicate: NO Tomography simulation.
 
 
-	/* make multislice read the inout files and assign transr and transi: */
+	// make multislice read the inout files and assign transr and transi: 
 	muls.cz = NULL;  // (float_t *)malloc(muls.slices*sizeof(float_t));
 
 	muls.onlyFresnel = 0;
@@ -142,14 +143,11 @@ MULS initMu() {
 	for (i=0;i<NPARAM;i++)
 		muls.sparam[i] = 0.0;
 
-	/****************************************************/
-	/* copied from slicecell.c                          */
-	muls.pendelloesung = NULL;
 	return muls;
 }
 // #undef NCINMAX 500
-// #undef NPARAM	64    /* number of parameters */
-
+// #undef NPARAM	64    // number of parameters
+*/
 
 #define CHARGE 0.0
 

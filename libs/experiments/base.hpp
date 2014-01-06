@@ -35,6 +35,21 @@ protected:
 
   WavePtr m_wave;
   PotPtr m_pot;
+
+  bool m_tds;
+  unsigned m_avgRuns, m_avgCount;  // number of runs to average; runs currently averaged
+
+  std::vector<float_tt> m_chisq;
 };
 
 #endif
+
+
+
+
+
+
+
+
+
+

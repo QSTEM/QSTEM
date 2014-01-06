@@ -55,23 +55,16 @@ public:
   char cfgFile[512];                        /* file name for writing tilted atomic configuration */
   float_tt btiltx,btilty;   	        /* beam tilt in mrad*/
   bool tiltBack;               /* tilt back the wave below the specimen */
-  std::vector<int> hbeams,kbeams;	/* arrays to hold recorded 
-					   beam indicies */
-  bool lbeams;				/* flag indicating, whether 
-					   to record beams */	
-  char filebeam[512];		 	/* file, that beams get recorded in */
-  unsigned nbout;				/* number of recorded beams */
+  
 
   //int nslic0;				/* slice counter */
   int mulsRepeat1;                      /* # of times to repeat structure */
   int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   unsigned slices;                           /* number of different slices */
   bool centerSlices;                     /* flag indicating how to cut the sample */
-  float_tt **pendelloesung;              /* pendelloesung plot for REFINE mode */
   float_tt atomRadius;                   /* for atom potential boxes */
   float_tt potOffsetX,potOffsetY;        /* offset of potential array from zero */
   float_tt potSizeX,potSizeY;            /* real space dimensions of potential array in A */
-  int avgCount;
 
   int showProbe;
   unsigned displayProgInterval;             /* show progress every .. beam positions */
@@ -133,7 +126,6 @@ public:
   unsigned scanXN,scanYN;
   float_tt intIntensity;
   std::string folder;
-  unsigned avgRuns;
   int scatFactor;
   std::vector<double> chisq;
   int cellDiv;

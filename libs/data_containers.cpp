@@ -42,7 +42,6 @@ MULS::MULS():
   saveTotalPotential(false),
   plotPotential(false),
   fftpotential(true),
-  avgRuns(10),
   storeSeries(false),
   potOffsetY(0),potOffsetX(0),
   tomoTilt(0),
@@ -53,7 +52,6 @@ MULS::MULS():
   scatFactor(DOYLE_TURNER),
   normHolog(0),
   gaussianProp(0),
-  pendelloesung(NULL),
   onlyFresnel(NULL),
   showPhaseplate(NULL)
 {
