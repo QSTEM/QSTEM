@@ -33,13 +33,14 @@ public:
   virtual void Initialize(std::string dirOrFileName, std::string run_id="avg")=0;
   // io plugins don't have to do anything to create a data set, but they might want to (qh5 uses this
   //   to create data sets which are then filled later, rather than saving individual files.)
-  virtual void CreateRealDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
-  virtual void CreateComplexDataSet(std::string name, unsigned nx, unsigned ny, std::vector<unsigned> &positions){};
-  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                              std::vector<unsigned> &position, std::string &comment,
+  virtual void CreateRealDataSet(const std::string &name, unsigned nx, unsigned ny, 
+                                 const std::vector<unsigned> &positions){};
+  virtual void CreateComplexDataSet(const std::string &name, unsigned nx, unsigned ny, const std::vector<unsigned> &positions){};
+  virtual void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                              const std::vector<unsigned> &position, const std::string &comment,
                               std::map<std::string, double> &parameters)=0;
-  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                                 std::vector<unsigned> &position, std::string &comment,
+  virtual void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                 const std::vector<unsigned> &position, const std::string &comment,
                                  std::map<std::string, double> &parameters)=0;
 };
 

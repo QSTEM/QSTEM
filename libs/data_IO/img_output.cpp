@@ -10,16 +10,16 @@ CImgOutput::~CImgOutput()
 {
 }
 
-void CImgOutput::WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                                 std::vector<unsigned> &position, std::string &comment,
+void CImgOutput::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                 const std::vector<unsigned> &position, const std::string &comment,
                                  std::map<std::string, double> &parameters)
 {
   unsigned dataSize = 2*sizeof(float_tt);
   WriteData((void **)data, true, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgOutput::WriteRealImage(float_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                                  std::vector<unsigned> &position, std::string &comment,
+void CImgOutput::WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                  const std::vector<unsigned> &position, const std::string &comment,
                                   std::map<std::string, double> &parameters)
 {
   unsigned dataSize = sizeof(float_tt);

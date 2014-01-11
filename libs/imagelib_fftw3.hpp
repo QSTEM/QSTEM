@@ -35,40 +35,40 @@ class CImageIO {
   DataWriterPtr m_imageWriter;
   DataReaderPtr m_imageReader;
 public:
-  CImageIO(int nx, int ny, std::string input_extension=".img", 
-           std::string output_extension=".img");
+  CImageIO(int nx, int ny, const std::string input_extension=".img", 
+           const std::string output_extension=".img");
 
-  void CreateRealDataSet(std::string &name, std::vector<unsigned int> &positions);
-  void CreateComplexDataSet(std::string &name, std::vector<unsigned int> &positions);
+  void CreateRealDataSet(const std::string &name, const std::vector<unsigned int> &positions);
+  void CreateComplexDataSet(const std::string &name, const std::vector<unsigned int> &positions);
   
-  void WriteRealImage(void **pix, std::string &fileName, 
+  void WriteRealImage(void **pix, const std::string &fileName, 
                       std::map<std::string, double> &params,
-                      std::string &comment, 
-                      std::vector<unsigned> &position);
+                      const std::string &comment, 
+                      const std::vector<unsigned> &position);
   // If you want a comment and parameters, but no position
-  inline void WriteRealImage(void **pix, std::string &fileName, std::map<std::string, double> &parameters, 
-                             std::string &comment)
+  inline void WriteRealImage(void **pix, const std::string &fileName, std::map<std::string, double> &parameters, 
+                             const std::string &comment)
   {
     std::vector<unsigned> position;
     WriteRealImage(pix, fileName, parameters, comment, position);
   }
   // If you want to add a comment, but no parameters
-  inline void WriteRealImage(void **pix, std::string &fileName, std::string &comment,
-                             std::vector<unsigned> position=std::vector<unsigned>())
+  inline void WriteRealImage(void **pix, const std::string &fileName, const std::string &comment,
+                             const std::vector<unsigned> position=std::vector<unsigned>())
   {
     std::map<std::string, double> params;
     WriteRealImage(pix, fileName, params, comment, position);
   }
   // If you want to add parameters, but no comment
-  inline void WriteRealImage(void **pix, std::string &fileName, std::map<std::string, double> &params,
-                               std::vector<unsigned> position=std::vector<unsigned>())
+  inline void WriteRealImage(void **pix, const std::string &fileName, std::map<std::string, double> &params,
+                               const std::vector<unsigned> position=std::vector<unsigned>())
   {
     std::string comment=std::string();
     WriteRealImage(pix, fileName, params, comment, position);
   }  
   // If you don't care about parameters or comment, use this simplified overload:
-  inline void WriteRealImage(void **pix, std::string &fileName, 
-                        std::vector<unsigned> position=std::vector<unsigned>())
+  inline void WriteRealImage(void **pix, const std::string &fileName, 
+                        const std::vector<unsigned> position=std::vector<unsigned>())
   {
     std::map<std::string, double> params;
     std::string comment=std::string();
@@ -77,36 +77,36 @@ public:
   }
 
 
-  void WriteComplexImage(void **pix, std::string &fileName,
+  void WriteComplexImage(void **pix, const std::string &fileName,
                          std::map<std::string, double> &params,
-                         std::string &comment,
-                         std::vector<unsigned> &position);
+                         const std::string &comment,
+                         const std::vector<unsigned> &position);
   // If you want a comment and parameters, but no position
-  inline void WriteComplexImage(void **pix, std::string &fileName, std::map<std::string, double> &parameters, 
-                             std::string &comment)
+  inline void WriteComplexImage(void **pix, const std::string &fileName, std::map<std::string, double> &parameters, 
+                             const std::string &comment)
   {
     std::vector<unsigned> position;
     WriteComplexImage(pix, fileName, parameters, comment, position);
   }
 
   // If you want to add a comment, but no parameters
-  inline void WriteComplexImage(void **pix, std::string &fileName, std::string &comment,
-                             std::vector<unsigned> position=std::vector<unsigned>())
+  inline void WriteComplexImage(void **pix, const std::string &fileName, const std::string &comment,
+                             const std::vector<unsigned> position=std::vector<unsigned>())
   {
     std::map<std::string, double> params;
     WriteComplexImage(pix, fileName, params, comment, position);
   }
   // If you want to add parameters, but no comment
-  inline void WriteComplexImage(void **pix, std::string &fileName, std::map<std::string, double> &params,
-                               std::vector<unsigned> position=std::vector<unsigned>())
+  inline void WriteComplexImage(void **pix, const std::string &fileName, std::map<std::string, double> &params,
+                               const std::vector<unsigned> position=std::vector<unsigned>())
   {
     std::string comment=std::string();
 
     WriteComplexImage(pix, fileName, params, comment, position);
   }  
   // If you don't care about parameters or comment, use this simplified overload:
-  inline void WriteComplexImage(void **pix, std::string &fileName, 
-                        std::vector<unsigned> position=std::vector<unsigned>())
+  inline void WriteComplexImage(void **pix, const std::string &fileName, 
+                        const std::vector<unsigned> position=std::vector<unsigned>())
   {
     std::map<std::string, double> params;
     std::string comment=std::string();

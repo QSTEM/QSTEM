@@ -12,11 +12,11 @@ public:
   ~CImgOutput();
   virtual void Initialize(std::string dirOrFileName, std::string run_id="avg");
   // WriteVolume isn't implemented here - it uses the CBinaryOutput method instead.
-  virtual void WriteRealImage(float_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                              std::vector<unsigned> &position, std::string &comment,
+  virtual void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                              const std::vector<unsigned> &position, const std::string &comment,
                               std::map<std::string, double> &parameters);
-  virtual void WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label, 
-                                 std::vector<unsigned> &position, std::string &comment,
+  virtual void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                 const std::vector<unsigned> &position, const std::string &comment,
                                  std::map<std::string, double> &parameters);
 private:
   void WriteData(void **pix, bool is_complex, unsigned dataSize, std::vector<unsigned> shape, 

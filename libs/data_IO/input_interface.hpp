@@ -24,14 +24,14 @@
 #include <string>
 #include <vector>
 
-#include "boost/shared_ptr.hpp"
+#include <boost/shared_ptr.hpp>
 
 
 class IDataInput
 {
 public:
-  virtual void ReadImage(void **pix, std::string label, std::map<std::string, double> &params,
-                         std::string &comment, std::vector<unsigned> position=std::vector<unsigned>())=0;
+  virtual void ReadImage(void **pix, const std::string label, std::map<std::string, double> &params,
+                         std::string &comment, const std::vector<unsigned> position=std::vector<unsigned>())=0;
 };
 
 typedef boost::shared_ptr<IDataInput> DataReaderPtr;
