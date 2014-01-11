@@ -54,7 +54,7 @@ void CExperimentTEM::Run()
     m_pendelloesung = NULL;
     if (avgPendelloesung == NULL) {
       avgPendelloesung = float2D(m_nbout,
-                                 m_slices*oldMulsRepeat1*oldMulsRepeat2*m_cellDiv,
+                                 m_potential->GetNSlices()*oldMulsRepeat1*oldMulsRepeat2*m_cellDiv,
                                  "pendelloesung");
     }	  
   }
