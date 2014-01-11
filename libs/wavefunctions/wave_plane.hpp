@@ -17,20 +17,22 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef PLANE_WAVE_H
+#define PLANE_WAVE_H
 
-#include "wavefunctions.hpp"
+#include "wave_base.hpp"
 
-#include "wavefunctions/wave_convergent.hpp"
-#include "wavefunctions/wave_plane.hpp"
-
-WavePtr GetWaveFunction(const std::string &identifier, const ConfigReaderPtr &configReader)
+class CPlaneWave : public WAVEFUNC
 {
-  if (identifier=="Plane")
-    {
-      return WavePtr(new CPlaneWave(configReader));
-    }
-  else if (identifier=="Convergent")
-    {
-      return WavePtr(new CConvergentWave(configReader));
-    }
-}
+public:
+  CPlaneWave(const ConfigReaderPtr &configReader);
+  virtual void FormProbe();
+  void TiltBeam(bool tiltBack=false);
+  void TiltBack();
+protected:
+  float_tt m_btiltx, m_btilty;     /* beam tilt, mrad */
+};
+
+typedef boost::shared_ptr<CPlaneWave> PlaneWavePtr;
+
+#endif

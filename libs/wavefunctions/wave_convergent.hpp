@@ -17,20 +17,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "wave_base.hpp"
 
-#include "wavefunctions.hpp"
-
-#include "wavefunctions/wave_convergent.hpp"
-#include "wavefunctions/wave_plane.hpp"
-
-WavePtr GetWaveFunction(const std::string &identifier, const ConfigReaderPtr &configReader)
+class CConvergentWave : public WAVEFUNC
 {
-  if (identifier=="Plane")
-    {
-      return WavePtr(new CPlaneWave(configReader));
-    }
-  else if (identifier=="Convergent")
-    {
-      return WavePtr(new CConvergentWave(configReader));
-    }
-}
+public:
+  CConvergentWave(const ConfigReaderPtr &configReader);
+  virtual void FormProbe();
+};
