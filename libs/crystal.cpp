@@ -111,7 +111,7 @@ void CCrystal::Init(unsigned run_number)
 
 void CCrystal::DisplayParams()
 {
-  
+	printf("* Input file:           %s\n",m_structureFile.c_str());
 
   if ((m_cubex == 0) || (m_cubey == 0) || (m_cubez == 0))
     printf("* Unit cell:            ax=%g by=%g cz=%g\n",
