@@ -18,6 +18,9 @@
 
 
 # Visual studio project files
+*.sdf
+*.opensdf
+*unsuccessfulbuild
 *.vcproj
 *.vcxproj
 *.vcproj.*
