@@ -286,5 +286,96 @@ void CExperimentCBED::Run()
 
 void CExperimentCBED::CollectIntensity(unsigned absoluteSlice)
 {
-	writeBeams(muls,m_wave,islice, absolute_slice);
+	WriteBeams(absolute_slice);
+}
+
+void CExperimentCBED::WriteBeams(unsigned int absoluteSlice)
+{
+    if (ilayer < 0) {
+      if (fp1 != NULL) fclose(fp1);
+      if (fpAmpl != NULL) fclose(fpAmpl);
+      if (fpPhase != NULL) fclose(fpPhase);
+      fp1 = fpAmpl = fpPhase = NULL;
+      sprintf(systStr,"xmgr -nxy %s &",fileAmpl);
+      system(systStr);
+      return;
+    }
+
+    if ((fp1 == NULL) || (fpAmpl == NULL) || (fpPhase == NULL)) {
+      scale = 1.0F / ( ((float_tt)m_nx) * ((float_tt)m_ny) );
+      hbeam = (*muls).hbeams;
+      kbeam = (*muls).kbeams;
+      if ((hbeam.empty()) || (kbeam.empty())) {
+        printf("ERROR: hbeam or kbeam == NULL!\n");
+        exit(0);
+      }
+      
+      sprintf(fileAmpl,"%s/beams_amp.dat",(*muls).folder.c_str());
+      sprintf(filePhase,"%s/beams_phase.dat",(*muls).folder.c_str());
+      sprintf(fileBeam,"%s/beams_all.dat",(*muls).folder.c_str());
+      fp1 = fopen(fileBeam, "w" );
+      fpAmpl = fopen( fileAmpl, "w" );
+      fpPhase = fopen( filePhase, "w" );
+      if(fp1==NULL) {
+        printf("can't open file %s\n", fileBeam);
+        exit(0);
+      }
+      if(fpAmpl==NULL) {
+        printf("can't open amplitude file %s\n",fileAmpl);
+        exit(0);
+      }
+      if(fpPhase==NULL) {
+        printf("can't open phase file %s\n", filePhase);
+        exit(0);
+      }
+      fprintf(fp1, " (h,k) = ");
+      for(ib=0; ib<(*muls).nbout; ib++) {
+        fprintf(fp1," (%d,%d)", muls->hbeams[ib],  muls->kbeams[ib]);
+      }
+      fprintf( fp1, "\n" );
+      fprintf( fp1, "nslice, (real,imag) (real,imag) ...\n\n");
+      for( ib=0; ib<muls->nbout; ib++)
+        {
+          // printf("beam: %d [%d,%d]",ib,hbeam[ib],kbeam[ib]);			
+          if(hbeam[ib] < 0 ) hbeam[ib] = muls->nx + hbeam[ib];
+          if(kbeam[ib] < 0 ) kbeam[ib] = muls->ny + kbeam[ib];
+          if(hbeam[ib] < 0 ) hbeam[ib] = 0;
+          if(kbeam[ib] < 0 ) kbeam[ib] = 0;
+          if(hbeam[ib] > muls->nx-1 ) hbeam[ib] = muls->nx-1;
+          if(kbeam[ib] > muls->ny-1 ) kbeam[ib] = muls->ny-1;
+          // printf(" => [%d,%d] %d %d\n",hbeam[ib],kbeam[ib],muls->nx,muls->ny);			
+        }
+
+      // setup of beam files, include the t=0 information 
+      fprintf( fpAmpl, "%g",0.0);
+      fprintf( fpPhase, "%g",0.0);
+      for( ib=0; ib<muls->nbout; ib++) {
+        ampl = 0.0;
+        if ((hbeam[ib] == 0) && (kbeam[ib]==0))
+          ampl = 1.0;
+        fprintf(fpAmpl,"\t%g",ampl);
+        fprintf(fpPhase,"\t%g",0.0);
+      }
+      fprintf( fpAmpl, "\n");
+      fprintf( fpPhase, "\n");
+    } // end of if fp1 == NULL ... i.e. setup 
+
+
+    zsum += (*muls).cz[ilayer];
+
+    fprintf( fp1, "%g", zsum);
+    fprintf( fpAmpl, "%g",zsum);
+    fprintf( fpPhase, "%g",zsum);
+    for( ib=0; ib<(*muls).nbout; ib++) {
+      fprintf(fp1, "\t%g\t%g",
+              rPart = scale*(*wave).wave[hbeam[ib]][kbeam[ib]][0],
+              iPart = scale*(*wave).wave[hbeam[ib]][kbeam[ib]][1]);
+      ampl = (float_tt)sqrt(rPart*rPart+iPart*iPart);
+      phase = (float_tt)atan2(iPart,rPart);	
+      fprintf(fpAmpl,"\t%g",ampl);
+      fprintf(fpPhase,"\t%g",phase);
+    }
+    fprintf( fp1, "\n");
+    fprintf( fpAmpl, "\n");
+    fprintf( fpPhase, "\n");
 }

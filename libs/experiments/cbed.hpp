@@ -28,6 +28,7 @@ public:
   CExperimentCBED(const ConfigReaderPtr &configReader);
   void Run();
   void DisplayParams();
+  virtual void WriteBeams(unsigned absoluteSlice);
 private:
 	void CollectIntensity(unsigned absoluteSlice);
   void SaveImages();

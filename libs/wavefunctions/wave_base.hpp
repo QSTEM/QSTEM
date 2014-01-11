@@ -50,6 +50,9 @@ public:
 
   void DisplayParams();
 
+  void CopyDPToAvgArray();
+  void AddDPToAvgArray();
+
   void GetElectronScale(float_tt &electronScale);
   void GetSizePixels(unsigned &x, unsigned &y);
   void GetResolution(float_tt &x, float_tt &y);
@@ -58,7 +61,14 @@ public:
   inline float_tt GetWavelength() {return m_wavlen;}
 
   float_tt GetPixelIntensity(unsigned x, unsigned y);
-  void SetDiffPatPixel(unsigned x, unsigned y, float_tt value);
+  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) {return m_diffpat[x][y];}
+  inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
+  inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x][y]=value;}
+  inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
+
+  void ApplyTransferFunction(complex_tt **wave);
+
+  void WriteBeams(unsigned absoluteSlice);
 
   inline void WriteProbe()
   {
@@ -230,6 +240,8 @@ protected:
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
   void fft_normalize(void **array,int nx, int ny);
+
+  // m_transferFunction  // The transfer function - optionally applied (used by TEM mode)
 };
 
 typedef boost::shared_ptr<WAVEFUNC> WavePtr;

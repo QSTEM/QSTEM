@@ -54,6 +54,7 @@ public:
   void AddAtomRealSpace(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);
   
   unsigned GetNSlices(){return m_nslices;}
+  float_tt GetSliceThickness(){return m_sliceThickness;}
 
   void WriteSlice(unsigned idx);
   void WriteProjectedPotential();

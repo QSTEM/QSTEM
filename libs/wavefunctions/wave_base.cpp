@@ -182,6 +182,47 @@ inline void WAVEFUNC::SetDiffPatPixel(unsigned x, unsigned y, float_tt value)
   m_diffpat[x][y]=value;
 }
 
+void WAVEFUNC::CopyDPToAvgArray()
+{
+  memcpy((void *)m_avgArray[0],(void*)m_diffpat[0],(size_t)(m_nx*m_ny*sizeof(float_tt)));
+}
+
+void WAVEFUNC::AddDPToAvgArray()
+{
+  unsigned px=m_nx*m_ny;
+  for (unsigned i=0; i<px; i++)
+    {
+      m_avgArray[i]+=m_diffpat[i];
+    }
+}
+
+void WAVEFUNC::ApplyTransferFunction(complex_tt **wave)
+{
+  // TODO: transfer function should be passed as a 1D vector that is half the size of the wavefunc.
+  //       It should be applied by a radial lookup table (with interpolation?)
+  //       Alternatively, is it easier to just use a 2D CTF?
+  //       Whatever you do, use m_transferFunction as the storage for it.
+  if (wave == NULL) wave = complex2D(nx,ny,"imageWave");
+      
+  // multiply wave (in rec. space) with transfer function and write result to imagewave
+#if FLOAT_PRECISION == 1
+  fftwf_execute(m_fftPlanWaveForw);
+#elif FLOAT_PRECISION == 2
+  fftw_execute(m_fftPlanWaveForw);
+#endif
+  for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
+      // here, we apply the CTF:
+      // 20140110 - MCS - I think this is where Christoph wanted to apply the CTF - nothing is done ATM.
+      wave[ix][iy][0] = m_wave[ix][iy][0];
+      wave[ix][iy][1] = m_wave[ix][iy][1];
+    }
+#if FLOAT_PRECISION == 1
+  fftwf_execute_dft(m_fftPlanWaveInv,wave[0],wave[0]);
+#elif FLOAT_PRECISION == 2
+  fftw_execute_dft(m_fftPlanWaveInv,wave[0],wave[0]);
+#endif
+}
+
 void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
@@ -328,12 +369,19 @@ void WAVEFUNC::fft_normalize(void **array,int nx, int ny)
 }
 
 
+void WAVEFUNC:WriteBeams(int absolute_slice) {
+  static char fileAmpl[32];
+  static char filePhase[32];
+  static char fileBeam[32];
+  static FILE *fp1 = NULL,*fpAmpl = NULL,*fpPhase=NULL;
+  int ib;
+  static std::vector<int> hbeam,kbeam;
+  static float_tt zsum = 0.0f,scale;
+  float_tt rPart,iPart,ampl,phase;
+  static char systStr[64];
+  // static int counter=0;
 
-
-
-
-
-
-
-
+  if (!muls->lbeams)
+    return;  	
+}
 

@@ -29,6 +29,7 @@ public:
   CExperimentTEM(const ConfigReaderPtr &configReader);
   virtual void Run();
   virtual void DisplayParams();
+  virtual void WriteBeams(unsigned absoluteSlice);
 private:
   void SaveImages();
   void CollectIntensity(unsigned absoluteSlice);

@@ -159,7 +159,6 @@ void CExperimentTEM::Run()
        * Save the diffraction pattern
        **********************************************************/
       m_wave->CopyDPToAvgArray();
-      memcpy((void *)m_wave->m_avgArray[0],(void *)m_wave->m_diffpat[0],(size_t)(nx*ny*sizeof(float_tt)));
       /* move the averaged (raw data) file to the target directory as well */
       m_wave->WriteAvgArray(m_avgCount+1);
 
@@ -180,28 +179,11 @@ void CExperimentTEM::Run()
        * all the different defoci, inverse FFT and save each image.
        * diffArray will be overwritten with the image.
        **********************************************************/ 
-      if (imageWave == NULL) imageWave = complex2D(nx,ny,"imageWave");
-      
-      // multiply wave (in rec. space) with transfer function and write result to imagewave
-#if FLOAT_PRECISION == 1
-      fftwf_execute(m_wave->fftPlanWaveForw);
-#elif FLOAT_PRECISION == 2
-      fftw_execute(m_wave->fftPlanWaveForw);
-#endif
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          // here, we apply the CTF:
-          // 20140110 - MCS - I think this is where Christoph wanted to apply the CTF - nothing is done ATM.
-          imageWave[ix][iy][0] = m_wave->wave[ix][iy][0];
-          imageWave[ix][iy][1] = m_wave->wave[ix][iy][1];
-        }
-#if FLOAT_PRECISION == 1
-      fftwf_execute_dft(m_wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
-#elif FLOAT_PRECISION == 2
-      fftw_execute_dft(m_wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
-#endif
+      m_wave->ApplyTransferFunction(imageWave);
+
       // get the amplitude squared:
       for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          m_wave->diffpat[ix][iy] = imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1];
+          m_wave->SetDiffPatPixel(ix,iy,imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1]);
         }
       m_wave->WriteWaveIntensity();
       // End of Image writing (if avgCount = 0)
@@ -212,10 +194,10 @@ void CExperimentTEM::Run()
       /* 	 readRealImage_old(avgArray,m_nx,m_ny,&t,"diffAvg.img"); */
       m_chisq[m_avgCount-1] = 0.0;
       for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          t = ((float_tt)m_avgCount*m_wave->avgArray[ix][iy]+
-               m_wave->diffpat[ix][iy])/((float_tt)(m_avgCount+1));
-          m_chisq[m_avgCount-1] += (m_wave->avgArray[ix][iy]-t)*(m_wave->avgArray[ix][iy]-t);
-          m_wave->avgArray[ix][iy] = t;
+          t = ((float_tt)m_avgCount*m_wave->GetAvgArrayPixel(ix,iy)+
+               m_wave->GetDiffPatPixel(ix,iy))/((float_tt)(m_avgCount+1));
+          m_chisq[m_avgCount-1] += (m_wave->GetAvgArrayPixel(ix,iy)-t)*(m_wave->GetAvgArrayPixel(ix,iy)-t);
+          m_wave->SetAvgArrayPixel(ix,iy,t);
         }
       m_chisq[m_avgCount-1] = m_chisq[m_avgCount-1]/(double)(nx*ny);
       m_wave->WriteAvgArray(m_avgCount+1);
@@ -250,30 +232,14 @@ void CExperimentTEM::Run()
        * all the different defoci, inverse FFT and save each image.
        * diffArray will be overwritten with the image.
        **********************************************************/ 
-      if (imageWave == NULL) imageWave = complex2D(nx,ny,"imageWave");
-      // multiply wave (in rec. space) with transfer function and write result to imagewave
-#if FLOAT_PRECISION == 1
-      fftwf_execute(m_wave->fftPlanWaveForw);
-#elif FLOAT_PRECISION == 2
-      fftw_execute(m_wave->fftPlanWaveForw);
-#endif
-      // TODO: This is simply copying the wavefunction.  I think Christoph left off applying the CTF.
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          imageWave[ix][iy][0] = m_wave->wave[ix][iy][0];
-          imageWave[ix][iy][1] = m_wave->wave[ix][iy][1];
-        }
-#if FLOAT_PRECISION == 1
-      fftwf_execute_dft(m_wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
-#elif FLOAT_PRECISION == 2
-      fftw_execute_dft(m_wave->fftPlanWaveInv,imageWave[0],imageWave[0]);
-#endif
+      m_wave->ApplyTransferFunction(imageWave);
 
       // save the amplitude squared:
       m_wave->ReadImage();
       for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          t = ((float_tt)m_avgCount*m_wave->diffpat[ix][iy]+
+          t = ((float_tt)m_avgCount*m_wave->GetDiffPatPixel(ix,iy)+
                imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(m_avgCount+1);
-          m_wave->diffpat[ix][iy] = t;
+          m_wave->SetDiffPatPixel(ix,iy,t);
         }
       m_wave->WriteImage();
       // End of Image writing (if avgCount > 0)
@@ -322,4 +288,25 @@ void CExperimentTEM::Run()
 void CExperimentTEM::CollectIntensity(unsigned absoluteSlice)
 {
   WriteBeams(absoluteSlice);
+}
+
+void CExperimentTEM::WriteBeams(unsigned int absoluteSlice)
+{
+  unsigned nx, ny;
+  m_wave->GetSizePixels(nx, ny);
+  float_tt scale = 1.0/(nx*ny); 
+
+  if (m_pendelloesung == NULL) 
+    {
+      m_pendelloesung = float2D(m_nbout, m_potential->GetNSlices()*m_cellDiv,
+                              "pendelloesung");
+      printf("Allocated memory for pendelloesung plot (%d x %d)\n",
+             m_nbout,m_potential->GetNSlices());
+    }
+    for(unsigned ib=0; ib<m_nbout; ib++) {
+      m_pendelloesung[ib][absoluteSlice] = scale*m_wave->GetPixelIntensity(m_hbeams[ib],m_kbeams[ib]);
+      // printf("slice: %d beam: %d [%d,%d], intensity: %g\n",muls->nslic0,ib,muls->hbeam[ib],muls->kbeam[ib],muls->pendelloesung[ib][muls->nslic0]);			
+    } // end of ib=0 ... 
+
+    // TODO: This isn't actually saving anything...
 }
