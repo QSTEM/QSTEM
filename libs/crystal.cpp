@@ -23,16 +23,7 @@
 #include <boost/array.hpp>
 
 #include "memory_fftw3.hpp"
-
-
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_01.hpp>
-#include <boost/random/normal_distribution.hpp>
-
-boost::random::mt11213b _rng;         // produces randomness out of thin air.  This is the algorithm.  To get numbers,
-//  use ran1(_rng) for uniform values, or 
-boost::random::uniform_01<float_tt> ran1;    // This returns uniform random values between 0 and 1
-boost::random::normal_distribution<float_tt> gasdev(0,1); // This returns uniform random values with a Gaussian normal distribution
+#include "random.hpp"
 
 #define PID 3.14159265358979 /* pi */
 #define PI180 1.7453292519943e-2
@@ -604,8 +595,8 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
             // 
             // if the total occupancy is less than 1 -> make sure we keep this
             // if the total occupancy is greater than 1 (unphysical) -> rescale all partial occupancies!
-            if (totOcc < 1.0) choice = ran1(_rng);   
-            else choice = totOcc*ran1(_rng);
+            if (totOcc < 1.0) choice = ran1();   
+            else choice = totOcc*ran1();
             // printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
             lastOcc = 0;
             for (i2=iatom;i2<jequal;i2++) {
@@ -777,8 +768,8 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
 						// 
 						// if the total occupancy is less than 1 -> make sure we keep this
 						// if the total occupancy is greater than 1 (unphysical) -> rescale all partial occupancies!
-            if (totOcc < 1.0) choice = ran1(_rng);   
-            else choice = totOcc*ran1(_rng);
+            if (totOcc < 1.0) choice = ran1();   
+            else choice = totOcc*ran1();
             // printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
             lastOcc = 0;
             for (i2=i;i2>jequal;i2--) {
@@ -1065,8 +1056,8 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
     if (Nk > 800)
       printf("Will create phonon displacements for %d k-vectors - please wait ...\n",Nk);
     for (lambda=0;lambda<3*Ns;lambda++) for (ik=0;ik<Nk;ik++) {
-        q1[lambda][ik] = (omega[ik][lambda] * gasdev(_rng));
-        q2[lambda][ik] = (omega[ik][lambda] * gasdev(_rng));
+        q1[lambda][ik] = (omega[ik][lambda] * gasdev());
+        q2[lambda][ik] = (omega[ik][lambda] * gasdev());
       }
     // printf("Q: %g %g %g\n",q1[0][0],q1[5][8],q1[0][3]);
   }
@@ -1076,9 +1067,9 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   if (m_Einstein) {	    
     /* convert the Debye-Waller factor to sqrt(<u^2>) */
     wobble = scale*sqrt(dw*wobScale);
-    u[0] = (wobble*sq3 * gasdev(_rng));
-    u[1] = (wobble*sq3 * gasdev(_rng));
-    u[2] = (wobble*sq3 * gasdev(_rng));
+    u[0] = (wobble*sq3 * gasdev());
+    u[1] = (wobble*sq3 * gasdev());
+    u[2] = (wobble*sq3 * gasdev());
     ///////////////////////////////////////////////////////////////////////
     // Book keeping:
     u2[atom.Znum] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
