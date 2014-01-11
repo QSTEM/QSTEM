@@ -33,7 +33,20 @@ private:
   void SaveImages();
   virtual void CollectIntensity(unsigned absoluteSlice);
   unsigned m_stepsX, m_stepsY;
-  std::vector<DetectorPtr> m_detectors;
+  DetectorMgrPtr m_detectors;
+  float_tt m_scanXStart, m_scanXStop, m_scanYStart, m_scanYStop;
+  // TODO: are these synonymous with m_stepsX?
+  unsigned m_scanXN, m_scanYN;
 };
 
 #endif
+
+
+
+
+
+
+
+
+
+
