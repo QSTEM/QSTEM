@@ -37,6 +37,14 @@ protected:
   float_tt **m_pendelloesung;
   bool m_lbeams;				/* flag indicating whether to record beams */	
 
+  unsigned m_scanXStart, m_scanYStart;     /* The beam position on the sample */
+
+  float_tt m_sourceRadius;                 /* The source radius in angstroms */
+
+  bool m_showProbe;            /* if true, saves a plot of the probe */
+
+  bool m_storeSeries;          
+
 };
 
 #endif

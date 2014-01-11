@@ -18,6 +18,7 @@
 */
 
 #include "cbed.hpp"
+#include "random.hpp"
 
 CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
@@ -30,7 +31,6 @@ void CExperimentCBED::Run()
   FILE *avgFp,*fp,*fpPos=0;
   double timer,timerTot;
   double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
-  char buf[BUF_LEN];
   float_tt t=0;
   float_tt **avgPendelloesung = NULL;
 
@@ -67,14 +67,14 @@ void CExperimentCBED::Run()
      * then also be adjusted, so that it is off-center
      */
 
-    probeOffsetX = m_sourceRadius*gasdev(&iseed)*SQRT_2;
-    probeOffsetY = m_sourceRadius*gasdev(&iseed)*SQRT_2;
+    probeOffsetX = m_sourceRadius*gasdev()*SQRT_2;
+    probeOffsetY = m_sourceRadius*gasdev()*SQRT_2;
     m_scanXStart = probeCenterX+probeOffsetX;
     m_scanYStart = probeCenterY+probeOffsetY;
-    wave->FormProbe();
+    m_wave->FormProbe();
     //probe(&muls, wave,m_scanXStart-m_potOffsetX,m_scanYStart-m_potOffsetY);
     if (m_saveLevel > 2) {
-      wave->WriteProbe();
+      m_wave->WriteProbe();
     } 	
     // printf("Probe: (%g, %g)\n",m_scanXStart,m_scanYStart);
     /*****************************************************************
@@ -96,15 +96,6 @@ void CExperimentCBED::Run()
       }
     }
 
-    if ((m_showProbe) && (m_avgCount == 0)) {
-#ifndef WIN32
-      //probePlot(&muls);
-      sprintf(buf,"ee %s/probePlot_0 &",m_outputLocation.c_str());
-      system(buf);
-#endif
-    }
-    //m_nslic0 = 0;
-      
     /***********************************************************
      * make sure we have enough memory for the pendelloesung plot
        */
@@ -122,7 +113,7 @@ void CExperimentCBED::Run()
       
       // printf("Stacking sequence: %s\n",buf);
 
-      m_saveFlag = 0;
+      //m_saveFlag = 0;
       /****************************************
        * do the (small) loop
        *****************************************/
@@ -133,21 +124,20 @@ void CExperimentCBED::Run()
         // what probe should runMulsSTEM use here?
         RunMuls(); 
         
-        printf("Thickness: %gA, int.=%g\n",
-               wave->thickness,wave->intIntensity);
+        //printf("Thickness: %gA, int.=%g\n",
+        //       m_wave->thickness,m_wave->intIntensity);
 
         /***************** Only if Save level > 2: ****************/
         if ((m_avgCount == 0) && (m_saveLevel > 2)) {
-          wave->WriteWave();
+          m_wave->WriteWave();
         } 	
 #ifdef VIB_IMAGE_TEST_CBED
-        wave->WriteWave()
+        m_wave->WriteWave()
 #endif 
           m_totalSliceCount += m_potential->GetNSlices();
         
       } // end of for pCount = 0... 
-      result = readparam("sequence: ",buf,0);
-    }
+
     /*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
     
     // TODO: Why are we reading in a DP at this point?  Do we have one yet?  
@@ -175,35 +165,19 @@ void CExperimentCBED::Run()
           t = ((float_tt)m_avgCount*m_wave->GetAvgArrayPixel(ix,iy)+
                m_wave->GetDiffPatPixel(ix,iy))/((float_tt)(m_avgCount+1));
           m_chisq[m_avgCount-1] += (m_wave->GetAvgArrayPixel(ix,iy)-t)*(m_wave->GetAvgArrayPixel(ix,iy)-t);
-          wave->avgArray[ix][iy] = t;
+          m_wave->SetAvgArrayPixel(ix, iy, t);
         }
       m_chisq[m_avgCount-1] = m_chisq[m_avgCount-1]/(float_tt)(nx*ny);
-      params["Tilt"] = m_tomoTilt;
       params["1/Wavelength"] = 1.0/m_wave->GetWavelength();
-      wave->WriteDiffPat("Averaged Diffraction pattern, unit: 1/A", params);
+      m_wave->WriteDiffPat("Averaged Diffraction pattern, unit: 1/A", params);
                         
       m_storeSeries = 1;
       if (m_saveLevel == 0)	m_storeSeries = 0;
       else if (m_avgCount % m_saveLevel != 0) m_storeSeries = 0;
 
       if (m_storeSeries) 
-        wave->WriteAvgArray(m_avgCount+1, "Averaged Diffraction pattern, unit: 1/A", params);
+        m_wave->WriteAvgArray(m_avgCount+1, "Averaged Diffraction pattern, unit: 1/A", params);
 
-
-      /* write the data to a file */
-      // TODO: vestigial code?  does anyone use this?
-      if (m_saveFlag >-1) {
-        char systStr[255];
-        sprintf(systStr,"%s/avgresults.dat",m_outputLocation.c_str());
-        if ((avgFp = fopen(systStr,"w")) == NULL )
-          printf("Sorry, could not open data file for averaging\n");
-        else {
-          for (ix =0;ix<m_avgCount;ix++) {
-            fprintf(avgFp,"%d %g\n",ix+1,m_chisq[ix]);
-          }
-          fclose(avgFp);
-        }
-      }
       /*************************************************************/
 
       /***********************************************************
@@ -234,7 +208,7 @@ void CExperimentCBED::Run()
         printf("Writing Pendelloesung data\n");
         for (iy=0;iy<m_potential->GetNSlices()*m_cellDiv;iy++) {
           /* write the thicknes in the first column of the file */
-          fprintf(fp,"%g",iy*m_cz/((float)(m_potential->GetNSlices()*m_cellDiv)));
+          fprintf(fp,"%g",iy*m_potential->GetSliceThickness());//((float)(m_potential->GetNSlices()*m_cellDiv)));
           /* write the beam intensities in the following columns */
           for (ix=0;ix<m_nbout;ix++) {
             fprintf(fp,"\t%g",avgPendelloesung[ix][iy]);
