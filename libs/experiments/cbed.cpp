@@ -20,6 +20,7 @@
 #include "cbed.hpp"
 
 CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
+	, m_mode("CBED")
 {
 }
 
@@ -281,4 +282,9 @@ void CExperimentCBED::Run()
     displayProgress(1);
   } /* end of for muls.avgCount=0.. */
   //delete(wave);
+}
+
+void CExperimentCBED::CollectIntensity(unsigned absoluteSlice)
+{
+	writeBeams(muls,m_wave,islice, absolute_slice);
 }

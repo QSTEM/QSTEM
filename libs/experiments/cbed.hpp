@@ -29,6 +29,7 @@ public:
   void Run();
   void DisplayParams();
 private:
+	void CollectIntensity(unsigned absoluteSlice);
   void SaveImages();
 };
 

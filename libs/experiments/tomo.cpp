@@ -159,7 +159,7 @@ void CExperimentTomo::run()
 }
 
 
-void CExperimentTomo::displayParams()
+void CExperimentTomo::DisplayParams()
 {
     printf("*\n"
            "* TOMO parameters:\n");

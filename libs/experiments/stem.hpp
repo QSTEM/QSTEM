@@ -21,6 +21,7 @@
 #define EXPERIMENT_STEM_H
 
 #include "base.hpp"
+#include "detectors.hpp"
 
 class CExperimentSTEM : public CExperimentBase
 {
@@ -30,7 +31,9 @@ public:
   void DisplayParams();
 private:
   void SaveImages();
+  virtual void CollectIntensity(unsigned absoluteSlice);
   unsigned m_stepsX, m_stepsY;
+  std::vector<DetectorPtr> m_detectors;
 };
 
 #endif
