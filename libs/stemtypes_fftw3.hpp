@@ -20,7 +20,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef STEMTYPES_H
 #define STEMTYPES_H
 
-#include "boost/shared_ptr.hpp"
+#include <boost/shared_ptr.hpp>
 
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
