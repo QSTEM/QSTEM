@@ -58,8 +58,6 @@ public:
   
 
   //int nslic0;				/* slice counter */
-  int mulsRepeat1;                      /* # of times to repeat structure */
-  int mulsRepeat2;                      /* for REFINE mode # of mulsRun repeats */
   unsigned slices;                           /* number of different slices */
   bool centerSlices;                     /* flag indicating how to cut the sample */
   float_tt atomRadius;                   /* for atom potential boxes */

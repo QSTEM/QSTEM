@@ -332,3 +332,102 @@ int CExperimentBase::RunMuls()
   }
   return 0;
 }  // end of runMulsSTEM
+
+/******************************************************************
+* propagate_slow() 
+* Propagates a wave
+*****************************************************************/
+void CExperimentBase::Propagate(float_tt dz)
+{
+  int ixa, iya;
+  float_tt wr, wi, tr, ti, ax, by;
+  float_tt scale,t; 
+  float_tt dzs=0;
+
+  ax = m_dx*m_nx;
+  by = m_dy*m_ny;
+
+  if (dz != dzs) {
+    dzs = dz;
+    scale = dz*PI;
+
+    for( ixa=0; ixa<m_nx; ixa++) {
+      m_kx[ixa] = (ixa>m_nx/2) ? (float_tt)(ixa-m_nx)/ax : 
+        (float_tt)ixa/ax;
+      m_kx2[ixa] = m_kx[ixa]*m_kx[ixa];
+      t = scale * (m_kx2[ixa]*m_wavlen);
+      m_propxr[ixa] = (float_tt)  cos(t);
+      m_propxi[ixa] = (float_tt) -sin(t);
+    }
+    for( iya=0; iya<m_ny; iya++) {
+      m_ky[iya] = (iya>m_ny/2) ? 
+        (float_tt)(iya-m_ny)/by : 
+        (float_tt)iya/by;
+      m_ky2[iya] = m_ky[iya]*m_ky[iya];
+      t = scale * (m_ky2[iya]*m_wavlen);
+      m_propyr[iya] = (float_tt)  cos(t);
+      m_propyi[iya] = (float_tt) -sin(t);
+    }
+    m_k2max = m_nx/(2.0F*ax);
+    if (m_ny/(2.0F*by) < m_k2max ) m_k2max = m_ny/(2.0F*by);
+    m_k2max = 2.0/3.0 * m_k2max;
+    m_k2max = m_k2max*m_k2max;
+  } 
+  /* end of: if dz != dzs */
+  /*************************************************************/
+  
+  /*************************************************************
+   * Propagation
+   ************************************************************/
+  for( ixa=0; ixa<m_nx; ixa++) {
+    if( m_kx2[ixa] < m_k2max ) {
+      for( iya=0; iya<m_ny; iya++) {
+        if( (m_kx2[ixa] + m_ky2[iya]) < m_k2max ) {
+                
+          wr = m_wave[ixa][iya][0];
+          wi = m_wave[ixa][iya][1];
+          tr = wr*m_propyr[iya] - wi*m_propyi[iya];
+          ti = wr*m_propyi[iya] + wi*m_propyr[iya];
+          m_wave[ixa][iya][0] = tr*m_propxr[ixa] - ti*m_propxi[ixa];
+          m_wave[ixa][iya][1] = tr*m_propxi[ixa] + ti*m_propxr[ixa];
+
+        } else
+          m_wave[ixa][iya][0] = m_wave[ixa][iya][1] = 0.0F;
+      } /* end for(iy..) */
+
+    } else for( iya=0; iya<m_ny; iya++)
+             m_wave[ixa][iya][0] = m_wave[ixa][iya][1] = 0.0F;
+  } /* end for(ix..) */
+} /* end propagate */
+
+/*------------------------ transmit() ------------------------*/
+/*
+transmit the wavefunction thru one layer 
+(simply multiply wave by transmission function)
+
+waver,i[ix][iy]  = real and imaginary parts of wavefunction
+transr,i[ix][iy] = real and imag parts of transmission functions
+
+nx, ny = size of array
+
+on entrance waver,i and transr,i are in real space
+
+only waver,i will be changed by this routine
+*/
+void CExperimentBase::Transmit(unsigned sliceIdx) {
+  double wr, wi, tr, ti;
+  
+  complex_tt **w,**t;
+  w = m_wave;
+  t = m_potential->GetSlice(sliceIdx);
+
+  /*  trans += posx; */
+  for(unsigned ix=0; ix<m_nx; ix++) for(unsigned iy=0; iy<m_ny; iy++) {
+      wr = w[ix][iy][0];
+      wi = w[ix][iy][1];
+      tr = t[ix+m_iPosX][iy+m_iPosY][0];
+      ti = t[ix+m_iPosX][iy+m_iPosY][1];
+      w[ix][iy][0] = wr*tr - wi*ti;
+      w[ix][iy][1] = wr*ti + wi*tr;
+    } /* end for(iy.. ix .) */
+} /* end transmit() */

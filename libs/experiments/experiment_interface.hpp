@@ -27,6 +27,9 @@ class IExperiment
 public:
   virtual void DisplayParams(){};
   virtual void Run()=0;
+protected:
+  unsigned m_printLevel;
+  unsigned m_saveLevel;
 };
 
 typedef boost::shared_ptr<IExperiment> ExperimentPtr;

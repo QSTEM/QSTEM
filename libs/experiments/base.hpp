@@ -39,6 +39,9 @@ protected:
   virtual void InterimWave(int slice);
   virtual void SaveImages()=0;
 
+  virtual void Transmit(unsigned sliceIdx);
+  virtual void Propagate(float_tt dz);
+
   bool m_tds;
   unsigned m_avgRuns, m_avgCount;  // number of runs to average; runs currently averaged
   unsigned m_printLevel;
@@ -52,10 +55,12 @@ protected:
   float_tt m_intIntensity;  // Integrated intensity from experiment - if too low, 
 							// your wave array is too small, and the beam is being scattered beyond it.
 
-  //unsigned m_slices;
   unsigned m_cellDiv;		// The number of sub-slabs that the supercell is divided into
   bool m_equalDivs;			// Whether or not all sub-slabs are the same size
   unsigned m_outputInterval;  // The number of slices between saving intermediate output files
+  unsigned m_totalSliceCount; // The total number of slices that we've progressed through (all sub-slabs included)
+
+  float_tt m_thickness;       // The total thickness of the sample at the current slice
 
   std::vector<float_tt> m_chisq;
   std::string m_mode;      // String representing the multislice mode (e.g. TEM, STEM, etc.)

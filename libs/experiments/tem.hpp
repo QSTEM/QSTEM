@@ -21,6 +21,7 @@
 #define EXPERIMENT_TEM_H
 
 #include "base.hpp"
+#include "wavefunctions/wave_plane.hpp"
 
 class CExperimentTEM : public CExperimentBase
 {
@@ -38,6 +39,10 @@ private:
 					   to record beams */	
   char m_filebeam[512];		 	/* file, that beams get recorded in */
   unsigned m_nbout;				/* number of recorded beams */
+
+  bool m_tiltBack;                 /* tilt the beam back to the origin before outputting images */
+
+  PlaneWavePtr m_wave;
 };
 
 #endif
