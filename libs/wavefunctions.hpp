@@ -55,6 +55,7 @@ public:
 
   void GetElectronScale(float_tt &electronScale);
   void GetSizePixels(unsigned &x, unsigned &y);
+  void GetResolution(float_tt &x, float_tt &y);
   void GetPositionOffset(unsigned &x, unsigned &y);
   float_tt GetK2(unsigned ix, unsigned iy);
   inline float_tt GetWavelength() {return m_wavlen;}

@@ -155,6 +155,12 @@ inline void WAVEFUNC::GetSizePixels(unsigned &x, unsigned &y)
   y=m_ny;
 }
 
+inline void WAVEFUNC::GetResolution(float_tt &x, float_tt &y)
+{
+  x=m_dx;
+  y=m_dy;
+}
+
 inline void WAVEFUNC::GetPositionOffset(unsigned &x, unsigned &y)
 {
   x=m_detPosX;
