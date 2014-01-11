@@ -6,7 +6,7 @@
 class C3DPotential : public CPotential
 {
 public:
-  C3DPotential(ConfigReaderPtr &configReader);
+  C3DPotential(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
   virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
   virtual void makeSlices(int nlayer, char *fileName, atom *center);

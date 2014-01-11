@@ -35,7 +35,7 @@ class CPotential
 {
 public:
   CPotential(unsigned nx, unsigned ny, unsigned nz, float_tt dx, float_tt dy, float_tt dz, float_tt atomRadius, float_tt v0);
-  CPotential(ConfigReaderPtr &configReader);
+  CPotential(const ConfigReaderPtr &configReader);
   ~CPotential();
 
   virtual void DisplayParams();
@@ -53,6 +53,8 @@ public:
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;
   void AddAtomRealSpace(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);
   
+  unsigned GetNSlices(){return m_nslices;}
+
   void WriteSlice(unsigned idx);
   void WriteProjectedPotential();
   complex_tt **GetSlice(unsigned idx){return m_trans[idx];}

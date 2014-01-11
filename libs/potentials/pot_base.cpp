@@ -19,10 +19,10 @@
 
 #include "pot_base.hpp"
 
-static std::string kPotFileName = "potslice";
-static int BUF_LEN = 256;
+const std::string kPotFileName = "potslice";
+const int BUF_LEN = 256;
 
-CPotential::CPotential(ConfigReaderPtr &configReader)
+CPotential::CPotential(const ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
   configReader->ReadResolution(m_dx, m_dy);
@@ -86,6 +86,9 @@ void CPotential::DisplayParams()
     printf("* Potential array:      %d x %d (estimated)\n",m_nx,m_ny);
   printf("*                       %g x %gA\n",m_nx*m_dx,m_ny*m_dy);
   printf("* Scattering factors:   %d\n",m_scatFactor);
+
+    printf("* Slices per division:  %d (%gA thick slices [%scentered])\n",
+         m_nslices,m_sliceThickness,(m_centerSlices) ? "" : "not ");
 }
 
 /****************************************************************************

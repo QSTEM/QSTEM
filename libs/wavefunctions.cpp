@@ -67,7 +67,7 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
 #endif
 }
 
-WAVEFUNC::WAVEFUNC(ConfigReaderPtr &configReader)
+WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
   configReader->ReadResolution(m_dx, m_dy);

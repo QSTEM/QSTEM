@@ -3,7 +3,7 @@
 class C2DFFTPotential : public C2DPotential
 {
 public:
-  C2DFFTPotential(ConfigReaderPtr &configReader);
+  C2DFFTPotential(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
   virtual void makeSlices(int nlayer, char *fileName, atom *center);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, 

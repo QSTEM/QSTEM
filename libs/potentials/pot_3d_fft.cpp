@@ -23,7 +23,7 @@
 // for memset
 #include <cstring>
 
-C3DFFTPotential::C3DFFTPotential(ConfigReaderPtr &configReader) : C3DPotential(configReader)
+C3DFFTPotential::C3DFFTPotential(const ConfigReaderPtr &configReader) : C3DPotential(configReader)
 {
   for (unsigned i = 0;i<m_nslices;i++) 
     {
