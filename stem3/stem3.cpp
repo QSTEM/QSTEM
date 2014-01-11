@@ -17,7 +17,6 @@ QSTEM - image simulation for TEM/STEM/CBED
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define VERSION 3.00
 #define VIB_IMAGE_TEST
 
 #ifndef _WIN32
@@ -38,24 +37,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <string.h>
 
 #include <time.h>
-//#include <ctype.h>
-//#include <sys/stat.h>
-// #include <stat.h>
 
 #include "experiments.hpp"
-
-//#include "readparams.hpp"
-
-//#define NCINMAX 1024
-//#define NPARAM	64    /* number of parameters */
-//#define MAX_SCANS 1   /* maximum number of linescans per graph window */
-//#define PHASE_GRATING 0
-#define BUF_LEN 256
-
-//#define DELTA_T 1     /* number of unit cells between pictures */
-//#define PICTS 5      /* number of different thicknesses */
-//#define NBITS 8	       /* number of bits for writeIntPix */
-
 
 void usage() {
   printf("usage: stem [input file='stem.dat']\n\n");
