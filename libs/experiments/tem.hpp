@@ -36,8 +36,7 @@ private:
   float_tt **m_pendelloesung;              /* pendelloesung plot */
   std::vector<int> m_hbeams,m_kbeams;	/* arrays to hold recorded 
 					   beam indicies */
-  bool m_lbeams;				/* flag indicating, whether 
-					   to record beams */	
+  bool m_lbeams;				/* flag indicating whether to record beams */	
   char m_filebeam[512];		 	/* file, that beams get recorded in */
   unsigned m_nbout;				/* number of recorded beams */
 

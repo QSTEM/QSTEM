@@ -29,9 +29,14 @@ public:
   void Run();
   void DisplayParams();
   virtual void WriteBeams(unsigned absoluteSlice);
-private:
-	void CollectIntensity(unsigned absoluteSlice);
+protected:
+  void CollectIntensity(unsigned absoluteSlice);
   void SaveImages();
+
+  unsigned m_nbout;				/* number of recorded beams */
+  float_tt **m_pendelloesung;
+  bool m_lbeams;				/* flag indicating whether to record beams */	
+
 };
 
 #endif
