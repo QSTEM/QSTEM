@@ -26,10 +26,11 @@ class CExperimentTEM : public CExperimentBase
 {
 public:
   CExperimentTEM(const ConfigReaderPtr &configReader);
-  void Run();
-  void DisplayParams();
+  virtual void Run();
+  virtual void DisplayParams();
 private:
   void SaveImages();
+  void CollectIntensity(unsigned absoluteSlice);
   float_tt **m_pendelloesung;              /* pendelloesung plot */
   std::vector<int> m_hbeams,m_kbeams;	/* arrays to hold recorded 
 					   beam indicies */

@@ -25,7 +25,7 @@
 // Include this because we use ConfigReaderPtr below.
 #include "config_readers.hpp"
 
-PotPtr GetPotential(ConfigReaderPtr &configReader);
+PotPtr GetPotential(const ConfigReaderPtr &configReader);
 
 #endif
 

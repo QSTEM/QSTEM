@@ -20,6 +20,7 @@
 #include "tem.hpp"
 
 CExperimentTEM::CExperimentTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
+	, m_mode("TEM")
 {
 }
 
@@ -360,4 +361,9 @@ void CExperimentTEM::Run()
     } /* end of if lbeams ... */		 
     displayProgress(1);
   } /* end of for m_avgCount=0.. */  
+}
+
+void CExperimentTEM::CollectIntensity(unsigned absoluteSlice)
+{
+	writeBeams(muls,m_wave,islice, absolute_slice);
 }

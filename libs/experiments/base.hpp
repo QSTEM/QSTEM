@@ -23,23 +23,42 @@
 #include "experiment_interface.hpp"
 #include "potential.hpp"
 #include "wavefunctions.hpp"
+#include "crystal.hpp"
 
 class CExperimentBase : public IExperiment
 {
 public:
   CExperimentBase(const ConfigReaderPtr &configReader);
-  virtual void DisplayProgress(int flag, WavePtr &wave, StructurePtr &crystal);
+  virtual void DisplayProgress(int flag);
+  virtual void DisplayParams();
   virtual void Run()=0;
-protected:
-  virtual void SaveImages()=0;
 
-  WavePtr m_wave;
-  PotPtr m_pot;
+protected:
+  virtual void CollectIntensity(unsigned absoluteSlice)=0;
+  virtual int RunMuls();
+  virtual void InterimWave(int slice);
+  virtual void SaveImages()=0;
 
   bool m_tds;
   unsigned m_avgRuns, m_avgCount;  // number of runs to average; runs currently averaged
+  unsigned m_printLevel;
+
+  boost::filesystem::path m_outputLocation;
+
+  StructurePtr m_crystal;  // The structure of the sample (atom positions)
+  WavePtr m_wave;		   // The electron wave (this may be copied for multiprocessing)
+  PotPtr m_potential;      // The sample potential
+
+  float_tt m_intIntensity;  // Integrated intensity from experiment - if too low, 
+							// your wave array is too small, and the beam is being scattered beyond it.
+
+  //unsigned m_slices;
+  unsigned m_cellDiv;		// The number of sub-slabs that the supercell is divided into
+  bool m_equalDivs;			// Whether or not all sub-slabs are the same size
+  unsigned m_outputInterval;  // The number of slices between saving intermediate output files
 
   std::vector<float_tt> m_chisq;
+  std::string m_mode;      // String representing the multislice mode (e.g. TEM, STEM, etc.)
 };
 
 #endif

@@ -9,8 +9,11 @@ cmake_minimum_required(VERSION 2.8)
 #	${CMAKE_SOURCE_DIR}/cmake/Modules/cxx_flag_overrides.cmake)
 
 project(qstem)
-set (stem3_VERSION_MAJOR 3)
-set (stem3_VERSION_MINOR 0)
+set (VERSION_MAJOR 3)
+set (VERSION_MINOR 0)
+
+# Define the version number for use in projects
+add_definitions( -DVERSION="${VERSION_MAJOR}.${VERSION_MINOR}" )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

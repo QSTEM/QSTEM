@@ -42,7 +42,7 @@ class WAVEFUNC
 public:
   // initializing constructor:
   WAVEFUNC(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
-  WAVEFUNC(ConfigReaderPtr &configReader);
+  WAVEFUNC(const ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
   WAVEFUNC( const WAVEFUNC& other );
 

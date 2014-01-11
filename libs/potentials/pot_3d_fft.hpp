@@ -3,7 +3,7 @@
 class C3DFFTPotential : public C3DPotential
 {
 public:
-  C3DFFTPotential(ConfigReaderPtr &configReader);
+  C3DFFTPotential(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
   virtual void makeSlices(int nlayer, char *fileName, atom *center);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);

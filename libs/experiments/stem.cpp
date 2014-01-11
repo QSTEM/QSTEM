@@ -20,6 +20,7 @@
 #include "stem.hpp"
 
 CExperimentSTEM::CExperimentSTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
+	, m_mode("STEM")
 {
 }
 
@@ -38,21 +39,21 @@ void CExperimentSTEM::Run()
 	//pre-allocate several waves (enough for one row of the scan.  
 	for (int th=0; th<omp_get_max_threads(); th++)
 	{
-		waves.push_back(WavePtr(new WAVEFUNC(muls.nx, muls.ny, muls.resolutionX, muls.resolutionY, muls.input_ext, muls.output_ext)));
+		waves.push_back(WavePtr(new WAVEFUNC(m_nx, m_ny, m_resolutionX, m_resolutionY, m_input_ext, m_output_ext)));
 	}
 
-	muls.chisq = std::vector<double>(muls.avgRuns);
-	totalRuns = muls.avgRuns;
+	m_chisq = std::vector<double>(m_avgRuns);
+	totalRuns = m_avgRuns;
 	timer = cputim();
 
 	/* average over several runs of for TDS */
 	displayProgress(-1);
 
-	for (muls.avgCount = 0;muls.avgCount < totalRuns; muls.avgCount++) {
+	for (m_avgCount = 0;m_avgCount < totalRuns; m_avgCount++) {
 		total_time = 0;
 		collectedIntensity = 0;
-		muls.totalSliceCount = 0;
-		muls.dE_E = muls.dE_EArray[muls.avgCount];
+		m_totalSliceCount = 0;
+		m_dE_E = m_dE_EArray[m_avgCount];
 
 
 		/****************************************
@@ -83,21 +84,21 @@ void CExperimentSTEM::Run()
 			* the unit cell in the cssr file multiplied by NCELLZ.  
 			* cellDiv will usually be 1 in that case.
 			*/
-			sscanf(buf,"%d %d",&muls.mulsRepeat1,&picts);
+			sscanf(buf,"%d %d",&m_mulsRepeat1,&picts);
 			for (i=0;i<(int)strlen(buf);i++) buf[i] = 0;
 			if (picts < 1) picts = 1;
-			muls.mulsRepeat2 = picts;
-			sprintf(muls.cin2,"%d",muls.mulsRepeat1);
+			m_mulsRepeat2 = picts;
+			sprintf(m_cin2,"%d",m_mulsRepeat1);
 			/* if the unit cell is divided into slabs, we need to multiply
 			* picts by that number
 			*/
-			if ((picts > 1)&& (muls.cubex >0) && (muls.cubey >0) && (muls.cubez>0)) {
-				printf("Warning: cube size of height %gA has been defined, ignoring sequence\n",muls.cubez);
+			if ((picts > 1)&& (m_cubex >0) && (m_cubey >0) && (m_cubez>0)) {
+				printf("Warning: cube size of height %gA has been defined, ignoring sequence\n",m_cubez);
 				picts = 1;
 			}
-			picts *= muls.cellDiv;
+			picts *= m_cellDiv;
 
-			if (muls.equalDivs) {
+			if (m_equalDivs) {
                           pot->Refresh();
                           timer = cputim();
 			}
@@ -109,12 +110,12 @@ void CExperimentSTEM::Run()
 				/*******************************************************
 				* build the potential slices from atomic configuration
 				******************************************************/
-				if (!muls.equalDivs) {
+				if (!m_equalDivs) {
                                   pot->Refresh();
                                   timer = cputim();
 				}
 
-				muls.complete_pixels=0;
+				m_complete_pixels=0;
 				/**************************************************
 				* scan through the different probe positions
 				*************************************************/
@@ -125,23 +126,23 @@ void CExperimentSTEM::Run()
   shared(pot, pCount, picts, muls, collectedIntensity, total_time, waves) \
 	default(none)
 #pragma omp for
-				for (i=0; i < (muls.scanXN * muls.scanYN); i++)
+				for (i=0; i < (m_scanXN * m_scanYN); i++)
 				{
 					timer=cputim();
-					ix = i / muls.scanYN;
-					iy = i % muls.scanYN;
+					ix = i / m_scanYN;
+					iy = i % m_scanYN;
 
 					wave = waves[omp_get_thread_num()];
 
-					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,muls.nx);
+					//printf("Scanning: %d %d %d %d\n",ix,iy,pCount,m_nx);
 
 					/* if this is run=0, create the inc. probe wave function */
 					if (pCount == 0) 
 					{
-						probe(&muls, wave, muls.nx/2*muls.resolutionX, muls.ny/2*muls.resolutionY);
+						probe(&muls, wave, m_nx/2*m_resolutionX, m_ny/2*m_resolutionY);
 
 						// TODO: modifying shared value from multiple threads?
-						//muls.nslic0 = 0;
+						//m_nslic0 = 0;
 						//wave->thickness = 0.0;
 					}
                                           
@@ -151,25 +152,25 @@ void CExperimentSTEM::Run()
                                           
                                           wave->ReadWave(ix, iy); /* this also sets the thickness!!! */
 						// TODO: modifying shared value from multiple threads?
-						//muls.nslic0 = pCount;
+						//m_nslic0 = pCount;
 					}
 					/* run multislice algorithm
 					   and save exit wave function for this position 
 					   (done by runMulsSTEM), 
 					   but we need to define the file name */
-					muls.saveFlag = 1;
+					m_saveFlag = 1;
 
-					wave->iPosX =(int)(ix*(muls.scanXStop-muls.scanXStart)/
-									  ((float)muls.scanXN*muls.resolutionX));
-					wave->iPosY = (int)(iy*(muls.scanYStop-muls.scanYStart)/
-									   ((float)muls.scanYN*muls.resolutionY));
-					if (wave->iPosX > muls.potNx-muls.nx)
+					wave->iPosX =(int)(ix*(m_scanXStop-m_scanXStart)/
+									  ((float)m_scanXN*m_resolutionX));
+					wave->iPosY = (int)(iy*(m_scanYStop-m_scanYStart)/
+									   ((float)m_scanYN*m_resolutionY));
+					if (wave->iPosX > m_potNx-m_nx)
 					{
-						wave->iPosX = muls.potNx-muls.nx;  
+						wave->iPosX = m_potNx-m_nx;  
 					}
-					if (wave->iPosY > muls.potNy-muls.ny)
+					if (wave->iPosY > m_potNy-m_ny)
 					{
-						wave->iPosY = muls.potNy-muls.ny;
+						wave->iPosY = m_potNy-m_ny;
 					}
 
 					// MCS - update the probe wavefunction with its position
@@ -189,14 +190,14 @@ void CExperimentSTEM::Run()
 
 					if (pCount == picts-1)  /* if this is the last slice ... */
 					{
-                                          if (muls.saveLevel > 0) 
+                                          if (m_saveLevel > 0) 
 						{
-							if (muls.avgCount == 0)  
+							if (m_avgCount == 0)  
 							{
 								// initialize the avgArray from the diffpat
-								for (ixa=0;ixa<muls.nx;ixa++) 
+								for (ixa=0;ixa<m_nx;ixa++) 
 								{
-									for (iya=0;iya<muls.ny;iya++)
+									for (iya=0;iya<m_ny;iya++)
 									{
 										wave->avgArray[ixa][iya]=wave->diffpat[ixa][iya];
 									}
@@ -204,15 +205,15 @@ void CExperimentSTEM::Run()
 							}
 							else 
 							{
-								// printf("Will read image %d %d\n",muls.nx, muls.ny);	
+								// printf("Will read image %d %d\n",m_nx, m_ny);	
                                                           wave->ReadAvgArray(ix, iy);
-								for (ixa=0;ixa<muls.nx;ixa++) for (iya=0;iya<muls.ny;iya++) {
-									t = ((float_tt)muls.avgCount * wave->avgArray[ixa][iya] +
-										wave->diffpat[ixa][iya]) / ((float_tt)(muls.avgCount + 1));
-									if (muls.avgCount>1)
+								for (ixa=0;ixa<m_nx;ixa++) for (iya=0;iya<m_ny;iya++) {
+									t = ((float_tt)m_avgCount * wave->avgArray[ixa][iya] +
+										wave->diffpat[ixa][iya]) / ((float_tt)(m_avgCount + 1));
+									if (m_avgCount>1)
 									{
 										#pragma omp atomic
-										muls.chisq[muls.avgCount-1] += (wave->avgArray[ixa][iya]-t)*
+										m_chisq[m_avgCount-1] += (wave->avgArray[ixa][iya]-t)*
 											(wave->avgArray[ixa][iya]-t);
 									}
 									wave->avgArray[ixa][iya] = t;
@@ -222,61 +223,66 @@ void CExperimentSTEM::Run()
 							wave->WriteAvgArray(ix, iy);
 							}	
 							else {
-								if (muls.avgCount > 0)	muls.chisq[muls.avgCount-1] = 0.0;
+								if (m_avgCount > 0)	m_chisq[m_avgCount-1] = 0.0;
 							}
 					} /* end of if pCount == picts, i.e. conditional code, if this
 						  * was the last slice
 						  */
 
 					#pragma omp atomic
-					++muls.complete_pixels;
+					++m_complete_pixels;
 
-					if (muls.displayProgInterval > 0) if ((muls.complete_pixels) % muls.displayProgInterval == 0) 
+					if (m_displayProgInterval > 0) if ((m_complete_pixels) % m_displayProgInterval == 0) 
 					{
 						#pragma omp atomic
 						total_time += cputim()-timer;
 						printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
-							muls.complete_pixels, muls.scanXN*muls.scanYN, wave->intIntensity,
-							(total_time)/muls.complete_pixels);
+							m_complete_pixels, m_scanXN*m_scanYN, wave->intIntensity,
+							(total_time)/m_complete_pixels);
 						timer=cputim();
 					}
 				} /* end of looping through STEM image pixels */
 				/* save STEM images in img files */
 				saveSTEMImages(&muls);
-				muls.totalSliceCount += muls.slices;
+				m_totalSliceCount += m_slices;
 			} /* end of loop through thickness (pCount) */
 		} /* end of  while (readparam("sequence: ",buf,0)) */
 		// printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
 		/*************************************************************/
-		if (muls.avgCount>1)
-			muls.chisq[muls.avgCount-1] = muls.chisq[muls.avgCount-1]/(double)(muls.nx*muls.ny);
-		muls.intIntensity = collectedIntensity/(muls.scanXN*muls.scanYN);
+		if (m_avgCount>1)
+			m_chisq[m_avgCount-1] = m_chisq[m_avgCount-1]/(double)(m_nx*m_ny);
+		m_intIntensity = collectedIntensity/(m_scanXN*m_scanYN);
 		displayProgress(1);
-	} /* end of loop over muls.avgCount */
+	} /* end of loop over m_avgCount */
 }
 
-void CExperimentSTEM::displayParams()
+void CExperimentSTEM::DisplayParams()
 {
     printf("*\n"
            "* STEM parameters:\n");
     printf("* Maximum scattering angle:  %.0f mrad\n",
-           0.5*2.0/3.0*wavelength(muls.v0)/muls.resolutionX*1000);    
-    muls.detectors->PrintDetectors();
+           0.5*2.0/3.0*m_wave->GetWavelength()/m_resolutionX*1000);    
+    m_detectors->PrintDetectors();
     
     printf("* Scan window:          (%g,%g) to (%g,%g)A, %d x %d = %d pixels\n",
-           muls.scanXStart,muls.scanYStart,muls.scanXStop,muls.scanYStop,
-           muls.scanXN,muls.scanYN,muls.scanXN*muls.scanYN);
+           m_scanXStart,m_scanYStart,m_scanXStop,m_scanYStop,
+           m_scanXN,m_scanYN,m_scanXN*m_scanYN);
 }
 
 
 /*****  saveSTEMImages *******/
-// Saves all detector images (STEM images) that are defined in muls.
+// Saves all detector images (STEM images) that are defined in m_
 //   When saving intermediate STEM images is enabled, this also saves
 //   the intermediate STEM images for each detector.
-void SaveImages()
+void CExperimentSTEM::SaveImages()
 {
   std::map<std::string, double> params;
-  params["Runs Averaged"]=(double)muls->avgCount+1;
+  params["Runs Averaged"]=(double)m_avgCount+1;
   m_detectors->SaveDetectors(params);  
+}
+
+void CExperimentSTEM::CollectIntensity(unsigned absoluteSlice)
+{
+	m_detectors->CollectIntensity(m_wave, absoluteSlice);//m_totalSliceCount+islice*(1+mRepeat));
 }

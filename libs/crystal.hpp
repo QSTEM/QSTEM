@@ -59,6 +59,8 @@ public:
   float_tt GetU2avg(unsigned znum){return m_u2avg[znum];}
   
 protected:
+	boost::filesystem::path m_structureFile;
+
   std::vector<atom> m_atoms; // The atoms after duplication, tilt, and phonon shaking
   std::vector<atom> m_baseAtoms; // The atoms read directly from the input file (no alteration)
   float_tt **m_Mm;                     /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */

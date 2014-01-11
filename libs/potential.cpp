@@ -26,7 +26,7 @@
 #include "potentials/pot_3d_fft.hpp"
 
 
-PotPtr GetPotential(ConfigReaderPtr &configReader)
+PotPtr GetPotential(const ConfigReaderPtr &configReader)
 {
   bool _3D, fft;
   configReader->ReadPotentialCalculationParameters(fft, _3D);
