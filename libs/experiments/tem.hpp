@@ -29,9 +29,16 @@ public:
   CExperimentTEM(const ConfigReaderPtr &configReader);
   virtual void Run();
   virtual void DisplayParams();
-  virtual void WriteBeams(unsigned absoluteSlice);
-private:
   void SaveImages();
+
+private:
+  virtual void WriteBeams(unsigned absoluteSlice);
+
+  inline void WriteWaveIntensity()
+  {
+    // TODO: implement this
+    //_WriteDiffPat(waveIntensityFilePrefix, "Wave intensity");
+  }
   void CollectIntensity(unsigned absoluteSlice);
   float_tt **m_pendelloesung;              /* pendelloesung plot */
   std::vector<int> m_hbeams,m_kbeams;	/* arrays to hold recorded 
@@ -43,6 +50,7 @@ private:
   bool m_tiltBack;                 /* tilt the beam back to the origin before outputting images */
 
   PlaneWavePtr m_wave;
+  float_tt ** m_imageWave;   /* The amplitude of the wavefunction, i.e. what a camera would record. */
 };
 
 #endif

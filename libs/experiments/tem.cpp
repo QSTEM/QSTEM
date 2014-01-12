@@ -158,9 +158,9 @@ void CExperimentTEM::Run()
       /***********************************************************
        * Save the diffraction pattern
        **********************************************************/
-      m_wave->CopyDPToAvgArray();
+      AddDPToAvgArray(m_wave);
       /* move the averaged (raw data) file to the target directory as well */
-      m_wave->WriteAvgArray(m_avgCount+1);
+      WriteAvgArray(m_avgCount+1);
 
       /***********************************************************
        * Save the Pendelloesung Plot
@@ -172,20 +172,6 @@ void CExperimentTEM::Run()
           }
         }
       }
-      /***********************************************************
-       * Save the defocused image, we can do with the wave what 
-       * we want, since it is not used after this anymore. 
-       * We will therefore multiply with the transfer function for
-       * all the different defoci, inverse FFT and save each image.
-       * diffArray will be overwritten with the image.
-       **********************************************************/ 
-      m_wave->ApplyTransferFunction(imageWave);
-
-      // get the amplitude squared:
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          m_wave->SetDiffPatPixel(ix,iy,imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1]);
-        }
-      m_wave->WriteWaveIntensity();
       // End of Image writing (if avgCount = 0)
       //////////////////////////////////////////////////////////////////////
       
@@ -193,14 +179,8 @@ void CExperimentTEM::Run()
     else {
       /* 	 readRealImage_old(avgArray,m_nx,m_ny,&t,"diffAvg.img"); */
       m_chisq[m_avgCount-1] = 0.0;
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          t = ((float_tt)m_avgCount*m_wave->GetAvgArrayPixel(ix,iy)+
-               m_wave->GetDiffPatPixel(ix,iy))/((float_tt)(m_avgCount+1));
-          m_chisq[m_avgCount-1] += (m_wave->GetAvgArrayPixel(ix,iy)-t)*(m_wave->GetAvgArrayPixel(ix,iy)-t);
-          m_wave->SetAvgArrayPixel(ix,iy,t);
-        }
-      m_chisq[m_avgCount-1] = m_chisq[m_avgCount-1]/(double)(nx*ny);
-      m_wave->WriteAvgArray(m_avgCount+1);
+      AddDPToAvgArray(m_wave);
+      WriteAvgArray(m_avgCount+1);
 
       /* write the data to a file */
       if ((avgFp = fopen("avgresults.dat","w")) == NULL )
@@ -219,9 +199,9 @@ void CExperimentTEM::Run()
       if (m_lbeams) {
       for (iy=0;iy<m_potential->GetNSlices()*m_cellDiv;iy++) {
       for (ix=0;ix<m_nbout;ix++) {
-            avgPendelloesung[ix][iy] = 
-              ((float_tt)m_avgCount*avgPendelloesung[ix][iy]+
-               m_pendelloesung[ix][iy])/(float_tt)(m_avgCount+1);
+        avgPendelloesung[ix][iy] = 
+          ((float_tt)m_avgCount*avgPendelloesung[ix][iy]+
+           m_pendelloesung[ix][iy])/(float_tt)(m_avgCount+1);
           }
         }
       }

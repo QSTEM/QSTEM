@@ -57,83 +57,41 @@ void CExperimentSTEM::Run()
     m_dE_E = m_dE_EArray[m_avgCount];
 
 
+    if (m_equalDivs) {
+      m_potential->Refresh();
+      timer = cputim();
+    }
+
     /****************************************
-     * do the (big) loop
+     * do the (small) loop over slabs
      *****************************************/
-    pCount = 0;
-    /* make sure we start at the beginning of the file 
-       so we won't miss any line that contains a sequence,
-       because we will not do any EOF wrapping
-    */
-    resetParamFile();
-    while (readparam("sequence: ",buf,0)) {
-      if (((buf[0] < 'a') || (buf[0] > 'z')) && 
-          ((buf[0] < '1') || (buf[0] > '9')) &&
-          ((buf[0] < 'A') || (buf[0] > 'Z'))) {
-        printf("Stacking sequence: %s\n",buf);
-        printf("Can only work with old stacking sequence\n");
-        break;
-      }
-      
-      // printf("Stacking sequence: %s\n",buf);
-      
-      picts = 0;
-      /* for the dislocation models picts will be 1, because the atomcoordinates
-       * are expressed explicitly for every atom in the whole specimen
-       * For perfect Si samples mulsRepeat1 will remain 1, but picts will give
-       * the number of unit cells in Z-direction, where the unit cell is defined by 
-       * the unit cell in the cssr file multiplied by NCELLZ.  
-       * cellDiv will usually be 1 in that case.
-       */
-      sscanf(buf,"%d %d",&m_mulsRepeat1,&picts);
-      for (i=0;i<(int)strlen(buf);i++) buf[i] = 0;
-      if (picts < 1) picts = 1;
-      m_mulsRepeat2 = picts;
-      sprintf(m_cin2,"%d",m_mulsRepeat1);
-      /* if the unit cell is divided into slabs, we need to multiply
-       * picts by that number
-       */
-      if ((picts > 1)&& (m_cubex >0) && (m_cubey >0) && (m_cubez>0)) {
-        printf("Warning: cube size of height %gA has been defined, ignoring sequence\n",m_cubez);
-        picts = 1;
-      }
-      picts *= m_cellDiv;
-      
-      if (m_equalDivs) {
+    for (pCount=0;pCount<m_cellDiv;pCount++) {
+      /*******************************************************
+       * build the potential slices from atomic configuration
+       ******************************************************/
+      if (!m_equalDivs) {
         m_potential->Refresh();
         timer = cputim();
       }
 
-      /****************************************
-       * do the (small) loop over slabs
-       *****************************************/
-      for (pCount=0;pCount<picts;pCount++) {
-        /*******************************************************
-         * build the potential slices from atomic configuration
-         ******************************************************/
-        if (!m_equalDivs) {
-          m_potential->Refresh();
-          timer = cputim();
-        }
-
-        m_complete_pixels=0;
-        /**************************************************
-         * scan through the different probe positions
-         *************************************************/
-        // default(none) forces us to specify all of the variables that are used in the parallel section.  
-        //    Otherwise, they are implicitly shared (and this was cause of several bugs.)
+      m_complete_pixels=0;
+      /**************************************************
+       * scan through the different probe positions
+       *************************************************/
+      // default(none) forces us to specify all of the variables that are used in the parallel section.  
+      //    Otherwise, they are implicitly shared (and this was cause of several bugs.)
 #pragma omp parallel \
-  private(ix, iy, ixa, iya, wave, t, timer)                             \
+  private(ix, iy, ixa, iya, wave, t, timer, m_avgArray)                   \
   shared(pot, pCount, picts, muls, collectedIntensity, total_time, waves) \
   default(none)
 #pragma omp for
-        for (i=0; i < (m_scanXN * m_scanYN); i++)
-          {
-            timer=cputim();
-            ix = i / m_scanYN;
-            iy = i % m_scanYN;
+      for (i=0; i < (m_scanXN * m_scanYN); i++)
+        {
+          timer=cputim();
+          ix = i / m_scanYN;
+          iy = i % m_scanYN;
             
-            wave = waves[omp_get_thread_num()];
+          wave = waves[omp_get_thread_num()];
             
             //printf("Scanning: %d %d %d %d\n",ix,iy,pCount,m_nx);
             
@@ -172,7 +130,7 @@ void CExperimentSTEM::Run()
 
             // MCS - update the probe wavefunction with its position
 
-            runMulsSTEM(&muls,wave, pot); 
+            RunMuls(); 
 
 
             /***************************************************************
@@ -189,35 +147,10 @@ void CExperimentSTEM::Run()
               {
                 if (m_saveLevel > 0) 
                   {
-                    if (m_avgCount == 0)  
-                      {
-                        // initialize the avgArray from the diffpat
-                        for (ixa=0;ixa<m_nx;ixa++) 
-                          {
-                            for (iya=0;iya<m_ny;iya++)
-                              {
-                                wave->avgArray[ixa][iya]=wave->diffpat[ixa][iya];
-                              }
-                          }
-                      }
-                    else 
-                      {
-                        // printf("Will read image %d %d\n",m_nx, m_ny);	
-                        wave->ReadAvgArray(ix, iy);
-                        for (ixa=0;ixa<m_nx;ixa++) for (iya=0;iya<m_ny;iya++) {
-                            t = ((float_tt)m_avgCount * wave->avgArray[ixa][iya] +
-                                 wave->diffpat[ixa][iya]) / ((float_tt)(m_avgCount + 1));
-                            if (m_avgCount>1)
-                              {
-#pragma omp atomic
-                                m_chisq[m_avgCount-1] += (wave->avgArray[ixa][iya]-t)*
-                                  (wave->avgArray[ixa][iya]-t);
-                              }
-                            wave->avgArray[ixa][iya] = t;
-                          }
-                      }
+                    ReadAvgArray(ix, iy);
+                    AddDPToAvgArray(m_wave);
                     // Write the array to a file, resize and crop it, 
-                    wave->WriteAvgArray(ix, iy);
+                    WriteAvgArray(ix, iy);
                   }	
                 else {
                   if (m_avgCount > 0)	m_chisq[m_avgCount-1] = 0.0;
@@ -240,10 +173,9 @@ void CExperimentSTEM::Run()
                }
           } /* end of looping through STEM image pixels */
         /* save STEM images in img files */
-        saveSTEMImages(&muls);
+        SaveImages();
         m_totalSliceCount += m_slices;
       } /* end of loop through thickness (pCount) */
-    } /* end of  while (readparam("sequence: ",buf,0)) */
     // printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
     /*************************************************************/

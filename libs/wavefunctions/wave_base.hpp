@@ -50,8 +50,8 @@ public:
 
   void DisplayParams();
 
-  void CopyDPToAvgArray();
-  void AddDPToAvgArray();
+  void CopyDPToAvgArray(float_tt **avgArray);
+  void AddDPToAvgArray(unsigned avgCount);
 
   void GetElectronScale(float_tt &electronScale);
   void GetSizePixels(unsigned &x, unsigned &y);
@@ -62,9 +62,9 @@ public:
 
   float_tt GetPixelIntensity(unsigned x, unsigned y);
   inline float_tt GetDiffPatPixel(unsigned x, unsigned y) {return m_diffpat[x][y];}
-  inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
+  //inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
   inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x][y]=value;}
-  inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
+  //inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
 
   void ApplyTransferFunction(complex_tt **wave);
 
@@ -78,10 +78,6 @@ public:
   inline void WriteImage()
   {
     _WriteWave(imageFilePrefix, "Image intensity");
-  }
-  inline void WriteWaveIntensity()
-  {
-    _WriteDiffPat(waveIntensityFilePrefix, "Wave intensity");
   }
 
   inline void WriteWave(std::string comment="Wavefunction", 
@@ -122,24 +118,13 @@ public:
     _WriteDiffPat(dpFilePrefix, comment, params);
   }
 
-  inline void WriteAvgArray(std::string comment="Average Array", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
-  {
-    m_position.clear();
-    _WriteAvgArray(avgFilePrefix, comment, params);
-  }
-  inline void WriteAvgArray(unsigned navg, std::string comment="Average Array", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
-  {
-    SetWavePosition(navg);
-    _WriteAvgArray(avgFilePrefix, comment, params);
-  }
-  inline void WriteAvgArray(unsigned posX, unsigned posY, std::string comment="Average Array", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
-  {
-    SetWavePosition(posX, posY);
-    _WriteAvgArray(avgFilePrefix, comment, params);
-  }
+  // People can change the wavefunction - for example, that's what we have to do when we
+  //    transmit the wave through the sample's potential.
+  complex_tt *GetWavePointer(){return m_wave[0];}
+  // People should not directly change the diffraction pattern, since we'll re-calculate it when 
+  //   the wavefunction changes.
+  //   They can, however, access it.
+  const float_tt *GetDPPointer(){return m_diffpat[0];}
 
   // ReadImage is for TEM mode
   void ReadImage();
@@ -149,9 +134,9 @@ public:
   void ReadDiffPat();
   void ReadDiffPat(unsigned navg);
   void ReadDiffPat(unsigned posX, unsigned posY);
-  void ReadAvgArray();
-  void ReadAvgArray(unsigned navg);
-  void ReadAvgArray(unsigned posX, unsigned posY);
+  //void ReadAvgArray();
+  //void ReadAvgArray(unsigned navg);
+  //void ReadAvgArray(unsigned posX, unsigned posY);
 
 protected:
   // shared pointer to 
@@ -164,7 +149,7 @@ protected:
   unsigned m_iPosX,m_iPosY;           /* integer position of probe position array */
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
   float_tt **m_diffpat;
-  float_tt **m_avgArray;
+  //float_tt **m_avgArray;
   float_tt m_thickness;
   float_tt m_intIntensity;
   float_tt m_electronScale;
@@ -228,8 +213,8 @@ protected:
                  std::map<std::string, double>params = std::map<std::string, double>());
   void _WriteDiffPat(std::string &prefix, std::string comment="Diffraction Pattern",
                     std::map<std::string, double>params = std::map<std::string, double>());
-  void _WriteAvgArray(std::string &prefix, std::string comment="Average Array",
-                     std::map<std::string, double>params = std::map<std::string, double>());
+  //void _WriteAvgArray(std::string &prefix, std::string comment="Average Array",
+  //                   std::map<std::string, double>params = std::map<std::string, double>());
 
   // For CBED ( &TEM? )
   void SetWavePosition(unsigned navg);

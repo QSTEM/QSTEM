@@ -37,6 +37,7 @@ private:
   float_tt m_scanXStart, m_scanXStop, m_scanYStart, m_scanYStop;
   // TODO: are these synonymous with m_stepsX?
   unsigned m_scanXN, m_scanYN;
+  float_tt **m_avgArray;
 };
 
 #endif

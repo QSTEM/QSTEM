@@ -431,3 +431,54 @@ void CExperimentBase::Transmit(unsigned sliceIdx) {
       w[ix][iy][1] = wr*ti + wi*tr;
     } /* end for(iy.. ix .) */
 } /* end transmit() */
+
+void CExperimentBase::AddDPToAvgArray(const WavePtr &wave)
+{
+  unsigned px=m_nx*m_ny;
+  // get the pointer to the first data element, and do 1D addressing (it's faster)
+  float_tt *avg=m_avgArray[0];
+  float_tt chisq;
+
+  const float_tt *dp = wave->GetDPPointer();
+
+  for (unsigned i=0; i<px; i++)
+    {
+      float_tt t=m_avgArray[i]*m_avgCount+dp[i]/(m_avgCount+1);
+      chisq+=(avgArray[i]-t)*(avgArray[i]-t);
+      m_avgArray[i]=t;
+    }
+  #pragma omp atomic
+  m_chisq[m_avgCount]+=chisq/px;
+}
+
+void CExperimentBase:::_WriteAvgArray(std::string &fileName, std::string &comment, 
+                                      std::map<std::string, double> &params,
+                                      std::vector<unsigned> &position)
+{
+  params["dx"]=1.0/(m_nx*m_dx);
+  params["dy"]=1.0/(m_ny*m_dy);
+  params["Thickness"]=m_thickness;
+  m_imageIO->WriteRealImage((void **)m_avgArray, fileName, params, comment, position);
+}
+
+void CExperimentBase::ReadAvgArray()
+{
+  m_position.clear();
+  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
+}
+
+void CExperimentBase::ReadAvgArray(unsigned navg)
+{
+  SetWavePosition(navg);
+  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
+}
+
+void CExperimentBase::ReadAvgArray(unsigned positionx, unsigned positiony)
+{
+  SetWavePosition(positionx, positiony);
+  std::vector<unsigned>position(2);
+  position[0]=positionx;
+  position[1]=positiony;
+  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, position);
+}
+

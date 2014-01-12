@@ -182,20 +182,6 @@ inline void WAVEFUNC::SetDiffPatPixel(unsigned x, unsigned y, float_tt value)
   m_diffpat[x][y]=value;
 }
 
-void WAVEFUNC::CopyDPToAvgArray()
-{
-  memcpy((void *)m_avgArray[0],(void*)m_diffpat[0],(size_t)(m_nx*m_ny*sizeof(float_tt)));
-}
-
-void WAVEFUNC::AddDPToAvgArray()
-{
-  unsigned px=m_nx*m_ny;
-  for (unsigned i=0; i<px; i++)
-    {
-      m_avgArray[i]+=m_diffpat[i];
-    }
-}
-
 void WAVEFUNC::ApplyTransferFunction(complex_tt **wave)
 {
   // TODO: transfer function should be passed as a 1D vector that is half the size of the wavefunc.
@@ -228,7 +214,6 @@ void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
 {
   params["dx"]=m_dx;
   params["dy"]=m_dy;
-  params["Thickness"]=m_thickness;
   params["HT"] = m_v0;
   params["Cs"] = m_Cs;
   params["Defocus"] = m_df0;
@@ -246,18 +231,10 @@ void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
 {
   params["dx"]=1.0/(m_nx*m_dx);
   params["dy"]=1.0/(m_ny*m_dy);
-  params["Thickness"]=m_thickness;
   m_imageIO->WriteRealImage((void **)m_diffpat, fileName, params, comment, m_position);
 }
 
-  void WAVEFUNC::_WriteAvgArray(std::string &fileName, std::string comment, 
-                               std::map<std::string, double> params)
-{
-  params["dx"]=1.0/(m_nx*m_dx);
-  params["dy"]=1.0/(m_ny*m_dy);
-  params["Thickness"]=m_thickness;
-  m_imageIO->WriteRealImage((void **)m_avgArray, fileName, params, comment, m_position);
-}
+
 
 void WAVEFUNC::SetWavePosition(unsigned navg)
 {
@@ -311,24 +288,6 @@ void WAVEFUNC::ReadDiffPat(unsigned positionx, unsigned positiony)
   m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
 }
 
-void WAVEFUNC::ReadAvgArray()
-{
-  m_position.clear();
-  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
-}
-
-void WAVEFUNC::ReadAvgArray(unsigned navg)
-{
-  SetWavePosition(navg);
-  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
-}
-
-void WAVEFUNC::ReadAvgArray(unsigned positionx, unsigned positiony)
-{
-  SetWavePosition(positionx, positiony);
-  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, m_position);
-}
-
 /*--------------------- wavelength() -----------------------------------*/
 /*
 	return the electron wavelength (in Angstroms)
@@ -368,7 +327,7 @@ void WAVEFUNC::fft_normalize(void **array,int nx, int ny)
     }
 }
 
-
+/*
 void WAVEFUNC:WriteBeams(int absolute_slice) {
   static char fileAmpl[32];
   static char filePhase[32];
@@ -384,4 +343,4 @@ void WAVEFUNC:WriteBeams(int absolute_slice) {
   if (!muls->lbeams)
     return;  	
 }
-
+*/
