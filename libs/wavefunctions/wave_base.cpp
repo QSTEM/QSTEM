@@ -33,8 +33,6 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
   //m_position(std::vector<unsigned>()),
   m_detPosX(0),
   m_detPosY(0),
-  m_iPosX(0),
-  m_iPosY(0),
   m_thickness(0.0),
   m_nx(x),
   m_ny(y),
@@ -175,6 +173,18 @@ inline float_tt WAVEFUNC::GetK2(unsigned ix, unsigned iy)
 inline float_tt WAVEFUNC::GetPixelIntensity(unsigned x, unsigned y)
 {
   return m_wave[x][y][0]*m_wave[x][y][0] + m_wave[x][y][1]*m_wave[x][y][1];
+}
+
+float_tt WAVEFUNC::GetIntegratedIntensity()
+{
+  unsigned px=m_nx*m_ny;
+  float_tt intIntensity=0;
+  for (unsigned i=0; i<px; i++)
+    {
+      intIntensity+=m_wave[x][y][0]*m_wave[x][y][0] + m_wave[x][y][1]*m_wave[x][y][1];
+    }
+  // TODO: divide by px or not?
+  return intIntensity/px;
 }
 
 inline void WAVEFUNC::SetDiffPatPixel(unsigned x, unsigned y, float_tt value)
@@ -344,3 +354,29 @@ void WAVEFUNC:WriteBeams(int absolute_slice) {
     return;  	
 }
 */
+
+// FFT to Fourier space, but only if we're current in real space
+void WAVEFUNC::ToFourierSpace()
+{
+  if (IsRealSpace())
+    {
+#if FLOAT_PRECISION == 1
+      fftwf_execute(m_fftPlanWaveForw);
+#elif FLOAT_PRECISION == 2
+      fftw_execute(m_fftPlanWaveForw);
+#endif
+    }
+}
+
+      // FFT back to realspace, but only if we're currently in Fourier space
+      void WAVEFUNC::ToRealSpace()
+      {
+      if (!IsRealSpace())
+        {
+#if FLOAT_PRECISION == 1
+      fftwf_execute(m_fftPlanWaveInv);
+#elif FLOAT_PRECISION == 2
+      fftw_execute(m_fftPlanWaveInv);
+#endif
+    }
+}

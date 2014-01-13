@@ -23,5 +23,6 @@ class CConvergentWave : public WAVEFUNC
 {
 public:
   CConvergentWave(const ConfigReaderPtr &configReader);
+  CConvergentWave( const WAVEFUNC& other );
   virtual void FormProbe();
 };

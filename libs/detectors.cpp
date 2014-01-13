@@ -82,7 +82,7 @@ void Detector::CollectIntensity(WavePtr &wave)
    * muls->slices*muls->cellDiv/muls->outputInterval 
    * There are muls->detectorNum different detectors
    *******************************************************************/
-  int i,ix,iy,ixs,iys,t;
+  int ixs,iys,t;
   float_tt k2;
   float_tt intensity,scale,scaleCBED,scaleDiff,intensity_save;
   char fileName[256],avgName[256]; 
@@ -110,12 +110,14 @@ void Detector::CollectIntensity(WavePtr &wave)
 
   /* add the intensities in the already 
      fourier transformed wave function */
-  for (ix = 0; ix < nx; ix++) 
+  unsigned px = nx*ny;
+  for (unsigned i = 0; i < px; i++) 
     {
-      for (iy = 0; iy < ny; iy++) 
         {
+          unsigned ix = i%nx;
+          unsigned iy = i/nx;
           k2 = wave->GetK2(ix, iy);
-          intensity = wave->GetPixelIntensity(ix,iy);
+          intensity = wave->GetPixelIntensity(i);
           wave->SetDiffPatPixel((ix+nx/2)%nx,(iy+ny/2)%ny, intensity*scaleDiff);
           intensity *= scale;
           if ((k2 >= m_k2Inside) && (k2 <= m_k2Outside)) 

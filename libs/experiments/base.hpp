@@ -35,17 +35,18 @@ public:
 
   virtual void SaveImages()=0;
 
-
 protected:
   virtual void CollectIntensity(unsigned absoluteSlice)=0;
   virtual int RunMuls();
   virtual void InterimWave(int slice);
 
-  virtual void Transmit(unsigned sliceIdx);
-  virtual void Propagate(float_tt dz);
+  virtual void Transmit(WavePtr &wave, unsigned sliceIdx);
+  virtual void Propagate(WavePtr &wave, float_tt dz);
   virtual void AddDPToAvgArray(const WavePtr &wave);
 
-
+  void ReadAvgArray();
+  void ReadAvgArray(unsigned navg);
+  void ReadAvgArray(unsigned posX, unsigned posY);
 
   void _WriteAvgArray(std::string &fileName, std::string &comment, 
                       std::map<std::string, double> &params,
@@ -96,7 +97,11 @@ protected:
   std::vector<float_tt> m_chisq;
   std::string m_mode;      // String representing the multislice mode (e.g. TEM, STEM, etc.)
 
-  float_tt **m_avgArray;   // The averaged diffraction pattern (m_avgCount says how many are averaged currently)
+  float_tt *m_avgArray;   // The averaged diffraction pattern (m_avgCount says how many are averaged currently)
+
+  unsigned m_iPosX,m_iPosY;           /* integer offset for positioning probe within potential array */
+
+  
 };
 
 #endif

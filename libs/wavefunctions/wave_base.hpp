@@ -50,23 +50,31 @@ public:
 
   void DisplayParams();
 
-  void CopyDPToAvgArray(float_tt **avgArray);
-  void AddDPToAvgArray(unsigned avgCount);
+  void ToRealSpace();
+  void ToFourierSpace();
+  bool IsRealSpace(){return m_realSpace;}
+
+  //void CopyDPToAvgArray(float_tt *avgArray);
+  //void AddDPToAvgArray(unsigned avgCount);
 
   void GetElectronScale(float_tt &electronScale);
   void GetSizePixels(unsigned &x, unsigned &y);
+  unsigned GetTotalPixels(){return m_nx*m_ny;}
   void GetResolution(float_tt &x, float_tt &y);
   void GetPositionOffset(unsigned &x, unsigned &y);
   float_tt GetK2(unsigned ix, unsigned iy);
   inline float_tt GetWavelength() {return m_wavlen;}
 
-  float_tt GetPixelIntensity(unsigned x, unsigned y);
-  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) {return m_diffpat[x][y];}
+  float_tt GetPixelIntensity(unsigned i);
+  inline float_tt GetPixelIntensity(unsigned x, unsigned y) {return GetPixelIntensity(x+m_nx*y);}
+  inline float_tt GetDiffPatPixel(unsigned i) {return m_diffpat[i];}
+  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) { return m_diffpat[x+m_nx*y];}
   //inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
-  inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x][y]=value;}
+  inline void SetDiffPatPixel(unsigned i, float_tt value) {m_diffpat[i]=value;}
+  inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x+m_nx*y]=value;}
   //inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
 
-  void ApplyTransferFunction(complex_tt **wave);
+  void ApplyTransferFunction(complex_tt *wave);
 
   void WriteBeams(unsigned absoluteSlice);
 
@@ -120,11 +128,13 @@ public:
 
   // People can change the wavefunction - for example, that's what we have to do when we
   //    transmit the wave through the sample's potential.
-  complex_tt *GetWavePointer(){return m_wave[0];}
+  complex_tt *GetWavePointer(){return m_wave;}
   // People should not directly change the diffraction pattern, since we'll re-calculate it when 
   //   the wavefunction changes.
   //   They can, however, access it.
-  const float_tt *GetDPPointer(){return m_diffpat[0];}
+  const float_tt *GetDPPointer(){return m_diffpat;}
+
+  float_tt GetIntegratedIntensity();
 
   // ReadImage is for TEM mode
   void ReadImage();
@@ -134,27 +144,25 @@ public:
   void ReadDiffPat();
   void ReadDiffPat(unsigned navg);
   void ReadDiffPat(unsigned posX, unsigned posY);
-  //void ReadAvgArray();
-  //void ReadAvgArray(unsigned navg);
-  //void ReadAvgArray(unsigned posX, unsigned posY);
 
 protected:
   // shared pointer to 
   ImageIOPtr m_imageIO;
 
+  bool m_realSpace;  // If true, the m_wave is in real space.  Else, it's in Fourier space.
+
   std::string m_fileStart;
   std::string m_avgName;
   std::string m_fileout;
   unsigned m_detPosX, m_detPosY; 
-  unsigned m_iPosX,m_iPosY;           /* integer position of probe position array */
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
-  float_tt **m_diffpat;
+  float_tt *m_diffpat;
   //float_tt **m_avgArray;
   float_tt m_thickness;
-  float_tt m_intIntensity;
-  float_tt m_electronScale;
-  float_tt m_beamCurrent;
-  float_tt m_dwellTime;
+  //float_tt m_intIntensity;
+  //float_tt m_electronScale;
+  //float_tt m_beamCurrent;
+  //float_tt m_dwellTime;
   float_tt m_v0;
   std::vector<unsigned> m_position;
   std::map<std::string, double> m_params;
@@ -181,7 +189,6 @@ protected:
   int m_printLevel;
 
   float_tt m_C5;
-  float_tt m_dE_E;
   float_tt m_dV_V;
   float_tt m_dI_I;
   float_tt m_alpha;
@@ -192,7 +199,6 @@ protected:
   float_tt m_astigMag;				/* astigmatism*/
   float_tt m_astigAngle;				/* angle of astigmatism */
 
-
   bool m_ismoth;                          /* smoothen the probe wave function */
   bool m_gaussFlag;
   float_tt m_gaussScale;
@@ -200,7 +206,7 @@ protected:
   // These are not used for anything aside from when saving files.
   float_tt m_dx, m_dy;
 
-  complex_tt  **m_wave; /* complex wave function */
+  complex_tt  *m_wave; /* complex wave function */
 
 #if FLOAT_PRECISION == 1
   fftwf_plan m_fftPlanWaveForw,m_fftPlanWaveInv;
@@ -220,7 +226,6 @@ protected:
   void SetWavePosition(unsigned navg);
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
-
 
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;

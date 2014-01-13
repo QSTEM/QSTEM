@@ -20,6 +20,8 @@
 #include "stem.hpp"
 #include "wavefunctions/wave_convergent.hpp"
 
+#include <omp.h>
+
 CExperimentSTEM::CExperimentSTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
   m_mode="STEM";
@@ -29,23 +31,32 @@ void CExperimentSTEM::Run()
 {
   int ix=0,iy=0,i,pCount,picts,ixa,iya,totalRuns;
   double timer, total_time=0;
-  char buf[BUF_LEN];
   float_tt t;
-  static float_tt **avgArray=NULL;
   double collectedIntensity;
 
   std::vector<WavePtr> waves;
   WavePtr wave;
 
+  std::vector<std::vector<float_tt> > avgArrays; //temporary buffers for each thread to have its own avg array
+
+  unsigned nx, ny;
+  m_wave->GetSizePixels(nx, ny);
+
+  unsigned potNX, potNY;
+  m_potential->GetSizePixels(potNX, potNY);
+
+  float_tt dx, dy;
+  m_wave->GetResolution(dx, dy);
+
   //pre-allocate several waves (enough for one row of the scan.  
   for (int th=0; th<omp_get_max_threads(); th++)
     {
       waves.push_back(WavePtr(new CConvergentWave(*m_wave.get())));
+      avgArrays.push_back(std::vector<float_tt>(nx*ny));
     }
 
-  m_chisq = std::vector<double>(m_avgRuns);
+  m_chisq.resize(m_avgRuns);
   totalRuns = m_avgRuns;
-  timer = cputim();
 
   /* average over several runs of for TDS */
   DisplayProgress(-1);
@@ -54,12 +65,11 @@ void CExperimentSTEM::Run()
     total_time = 0;
     collectedIntensity = 0;
     m_totalSliceCount = 0;
-    m_dE_E = m_dE_EArray[m_avgCount];
+    //m_dE_E = m_dE_EArray[m_avgCount];
 
 
     if (m_equalDivs) {
       m_potential->Refresh();
-      timer = cputim();
     }
 
     /****************************************
@@ -71,10 +81,9 @@ void CExperimentSTEM::Run()
        ******************************************************/
       if (!m_equalDivs) {
         m_potential->Refresh();
-        timer = cputim();
       }
 
-      m_complete_pixels=0;
+      m_completePixels=0;
       /**************************************************
        * scan through the different probe positions
        *************************************************/
@@ -87,11 +96,11 @@ void CExperimentSTEM::Run()
 #pragma omp for
       for (i=0; i < (m_scanXN * m_scanYN); i++)
         {
-          timer=cputim();
           ix = i / m_scanYN;
           iy = i % m_scanYN;
             
           wave = waves[omp_get_thread_num()];
+          m_avgArray = &avgArrays[omp_get_thread_num()][0];
             
             //printf("Scanning: %d %d %d %d\n",ix,iy,pCount,m_nx);
             
@@ -113,19 +122,18 @@ void CExperimentSTEM::Run()
                and save exit wave function for this position 
                (done by runMulsSTEM), 
                but we need to define the file name */
-            m_saveFlag = 1;
             
-            wave->iPosX =(int)(ix*(m_scanXStop-m_scanXStart)/
-                               ((float)m_scanXN*m_resolutionX));
-            wave->iPosY = (int)(iy*(m_scanYStop-m_scanYStart)/
-                                ((float)m_scanYN*m_resolutionY));
-            if (wave->iPosX > m_potNx-m_nx)
+            m_iPosX =(int)(ix*(m_scanXStop-m_scanXStart)/
+                               ((float)m_scanXN*dx));
+            m_iPosY = (int)(iy*(m_scanYStop-m_scanYStart)/
+                                ((float)m_scanYN*dy));
+            if (m_iPosX > potNX-nx)
               {
-                wave->iPosX = m_potNx-m_nx;  
+                m_iPosX = potNX-nx;  
               }
-            if (wave->iPosY > m_potNy-m_ny)
+            if (m_iPosY > potNY-ny)
               {
-                wave->iPosY = m_potNy-m_ny;
+                m_iPosY = potNY-ny;
               }
 
             // MCS - update the probe wavefunction with its position
@@ -141,7 +149,7 @@ void CExperimentSTEM::Run()
              ***************************************************************/
             
 #pragma omp atomic
-            collectedIntensity += wave->intIntensity;
+            collectedIntensity += wave->GetIntegratedIntensity();
             
             if (pCount == picts-1)  /* if this is the last slice ... */
               {
@@ -160,27 +168,25 @@ void CExperimentSTEM::Run()
                  */
 
 #pragma omp atomic
-            ++m_complete_pixels;
+            ++m_completePixels;
             
-            if (m_displayProgInterval > 0) if ((m_complete_pixels) % m_displayProgInterval == 0) 
+            if (m_displayProgInterval > 0) if ((m_completePixels) % m_displayProgInterval == 0) 
                {
 #pragma omp atomic
-                 total_time += cputim()-timer;
+                 //total_time += cputim()-timer;
                  printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
-                        m_complete_pixels, m_scanXN*m_scanYN, wave->intIntensity,
-                        (total_time)/m_complete_pixels);
-                 timer=cputim();
+                        m_completePixels, m_scanXN*m_scanYN, m_intIntensity,
+                        (total_time)/m_completePixels);
+                 //timer=cputim();
                }
           } /* end of looping through STEM image pixels */
         /* save STEM images in img files */
         SaveImages();
-        m_totalSliceCount += m_slices;
+        m_totalSliceCount += m_potential->GetNSlices();
       } /* end of loop through thickness (pCount) */
     // printf("Total CPU time = %f sec.\n", cputim()-timerTot ); 
 
     /*************************************************************/
-    if (m_avgCount>1)
-      m_chisq[m_avgCount-1] = m_chisq[m_avgCount-1]/(double)(m_nx*m_ny);
     m_intIntensity = collectedIntensity/(m_scanXN*m_scanYN);
     DisplayProgress(1);
   } /* end of loop over m_avgCount */

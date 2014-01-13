@@ -39,7 +39,7 @@ void CExperimentTEM::Run()
   int oldMulsRepeat2 = 1;
   long iseed=0;
   std::map<std::string, double> params;
-  fftwf_complex **imageWave = NULL;
+  fftwf_complex *imageWave = NULL;
 
   unsigned nx, ny;
   m_wave->GetSizePixels(nx, ny);
@@ -216,10 +216,11 @@ void CExperimentTEM::Run()
 
       // save the amplitude squared:
       m_wave->ReadImage();
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          t = ((float_tt)m_avgCount*m_wave->GetDiffPatPixel(ix,iy)+
-               imageWave[ix][iy][0]*imageWave[ix][iy][0]+imageWave[ix][iy][1]*imageWave[ix][iy][1])/(float_tt)(m_avgCount+1);
-          m_wave->SetDiffPatPixel(ix,iy,t);
+      unsigned px=nx*ny;
+      for (unsigned i=0;i<px;i++){
+        t = ((float_tt)m_avgCount*m_wave->GetDiffPatPixel(i)+
+               imageWave[i][0]*imageWave[i][0]+imageWave[i][1]*imageWave[i][1])/(float_tt)(m_avgCount+1);
+          m_wave->SetDiffPatPixel(i,t);
         }
       m_wave->WriteImage();
       // End of Image writing (if avgCount > 0)
