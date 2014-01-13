@@ -25,9 +25,11 @@
 CExperimentBase::CExperimentBase(const ConfigReaderPtr &configReader) : IExperiment()
 	, m_mode("Undefined")
 {
+  // Subclasses should choose their wavefunction type appropriately - the config file does not
+  //    provide enough information to determine this ATM.
+
   // Read potential parameters and initialize a pot object
   m_potential = GetPotential(configReader);
-  readFile(configReader);
   DisplayParams();
 }
 
@@ -209,29 +211,24 @@ int CExperimentBase::RunMuls()
   if (printFlag)
     printf("Specimen thickness: %g Angstroms\n", cztot);
 
-  for( islice=0; islice < muls->slices; islice++ ) 
+  for( islice=0; islice < m_potential->GetNSlices(); islice++ ) 
     {
-      absolute_slice = (muls->totalSliceCount+islice);
+      absolute_slice = (m_totalSliceCount+islice);
           
       /***********************************************************************
        * Transmit is a simple multiplication of wave with trans in real space
        **********************************************************************/
-      m_wave->Transmit(m_potential, islice);   
+      Transmit(m_wave, islice);   
       /***************************************************** 
        * remember: prop must be here to anti-alias
        * propagate is a simple multiplication of wave with prop
        * but it also takes care of the bandwidth limiting
        *******************************************************/
       m_wave->ToFourierSpace();
-      m_wave->Propagate();
-      //propagate_slow(wave, muls->nx, muls->ny, muls);
+      Propagate();
+      //propagate_slow(wave, m_nx, m_ny, muls);
 
       CollectIntensity(absolute_slice);
-      
-      if (muls->mode != STEM) {
-        /* write pendelloesung plots, if this is not STEM */
-        writeBeams(muls,m_wave,islice, absolute_slice);
-      }
 
       // go back to real space:
       wave->ToRealSpace();
@@ -242,7 +239,7 @@ int CExperimentBase::RunMuls()
       /********************************************************************
        * show progress:
        ********************************************************************/
-      m_wave->thickness = (absolute_slice+1)*muls->sliceThickness;
+      m_wave->thickness = (absolute_slice+1)*m_sliceThickness;
       if ((printFlag)) {
         sum = 0.0;
         for( ix=0; ix<nx; ix++)  for( iy=0; iy<ny; iy++) {
@@ -250,41 +247,36 @@ int CExperimentBase::RunMuls()
           }
         sum *= fftScale;
         
+        /*
+          // TODO: if we want this, move it to STEM class
         sprintf(outStr,"position (%3d, %3d), slice %4d (%.2f), int. = %f", 
                 m_wave->detPosX, m_wave->detPosY,
-                muls->totalSliceCount+islice,m_wave->thickness,sum );
+                m_totalSliceCount+islice,m_wave->thickness,sum );
         if (showEverySlice)
           printf("%s\n",outStr);
         else {
           printf("%s",outStr);
           for (i=0;i<(int)strlen(outStr);i++) printf("\b");
         }
+        */
       }
-			
-      if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
-        {
-          // TODO (MCS 2013/04): this restructure probably broke this file saving - 
-          //   need to rewrite a function to save things for TEM/CBED?
-          // This used to call interimWave(muls,wave,muls->totalSliceCount+islice*(1+mRepeat));
-          InterimWave(absolute_slice*(1+mRepeat)); 
-          muls->detectors->CollectIntensity(m_wave, absolute_slice*(1+mRepeat));
-          
-          //collectIntensity(muls,wave,absolute_slice*(1+mRepeat));
-        }
+	
+      // Call any additional saving/post-processing that should occur on a per-slice basis
+      PostSliceProcess(absolute_slice);
     } /* end for(islice...) */
       // collect intensity at the final slice
-      //collectIntensity(muls, wave, muls->totalSliceCount+muls->slices*(1+mRepeat));
+      //collectIntensity(muls, wave, m_totalSliceCount+m_slices*(1+mRepeat));
   if (printFlag) printf("\n***************************************\n");
 
   /*
   // TODO: modifying shared value from multiple threads?
-  muls->rmin  = m_wave->wave[0][0][0];
+  m_rmin  = m_wave->wave[0][0][0];
   //#pragma omp single
-  muls->rmax  = (*muls).rmin;
+  m_rmax  = (*muls).rmin;
   //#pragma omp single
-  muls->aimin = m_wave->wave[0][0][1];
+  m_aimin = m_wave->wave[0][0][1];
   //#pragma omp single
-  muls->aimax = (*muls).aimin;
+  m_aimax = (*muls).aimin;
 
   sum = 0.0;
   for( ix=0; ix<nx; ix++)  
@@ -311,8 +303,8 @@ int CExperimentBase::RunMuls()
             (*muls).rmin,(*muls).rmax,(*muls).aimin,(*muls).aimax);
   }
   */
-  if (muls->saveFlag) {
-    if ((muls->saveLevel > 1) || (muls->cellDiv > 1)) {
+  if (m_saveFlag) {
+    if ((m_saveLevel > 1) || (m_cellDiv > 1)) {
       m_wave->WriteWave();
       if (printFlag)
         printf("Created complex image file %s\n",(*wave).fileout.c_str());

@@ -36,6 +36,8 @@ public:
   virtual void SaveImages()=0;
 
 protected:
+  virtual void PostSliceProcess(unsigned absoluteSlice){};  // Called in RunMuls after a slice is transmitted/propagated through.  Override as desired.
+  
   virtual void CollectIntensity(unsigned absoluteSlice)=0;
   virtual int RunMuls();
   virtual void InterimWave(int slice);
@@ -101,7 +103,7 @@ protected:
 
   unsigned m_iPosX,m_iPosY;           /* integer offset for positioning probe within potential array */
 
-  
+  ImageIOPtr m_imageIO;
 };
 
 #endif

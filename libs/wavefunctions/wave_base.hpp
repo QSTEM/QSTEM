@@ -146,7 +146,6 @@ public:
   void ReadDiffPat(unsigned posX, unsigned posY);
 
 protected:
-  // shared pointer to 
   ImageIOPtr m_imageIO;
 
   bool m_realSpace;  // If true, the m_wave is in real space.  Else, it's in Fourier space.

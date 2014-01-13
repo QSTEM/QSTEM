@@ -291,3 +291,9 @@ void CExperimentTEM::WriteBeams(unsigned int absoluteSlice)
 
     // TODO: This isn't actually saving anything...
 }
+
+
+void CExperimentTEM::PostSliceProcess(unsigned absoluteSlice)
+{
+  InterimWave(absoluteSlice);
+}

@@ -31,8 +31,9 @@ public:
   virtual void DisplayParams();
   void SaveImages();
 
-private:
+protected:
   virtual void WriteBeams(unsigned absoluteSlice);
+  void PostSliceProcess(unsigned absoluteSlice);
 
   inline void WriteWaveIntensity()
   {

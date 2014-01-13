@@ -30,6 +30,7 @@ public:
   void DisplayParams();
   virtual void WriteBeams(unsigned absoluteSlice);
 protected:
+  void PostSliceProcess(unsigned absoluteSlice);
   void CollectIntensity(unsigned absoluteSlice);
   void SaveImages();
 
@@ -48,3 +49,5 @@ protected:
 };
 
 #endif
+
+

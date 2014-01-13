@@ -312,3 +312,13 @@ void CExperimentCBED::WriteBeams(unsigned int absoluteSlice)
   fprintf( fpPhase, "\n");
   */
 }
+
+void CExperimentCBED::PostSliceProcess(unsigned absoluteSlice)
+{
+  if (m_saveLevel>1)
+    {
+      InterimWave(absoluteSlice); 
+      // TODO: does CBED actually have detectors?
+      //m_detectors->CollectIntensity(m_wave, absoluteSlice);
+    }
+}
