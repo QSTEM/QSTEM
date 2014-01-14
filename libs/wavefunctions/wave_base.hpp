@@ -63,6 +63,10 @@ public:
   void GetResolution(float_tt &x, float_tt &y);
   void GetPositionOffset(unsigned &x, unsigned &y);
   float_tt GetK2(unsigned ix, unsigned iy);
+  inline float_tt GetKX2(unsigned ix){return m_kx2[ix];}
+  inline float_tt GetKY2(unsigned iy){return m_ky2[iy];}
+  inline float_tt GetK2Max(){return m_k2max;}
+
   inline float_tt GetWavelength() {return m_wavlen;}
 
   float_tt GetPixelIntensity(unsigned i);
@@ -157,7 +161,7 @@ protected:
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
   float_tt *m_diffpat;
   //float_tt **m_avgArray;
-  float_tt m_thickness;
+  //float_tt m_thickness;
   //float_tt m_intIntensity;
   //float_tt m_electronScale;
   //float_tt m_beamCurrent;
@@ -166,42 +170,17 @@ protected:
   std::vector<unsigned> m_position;
   std::map<std::string, double> m_params;
 
-  float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
-
   // defocus mode: 1 = Scherzer, 2 = ???
   int m_Scherzer;
 
-  // Coefficients to aberration function:
-  float_tt m_a33, m_a31;
-  float_tt m_a44, m_a42;
-  float_tt m_a55, m_a53, m_a51;
-  float_tt m_a66, m_a64, m_a62;
-  float_tt m_phi33, m_phi31;
-  float_tt m_phi44, m_phi42;
-  float_tt m_phi55, m_phi53, m_phi51;
-  float_tt m_phi66, m_phi64, m_phi62;
-
   int m_printLevel;
 
-  float_tt m_C5;
-  float_tt m_dV_V;
-  float_tt m_dI_I;
-  float_tt m_alpha;
-  float_tt m_sourceRadius;
-  float_tt m_Cc;
-  float_tt m_Cs;
-  float_tt m_df0;				/* defocus */
-  float_tt m_astigMag;				/* astigmatism*/
-  float_tt m_astigAngle;				/* angle of astigmatism */
-
-  bool m_ismoth;                          /* smoothen the probe wave function */
-  bool m_gaussFlag;
-  float_tt m_gaussScale;
-
-  // These are not used for anything aside from when saving files.
-  float_tt m_dx, m_dy;
+  float_tt m_dx, m_dy;  // physical pixel size of wavefunction array
 
   complex_tt  *m_wave; /* complex wave function */
+
+  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  float_tt m_k2max;
 
 #if FLOAT_PRECISION == 1
   fftwf_plan m_fftPlanWaveForw,m_fftPlanWaveInv;
@@ -210,7 +189,8 @@ protected:
 #endif
 
 protected:
-  void Initialize();
+  void Initialize(std::string input_ext, std::string output_ext);
+  void InitializeKVectors();
 
   void _WriteWave(std::string &prefix, std::string comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());

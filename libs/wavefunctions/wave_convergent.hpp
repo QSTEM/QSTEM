@@ -25,4 +25,33 @@ public:
   CConvergentWave(const ConfigReaderPtr &configReader);
   CConvergentWave( const WAVEFUNC& other );
   virtual void FormProbe();
+  virtual void DisplayParams();
+protected:
+  // Coefficients to aberration function:
+  float_tt m_a33, m_a31;
+  float_tt m_a44, m_a42;
+  float_tt m_a55, m_a53, m_a51;
+  float_tt m_a66, m_a64, m_a62;
+  float_tt m_phi33, m_phi31;
+  float_tt m_phi44, m_phi42;
+  float_tt m_phi55, m_phi53, m_phi51;
+  float_tt m_phi66, m_phi64, m_phi62;
+
+  float_tt m_astigMag;				/* astigmatism*/
+  float_tt m_astigAngle;				/* angle of astigmatism */
+  float_tt m_C5;
+  float_tt m_dE_E;  // energy spread of emitted electrons
+  float_tt m_dV_V;  // acc. voltage fluctuations
+  float_tt m_dI_I;  // lens current fluctuations
+  float_tt m_alpha;   /* convergence angle */
+  float_tt m_Cc;      /* chromatic aberration */
+  float_tt m_Cs;      /* spherical aberration */
+  float_tt m_df0;				/* defocus */
+
+  bool m_ismoth;                          /* smoothen the probe wave function */
+  bool m_gaussFlag;
+  float_tt m_gaussScale;
+
+  float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
+
 };

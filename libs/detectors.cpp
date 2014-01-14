@@ -89,6 +89,7 @@ void Detector::CollectIntensity(const WavePtr &wave)
   float_tt **diffpatAvg = NULL;
   int tCount = 0;
   unsigned nx, ny, offsetX, offsetY;
+  float_tt electronScale;
 
   std::vector<std::vector<DetectorPtr> > detectors;
 

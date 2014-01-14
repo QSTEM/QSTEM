@@ -107,10 +107,7 @@ protected:
 
   ImageIOPtr m_imageIO;
 
-  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
   std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
-  float_tt m_k2max;
-
 };
 
 #endif

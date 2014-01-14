@@ -28,7 +28,7 @@
 
 CImgInput::CImgInput() :
 m_headerSize(56),
-m_version(VERSION)
+m_version(IMG_VERSION)
 {
 }
 

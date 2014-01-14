@@ -328,35 +328,23 @@ void CExperimentBase::Propagate(WavePtr wave, float_tt dz)
 
   px=nx*ny;
 
-  float_tt ax = dx*nx;
-  float_tt by = dy*ny;
-
   // TODO: this will not be thread safe, since m_propxr will be shared amongst threads
   if (dz != dzs) {
     dzs = dz;
     scale = dz*PI;
 
     for( ixa=0; ixa<nx; ixa++) {
-      m_kx[ixa] = (ixa>nx/2) ? (float_tt)(ixa-nx)/ax : 
-        (float_tt)ixa/ax;
-      m_kx2[ixa] = m_kx[ixa]*m_kx[ixa];
-      t = scale * (m_kx2[ixa]*wave->GetWavelength());
+      t = scale * (wave->GetKX2(ixa)*wave->GetWavelength());
       m_propxr[ixa] = (float_tt)  cos(t);
       m_propxi[ixa] = (float_tt) -sin(t);
     }
     for( iya=0; iya<ny; iya++) {
-      m_ky[iya] = (iya>ny/2) ? 
-        (float_tt)(iya-ny)/by : 
-        (float_tt)iya/by;
-      m_ky2[iya] = m_ky[iya]*m_ky[iya];
-      t = scale * (m_ky2[iya]*wave->GetWavelength());
+      
+      t = scale * (wave->GetKY2(iya)*wave->GetWavelength());
       m_propyr[iya] = (float_tt)  cos(t);
       m_propyi[iya] = (float_tt) -sin(t);
     }
-    m_k2max = nx/(2.0F*ax);
-    if (ny/(2.0F*by) < m_k2max ) m_k2max = ny/(2.0F*by);
-    m_k2max = 2.0/3.0 * m_k2max;
-    m_k2max = m_k2max*m_k2max;
+    
   } 
   /* end of: if dz != dzs */
   /*************************************************************/
@@ -368,16 +356,14 @@ void CExperimentBase::Propagate(WavePtr wave, float_tt dz)
     {
       ixa=i%nx;
       iya=i/nx;
-      if( m_kx2[ixa] < m_k2max ) {
-        if( (m_kx2[ixa] + m_ky2[iya]) < m_k2max ) {
-                
+      if( wave->GetKX2(ixa) < wave->GetK2Max() ) {
+        if( (wave->GetKX2(ixa) + wave->GetKY2(iya)) < wave->GetK2Max() ) {
           wr = w[i][0];
           wi = w[i][1];
           tr = wr*m_propyr[iya] - wi*m_propyi[iya];
           ti = wr*m_propyi[iya] + wi*m_propyr[iya];
           w[i][0] = tr*m_propxr[ixa] - ti*m_propxi[ixa];
           w[i][1] = tr*m_propxi[ixa] + ti*m_propxr[ixa];
-
         } else
           w[i][0] = w[i][1] = 0.0F;
       } /* end for(iy..) */

@@ -21,6 +21,61 @@
 
 CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configReader)
 {
+  // TODO: where does beam current belong?
+  //configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
+}
+
+void CConvergentWave::DisplayParams()
+{
+  WAVEFUNC::DisplayParams();
+
+  printf("* Aperture half angle:  %g mrad\n",m_alpha);
+  printf("* AIS aperture:         ");
+  if (m_aAIS > 0) printf("%g A\n",m_aAIS);
+  else printf("none\n");
+
+  printf("* C_3 (C_s):            %g mm\n",m_Cs*1e-7);
+  printf("* C_1 (Defocus):        %g nm%s\n",0.1*m_df0,
+         (m_Scherzer == 1) ? " (Scherzer)" : (m_Scherzer==2) ? " (opt.)":"");
+  printf("* Astigmatism:          %g nm, %g deg\n",0.1*m_astigMag,RAD2DEG*m_astigAngle);
+
+  // more aberrations:
+  if (m_a33 > 0)
+    printf("* a_3,3:                %g nm, phi=%g deg\n",m_a33*1e-1,m_phi33*RAD2DEG);
+  if (m_a31 > 0)
+    printf("* a_3,1:                %g nm, phi=%g deg\n",m_a31*1e-1,m_phi31*RAD2DEG);
+  
+  if (m_a44 > 0)
+    printf("* a_4,4:                %g um, phi=%g deg\n",m_a44*1e-4,m_phi44*RAD2DEG);
+  if (m_a42 > 0)
+    printf("* a_4,2:                %g um, phi=%g deg\n",m_a42*1e-4,m_phi42*RAD2DEG);
+
+  if (m_a55 > 0)
+    printf("* a_5,5:                %g um, phi=%g deg\n",m_a55*1e-4,m_phi55*RAD2DEG);
+  if (m_a53 > 0)
+    printf("* a_5,3:                %g um, phi=%g deg\n",m_a53*1e-4,m_phi53*RAD2DEG);
+  if (m_a51 > 0)
+    printf("* a_5,1:                %g um, phi=%g deg\n",m_a51*1e-4,m_phi51*RAD2DEG);
+
+  if (m_a66 > 0)
+    printf("* a_6,6:                %g um, phi=%g deg\n",m_a66*1e-7,m_phi66*RAD2DEG);
+  if (m_a64 > 0)
+    printf("* a_6,4:                %g um, phi=%g deg\n",m_a64*1e-7,m_phi64*RAD2DEG);
+  if (m_a62 > 0)
+    printf("* a_6,2:                %g um, phi=%g deg\n",m_a62*1e-7,m_phi62*RAD2DEG);
+  if (m_C5 != 0)
+    printf("* C_5:                  %g mm\n",m_C5*1e-7);
+  
+  printf("* C_c:                  %g mm\n",m_Cc*1e-7);
+
+  printf("* Damping dE/E: %g / %g \n",sqrt(m_dE_E*m_dE_E+m_dV_V*m_dV_V+m_dI_I*m_dI_I)*m_v0*1e3,m_v0*1e3);
+
+  /*
+    // TODO: where does beam current belong?
+  printf("* beam current:         %g pA\n",m_beamCurrent);
+  printf("* dwell time:           %g msec (%g electrons)\n",
+         m_dwellTime,m_electronScale);
+  */
 }
 
 /**********************************************
@@ -190,25 +245,20 @@ void CConvergentWave::FormProbe()
 
       if ( ( m_ismoth != 0) && 
            ( fabs(k2-k2max) <= pixel)) {
-        m_wave[ix][iy][0]= (float) ( 0.5*scale * cos(chi));
-        m_wave[ix][iy][1]= (float) (-0.5*scale* sin(chi));
+        m_wave[ix+m_nx*iy][0]= (float) ( 0.5*scale * cos(chi));
+        m_wave[ix+m_nx*iy][1]= (float) (-0.5*scale* sin(chi));
       } 
       else if ( k2 <= k2max ) {
-        m_wave[ix][iy][0]= (float)  scale * cos(chi);
-        m_wave[ix][iy][1]= (float) -scale * sin(chi);
+        m_wave[ix+m_nx*iy][0]= (float)  scale * cos(chi);
+        m_wave[ix+m_nx*iy][1]= (float) -scale * sin(chi);
       } 
       else {
-        m_wave[ix][iy][0] = m_wave[ix][iy][1] = 0.0f;
+        m_wave[ix+m_nx*iy][0] = m_wave[ix+m_nx*iy][1] = 0.0f;
       }
     }
   }
   /* Fourier transform into real space */
-  // fftwnd_one(m_fftPlanInv, &(m_wave[0][0]), NULL);
-#if FLOAT_PRECISION == 1
-  fftwf_execute(m_fftPlanWaveInv);
-#else
-  fftw_execute(m_fftPlanWaveInv);
-#endif
+  ToRealSpace();
   /**********************************************************
    * display cross section of probe intensity
    */
@@ -218,8 +268,8 @@ void CConvergentWave::FormProbe()
     for( ix=0; ix<nx; ix++) {
       for( iy=0; iy<ny; iy++) {
         r = exp(-((ix-m_nx/2)*(ix-m_nx/2)+(iy-m_ny/2)*(iy-m_ny/2))/(m_nx*m_nx*m_gaussScale));
-        m_wave[ix][iy][0] *= (float)r;
-        m_wave[ix][iy][1] *= (float)r;
+        m_wave[ix+m_nx*iy][0] *= (float)r;
+        m_wave[ix+m_nx*iy][1] *= (float)r;
       }
     }  
   }
@@ -234,13 +284,13 @@ void CConvergentWave::FormProbe()
         r = sqrt(x*x+y*y);
         delta = r-0.5*m_aAIS+edge;
         if (delta > 0) {
-          m_wave[ix][iy][0] = 0;
-          m_wave[ix][iy][1] = 0;
+          m_wave[ix+m_nx*iy][0] = 0;
+          m_wave[ix+m_nx*iy][1] = 0;
         }
         else if (delta >= -edge) {
           scale = 0.5*(1-cos(pi*delta/edge));
-          m_wave[ix][iy][0] = scale*m_wave[ix][iy][0];
-          m_wave[ix][iy][1] = scale*m_wave[ix][iy][1];
+          m_wave[ix+m_nx*iy][0] = scale*m_wave[ix+m_nx*iy][0];
+          m_wave[ix+m_nx*iy][1] = scale*m_wave[ix+m_nx*iy][1];
         }
       }
     }
@@ -251,8 +301,8 @@ void CConvergentWave::FormProbe()
   sum = 0.0;
   for( ix=0; ix<m_nx; ix++) 
     for( iy=0; iy<m_ny; iy++) 
-      sum +=  m_wave[ix][iy][0]*m_wave[ix][iy][0]
-        + m_wave[ix][iy][1]*m_wave[ix][iy][1];
+      sum +=  m_wave[ix+m_nx*iy][0]*m_wave[ix+m_nx*iy][0]
+        + m_wave[ix+m_nx*iy][1]*m_wave[ix+m_nx*iy][1];
 
   scale = 1.0 / sum;
   scale = scale * ((double)m_nx) * ((double)m_ny);
@@ -260,8 +310,8 @@ void CConvergentWave::FormProbe()
 
   for( ix=0; ix<m_nx; ix++) 
     for( iy=0; iy<m_ny; iy++) {
-      m_wave[ix][iy][0] *= (float) scale;
-      m_wave[ix][iy][1] *= (float) scale;
+      m_wave[ix+m_nx*iy][0] *= (float) scale;
+      m_wave[ix+m_nx*iy][1] *= (float) scale;
     }
 
   /*  Output results and find min and max to echo
@@ -269,16 +319,16 @@ void CConvergentWave::FormProbe()
       order for compatability
   */
 
-  rmin = m_wave[0][0][0];
+  rmin = m_wave[0][0];
   rmax = rmin;
-  aimin = m_wave[0][0][1];
+  aimin = m_wave[0][1];
   aimax = aimin;
   for( iy=0; iy<m_ny; iy++) {
     for( ix=0; ix<m_nx; ix++) {
-      if( m_wave[ix][iy][0] < rmin ) rmin = m_wave[ix][iy][0];
-      if( m_wave[ix][iy][0] > rmax ) rmax = m_wave[ix][iy][0];
-      if( m_wave[ix][iy][1] < aimin ) aimin = m_wave[ix][iy][1];
-      if( m_wave[ix][iy][1] > aimax ) aimax = m_wave[ix][iy][1];
+      if( m_wave[ix+m_nx*iy][0] < rmin ) rmin = m_wave[ix+m_nx*iy][0];
+      if( m_wave[ix+m_nx*iy][0] > rmax ) rmax = m_wave[ix+m_nx*iy][0];
+      if( m_wave[ix+m_nx*iy][1] < aimin ) aimin = m_wave[ix+m_nx*iy][1];
+      if( m_wave[ix+m_nx*iy][1] > aimax ) aimax = m_wave[ix+m_nx*iy][1];
     }
   }
   m_rmin = rmin;

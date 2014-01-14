@@ -90,6 +90,7 @@ float ***float32_3D( int nx, int ny,int nz, const char *message );
 float_tt ***float3D( int nx, int ny,int nz, const char *message );
 double **double2D( int nx, int ny, const char *message );
 
+complex_tt *complex1D(int n, const char *message);
 complex_tt  **complex2D(int nx, int ny, const char *message);
 fftw_complex **complex2Dd(int nx, int ny, const char *message);
 complex_tt  ***complex3D(int nx, int ny,int nz, const char *message);

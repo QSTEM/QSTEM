@@ -33,30 +33,29 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
   //m_position(std::vector<unsigned>()),
   m_detPosX(0),
   m_detPosY(0),
-  m_thickness(0.0),
   m_nx(x),
   m_ny(y),
   m_dx(resX),
   m_dy(resY),
   m_params(std::map<std::string, double>())
 {
-  Initialize();
+  Initialize(".img", ".img");
 }
 
 WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
   configReader->ReadResolution(m_dx, m_dy);
-  configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
   configReader->ReadVoltage(m_v0);
-  m_electronScale = m_beamCurrent*m_dwellTime*MILLISEC_PICOAMP;
+  // TODO: where does this belong?
+  //m_electronScale = m_beamCurrent*m_dwellTime*MILLISEC_PICOAMP;
 
   // TODO: need to figure out how user is going to specify input/output formats
   //WAVEFUNC(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
-  Initialize();
+  Initialize(".img", ".img");
 }
 
-void WAVEFUNC::Initialize()
+void WAVEFUNC::Initialize(std::string input_ext, std::string output_ext)
 {
   m_wavlen = Wavelength(m_v0);
   //m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
@@ -68,14 +67,35 @@ void WAVEFUNC::Initialize()
 	
   m_wave = complex1D(m_nx*m_ny, "wave");
 #if FLOAT_PRECISION == 1
-  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, FFTW_ESTIMATE);
-  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, FFTW_ESTIMATE);
+  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, k_fftMeasureFlag);
+  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, k_fftMeasureFlag);
 #else
-  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD,
-                                     fftMeasureFlag);
-  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD,
-                                    fftMeasureFlag);
+  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, k_fftMeasureFlag);
+  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, k_fftMeasureFlag);
 #endif
+  InitializeKVectors();
+}
+
+ void WAVEFUNC::InitializeKVectors()
+ {
+  float_tt ax = m_dx*m_nx;
+  float_tt by = m_dy*m_ny;
+  for(unsigned ixa=0; ixa<m_nx; ixa++) 
+    {
+  m_kx[ixa] = (ixa>m_nx/2) ? (float_tt)(ixa-m_nx)/ax : 
+    (float_tt)ixa/ax;
+  m_kx2[ixa] = m_kx[ixa]*m_kx[ixa];
+    }
+    for(unsigned iya=0; iya<m_ny; iya++) {
+      m_ky[iya] = (iya>m_ny/2) ? 
+        (float_tt)(iya-m_ny)/by : 
+        (float_tt)iya/by;
+      m_ky2[iya] = m_ky[iya]*m_ky[iya];
+    }
+    m_k2max = m_nx/(2.0F*ax);
+    if (m_ny/(2.0F*by) < m_k2max ) m_k2max = m_ny/(2.0F*by);
+    m_k2max = 2.0/3.0 * m_k2max;
+    m_k2max = m_k2max*m_k2max;
 }
 
 void WAVEFUNC::DisplayParams()
@@ -87,53 +107,7 @@ void WAVEFUNC::DisplayParams()
 
   printf("* Beams:                %d x %d \n",m_nx,m_ny);  
 
-  printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",m_btiltx*RAD2DEG,m_btilty*RAD2DEG,
-         (m_tiltBack == 1 ? "on" : "off"));
-  
-  printf("* Aperture half angle:  %g mrad\n",m_alpha);
-  printf("* AIS aperture:         ");
-  if (m_aAIS > 0) printf("%g A\n",m_aAIS);
-  else printf("none\n");
-  printf("* beam current:         %g pA\n",m_beamCurrent);
-  printf("* dwell time:           %g msec (%g electrons)\n",
-         m_dwellTime,m_electronScale);
-
-  printf("* Damping dE/E: %g / %g \n",sqrt(m_dE_E*m_dE_E+m_dV_V*m_dV_V+m_dI_I*m_dI_I)*m_v0*1e3,m_v0*1e3);
-
   printf("* Acc. voltage:         %g (lambda=%gA)\n",m_v0,Wavelength(m_v0));
-  printf("* C_3 (C_s):            %g mm\n",m_Cs*1e-7);
-  printf("* C_1 (Defocus):        %g nm%s\n",0.1*m_df0,
-         (m_Scherzer == 1) ? " (Scherzer)" : (m_Scherzer==2) ? " (opt.)":"");
-  printf("* Astigmatism:          %g nm, %g deg\n",0.1*m_astigMag,RAD2DEG*m_astigAngle);
-
-	// more aberrations:
-  if (m_a33 > 0)
-    printf("* a_3,3:                %g nm, phi=%g deg\n",m_a33*1e-1,m_phi33*RAD2DEG);
-  if (m_a31 > 0)
-    printf("* a_3,1:                %g nm, phi=%g deg\n",m_a31*1e-1,m_phi31*RAD2DEG);
-  
-  if (m_a44 > 0)
-    printf("* a_4,4:                %g um, phi=%g deg\n",m_a44*1e-4,m_phi44*RAD2DEG);
-  if (m_a42 > 0)
-    printf("* a_4,2:                %g um, phi=%g deg\n",m_a42*1e-4,m_phi42*RAD2DEG);
-
-  if (m_a55 > 0)
-    printf("* a_5,5:                %g um, phi=%g deg\n",m_a55*1e-4,m_phi55*RAD2DEG);
-  if (m_a53 > 0)
-    printf("* a_5,3:                %g um, phi=%g deg\n",m_a53*1e-4,m_phi53*RAD2DEG);
-  if (m_a51 > 0)
-    printf("* a_5,1:                %g um, phi=%g deg\n",m_a51*1e-4,m_phi51*RAD2DEG);
-
-  if (m_a66 > 0)
-    printf("* a_6,6:                %g um, phi=%g deg\n",m_a66*1e-7,m_phi66*RAD2DEG);
-  if (m_a64 > 0)
-    printf("* a_6,4:                %g um, phi=%g deg\n",m_a64*1e-7,m_phi64*RAD2DEG);
-  if (m_a62 > 0)
-    printf("* a_6,2:                %g um, phi=%g deg\n",m_a62*1e-7,m_phi62*RAD2DEG);
-  if (m_C5 != 0)
-    printf("* C_5:                  %g mm\n",m_C5*1e-7);
-  
-  printf("* C_c:                  %g mm\n",m_Cc*1e-7);
 
   if (k_fftMeasureFlag == FFTW_MEASURE)
     printf("* Probe array:          %d x %d pixels (optimized)\n",m_nx,m_ny);
@@ -143,10 +117,13 @@ void WAVEFUNC::DisplayParams()
          m_nx*m_dx,m_ny*m_dy);
 }
 
+/*
+//TODO: where does this belong?
 inline void WAVEFUNC::GetElectronScale(float_tt &electronScale)
 {
   electronScale=m_electronScale;
 }
+*/
 
 inline void WAVEFUNC::GetSizePixels(unsigned &x, unsigned &y)
 {
@@ -171,9 +148,9 @@ inline float_tt WAVEFUNC::GetK2(unsigned ix, unsigned iy)
   return m_kx2[ix]+m_ky2[iy];
 }
 
-inline float_tt WAVEFUNC::GetPixelIntensity(unsigned x, unsigned y)
+inline float_tt WAVEFUNC::GetPixelIntensity(unsigned i)
 {
-  return m_wave[x][y][0]*m_wave[x][y][0] + m_wave[x][y][1]*m_wave[x][y][1];
+  return m_wave[i][0]*m_wave[i][0] + m_wave[i][1]*m_wave[i][1];
 }
 
 float_tt WAVEFUNC::GetIntegratedIntensity()
@@ -182,41 +159,39 @@ float_tt WAVEFUNC::GetIntegratedIntensity()
   float_tt intIntensity=0;
   for (unsigned i=0; i<px; i++)
     {
-      intIntensity+=m_wave[x][y][0]*m_wave[x][y][0] + m_wave[x][y][1]*m_wave[x][y][1];
+      intIntensity+=m_wave[i][0]*m_wave[i][0] + m_wave[i][1]*m_wave[i][1];
     }
   // TODO: divide by px or not?
   return intIntensity/px;
 }
 
-inline void WAVEFUNC::SetDiffPatPixel(unsigned x, unsigned y, float_tt value)
-{
-  m_diffpat[x][y]=value;
-}
-
-void WAVEFUNC::ApplyTransferFunction(complex_tt **wave)
+void WAVEFUNC::ApplyTransferFunction(complex_tt *wave)
 {
   // TODO: transfer function should be passed as a 1D vector that is half the size of the wavefunc.
   //       It should be applied by a radial lookup table (with interpolation?)
   //       Alternatively, is it easier to just use a 2D CTF?
   //       Whatever you do, use m_transferFunction as the storage for it.
-  if (wave == NULL) wave = complex2D(nx,ny,"imageWave");
+  if (wave == NULL) wave = complex1D(m_nx*m_ny,"imageWave");
+  unsigned px=GetTotalPixels();
       
   // multiply wave (in rec. space) with transfer function and write result to imagewave
-#if FLOAT_PRECISION == 1
-  fftwf_execute(m_fftPlanWaveForw);
-#elif FLOAT_PRECISION == 2
-  fftw_execute(m_fftPlanWaveForw);
-#endif
-  for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
+  ToFourierSpace();
+  for (unsigned i=0;i<px;i++)
+    {
       // here, we apply the CTF:
       // 20140110 - MCS - I think this is where Christoph wanted to apply the CTF - nothing is done ATM.
-      wave[ix][iy][0] = m_wave[ix][iy][0];
-      wave[ix][iy][1] = m_wave[ix][iy][1];
+
+      // TODO: use these for calculating a radius (to get the CTF value from)
+      //ix=i%m_nx;
+      //iy=i/m_ny;
+
+      wave[i][0] = m_wave[i][0];
+      wave[i][1] = m_wave[i][1];
     }
 #if FLOAT_PRECISION == 1
-  fftwf_execute_dft(m_fftPlanWaveInv,wave[0],wave[0]);
+  fftwf_execute_dft(m_fftPlanWaveInv,wave,wave);
 #elif FLOAT_PRECISION == 2
-  fftw_execute_dft(m_fftPlanWaveInv,wave[0],wave[0]);
+  fftw_execute_dft(m_fftPlanWaveInv,wave,wave);
 #endif
 }
 
@@ -225,15 +200,15 @@ void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
 {
   params["dx"]=m_dx;
   params["dy"]=m_dy;
-  params["HT"] = m_v0;
-  params["Cs"] = m_Cs;
-  params["Defocus"] = m_df0;
-  params["Astigmatism Magnitude"] = m_astigMag;
-  params["Astigmatism Angle"] = m_astigAngle;
-  params["Focal Spread"] = m_Cc * sqrt(m_dE_E*m_dE_E+m_dV_V*m_dV_V+m_dI_I*m_dI_I);
-  params["Convergence Angle"] = m_alpha;
-  params["Beam Tilt X"] = m_btiltx;
-  params["Beam Tilt Y"] = m_btilty;
+  //params["HT"] = m_v0;
+  //params["Cs"] = m_Cs;
+  //params["Defocus"] = m_df0;
+  //params["Astigmatism Magnitude"] = m_astigMag;
+  //params["Astigmatism Angle"] = m_astigAngle;
+  //params["Focal Spread"] = m_Cc * sqrt(m_dE_E*m_dE_E+m_dV_V*m_dV_V+m_dI_I*m_dI_I);
+  //params["Convergence Angle"] = m_alpha;
+  //params["Beam Tilt X"] = m_btiltx;
+  //params["Beam Tilt Y"] = m_btilty;
   m_imageIO->WriteComplexImage((void **)m_wave, fileName, params, comment, m_position);
 }
 
