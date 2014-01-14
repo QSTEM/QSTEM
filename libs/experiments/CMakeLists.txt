@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(qstem_experiments_lib)
+project(qstem_experiments)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
@@ -14,8 +14,11 @@ FILE(GLOB LIBS_H_FILES "*.hpp")
 
 set (qstem_expts_src ${LIBS_C_FILES} ${LIBS_H_FILES})
 
-add_library(qstem_experiments_lib ${qstem_expts_src})
-target_link_libraries(qstem_experiments_lib ${Boost_LIBRARIES})
+add_library(qstem_experiments ${qstem_expts_src})
+target_link_libraries(qstem_experiments ${Boost_LIBRARIES})
+target_link_libraries(qstem_experiments qstem_potentials)
+target_link_libraries(qstem_experiments qstem_wavefunctions)
+
 
 # Also build IO functionality separately for external use (??)
 #add_subdirectory(config_IO)
