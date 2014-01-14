@@ -180,7 +180,7 @@ void CExperimentBase::InterimWave(int slice) {
 * waver, wavei are expected to contain incident wave function 
 * they will be updated at return
 *****************************************************************/
-int CExperimentBase::RunMuls() 
+int CExperimentBase::RunMuls(WavePtr wave) 
 {
   int printFlag = 0; 
   int showEverySlice=1;
@@ -196,17 +196,17 @@ int CExperimentBase::RunMuls()
 
   unsigned nx, ny;
 
-  m_wave->GetSizePixels(nx, ny);
+  wave->GetSizePixels(nx, ny);
 
   printFlag = (m_printLevel > 3);
   fftScale = 1.0/(nx*ny);
 
-  wavlen = m_wave->GetWavelength();
+  wavlen = wave->GetWavelength();
 
   /*  calculate the total specimen thickness and echo */
   cztot=0.0;
   for( islice=0; islice<m_potential->GetNSlices(); islice++) {
-    cztot += m_potential->GetThickness(islice);
+    cztot += m_potential->GetSliceThickness(islice);
   }
   if (printFlag)
     printf("Specimen thickness: %g Angstroms\n", cztot);
@@ -218,37 +218,35 @@ int CExperimentBase::RunMuls()
       /***********************************************************************
        * Transmit is a simple multiplication of wave with trans in real space
        **********************************************************************/
-      Transmit(m_wave, islice);   
+      Transmit(wave, islice);   
       /***************************************************** 
        * remember: prop must be here to anti-alias
        * propagate is a simple multiplication of wave with prop
        * but it also takes care of the bandwidth limiting
        *******************************************************/
-      m_wave->ToFourierSpace();
-      Propagate();
+      wave->ToFourierSpace();
+      Propagate(wave, islice);
       //propagate_slow(wave, m_nx, m_ny, muls);
 
       CollectIntensity(absolute_slice);
 
       // go back to real space:
       wave->ToRealSpace();
-      fft_normalize(m_wave);
+      // TODO: Is this normalization necessary?
+      fft_normalize(wave);
       
       // write the intermediate TEM wave function:
       
       /********************************************************************
        * show progress:
        ********************************************************************/
-      m_wave->thickness = (absolute_slice+1)*m_sliceThickness;
+      //m_wave->thickness = (absolute_slice+1)*m_sliceThickness;
+      /*
+      // TODO: if we want this, move it to STEM class
+
       if ((printFlag)) {
-        sum = 0.0;
-        for( ix=0; ix<nx; ix++)  for( iy=0; iy<ny; iy++) {
-            sum +=  m_wave->GetPixelIntensity(ix,iy);
-          }
-        sum *= fftScale;
+        sum=wave->GetIntegratedIntensity()*fftScale;
         
-        /*
-          // TODO: if we want this, move it to STEM class
         sprintf(outStr,"position (%3d, %3d), slice %4d (%.2f), int. = %f", 
                 m_wave->detPosX, m_wave->detPosY,
                 m_totalSliceCount+islice,m_wave->thickness,sum );
@@ -258,8 +256,8 @@ int CExperimentBase::RunMuls()
           printf("%s",outStr);
           for (i=0;i<(int)strlen(outStr);i++) printf("\b");
         }
-        */
       }
+      */
 	
       // Call any additional saving/post-processing that should occur on a per-slice basis
       PostSliceProcess(absolute_slice);
@@ -303,12 +301,8 @@ int CExperimentBase::RunMuls()
             (*muls).rmin,(*muls).rmax,(*muls).aimin,(*muls).aimax);
   }
   */
-  if (m_saveFlag) {
-    if ((m_saveLevel > 1) || (m_cellDiv > 1)) {
-      m_wave->WriteWave();
-      if (printFlag)
-        printf("Created complex image file %s\n",(*wave).fileout.c_str());
-    }
+  if ((m_saveLevel > 1) || (m_cellDiv > 1)) {
+    wave->WriteWave();
   }
   return 0;
 }  // end of runMulsSTEM
@@ -317,7 +311,7 @@ int CExperimentBase::RunMuls()
 * propagate_slow() 
 * Propagates a wave
 *****************************************************************/
-void CExperimentBase::Propagate(WavePtr &wave, float_tt dz)
+void CExperimentBase::Propagate(WavePtr wave, float_tt dz)
 {
   int ixa, iya;
   float_tt wr, wi, tr, ti;
@@ -325,10 +319,14 @@ void CExperimentBase::Propagate(WavePtr &wave, float_tt dz)
   float_tt dzs=0;
 
   float_tt dx, dy;
-  unsigned nx, ny;
+  unsigned nx, ny, px;
   
   wave->GetResolution(dx, dy);
   wave->GetSizePixels(nx, ny);
+
+  complex_tt *w=wave->GetWavePointer();
+
+  px=nx*ny;
 
   float_tt ax = dx*nx;
   float_tt by = dy*ny;
@@ -342,7 +340,7 @@ void CExperimentBase::Propagate(WavePtr &wave, float_tt dz)
       m_kx[ixa] = (ixa>nx/2) ? (float_tt)(ixa-nx)/ax : 
         (float_tt)ixa/ax;
       m_kx2[ixa] = m_kx[ixa]*m_kx[ixa];
-      t = scale * (m_kx2[ixa]*m_wavlen);
+      t = scale * (m_kx2[ixa]*wave->GetWavelength());
       m_propxr[ixa] = (float_tt)  cos(t);
       m_propxi[ixa] = (float_tt) -sin(t);
     }
@@ -355,7 +353,7 @@ void CExperimentBase::Propagate(WavePtr &wave, float_tt dz)
       m_propyr[iya] = (float_tt)  cos(t);
       m_propyi[iya] = (float_tt) -sin(t);
     }
-    m_k2max = m_nx/(2.0F*ax);
+    m_k2max = nx/(2.0F*ax);
     if (ny/(2.0F*by) < m_k2max ) m_k2max = ny/(2.0F*by);
     m_k2max = 2.0/3.0 * m_k2max;
     m_k2max = m_k2max*m_k2max;
@@ -366,25 +364,26 @@ void CExperimentBase::Propagate(WavePtr &wave, float_tt dz)
   /*************************************************************
    * Propagation
    ************************************************************/
-  for( ixa=0; ixa<nx; ixa++) {
-    if( m_kx2[ixa] < m_k2max ) {
-      for( iya=0; iya<ny; iya++) {
+  for (unsigned i=0; i<px; i++)
+    {
+      ixa=i%nx;
+      iya=i/nx;
+      if( m_kx2[ixa] < m_k2max ) {
         if( (m_kx2[ixa] + m_ky2[iya]) < m_k2max ) {
                 
-          wr = m_wave[ixa][iya][0];
-          wi = m_wave[ixa][iya][1];
+          wr = w[i][0];
+          wi = w[i][1];
           tr = wr*m_propyr[iya] - wi*m_propyi[iya];
           ti = wr*m_propyi[iya] + wi*m_propyr[iya];
-          m_wave[ixa][iya][0] = tr*m_propxr[ixa] - ti*m_propxi[ixa];
-          m_wave[ixa][iya][1] = tr*m_propxi[ixa] + ti*m_propxr[ixa];
+          w[i][0] = tr*m_propxr[ixa] - ti*m_propxi[ixa];
+          w[i][1] = tr*m_propxi[ixa] + ti*m_propxr[ixa];
 
         } else
-          m_wave[ixa][iya][0] = m_wave[ixa][iya][1] = 0.0F;
+          w[i][0] = w[i][1] = 0.0F;
       } /* end for(iy..) */
-
-    } else for( iya=0; iya<ny; iya++)
-             m_wave[ixa][iya][0] = m_wave[ixa][iya][1] = 0.0F;
-  } /* end for(ix..) */
+      
+      else w[i][0] = w[i][1] = 0.0F;
+    } /* end for(ix..) */
 } /* end propagate */
 
 /*------------------------ transmit() ------------------------*/
@@ -401,7 +400,7 @@ on entrance waver,i and transr,i are in real space
 
 only waver,i will be changed by this routine
 */
-void CExperimentBase::Transmit(WavePtr &wave, unsigned sliceIdx) {
+void CExperimentBase::Transmit(WavePtr wave, unsigned sliceIdx) {
   double wr, wi, tr, ti;
   
   complex_tt *w,**t;
@@ -470,4 +469,26 @@ void CExperimentBase::ReadAvgArray(unsigned positionx, unsigned positiony)
   position[1]=positiony;
   m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, position);
 }
+
+void CExperimentBase::fft_normalize(WavePtr wave) 
+{
+  complex_tt *w;
+  unsigned px = wave->GetTotalPixels();
+
+  float_tt fftScale = 1.0/px;
+  for (unsigned i=0; i<px; i++)
+    {
+      w[i][0] *= fftScale;
+      w[i][1] *= fftScale;
+    }
+}
+
+
+
+
+
+
+
+
+
 

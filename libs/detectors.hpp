@@ -42,7 +42,7 @@ public:
   Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavelength);
   boost::shared_ptr<Detector> Clone();
   void Initialize();
-  void CollectIntensity(WavePtr &wave);
+  void CollectIntensity(const WavePtr &wave);
   void WriteImage(std::map<std::string, double> &params,
                   std::vector<unsigned>&position);
   // No position - for example, the final detector in a series

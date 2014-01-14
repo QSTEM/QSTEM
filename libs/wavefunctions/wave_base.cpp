@@ -38,31 +38,9 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
   m_ny(y),
   m_dx(resX),
   m_dy(resY),
-  m_params(std::map<std::string, double>()),
-  m_propxr(std::vector<float_tt>(x)),
-  m_propxi(std::vector<float_tt>(x)),
-  m_propyr(std::vector<float_tt>(y)),
-  m_propyi(std::vector<float_tt>(y))
+  m_params(std::map<std::string, double>())
 {
-  m_wavlen = Wavelength(m_v0);
-  //m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
-
-  m_diffpat = float2D(m_nx,m_ny,"diffpat");
-  m_avgArray = float2D(m_nx,m_ny,"avgArray");
-
-  // TODO: need to pass file extension through to this constructor
-  m_imageIO=ImageIOPtr(new CImageIO(m_nx, m_ny, input_ext, output_ext));
-	
-  m_wave = complex2D(m_nx, m_ny, "wave");
-#if FLOAT_PRECISION == 1
-  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_FORWARD, FFTW_ESTIMATE);
-  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_BACKWARD, FFTW_ESTIMATE);
-#else
-  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_FORWARD,
-                                     fftMeasureFlag);
-  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave[0],m_wave[0],FFTW_BACKWARD,
-                                    fftMeasureFlag);
-#endif
+  Initialize();
 }
 
 WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
@@ -74,7 +52,30 @@ WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
   m_electronScale = m_beamCurrent*m_dwellTime*MILLISEC_PICOAMP;
 
   // TODO: need to figure out how user is going to specify input/output formats
-  WAVEFUNC(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
+  //WAVEFUNC(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
+  Initialize();
+}
+
+void WAVEFUNC::Initialize()
+{
+  m_wavlen = Wavelength(m_v0);
+  //m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
+
+  m_diffpat = float1D(m_nx*m_ny,"diffpat");
+
+  // TODO: need to pass file extension through to this constructor
+  m_imageIO=ImageIOPtr(new CImageIO(m_nx, m_ny, input_ext, output_ext));
+	
+  m_wave = complex1D(m_nx*m_ny, "wave");
+#if FLOAT_PRECISION == 1
+  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, FFTW_ESTIMATE);
+  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, FFTW_ESTIMATE);
+#else
+  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD,
+                                     fftMeasureFlag);
+  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD,
+                                    fftMeasureFlag);
+#endif
 }
 
 void WAVEFUNC::DisplayParams()
@@ -322,21 +323,6 @@ float_tt WAVEFUNC::Wavelength(float_tt kev)
   return hc/sqrt( kev * ( 2*emass + kev ) );
 }  /* end wavelength() */
 
-void WAVEFUNC::fft_normalize(void **array,int nx, int ny) 
-{
-  int ix,iy;
-  double fftScale;
-
-  complex_tt **carray;
-  carray = (complex_tt **)array;
-
-  fftScale = 1.0/(double)(nx*ny);
-  for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-      carray[ix][iy][0] *= fftScale;
-      carray[ix][iy][1] *= fftScale;
-    }
-}
-
 /*
 void WAVEFUNC:WriteBeams(int absolute_slice) {
   static char fileAmpl[32];
@@ -368,11 +354,11 @@ void WAVEFUNC::ToFourierSpace()
     }
 }
 
-      // FFT back to realspace, but only if we're currently in Fourier space
-      void WAVEFUNC::ToRealSpace()
-      {
-      if (!IsRealSpace())
-        {
+// FFT back to realspace, but only if we're currently in Fourier space
+void WAVEFUNC::ToRealSpace()
+{
+  if (!IsRealSpace())
+    {
 #if FLOAT_PRECISION == 1
       fftwf_execute(m_fftPlanWaveInv);
 #elif FLOAT_PRECISION == 2

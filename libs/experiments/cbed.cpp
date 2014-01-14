@@ -122,7 +122,7 @@ void CExperimentCBED::Run()
         m_potential->Refresh();
         
         // what probe should runMulsSTEM use here?
-        RunMuls(); 
+        RunMuls(m_wave); 
         
         //printf("Thickness: %gA, int.=%g\n",
         //       m_wave->thickness,m_wave->intIntensity);

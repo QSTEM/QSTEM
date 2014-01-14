@@ -14,29 +14,43 @@ include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" "${HDF5_I
 FILE(GLOB LIBS_C_FILES "*.cpp")
 FILE(GLOB LIBS_H_FILES "*.hpp")
 # Include all of the IO functionality with the main library
-FILE(GLOB CONFIG_C_FILES "config_IO/*.cpp")
 FILE(GLOB CONFIG_H_FILES "config_IO/*.hpp")
-FILE(GLOB DATA_C_FILES "data_IO/*.cpp")
 FILE(GLOB DATA_H_FILES "data_IO/*.hpp")
-FILE(GLOB STRUCTURE_C_FILES "structure_IO/*.cpp")
 FILE(GLOB STRUCTURE_H_FILES "structure_IO/*.hpp")
-FILE(GLOB POTENTIAL_C_FILES "potentials/*.cpp")
 FILE(GLOB POTENTIAL_H_FILES "potentials/*.hpp")
-FILE(GLOB EXPERIMENT_C_FILES "experiments/*.cpp")
 FILE(GLOB EXPERIMENT_H_FILES "experiments/*.hpp")
 
 set (qstem_libs_src ${LIBS_C_FILES} ${LIBS_H_FILES})
-set (qstem_libs_src ${qstem_libs_src} ${CONFIG_C_FILES} ${CONFIG_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${DATA_C_FILES} ${DATA_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${STRUCTURE_C_FILES} ${STRUCTURE_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${POTENTIAL_C_FILES} ${POTENTIAL_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${EXPERIMENT_C_FILES} ${EXPERIMENT_H_FILES} )
+set (qstem_libs_src ${qstem_libs_src} ${CONFIG_H_FILES} )
+set (qstem_libs_src ${qstem_libs_src} ${DATA_H_FILES} )
+set (qstem_libs_src ${qstem_libs_src} ${STRUCTURE_H_FILES} )
+set (qstem_libs_src ${qstem_libs_src} ${POTENTIAL_H_FILES} )
+set (qstem_libs_src ${qstem_libs_src} ${EXPERIMENT_H_FILES} )
+
+# defines qstem_config_lib (config readers)
+add_subdirectory(config_IO)
+
+# defines qstem_data_lib (I/O for image data)
+add_subdirectory(data_IO)
+
+#defines qstem_structure_lib
+add_subdirectory(structure_IO)
+
+# defines qstem_wavefunctions_lib
+add_subdirectory(wavefunctions)
+
+# defines qstem_potentials_lib
+add_subdirectory(potentials)
+
+# defines qstem_experiments_lib
+add_subdirectory(experiments)
+
 
 add_library(qstem_libs ${qstem_libs_src})
 target_link_libraries(qstem_libs ${Boost_LIBRARIES})
-
-# Also build IO functionality separately for external use (??)
-#add_subdirectory(config_IO)
-#add_subdirectory(data_IO)
-#add_subdirectory(structure_IO)
-
+target_link_libraries(qstem_libs qstem_config_lib)
+target_link_libraries(qstem_libs qstem_data_lib)
+target_link_libraries(qstem_libs qstem_structure_lib)
+target_link_libraries(qstem_libs qstem_wavefunctions_lib)
+target_link_libraries(qstem_libs qstem_potentials_lib)
+target_link_libraries(qstem_libs qstem_experiments_lib)

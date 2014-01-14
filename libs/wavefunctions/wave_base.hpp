@@ -166,10 +166,6 @@ protected:
   std::vector<unsigned> m_position;
   std::map<std::string, double> m_params;
 
-  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
-  std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
-  float_tt m_k2max;
-
   float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
 
   // defocus mode: 1 = Scherzer, 2 = ???
@@ -214,6 +210,8 @@ protected:
 #endif
 
 protected:
+  void Initialize();
+
   void _WriteWave(std::string &prefix, std::string comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());
   void _WriteDiffPat(std::string &prefix, std::string comment="Diffraction Pattern",
@@ -228,7 +226,6 @@ protected:
 
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
-  void fft_normalize(void **array,int nx, int ny);
 
   // m_transferFunction  // The transfer function - optionally applied (used by TEM mode)
 };

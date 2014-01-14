@@ -72,7 +72,7 @@ void Detector::WriteImage(std::map<std::string, double> &params,
   m_imageIO->WriteRealImage((void **)m_image, m_name, params, comment, position);
 }
 
-void Detector::CollectIntensity(WavePtr &wave)
+void Detector::CollectIntensity(const WavePtr &wave)
 {
   /********************************************************************
    * collectIntensity(muls, wave, slice)
@@ -89,7 +89,6 @@ void Detector::CollectIntensity(WavePtr &wave)
   float_tt **diffpatAvg = NULL;
   int tCount = 0;
   unsigned nx, ny, offsetX, offsetY;
-  float_tt electronScale;
 
   std::vector<std::vector<DetectorPtr> > detectors;
 
@@ -97,6 +96,8 @@ void Detector::CollectIntensity(WavePtr &wave)
   wave->GetSizePixels(nx, ny);
   wave->GetPositionOffset(offsetX, offsetY);
 
+  //scale=1;
+  // TODO: come up with where electronScale belongs (might be STEM-specific?
   scale = electronScale/((double)(nx*ny)*(nx*ny));
   // scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
   scaleDiff = 1.0/sqrt((double)(nx*ny));

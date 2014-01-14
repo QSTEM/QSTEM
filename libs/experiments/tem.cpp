@@ -113,7 +113,7 @@ void CExperimentTEM::Run()
           m_potential->Refresh();
         }
 
-        RunMuls(); 
+        RunMuls(m_wave); 
         m_totalSliceCount += m_potential->GetNSlices();
 
         if (m_printLevel > 0) {

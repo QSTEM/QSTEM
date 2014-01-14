@@ -138,7 +138,7 @@ void CExperimentSTEM::Run()
 
             // MCS - update the probe wavefunction with its position
 
-            RunMuls(); 
+            RunMuls(wave); 
 
 
             /***************************************************************

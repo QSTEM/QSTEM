@@ -39,11 +39,11 @@ protected:
   virtual void PostSliceProcess(unsigned absoluteSlice){};  // Called in RunMuls after a slice is transmitted/propagated through.  Override as desired.
   
   virtual void CollectIntensity(unsigned absoluteSlice)=0;
-  virtual int RunMuls();
+  virtual int RunMuls(WavePtr wave);
   virtual void InterimWave(int slice);
 
-  virtual void Transmit(WavePtr &wave, unsigned sliceIdx);
-  virtual void Propagate(WavePtr &wave, float_tt dz);
+  virtual void Transmit(WavePtr wave, unsigned sliceIdx);
+  virtual void Propagate(WavePtr wave, float_tt dz);
   virtual void AddDPToAvgArray(const WavePtr &wave);
 
   void ReadAvgArray();
@@ -76,6 +76,8 @@ protected:
     _WriteAvgArray(avgFilePrefix, comment, params, position);
   }
 
+  void fft_normalize(WavePtr wave);
+
   bool m_tds;
   unsigned m_avgRuns, m_avgCount;  // number of runs to average; runs currently averaged
   unsigned m_printLevel;
@@ -87,7 +89,7 @@ protected:
   PotPtr m_potential;      // The sample potential
 
   float_tt m_intIntensity;  // Integrated intensity from experiment - if too low, 
-							// your wave array is too small, and the beam is being scattered beyond it.
+			    // your wave array is too small, and the beam is being scattered beyond it.
 
   unsigned m_cellDiv;		// The number of sub-slabs that the supercell is divided into
   bool m_equalDivs;			// Whether or not all sub-slabs are the same size
@@ -104,6 +106,11 @@ protected:
   unsigned m_iPosX,m_iPosY;           /* integer offset for positioning probe within potential array */
 
   ImageIOPtr m_imageIO;
+
+  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
+  float_tt m_k2max;
+
 };
 
 #endif

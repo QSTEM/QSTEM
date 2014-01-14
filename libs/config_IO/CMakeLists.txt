@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(qstem_config_io_libs)
+project(qstem_config_lib)
 
 include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}")	
 
@@ -9,4 +9,4 @@ FILE(GLOB STEM3_IO_LIBS_C_FILES "*.cpp")
 FILE(GLOB STEM3_IO_LIBS_H_FILES "*.hpp")
 
 set (qstem_io_libs_src ${STEM3_IO_LIBS_C_FILES} ${STEM3_IO_LIBS_H_FILES} ${QSTEM_LIB_HEADERS})
-add_library(qstem_config_io_libs ${qstem_io_libs_src})
+add_library(qstem_config_lib ${qstem_io_libs_src})
