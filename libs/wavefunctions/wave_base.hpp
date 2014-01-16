@@ -56,7 +56,6 @@ public:
   //void CopyDPToAvgArray(float_tt *avgArray);
   //void AddDPToAvgArray(unsigned avgCount);
 
-  void GetElectronScale(float_tt &electronScale) const ;
   void GetSizePixels(unsigned &x, unsigned &y) const ;
   unsigned GetTotalPixels() const {return m_nx*m_ny;}
   void GetResolution(float_tt &x, float_tt &y) const ;
