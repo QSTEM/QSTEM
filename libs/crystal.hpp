@@ -47,16 +47,20 @@ public:
 
   void DisplayParams();
 
+  void SetTDS(bool state){m_tds=state;}
   void SetCellParameters(float_tt ax, float_tt by, float_tt cz);
 
   float_tt GetCZ(){return m_cz;}
   bool GetTDS(){return m_tds;}
+  void GetCellAngles(float_tt &alpha, float_tt &beta, float_tt &gamma);
   void GetCellParameters(float_tt &ax, float_tt &by, float_tt &cz);
-  unsigned GetZnum(unsigned idx){return m_Znums[idx];}
-  std::vector<unsigned> GetAtomTypes(){return m_Znums;}
-  unsigned GetNumberOfAtomTypes(){return m_Znums.size();}
-  float_tt GetU2(unsigned znum){return m_u2[znum];}
-  float_tt GetU2avg(unsigned znum){return m_u2avg[znum];}
+  inline unsigned GetZnum(unsigned idx){return m_Znums[idx];}
+  inline std::vector<unsigned> GetAtomTypes(){return m_Znums;}
+  inline unsigned GetNumberOfAtomTypes(){return m_Znums.size();}
+  inline float_tt GetU2(unsigned znum){return m_u2[znum];}
+  inline float_tt GetU2avg(unsigned znum){return m_u2avg[znum];}
+  inline void GetAtom(unsigned idx, atom &_atom){_atom=m_atoms[idx];}
+  inline unsigned GetNumberOfAtoms(){return m_atoms.size();}
   
 protected:
 	boost::filesystem::path m_structureFile;

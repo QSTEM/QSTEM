@@ -134,6 +134,13 @@ void CCrystal::SetCellParameters(float_tt ax, float_tt by, float_tt cz)
 	m_cz=cz;
 }
 
+void CCrystal::GetCellAngles(float_tt &alpha, float_tt &beta, float_tt &gamma)
+{
+	alpha=m_cAlpha;
+	beta=m_cBeta;
+	gamma=m_cGamma;
+}
+
 void CCrystal::GetCellParameters(float_tt &ax, float_tt &by, float_tt &cz)
 {
 	ax=m_ax;
@@ -1192,7 +1199,7 @@ void CCrystal::WriteStructure(unsigned run_number)
 
 #include "matrixlib.hpp"
 
-void CCrystal::Inverse_3x3 (float_tt *res, const float_tt *a)
+void CCrystal::Inverse_3x3(float_tt *res, const float_tt *a)
 {
   // use function from matrixlib for now
   return inverse_3x3(res, a);

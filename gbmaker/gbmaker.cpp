@@ -37,6 +37,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include "matrixlib.hpp"
 #include "fileio_fftw3.hpp"
 
+#include "crystal.hpp"
+
 #define NAME_BUF_LEN 64
 #define CRYSTALLINE 0
 #define AMORPHOUS 1
@@ -401,7 +403,7 @@ int readParams(char *datFileName) {
 			grains[gCount].planes = NULL;
 			CCrystal cryst(1,1,1,0,0,0);
 			
-			cryst.m_tds = 0;
+			cryst.SetTDS(false);
 			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			if (tempCell == NULL) {
 				printf("Error reading unit cell data - exit!\n");
@@ -420,10 +422,8 @@ int readParams(char *datFileName) {
 			grains[gCount].unitCell = (atom *)malloc(grains[gCount].natoms*sizeof(atom));
 			memcpy(grains[gCount].unitCell,tempCell,grains[gCount].natoms*sizeof(atom));
 
-			grains[gCount].alpha = cryst.m_cAlpha;
-			grains[gCount].beta  = cryst.m_cBeta;
-			grains[gCount].gamma = cryst.m_cGamma;
 			// Sets grain's cell parameters to those of cryst
+			cryst.GetCellAngles(grains[gCount].alpha,grains[gCount].beta,grains[gCount].gamma);
 			cryst.GetCellParameters(grains[gCount].ax, grains[gCount].by, grains[gCount].cz);
 		}
 		/***************************************************
@@ -1220,24 +1220,29 @@ float_tt xDistrFun2(float_tt xcenter,float_tt width1,float_tt width2) {
 
 // one can run "xmgr -nxy disList.dat &" to view the data produced by this function
 #define DR 1.1
-void makeDistrPlot(atom *atoms,int natoms,float_tt ax) {
+void makeDistrPlot(StructurePtr &crystal, float_tt ax) {
 	int j,i,count,ind;
 	int **list;
 	FILE *fp;
 
-	printf("Atom kinds: %d: ",muls->atomKinds);
-	for (i=0;i<muls->atomKinds;i++) printf(" %3d ",muls->Znums[i]);
+	unsigned atKinds=crystal->GetNumberOfAtomTypes();
+	unsigned natoms = crystal->GetNumberOfAtoms();
+
+	printf("Atom kinds: %d: ",atKinds);
+	for (i=0;i<atKinds;i++) printf(" %3d ",crystal->GetZnum(i));
 	printf("\n");
 
 	count = (int)(ax/DR+1);
-	list = int2D(muls->atomKinds,count,"list");
-	memset(list[0],0,count*muls->atomKinds*sizeof(int));
+	list = int2D(atKinds,count,"list");
+	memset(list[0],0,count*atKinds*sizeof(int));
+	atom _atom;
 	for (j=0;j<natoms;j++) {
-		ind = (int)(atoms[j].x/DR);
+		crystal->GetAtom(j,_atom);
+		ind = (int)(_atom.x/DR);
 		if (ind < 0) ind = 0;
 		if (ind >= count) ind = count;
-		for (i=0;i<muls->atomKinds;i++) if (muls->Znums[i] == atoms[j].Znum) break;
-		if (i==muls->atomKinds) {
+		for (i=0;i<atKinds;i++) if (crystal->GetZnum(i) == _atom.Znum) break;
+		if (i==atKinds) {
 			// printf("Error: wrong Z (%d)\n",atoms[j].Znum);
 		}
 		else list[i][ind]++;
@@ -1245,7 +1250,7 @@ void makeDistrPlot(atom *atoms,int natoms,float_tt ax) {
 	fp = fopen("disList.dat","w");
 	for (j=0;j<count;j++) {
 		fprintf(fp,"%.3f ",j*DR);
-		for (i=0;i<muls->atomKinds;i++) fprintf(fp,"%d ",list[i][j]);
+		for (i=0;i<atKinds;i++) fprintf(fp,"%d ",list[i][j]);
 		fprintf(fp,"\n");
 	}
 }
