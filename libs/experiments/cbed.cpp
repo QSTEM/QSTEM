@@ -122,7 +122,7 @@ void CExperimentCBED::Run()
         m_potential->Refresh();
         
         // what probe should runMulsSTEM use here?
-        RunMuls(); 
+        RunMuls(m_wave); 
         
         //printf("Thickness: %gA, int.=%g\n",
         //       m_wave->thickness,m_wave->intIntensity);
@@ -143,9 +143,10 @@ void CExperimentCBED::Run()
     // TODO: Why are we reading in a DP at this point?  Do we have one yet?  
     //     What happens if it isn't there?
     m_wave->ReadDiffPat();
+    AddDPToAvgArray(m_wave);
+
     
     if (m_avgCount == 0) {
-      m_wave->CopyDPToAvgArray();
       /* move the averaged (raw data) file to the target directory as well */
       // TODO: make sure that DP average gets created properly
       //sprintf(avgName,"%s/diffAvg_%d.img",m_folder.c_str(),m_avgCount+1);
@@ -160,23 +161,16 @@ void CExperimentCBED::Run()
       }
     } // of if m_avgCount == 0 ...
     else {
-      m_chisq[m_avgCount-1] = 0.0;
-      for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) {
-          t = ((float_tt)m_avgCount*m_wave->GetAvgArrayPixel(ix,iy)+
-               m_wave->GetDiffPatPixel(ix,iy))/((float_tt)(m_avgCount+1));
-          m_chisq[m_avgCount-1] += (m_wave->GetAvgArrayPixel(ix,iy)-t)*(m_wave->GetAvgArrayPixel(ix,iy)-t);
-          m_wave->SetAvgArrayPixel(ix, iy, t);
-        }
-      m_chisq[m_avgCount-1] = m_chisq[m_avgCount-1]/(float_tt)(nx*ny);
-      params["1/Wavelength"] = 1.0/m_wave->GetWavelength();
-      m_wave->WriteDiffPat("Averaged Diffraction pattern, unit: 1/A", params);
                         
       m_storeSeries = 1;
       if (m_saveLevel == 0)	m_storeSeries = 0;
       else if (m_avgCount % m_saveLevel != 0) m_storeSeries = 0;
 
       if (m_storeSeries) 
-        m_wave->WriteAvgArray(m_avgCount+1, "Averaged Diffraction pattern, unit: 1/A", params);
+        {
+          params["1/Wavelength"] = 1.0/m_wave->GetWavelength();
+          WriteAvgArray(m_avgCount+1, "Averaged Diffraction pattern, unit: 1/A", params);
+        }
 
       /*************************************************************/
 
@@ -317,4 +311,14 @@ void CExperimentCBED::WriteBeams(unsigned int absoluteSlice)
   fprintf( fpAmpl, "\n");
   fprintf( fpPhase, "\n");
   */
+}
+
+void CExperimentCBED::PostSliceProcess(unsigned absoluteSlice)
+{
+  if (m_saveLevel>1)
+    {
+      InterimWave(absoluteSlice); 
+      // TODO: does CBED actually have detectors?
+      //m_detectors->CollectIntensity(m_wave, absoluteSlice);
+    }
 }

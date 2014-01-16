@@ -29,6 +29,7 @@ public:
   virtual void FormProbe();
   void TiltBeam(bool tiltBack=false);
   void TiltBack();
+  virtual void DisplayParams();
 protected:
   float_tt m_btiltx, m_btilty;     /* beam tilt, mrad */
 };

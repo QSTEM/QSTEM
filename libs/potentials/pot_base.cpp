@@ -644,3 +644,9 @@ float_tt CPotential::seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
   return( seval1 );
   
 } /* end seval() */
+
+void CPotential::GetSizePixels(unsigned int &nx, unsigned int &ny)
+{
+  nx=m_nx;
+  ny=m_ny;
+}

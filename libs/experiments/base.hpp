@@ -33,14 +33,50 @@ public:
   virtual void DisplayParams();
   virtual void Run()=0;
 
-protected:
-  virtual void CollectIntensity(unsigned absoluteSlice)=0;
-  virtual int RunMuls();
-  virtual void InterimWave(int slice);
   virtual void SaveImages()=0;
 
-  virtual void Transmit(unsigned sliceIdx);
-  virtual void Propagate(float_tt dz);
+protected:
+  virtual void PostSliceProcess(unsigned absoluteSlice){};  // Called in RunMuls after a slice is transmitted/propagated through.  Override as desired.
+  
+  virtual void CollectIntensity(unsigned absoluteSlice)=0;
+  virtual int RunMuls(WavePtr wave);
+  virtual void InterimWave(int slice);
+
+  virtual void Transmit(WavePtr wave, unsigned sliceIdx);
+  virtual void Propagate(WavePtr wave, float_tt dz);
+  virtual void AddDPToAvgArray(const WavePtr &wave);
+
+  void ReadAvgArray();
+  void ReadAvgArray(unsigned navg);
+  void ReadAvgArray(unsigned posX, unsigned posY);
+
+  void _WriteAvgArray(std::string &fileName, std::string &comment, 
+                      std::map<std::string, double> &params,
+                      std::vector<unsigned> &position);
+
+  inline void WriteAvgArray(std::string comment="Average Array", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    std::vector<unsigned> position;
+    _WriteAvgArray(avgFilePrefix, comment, params, position);
+  }
+  inline void WriteAvgArray(unsigned navg, std::string comment="Average Array", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    std::vector<unsigned>position(1);
+    position[0]=navg;
+    _WriteAvgArray(avgFilePrefix, comment, params, position);
+  }
+  inline void WriteAvgArray(unsigned posX, unsigned posY, std::string comment="Average Array", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    std::vector<unsigned>position(2);
+    position[0]=posX;
+    position[1]=posY;
+    _WriteAvgArray(avgFilePrefix, comment, params, position);
+  }
+
+  void fft_normalize(WavePtr wave);
 
   bool m_tds;
   unsigned m_avgRuns, m_avgCount;  // number of runs to average; runs currently averaged
@@ -53,7 +89,7 @@ protected:
   PotPtr m_potential;      // The sample potential
 
   float_tt m_intIntensity;  // Integrated intensity from experiment - if too low, 
-							// your wave array is too small, and the beam is being scattered beyond it.
+			    // your wave array is too small, and the beam is being scattered beyond it.
 
   unsigned m_cellDiv;		// The number of sub-slabs that the supercell is divided into
   bool m_equalDivs;			// Whether or not all sub-slabs are the same size
@@ -64,6 +100,14 @@ protected:
 
   std::vector<float_tt> m_chisq;
   std::string m_mode;      // String representing the multislice mode (e.g. TEM, STEM, etc.)
+
+  float_tt *m_avgArray;   // The averaged diffraction pattern (m_avgCount says how many are averaged currently)
+
+  unsigned m_iPosX,m_iPosY;           /* integer offset for positioning probe within potential array */
+
+  ImageIOPtr m_imageIO;
+
+  std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
 };
 
 #endif

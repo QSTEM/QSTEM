@@ -55,6 +55,8 @@ public:
   
   unsigned GetNSlices(){return m_nslices;}
   float_tt GetSliceThickness(){return m_sliceThickness;}
+  float_tt GetSliceThickness(unsigned idx){return m_cz[idx];}
+  void GetSizePixels(unsigned &nx, unsigned &ny);
 
   void WriteSlice(unsigned idx);
   void WriteProjectedPotential();

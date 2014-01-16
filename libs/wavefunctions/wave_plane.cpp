@@ -23,13 +23,24 @@ CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configRea
 {
 }
 
+void CPlaneWave::DisplayParams()
+{
+  WAVEFUNC::DisplayParams();
+
+  // TODO: transmit tiltBack status somehow (it's an experiment parameter, not a wave parameter.
+  //printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",m_btiltx*RAD2DEG,m_btilty*RAD2DEG,
+  //     (m_tiltBack == 1 ? "on" : "off"));
+}
+
 void CPlaneWave::FormProbe()
 {
   if ((m_btiltx == 0) && (m_btilty == 0)) {
-      for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
-          m_wave[ix][iy][0] = 1; 
-          m_wave[ix][iy][1] = 0;
-        }
+    unsigned px=m_nx*m_ny;
+    for (unsigned i=0; i<px; i++)
+      {
+        m_wave[i][0] = 1; 
+        m_wave[i][1] = 0;
+      }
     }
     else {
       TiltBeam();
@@ -46,14 +57,16 @@ void CPlaneWave::TiltBeam(bool tiltBack)
       // produce a tilted wave function (btiltx,btilty):
       float_tt ktx = direction*2.0*M_PI*sin(m_btiltx)/GetWavelength();
       float_tt kty = direction*2.0*M_PI*sin(m_btilty)/GetWavelength();
-      for (unsigned ix=0;ix<m_nx;ix++) {
-        float_tt x = m_dx*(ix-m_nx/2);
-        for (unsigned iy=0;iy<m_ny;iy++) {
+      unsigned px=m_nx*m_ny;
+      for (unsigned i=0; i<px; i++)
+        {
+          unsigned ix=i%m_nx;
+          unsigned iy=i/m_ny;
+          float_tt x = m_dx*(ix-m_nx/2);
           float_tt y = m_dy*(iy-m_ny/2);
-          m_wave[ix][iy][0] = (float)cos(ktx*x+kty*y);	
-          m_wave[ix][iy][1] = (float)sin(ktx*x+kty*y);
+          m_wave[i][0] = (float)cos(ktx*x+kty*y);	
+          m_wave[i][1] = (float)sin(ktx*x+kty*y);
         }
-      }
     }
 }
 
@@ -61,3 +74,9 @@ inline void CPlaneWave::TiltBack()
 {
   TiltBeam(true);
 }
+
+
+
+
+
+

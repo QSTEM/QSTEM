@@ -25,7 +25,7 @@
 
 #include "structure_IO/cfg.hpp"
 
-StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
+inline StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
 {
   std::string extension = structure_file.extension().string();
   boost::algorithm::to_lower(extension);

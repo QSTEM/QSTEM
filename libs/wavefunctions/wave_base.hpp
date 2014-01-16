@@ -50,23 +50,35 @@ public:
 
   void DisplayParams();
 
-  void CopyDPToAvgArray();
-  void AddDPToAvgArray();
+  void ToRealSpace();
+  void ToFourierSpace();
+  bool IsRealSpace(){return m_realSpace;}
+
+  //void CopyDPToAvgArray(float_tt *avgArray);
+  //void AddDPToAvgArray(unsigned avgCount);
 
   void GetElectronScale(float_tt &electronScale);
   void GetSizePixels(unsigned &x, unsigned &y);
+  unsigned GetTotalPixels(){return m_nx*m_ny;}
   void GetResolution(float_tt &x, float_tt &y);
   void GetPositionOffset(unsigned &x, unsigned &y);
   float_tt GetK2(unsigned ix, unsigned iy);
+  inline float_tt GetKX2(unsigned ix){return m_kx2[ix];}
+  inline float_tt GetKY2(unsigned iy){return m_ky2[iy];}
+  inline float_tt GetK2Max(){return m_k2max;}
+
   inline float_tt GetWavelength() {return m_wavlen;}
 
-  float_tt GetPixelIntensity(unsigned x, unsigned y);
-  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) {return m_diffpat[x][y];}
-  inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
-  inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x][y]=value;}
-  inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
+  float_tt GetPixelIntensity(unsigned i);
+  inline float_tt GetPixelIntensity(unsigned x, unsigned y) {return GetPixelIntensity(x+m_nx*y);}
+  inline float_tt GetDiffPatPixel(unsigned i) {return m_diffpat[i];}
+  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) { return m_diffpat[x+m_nx*y];}
+  //inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
+  inline void SetDiffPatPixel(unsigned i, float_tt value) {m_diffpat[i]=value;}
+  inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x+m_nx*y]=value;}
+  //inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
 
-  void ApplyTransferFunction(complex_tt **wave);
+  void ApplyTransferFunction(complex_tt *wave);
 
   void WriteBeams(unsigned absoluteSlice);
 
@@ -78,10 +90,6 @@ public:
   inline void WriteImage()
   {
     _WriteWave(imageFilePrefix, "Image intensity");
-  }
-  inline void WriteWaveIntensity()
-  {
-    _WriteDiffPat(waveIntensityFilePrefix, "Wave intensity");
   }
 
   inline void WriteWave(std::string comment="Wavefunction", 
@@ -122,24 +130,15 @@ public:
     _WriteDiffPat(dpFilePrefix, comment, params);
   }
 
-  inline void WriteAvgArray(std::string comment="Average Array", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
-  {
-    m_position.clear();
-    _WriteAvgArray(avgFilePrefix, comment, params);
-  }
-  inline void WriteAvgArray(unsigned navg, std::string comment="Average Array", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
-  {
-    SetWavePosition(navg);
-    _WriteAvgArray(avgFilePrefix, comment, params);
-  }
-  inline void WriteAvgArray(unsigned posX, unsigned posY, std::string comment="Average Array", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
-  {
-    SetWavePosition(posX, posY);
-    _WriteAvgArray(avgFilePrefix, comment, params);
-  }
+  // People can change the wavefunction - for example, that's what we have to do when we
+  //    transmit the wave through the sample's potential.
+  complex_tt *GetWavePointer(){return m_wave;}
+  // People should not directly change the diffraction pattern, since we'll re-calculate it when 
+  //   the wavefunction changes.
+  //   They can, however, access it.
+  const float_tt *GetDPPointer(){return m_diffpat;}
+
+  float_tt GetIntegratedIntensity();
 
   // ReadImage is for TEM mode
   void ReadImage();
@@ -149,73 +148,39 @@ public:
   void ReadDiffPat();
   void ReadDiffPat(unsigned navg);
   void ReadDiffPat(unsigned posX, unsigned posY);
-  void ReadAvgArray();
-  void ReadAvgArray(unsigned navg);
-  void ReadAvgArray(unsigned posX, unsigned posY);
 
 protected:
-  // shared pointer to 
   ImageIOPtr m_imageIO;
+
+  bool m_realSpace;  // If true, the m_wave is in real space.  Else, it's in Fourier space.
 
   std::string m_fileStart;
   std::string m_avgName;
   std::string m_fileout;
   unsigned m_detPosX, m_detPosY; 
-  unsigned m_iPosX,m_iPosY;           /* integer position of probe position array */
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
-  float_tt **m_diffpat;
-  float_tt **m_avgArray;
-  float_tt m_thickness;
-  float_tt m_intIntensity;
-  float_tt m_electronScale;
-  float_tt m_beamCurrent;
-  float_tt m_dwellTime;
+  float_tt *m_diffpat;
+  //float_tt **m_avgArray;
+  //float_tt m_thickness;
+  //float_tt m_intIntensity;
+  //float_tt m_electronScale;
+  //float_tt m_beamCurrent;
+  //float_tt m_dwellTime;
   float_tt m_v0;
   std::vector<unsigned> m_position;
   std::map<std::string, double> m_params;
 
-  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
-  std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
-  float_tt m_k2max;
-
-  float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
-
   // defocus mode: 1 = Scherzer, 2 = ???
   int m_Scherzer;
 
-  // Coefficients to aberration function:
-  float_tt m_a33, m_a31;
-  float_tt m_a44, m_a42;
-  float_tt m_a55, m_a53, m_a51;
-  float_tt m_a66, m_a64, m_a62;
-  float_tt m_phi33, m_phi31;
-  float_tt m_phi44, m_phi42;
-  float_tt m_phi55, m_phi53, m_phi51;
-  float_tt m_phi66, m_phi64, m_phi62;
-
   int m_printLevel;
 
-  float_tt m_C5;
-  float_tt m_dE_E;
-  float_tt m_dV_V;
-  float_tt m_dI_I;
-  float_tt m_alpha;
-  float_tt m_sourceRadius;
-  float_tt m_Cc;
-  float_tt m_Cs;
-  float_tt m_df0;				/* defocus */
-  float_tt m_astigMag;				/* astigmatism*/
-  float_tt m_astigAngle;				/* angle of astigmatism */
+  float_tt m_dx, m_dy;  // physical pixel size of wavefunction array
 
+  complex_tt  *m_wave; /* complex wave function */
 
-  bool m_ismoth;                          /* smoothen the probe wave function */
-  bool m_gaussFlag;
-  float_tt m_gaussScale;
-
-  // These are not used for anything aside from when saving files.
-  float_tt m_dx, m_dy;
-
-  complex_tt  **m_wave; /* complex wave function */
+  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  float_tt m_k2max;
 
 #if FLOAT_PRECISION == 1
   fftwf_plan m_fftPlanWaveForw,m_fftPlanWaveInv;
@@ -224,22 +189,23 @@ protected:
 #endif
 
 protected:
+  void Initialize(std::string input_ext, std::string output_ext);
+  void InitializeKVectors();
+
   void _WriteWave(std::string &prefix, std::string comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>());
   void _WriteDiffPat(std::string &prefix, std::string comment="Diffraction Pattern",
                     std::map<std::string, double>params = std::map<std::string, double>());
-  void _WriteAvgArray(std::string &prefix, std::string comment="Average Array",
-                     std::map<std::string, double>params = std::map<std::string, double>());
+  //void _WriteAvgArray(std::string &prefix, std::string comment="Average Array",
+  //                   std::map<std::string, double>params = std::map<std::string, double>());
 
   // For CBED ( &TEM? )
   void SetWavePosition(unsigned navg);
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
 
-
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
-  void fft_normalize(void **array,int nx, int ny);
 
   // m_transferFunction  // The transfer function - optionally applied (used by TEM mode)
 };

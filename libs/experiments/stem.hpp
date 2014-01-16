@@ -35,8 +35,15 @@ private:
   unsigned m_stepsX, m_stepsY;
   DetectorMgrPtr m_detectors;
   float_tt m_scanXStart, m_scanXStop, m_scanYStart, m_scanYStop;
+
   // TODO: are these synonymous with m_stepsX?
   unsigned m_scanXN, m_scanYN;
+  float_tt *m_avgArray;
+  unsigned m_completePixels;
+  unsigned m_displayProgInterval;
+
+  std::vector<float_tt> m_dE_EArray;
+
 };
 
 #endif
