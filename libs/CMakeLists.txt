@@ -8,17 +8,16 @@ FIND_PACKAGE(HDF5 "1.8.5" REQUIRED)
 
 # Make boost, fftw3, and our headers available to all projects
 
-include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")
-include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" "${HDF5_INCLUDE_DIR}" )	
+include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}" "${HDF5_INCLUDE_DIR}")
 
 FILE(GLOB LIBS_C_FILES "*.cpp")
 FILE(GLOB LIBS_H_FILES "*.hpp")
 # Include all of the IO functionality with the main library
-FILE(GLOB CONFIG_H_FILES "config_IO/*.hpp")
-FILE(GLOB DATA_H_FILES "data_IO/*.hpp")
-FILE(GLOB STRUCTURE_H_FILES "structure_IO/*.hpp")
-FILE(GLOB POTENTIAL_H_FILES "potentials/*.hpp")
-FILE(GLOB EXPERIMENT_H_FILES "experiments/*.hpp")
+#FILE(GLOB CONFIG_H_FILES "config_IO/*.hpp")
+#FILE(GLOB DATA_H_FILES "data_IO/*.hpp")
+#FILE(GLOB STRUCTURE_H_FILES "structure_IO/*.hpp")
+#FILE(GLOB POTENTIAL_H_FILES "potentials/*.hpp")
+#FILE(GLOB EXPERIMENT_H_FILES "experiments/*.hpp")
 
 set (qstem_libs_src ${LIBS_C_FILES} ${LIBS_H_FILES})
 set (qstem_libs_src ${qstem_libs_src} ${CONFIG_H_FILES} )

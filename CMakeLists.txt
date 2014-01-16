@@ -19,7 +19,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-					
+
+find_package(Boost REQUIRED)					
 find_package(fftw3 REQUIRED)
 
 set (M_LIB "")
@@ -27,6 +28,8 @@ set (M_LIB "")
 if (UNIX)
 	set (M_LIB "m")
 endif(UNIX)
+
+include_directories(${Boost_INCLUDE_DIRS} "${FFTW3_INCLUDE_DIRS}")
 
 if (NOT CMAKE_BUILD_TYPE)
 	message(STATUS "No build type selected, default to Debug")
