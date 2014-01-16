@@ -51,6 +51,7 @@ BuildLog.htm
 */CMakeFiles
 *.cmake
 CMakeCache.txt
+generate.stamp*
 
 
 # img results from debug testing
