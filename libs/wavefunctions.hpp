@@ -28,21 +28,3 @@
 WavePtr GetWaveFunction(const std::string &identifier, const ConfigReaderPtr &configReader);
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

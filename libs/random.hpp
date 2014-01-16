@@ -17,14 +17,18 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef RANDOM_H
+#define RANDOM_H
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_01.hpp>
 #include <boost/random/normal_distribution.hpp>
 
-boost::random::mt11213b _rng;         // produces randomness out of thin air.  This is the algorithm.  To get numbers,
+static boost::random::mt11213b _rng;         // produces randomness out of thin air.  This is the algorithm.  To get numbers,
 //  use ran1(_rng) for uniform values, or 
-boost::random::uniform_01<float_tt> _ran1;    // This returns uniform random values between 0 and 1
-float_tt ran1(){return _ran1(_rng);}
-boost::random::normal_distribution<float_tt> _gasdev(0,1); // This returns uniform random values with a Gaussian normal distribution
-float_tt gasdev(){return _gasdev(_rng);}
+static boost::random::uniform_01<float_tt> _ran1;    // This returns uniform random values between 0 and 1
+inline float_tt ran1(){return _ran1(_rng);}
+static boost::random::normal_distribution<float_tt> _gasdev(0,1); // This returns uniform random values with a Gaussian normal distribution
+inline float_tt gasdev(){return _gasdev(_rng);}
+
+#endif

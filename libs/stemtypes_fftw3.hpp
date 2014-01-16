@@ -41,8 +41,9 @@ QSTEM - image simulation for TEM/STEM/CBED
 // Helpful mathematical constants
 #define RAD2DEG 57.2958
 #define SQRT_2 1.4142135
+#ifndef M_PI
 #define M_PI 3.14159265358979323846264338327
-
+#endif
 
 // Scattering factor types
 #define DOYLE_TURNER 0

@@ -31,7 +31,6 @@ static std::string waveFilePrefix="mulswav";
 static std::string dpFilePrefix="diff";
 static std::string avgFilePrefix="diffAvg";
 static std::string probeFilePrefix="probe_wave";
-static std::string imageFilePrefix="image";
 static std::string waveIntensityFilePrefix="waveIntensity";
 
 // a structure for a probe/parallel beam wavefunction.
@@ -57,22 +56,23 @@ public:
   //void CopyDPToAvgArray(float_tt *avgArray);
   //void AddDPToAvgArray(unsigned avgCount);
 
-  void GetElectronScale(float_tt &electronScale);
-  void GetSizePixels(unsigned &x, unsigned &y);
-  unsigned GetTotalPixels(){return m_nx*m_ny;}
-  void GetResolution(float_tt &x, float_tt &y);
-  void GetPositionOffset(unsigned &x, unsigned &y);
-  float_tt GetK2(unsigned ix, unsigned iy);
-  inline float_tt GetKX2(unsigned ix){return m_kx2[ix];}
-  inline float_tt GetKY2(unsigned iy){return m_ky2[iy];}
-  inline float_tt GetK2Max(){return m_k2max;}
+  void GetElectronScale(float_tt &electronScale) const ;
+  void GetSizePixels(unsigned &x, unsigned &y) const ;
+  unsigned GetTotalPixels() const {return m_nx*m_ny;}
+  void GetResolution(float_tt &x, float_tt &y) const ;
+  void GetPositionOffset(unsigned &x, unsigned &y) const ;
+  float_tt GetK2(unsigned ix, unsigned iy) const ;
+  inline float_tt GetKX2(unsigned ix) const {return m_kx2[ix];}
+  inline float_tt GetKY2(unsigned iy) const {return m_ky2[iy];}
+  inline float_tt GetK2Max() const {return m_k2max;}
 
-  inline float_tt GetWavelength() {return m_wavlen;}
+  inline float_tt GetVoltage()  const {return m_v0;}
+  inline float_tt GetWavelength()  const {return m_wavlen;}
 
-  float_tt GetPixelIntensity(unsigned i);
-  inline float_tt GetPixelIntensity(unsigned x, unsigned y) {return GetPixelIntensity(x+m_nx*y);}
-  inline float_tt GetDiffPatPixel(unsigned i) {return m_diffpat[i];}
-  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) { return m_diffpat[x+m_nx*y];}
+  inline float_tt GetPixelIntensity(unsigned i) const {return m_wave[i][0]*m_wave[i][0] + m_wave[i][1]*m_wave[i][1];}
+  inline float_tt GetPixelIntensity(unsigned x, unsigned y) const  {return GetPixelIntensity(x+m_nx*y);}
+  inline float_tt GetDiffPatPixel(unsigned i)  const {return m_diffpat[i];}
+  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) const  { return m_diffpat[x+m_nx*y];}
   //inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
   inline void SetDiffPatPixel(unsigned i, float_tt value) {m_diffpat[i]=value;}
   inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x+m_nx*y]=value;}
@@ -85,11 +85,6 @@ public:
   inline void WriteProbe()
   {
     _WriteWave(probeFilePrefix);
-  }
-  // WriteImage is for TEM mode
-  inline void WriteImage()
-  {
-    _WriteWave(imageFilePrefix, "Image intensity");
   }
 
   inline void WriteWave(std::string comment="Wavefunction", 
@@ -138,10 +133,8 @@ public:
   //   They can, however, access it.
   const float_tt *GetDPPointer(){return m_diffpat;}
 
-  float_tt GetIntegratedIntensity();
+  float_tt GetIntegratedIntensity() const ;
 
-  // ReadImage is for TEM mode
-  void ReadImage();
   void ReadWave();
   void ReadWave(unsigned navg);
   void ReadWave(unsigned posX, unsigned posY);

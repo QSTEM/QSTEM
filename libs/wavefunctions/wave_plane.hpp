@@ -30,8 +30,13 @@ public:
   void TiltBeam(bool tiltBack=false);
   void TiltBack();
   virtual void DisplayParams();
+
+  // ReadImage is for TEM mode
+  void ReadImage();
+  void WriteImage();
 protected:
   float_tt m_btiltx, m_btilty;     /* beam tilt, mrad */
+  float_tt *m_image;               /* Real-space image output */
 };
 
 typedef boost::shared_ptr<CPlaneWave> PlaneWavePtr;

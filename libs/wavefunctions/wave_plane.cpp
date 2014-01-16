@@ -19,6 +19,8 @@
 
 #include "wave_plane.hpp"
 
+static std::string imageFilePrefix="image";
+
 CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configReader)
 {
 }
@@ -70,13 +72,20 @@ void CPlaneWave::TiltBeam(bool tiltBack)
     }
 }
 
-inline void CPlaneWave::TiltBack()
+void CPlaneWave::TiltBack()
 {
   TiltBeam(true);
 }
 
+void CPlaneWave::ReadImage()
+{
+  m_position.clear();
+  m_imageIO->ReadImage((void **)m_image, imageFilePrefix, m_position);
+}
 
-
-
-
-
+void CPlaneWave::WriteImage()
+{
+  std::map<std::string, double> params;
+  std::string comment;
+  m_imageIO->WriteRealImage((void **)m_image, imageFilePrefix, params, comment, m_position);
+}

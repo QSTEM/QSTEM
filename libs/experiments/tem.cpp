@@ -24,6 +24,12 @@ CExperimentTEM::CExperimentTEM(const ConfigReaderPtr &configReader) : CExperimen
   m_mode="TEM";
 }
 
+void CExperimentTEM::DisplayParams()
+{
+  CExperimentBase::DisplayParams();
+  // TODO: any other parameters to display?
+}
+
 void CExperimentTEM::Run()
 {
   const double pi=3.1415926535897;
@@ -296,4 +302,10 @@ void CExperimentTEM::WriteBeams(unsigned int absoluteSlice)
 void CExperimentTEM::PostSliceProcess(unsigned absoluteSlice)
 {
   InterimWave(absoluteSlice);
+}
+
+
+void CExperimentTEM::SaveImages()
+{
+  // TODO: define the images that should be saved
 }

@@ -25,6 +25,12 @@ CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : WAVEFUNC
   //configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
 }
 
+/** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
+CConvergentWave::CConvergentWave(const WAVEFUNC& other) : WAVEFUNC(other)
+{
+  // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
+}
+
 void CConvergentWave::DisplayParams()
 {
   WAVEFUNC::DisplayParams();

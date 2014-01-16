@@ -25,6 +25,10 @@ CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperim
   m_mode="CBED";
 }
 
+void CExperimentCBED::DisplayParams()
+{
+}
+
 void CExperimentCBED::Run()
 {
   int ix,iy,i,pCount,result;
@@ -226,6 +230,12 @@ void CExperimentCBED::Run()
 void CExperimentCBED::CollectIntensity(unsigned absoluteSlice)
 {
 	WriteBeams(absoluteSlice);
+}
+
+void CExperimentCBED::SaveImages()
+{
+  // This is called at the designated save interval, and one final time at the end of each run.
+  //   TODO: define the images that should be saved here.
 }
 
 void CExperimentCBED::WriteBeams(unsigned int absoluteSlice)

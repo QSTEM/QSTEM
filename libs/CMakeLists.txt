@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.8)
 
 project(qstem_libs)
 
+#set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--export-all-symbols")
+set(CMAKE_SHARED_LINKER_FLAGS "-Wl")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
+
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 FIND_PACKAGE(HDF5 "1.8.5" REQUIRED)
@@ -45,11 +49,11 @@ add_subdirectory(potentials)
 add_subdirectory(experiments)
 
 
-add_library(qstem ${qstem_libs_src})
-target_link_libraries(qstem ${Boost_LIBRARIES})
-target_link_libraries(qstem qstem_config)
-target_link_libraries(qstem qstem_data)
-target_link_libraries(qstem qstem_structure)
-target_link_libraries(qstem qstem_wavefunctions)
-target_link_libraries(qstem qstem_potentials)
-target_link_libraries(qstem qstem_experiments)
+add_library(qstem SHARED ${qstem_libs_src} 
+  $<TARGET_OBJECTS:qstem_config>
+  $<TARGET_OBJECTS:qstem_data>
+  $<TARGET_OBJECTS:qstem_structure>
+  $<TARGET_OBJECTS:qstem_wavefunctions>
+  $<TARGET_OBJECTS:qstem_potentials>
+  $<TARGET_OBJECTS:qstem_experiments>)
+target_link_libraries(qstem ${Boost_LIBRARIES} ${HDF5_LIBRARIES} ${FFTW_LIBRARIES})

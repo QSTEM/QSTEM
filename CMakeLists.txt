@@ -26,7 +26,7 @@ find_package(fftw3 REQUIRED)
 set (M_LIB "")
 
 if (UNIX)
-	set (M_LIB "m")
+  set (M_LIB "m")
 endif(UNIX)
 
 include_directories(${Boost_INCLUDE_DIRS} "${FFTW3_INCLUDE_DIRS}")

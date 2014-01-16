@@ -39,8 +39,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 //FILE *fp=NULL;
 //FILE **fpStack = NULL;
-char parBuf[PAR_BUF_LEN];
-char commentChar=COMMENT;
+static char parBuf[PAR_BUF_LEN];
+static char commentChar=COMMENT;
 
 /***********************************************************
  * setComment(char newComment) will set a new character as 

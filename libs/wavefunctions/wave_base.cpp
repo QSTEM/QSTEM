@@ -55,6 +55,17 @@ WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
   Initialize(".img", ".img");
 }
 
+/** Copy constructor - make sure arrays are deep-copied */
+WAVEFUNC::WAVEFUNC(const WAVEFUNC &other)
+{
+  // TODO: make sure arrays are deep copied
+  other.GetSizePixels(m_nx, m_ny);
+  other.GetResolution(m_dx, m_dy);
+  m_v0=other.GetVoltage();
+  
+  Initialize(".img", ".img");
+}
+
 void WAVEFUNC::Initialize(std::string input_ext, std::string output_ext)
 {
   m_wavlen = Wavelength(m_v0);
@@ -125,35 +136,30 @@ inline void WAVEFUNC::GetElectronScale(float_tt &electronScale)
 }
 */
 
-inline void WAVEFUNC::GetSizePixels(unsigned &x, unsigned &y)
+void WAVEFUNC::GetSizePixels(unsigned &x, unsigned &y) const 
 {
   x=m_nx;
   y=m_ny;
 }
 
-inline void WAVEFUNC::GetResolution(float_tt &x, float_tt &y)
+void WAVEFUNC::GetResolution(float_tt &x, float_tt &y) const 
 {
   x=m_dx;
   y=m_dy;
 }
 
-inline void WAVEFUNC::GetPositionOffset(unsigned &x, unsigned &y)
+void WAVEFUNC::GetPositionOffset(unsigned &x, unsigned &y) const 
 {
   x=m_detPosX;
   y=m_detPosY;
 }
 
-inline float_tt WAVEFUNC::GetK2(unsigned ix, unsigned iy)
+float_tt WAVEFUNC::GetK2(unsigned ix, unsigned iy) const 
 {
   return m_kx2[ix]+m_ky2[iy];
 }
 
-inline float_tt WAVEFUNC::GetPixelIntensity(unsigned i)
-{
-  return m_wave[i][0]*m_wave[i][0] + m_wave[i][1]*m_wave[i][1];
-}
-
-float_tt WAVEFUNC::GetIntegratedIntensity()
+float_tt WAVEFUNC::GetIntegratedIntensity() const 
 {
   unsigned px=m_nx*m_ny;
   float_tt intIntensity=0;

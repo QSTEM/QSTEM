@@ -14,14 +14,6 @@ FILE(GLOB LIBS_H_FILES "*.hpp")
 
 set (qstem_expts_src ${LIBS_C_FILES} ${LIBS_H_FILES})
 
-add_library(qstem_experiments ${qstem_expts_src})
-target_link_libraries(qstem_experiments ${Boost_LIBRARIES})
-target_link_libraries(qstem_experiments qstem_potentials)
-target_link_libraries(qstem_experiments qstem_wavefunctions)
-
-
-# Also build IO functionality separately for external use (??)
-#add_subdirectory(config_IO)
-#add_subdirectory(data_IO)
-#add_subdirectory(structure_IO)
+add_library(qstem_experiments OBJECT ${qstem_expts_src})
+#target_link_libraries(qstem_experiments ${Boost_LIBRARIES} qstem_potentials qstem_wavefunctions)
 
