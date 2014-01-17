@@ -21,7 +21,7 @@
 #define EXPERIMENT_BASE_H
 
 #include "experiment_interface.hpp"
-#include "potential.hpp"
+#include "potentials/pot_factory.hpp"
 #include "wavefunctions.hpp"
 #include "crystal.hpp"
 

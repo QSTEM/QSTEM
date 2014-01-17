@@ -29,7 +29,7 @@ CExperimentBase::CExperimentBase(const ConfigReaderPtr &configReader) : IExperim
   //    provide enough information to determine this ATM.
 
   // Read potential parameters and initialize a pot object
-  m_potential = GetPotential(configReader);
+  m_potential = CPotFactory::Get()->GetPotential(configReader);
   DisplayParams();
 }
 
