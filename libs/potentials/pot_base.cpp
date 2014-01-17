@@ -22,7 +22,11 @@
 const std::string kPotFileName = "potslice";
 const int BUF_LEN = 256;
 
-CPotential::CPotential(const ConfigReaderPtr &configReader)
+CPotential::CPotential() : IPotential()
+{
+}
+
+CPotential::CPotential(const ConfigReaderPtr &configReader) : IPotential()
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
   configReader->ReadResolution(m_dx, m_dy);
@@ -645,7 +649,7 @@ float_tt CPotential::seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
   
 } /* end seval() */
 
-void CPotential::GetSizePixels(unsigned int &nx, unsigned int &ny)
+void CPotential::GetSizePixels(unsigned int &nx, unsigned int &ny) const
 {
   nx=m_nx;
   ny=m_ny;

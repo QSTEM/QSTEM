@@ -6,7 +6,10 @@
 class C2DPotential : public CPotential
 {
 public:
+  C2DPotential();
   C2DPotential(const ConfigReaderPtr &configReader);
+  virtual void Initialize();
+  virtual void Initialize(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
   virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
   virtual void makeSlices(int nlayer, char *fileName, atom *center);
@@ -18,6 +21,11 @@ public:
                          float_tt atomBoxX, unsigned int ix, 
                          float_tt atomBoxY, unsigned int iy, 
                          float_tt atomZ, unsigned int iatomZ);
+private:
+	friend class CPotFactory;
+	// Create an instance of this class, wrapped in a shared ptr
+	//     This should not be inherited - any subclass needs its own implementation.
+	static PotPtr __stdcall Create(){return PotPtr(new C2DPotential());}
 };
 
 #endif

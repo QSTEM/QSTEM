@@ -6,6 +6,7 @@
 class C3DPotential : public CPotential
 {
 public:
+	C3DPotential();
   C3DPotential(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
   virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
@@ -20,6 +21,12 @@ public:
                          float_tt atomZ, unsigned iAtomZ);
 protected:
   unsigned m_sliceStep;  // number of float_tt to advance to next slice (2*m_nx*m_ny)
+
+private:
+	friend class CPotFactory;
+	// Create an instance of this class, wrapped in a shared ptr
+	//     This should not be inherited - any subclass needs its own implementation.
+	static PotPtr __stdcall Create() {return PotPtr(new C3DPotential());}
 };
 
 #endif

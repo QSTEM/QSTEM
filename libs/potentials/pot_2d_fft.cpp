@@ -1,5 +1,9 @@
 #include "pot_2d_fft.hpp"
 
+C2DFFTPotential::C2DFFTPotential() : C2DPotential()
+{
+}
+
 C2DFFTPotential::C2DFFTPotential(const ConfigReaderPtr &configReader) : C2DPotential(configReader)
 {
   m_nyAtBox = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
