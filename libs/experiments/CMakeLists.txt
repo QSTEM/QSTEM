@@ -4,10 +4,7 @@ project(qstem_experiments)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
-# Make boost, fftw3, and our headers available to all projects
-
-include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")
-include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" )	
+include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")	
 
 FILE(GLOB LIBS_C_FILES "*.cpp")
 FILE(GLOB LIBS_H_FILES "*.hpp")
