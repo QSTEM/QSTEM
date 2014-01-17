@@ -57,8 +57,8 @@ void CImgInput::ReadHeader(const char *fileName)
   if (fp != NULL) fclose(fp);
 }
 
-void CImgInput::ReadImage(void **pix, std::string label, std::map<std::string, double> &params,
-                          std::string &comment, std::vector<unsigned> position)
+void CImgInput::ReadImage(void *pix, const std::string &label, std::map<std::string, double> &params,
+                         std::string &comment, const std::vector<unsigned> position)
 {
   FILE *fp;
   size_t nRead=0;
@@ -112,7 +112,7 @@ void CImgInput::ReadImage(void **pix, std::string label, std::map<std::string, d
       //   type of the data that it passed into this function.
       //   
       //   Complex data is determined/communicated by the m_complexFlag, which is read in the header.
-      nRead = fread(pix[0], sizeof(m_dataSize),(size_t)(m_nx*m_ny),fp);
+      nRead = fread(pix, sizeof(m_dataSize),(size_t)(m_nx*m_ny),fp);
       if (nRead != m_nx*m_ny) 
       {
         freadError = 1;

@@ -30,7 +30,7 @@
 class IDataInput
 {
 public:
-  virtual void ReadImage(void **pix, const std::string label, std::map<std::string, double> &params,
+  virtual void ReadImage(void *pix, const std::string &label, std::map<std::string, double> &params,
                          std::string &comment, const std::vector<unsigned> position=std::vector<unsigned>())=0;
 };
 

@@ -23,8 +23,8 @@ class CImgInput : public IDataInput
 {
 public:
   CImgInput();
-  virtual void ReadImage(void **pix, std::string label, std::map<std::string, double> &params,
-                         std::string &comment, std::vector<unsigned> position=std::vector<unsigned>());
+  virtual void ReadImage(void *pix, const std::string &label, std::map<std::string, double> &params,
+                         std::string &comment, const std::vector<unsigned> position=std::vector<unsigned>());
 private:
   int m_headerSize;  // first byte of image will be size of image header (in bytes)
                    // This is the size without the data, parameters, and comment!!!
