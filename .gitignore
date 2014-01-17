@@ -42,6 +42,7 @@ BuildLog.htm
 *.log
 *.lastbuildstate
 *.cache
+*codeanalysis*
 
 # binaries
 /bin
