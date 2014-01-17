@@ -322,6 +322,7 @@ int readParams(char *datFileName) {
 	int gCount,i,Nkind;  
 	char unitCellFile[64];
 	atom *tempCell;
+	boost::filesystem::path unitCellFilePath;
 
 	FILE *fp=NULL;
 
@@ -401,10 +402,12 @@ int readParams(char *datFileName) {
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			CCrystal cryst(1,1,1,0,0,0);
-			
+			CCrystal cryst(unitCellFilePath);
+			// Do not handle TDS - we want the atoms at their original locations.
 			cryst.SetTDS(false);
-			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
+			// 0 indicates no handling of vacancies
+			cryst.ReadUnitCell(0);
+			//tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			if (tempCell == NULL) {
 				printf("Error reading unit cell data - exit!\n");
 				exit(0);
