@@ -19,21 +19,21 @@
 
 #include "wave_convergent.hpp"
 
-CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configReader)
+CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : CBaseWave(configReader)
 {
   // TODO: where does beam current belong?
   //configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
 }
 
 /** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
-CConvergentWave::CConvergentWave(const WAVEFUNC& other) : WAVEFUNC(other)
+CConvergentWave::CConvergentWave(const CBaseWave& other) : CBaseWave(other)
 {
   // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
 }
 
 void CConvergentWave::DisplayParams()
 {
-  WAVEFUNC::DisplayParams();
+  CBaseWave::DisplayParams();
 
   printf("* Aperture half angle:  %g mrad\n",m_alpha);
   printf("* AIS aperture:         ");

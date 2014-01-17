@@ -19,11 +19,11 @@
 
 #include "wave_base.hpp"
 
-class CConvergentWave : public WAVEFUNC
+class CConvergentWave : public CBaseWave
 {
 public:
   CConvergentWave(const ConfigReaderPtr &configReader);
-  CConvergentWave( const WAVEFUNC& other );
+  CConvergentWave( const CBaseWave& other );
   virtual void FormProbe();
   virtual void DisplayParams();
 protected:

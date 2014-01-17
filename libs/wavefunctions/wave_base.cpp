@@ -28,7 +28,7 @@ void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> po
   imageIO.CreateComplexDataSet(mulswavDataSetLabel, positions);
 }
 
-WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY, 
+CBaseWave::CBaseWave(unsigned x, unsigned y, float_tt resX, float_tt resY, 
                    std::string input_ext, std::string output_ext) :
   //m_position(std::vector<unsigned>()),
   m_detPosX(0),
@@ -42,7 +42,7 @@ WAVEFUNC::WAVEFUNC(unsigned x, unsigned y, float_tt resX, float_tt resY,
   Initialize(".img", ".img");
 }
 
-WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
+CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
   configReader->ReadResolution(m_dx, m_dy);
@@ -51,12 +51,12 @@ WAVEFUNC::WAVEFUNC(const ConfigReaderPtr &configReader)
   //m_electronScale = m_beamCurrent*m_dwellTime*MILLISEC_PICOAMP;
 
   // TODO: need to figure out how user is going to specify input/output formats
-  //WAVEFUNC(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
+  //CBaseWave(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
   Initialize(".img", ".img");
 }
 
 /** Copy constructor - make sure arrays are deep-copied */
-WAVEFUNC::WAVEFUNC(const WAVEFUNC &other)
+CBaseWave::CBaseWave(const CBaseWave &other)
 {
   // TODO: make sure arrays are deep copied
   other.GetSizePixels(m_nx, m_ny);
@@ -66,7 +66,7 @@ WAVEFUNC::WAVEFUNC(const WAVEFUNC &other)
   Initialize(".img", ".img");
 }
 
-void WAVEFUNC::Initialize(std::string input_ext, std::string output_ext)
+void CBaseWave::Initialize(std::string input_ext, std::string output_ext)
 {
   m_wavlen = Wavelength(m_v0);
   //m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
@@ -87,7 +87,7 @@ void WAVEFUNC::Initialize(std::string input_ext, std::string output_ext)
   InitializeKVectors();
 }
 
- void WAVEFUNC::InitializeKVectors()
+ void CBaseWave::InitializeKVectors()
  {
   float_tt ax = m_dx*m_nx;
   float_tt by = m_dy*m_ny;
@@ -109,7 +109,7 @@ void WAVEFUNC::Initialize(std::string input_ext, std::string output_ext)
     m_k2max = m_k2max*m_k2max;
 }
 
-void WAVEFUNC::DisplayParams()
+void CBaseWave::DisplayParams()
 {
   printf("* Real space res.:      %gA (=%gmrad)\n",
          1.0/m_k2max,GetWavelength()*m_k2max*1000.0);
@@ -130,36 +130,36 @@ void WAVEFUNC::DisplayParams()
 
 /*
 //TODO: where does this belong?
-inline void WAVEFUNC::GetElectronScale(float_tt &electronScale)
+inline void CBaseWave::GetElectronScale(float_tt &electronScale)
 {
   electronScale=m_electronScale;
 }
 */
 
-void WAVEFUNC::GetSizePixels(unsigned &x, unsigned &y) const 
+void CBaseWave::GetSizePixels(unsigned &x, unsigned &y) const 
 {
   x=m_nx;
   y=m_ny;
 }
 
-void WAVEFUNC::GetResolution(float_tt &x, float_tt &y) const 
+void CBaseWave::GetResolution(float_tt &x, float_tt &y) const 
 {
   x=m_dx;
   y=m_dy;
 }
 
-void WAVEFUNC::GetPositionOffset(unsigned &x, unsigned &y) const 
+void CBaseWave::GetPositionOffset(unsigned &x, unsigned &y) const 
 {
   x=m_detPosX;
   y=m_detPosY;
 }
 
-float_tt WAVEFUNC::GetK2(unsigned ix, unsigned iy) const 
+float_tt CBaseWave::GetK2(unsigned ix, unsigned iy) const 
 {
   return m_kx2[ix]+m_ky2[iy];
 }
 
-float_tt WAVEFUNC::GetIntegratedIntensity() const 
+float_tt CBaseWave::GetIntegratedIntensity() const 
 {
   unsigned px=m_nx*m_ny;
   float_tt intIntensity=0;
@@ -171,7 +171,7 @@ float_tt WAVEFUNC::GetIntegratedIntensity() const
   return intIntensity/px;
 }
 
-void WAVEFUNC::ApplyTransferFunction(complex_tt *wave)
+void CBaseWave::ApplyTransferFunction(complex_tt *wave)
 {
   // TODO: transfer function should be passed as a 1D vector that is half the size of the wavefunc.
   //       It should be applied by a radial lookup table (with interpolation?)
@@ -201,7 +201,7 @@ void WAVEFUNC::ApplyTransferFunction(complex_tt *wave)
 #endif
 }
 
-void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
+void CBaseWave::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
   params["dx"]=m_dx;
@@ -218,7 +218,7 @@ void WAVEFUNC::_WriteWave(std::string &fileName, std::string comment,
   m_imageIO->WriteComplexImage((void **)m_wave, fileName, params, comment, m_position);
 }
 
-void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
+void CBaseWave::_WriteDiffPat(std::string &fileName, std::string comment,
                             std::map<std::string, double> params)
 {
   params["dx"]=1.0/(m_nx*m_dx);
@@ -228,13 +228,13 @@ void WAVEFUNC::_WriteDiffPat(std::string &fileName, std::string comment,
 
 
 
-void WAVEFUNC::SetWavePosition(unsigned navg)
+void CBaseWave::SetWavePosition(unsigned navg)
 {
   m_position.resize(1);
   m_position[0]=navg;
 }
 
-void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
+void CBaseWave::SetWavePosition(unsigned posX, unsigned posY)
 {
   m_detPosX=posX;
   m_detPosY=posY;
@@ -243,38 +243,48 @@ void WAVEFUNC::SetWavePosition(unsigned posX, unsigned posY)
   m_position[1]=posY;
 }
 
-void WAVEFUNC::ReadWave()
+void CBaseWave::SetWavePosition(unsigned posX, unsigned posY, unsigned posZ)
+{
+  m_detPosX=posX;
+  m_detPosY=posY;
+  m_position.resize(3);
+  m_position[0]=posX;
+  m_position[1]=posY;
+  m_position[2]=posZ;
+}
+
+void CBaseWave::ReadWave()
 {
   m_position.clear();
   m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
 }
 
-void WAVEFUNC::ReadWave(unsigned navg)
+void CBaseWave::ReadWave(unsigned navg)
 {
   SetWavePosition(navg);
   m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
 
 }
 
-void WAVEFUNC::ReadWave(unsigned positionx, unsigned positiony)
+void CBaseWave::ReadWave(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
   m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
 }
 
-void WAVEFUNC::ReadDiffPat()
+void CBaseWave::ReadDiffPat()
 {
   m_position.clear();
   m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
 }
 
-void WAVEFUNC::ReadDiffPat(unsigned navg)
+void CBaseWave::ReadDiffPat(unsigned navg)
 {
   SetWavePosition(navg);
   m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
 }
 
-void WAVEFUNC::ReadDiffPat(unsigned positionx, unsigned positiony)
+void CBaseWave::ReadDiffPat(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
   m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
@@ -294,7 +304,7 @@ void WAVEFUNC::ReadDiffPat(unsigned positionx, unsigned positiony)
 
 */
 
-float_tt WAVEFUNC::Wavelength(float_tt kev)
+float_tt CBaseWave::Wavelength(float_tt kev)
 {
   double w;
   const double emass=510.99906; /* electron rest mass in keV */
@@ -305,7 +315,7 @@ float_tt WAVEFUNC::Wavelength(float_tt kev)
 }  /* end wavelength() */
 
 /*
-void WAVEFUNC:WriteBeams(int absolute_slice) {
+void CBaseWave:WriteBeams(int absolute_slice) {
   static char fileAmpl[32];
   static char filePhase[32];
   static char fileBeam[32];
@@ -323,7 +333,7 @@ void WAVEFUNC:WriteBeams(int absolute_slice) {
 */
 
 // FFT to Fourier space, but only if we're current in real space
-void WAVEFUNC::ToFourierSpace()
+void CBaseWave::ToFourierSpace()
 {
   if (IsRealSpace())
     {
@@ -336,7 +346,7 @@ void WAVEFUNC::ToFourierSpace()
 }
 
 // FFT back to realspace, but only if we're currently in Fourier space
-void WAVEFUNC::ToRealSpace()
+void CBaseWave::ToRealSpace()
 {
   if (!IsRealSpace())
     {

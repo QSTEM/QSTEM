@@ -17,13 +17,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WAVEFUNC_H
-#define WAVEFUNC_H
+#ifndef WAVE_BASE_H
+#define WAVE_BASE_H
 
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"
 #include "config_readers.hpp"
+
+#include "wave_interface.hpp"
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
 
@@ -35,14 +37,14 @@ static std::string waveIntensityFilePrefix="waveIntensity";
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
-class WAVEFUNC 
+class CBaseWave : public IWave
 {
 public:
   // initializing constructor:
-  WAVEFUNC(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
-  WAVEFUNC(const ConfigReaderPtr &configReader);
+  CBaseWave(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
+  CBaseWave(const ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
-  WAVEFUNC( const WAVEFUNC& other );
+  CBaseWave( const CBaseWave& other );
 
   void CreateDataSets();
   virtual void FormProbe()=0;
@@ -104,6 +106,12 @@ public:
     SetWavePosition(posX, posY);
     _WriteWave(waveFilePrefix, comment, params);
   }
+  inline void WriteWave(unsigned posX, unsigned posY, unsigned posZ, std::string comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY, posZ);
+    _WriteWave(waveFilePrefix, comment, params);
+  }
 
   inline void WriteDiffPat(std::string comment="Diffraction Pattern", 
                  std::map<std::string, double>params = std::map<std::string, double>())
@@ -121,6 +129,12 @@ public:
                  std::map<std::string, double>params = std::map<std::string, double>())
   {
     SetWavePosition(posX, posY);
+    _WriteDiffPat(dpFilePrefix, comment, params);
+  }
+  inline void WriteDiffPat(unsigned posX, unsigned posY, unsigned posZ, std::string comment="Diffraction Pattern", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY, posZ);
     _WriteDiffPat(dpFilePrefix, comment, params);
   }
 
@@ -195,13 +209,13 @@ protected:
   void SetWavePosition(unsigned navg);
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
+  // If you need to save things wrt 3 dimensions...
+  void SetWavePosition(unsigned posX, unsigned posY, unsigned posZ);
 
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
 
   // m_transferFunction  // The transfer function - optionally applied (used by TEM mode)
 };
-
-typedef boost::shared_ptr<WAVEFUNC> WavePtr;
 
 #endif

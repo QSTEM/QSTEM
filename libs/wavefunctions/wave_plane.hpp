@@ -22,7 +22,7 @@
 
 #include "wave_base.hpp"
 
-class CPlaneWave : public WAVEFUNC
+class CPlaneWave : public CBaseWave
 {
 public:
   CPlaneWave(const ConfigReaderPtr &configReader);

@@ -21,13 +21,13 @@
 
 static std::string imageFilePrefix="image";
 
-CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configReader)
+CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : CBaseWave(configReader)
 {
 }
 
 void CPlaneWave::DisplayParams()
 {
-  WAVEFUNC::DisplayParams();
+  CBaseWave::DisplayParams();
 
   // TODO: transmit tiltBack status somehow (it's an experiment parameter, not a wave parameter.
   //printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",m_btiltx*RAD2DEG,m_btilty*RAD2DEG,
