@@ -40,14 +40,16 @@ public:
 
 
   virtual void DisplayParams(){};
-  // You must provide a way of building slices.  This is called if you do not load the slices (using ReadPotential)
-  virtual void MakeSlices(int nlayer,char *fileName,atom *center)=0;
-  virtual void initSTEMSlices();
+  //virtual void initSTEMSlices();
   // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
   //    shake)
   virtual void Refresh()=0;
-  // TODO: need abstracted structure reader
-  virtual void ReadPotential(std::string &fileName, unsigned subSlabIdx);
+  // You must provide a way of getting  slices somehow.  You must implement (at least) one of the following two
+  //   functions in order for your Potential to be useful at all.
+  // MakeSlices is called when you want to build the potential from atomic positions
+  virtual void MakeSlices(int nlayer,char *fileName,atom *center){};
+  // ReadPotential is used when you want to load the potential slices from some data files
+  virtual void ReadPotential(std::string &fileName, unsigned subSlabIdx){};
   
   virtual unsigned GetNSlices() const =0;
   virtual float_tt GetSliceThickness() const =0;
