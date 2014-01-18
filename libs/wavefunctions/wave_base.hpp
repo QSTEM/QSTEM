@@ -31,7 +31,6 @@ void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> po
 
 static std::string waveFilePrefix="mulswav";
 static std::string dpFilePrefix="diff";
-static std::string avgFilePrefix="diffAvg";
 static std::string probeFilePrefix="probe_wave";
 static std::string waveIntensityFilePrefix="waveIntensity";
 
@@ -74,10 +73,8 @@ public:
   inline float_tt GetPixelIntensity(unsigned x, unsigned y) const  {return GetPixelIntensity(x+m_nx*y);}
   inline float_tt GetDiffPatPixel(unsigned i)  const {return m_diffpat[i];}
   inline float_tt GetDiffPatPixel(unsigned x, unsigned y) const  { return m_diffpat[x+m_nx*y];}
-  //inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
   inline void SetDiffPatPixel(unsigned i, float_tt value) {m_diffpat[i]=value;}
   inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x+m_nx*y]=value;}
-  //inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
 
   void ApplyTransferFunction(complex_tt *wave);
 

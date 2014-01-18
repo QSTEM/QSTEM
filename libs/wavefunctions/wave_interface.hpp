@@ -49,12 +49,12 @@ public:
   virtual float_tt GetVoltage()  const =0;
   virtual float_tt GetWavelength()  const =0;
 
-	virtual float_tt GetPixelIntensity(unsigned i) const =0;
-virtual float_tt GetPixelIntensity(unsigned x, unsigned y) const =0;
-virtual float_tt GetDiffPatPixel(unsigned i)  const =0;
-virtual float_tt GetDiffPatPixel(unsigned x, unsigned y) const =0;
-virtual void SetDiffPatPixel(unsigned i, float_tt value) =0;
-virtual void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) =0;
+  virtual float_tt GetPixelIntensity(unsigned i) const =0;
+  virtual float_tt GetPixelIntensity(unsigned x, unsigned y) const =0;
+  virtual float_tt GetDiffPatPixel(unsigned i)  const =0;
+  virtual float_tt GetDiffPatPixel(unsigned x, unsigned y) const =0;
+  virtual void SetDiffPatPixel(unsigned i, float_tt value) =0;
+  virtual void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) =0;
 
   virtual void ApplyTransferFunction(complex_tt *wave)=0;
 

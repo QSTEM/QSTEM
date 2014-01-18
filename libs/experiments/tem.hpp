@@ -23,7 +23,7 @@
 #include "base.hpp"
 #include "wavefunctions/wave_plane.hpp"
 
-class CExperimentTEM : public CExperimentBase
+class QSTEM_HELPER_DLL_EXPORT CExperimentTEM : public CExperimentBase
 {
 public:
   CExperimentTEM(const ConfigReaderPtr &configReader);

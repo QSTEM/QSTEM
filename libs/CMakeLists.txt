@@ -12,11 +12,13 @@ find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 FIND_PACKAGE(HDF5 "1.8.5" REQUIRED)
 
-FILE(GLOB LIBS_C_FILES "*.cpp")
-FILE(GLOB LIBS_H_FILES "*.hpp")
+FILE(GLOB LIBS_FILES "*.?pp")
 
 function (add_lib_dir dirname)
 	#add_subdirectory(${dirname})
+        #exploring this: not ideal to use glob because it defeats some of CMake's ability to detect changes
+        #  a better way would be to manually add files in CMakeLists.txt in each folder (still adding them ultimately
+        #  to LIBS_FILES
 	FILE(GLOB TMP "${dirname}/*.?pp")
 	set(LIBS_C_FILES ${LIBS_C_FILES} ${TMP} PARENT_SCOPE)
 	SOURCE_GROUP(${dirname} FILES ${TMP} PARENT_SCOPE)
@@ -35,8 +37,6 @@ add_lib_dir(potentials)
 # defines qstem_experiments
 add_lib_dir(experiments)
 
-MESSAGE(${LIBS_C_FILES})
-
 include_directories(
   ${PROJECT_SOURCE_DIR}
   config_IO
@@ -49,5 +49,5 @@ include_directories(
   ${FFTW3_INCLUDE_DIRS} 
   ${HDF5_INCLUDE_DIR}  )
 
-add_library(${PROJECT_NAME} SHARED ${LIBS_C_FILES})
+add_library(${PROJECT_NAME} SHARED ${LIBS_FILES})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${HDF5_LIBRARIES} ${FFTW_LIBRARIES})

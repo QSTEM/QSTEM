@@ -27,7 +27,7 @@ class CCfgReader : public IStructureInput
 {
 public:
   CCfgReader(boost::filesystem::path &structure_file);
-  ~CCfgReader();
+  //~CCfgReader();
   
   int ReadCellParams(float_tt **Mm);
   int ReadAtoms(std::vector<atom> &atoms);

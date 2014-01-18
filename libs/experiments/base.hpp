@@ -25,7 +25,7 @@
 #include "wavefunctions.hpp"
 #include "crystal.hpp"
 
-class CExperimentBase : public IExperiment
+class QSTEM_HELPER_DLL_EXPORT CExperimentBase : public IExperiment
 {
 public:
   CExperimentBase(const ConfigReaderPtr &configReader);

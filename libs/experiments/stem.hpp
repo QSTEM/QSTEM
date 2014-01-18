@@ -23,7 +23,7 @@
 #include "base.hpp"
 #include "detectors.hpp"
 
-class CExperimentSTEM : public CExperimentBase
+class QSTEM_HELPER_DLL_EXPORT CExperimentSTEM : public CExperimentBase
 {
 public:
   CExperimentSTEM(const ConfigReaderPtr &configReader);
