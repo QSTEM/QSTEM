@@ -27,6 +27,11 @@ CImgOutput::CImgOutput() : CBinaryOutput(),
 {
 }
 
+void CImgOutput::Initialize(std::string dirOrFileName, std::string run_id)
+{
+  // TODO: create the output folder if it doesn't exist
+}
+
 void CImgOutput::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
                                  const std::vector<unsigned> &position, const std::string &comment,
                                  std::map<std::string, double> &parameters)
