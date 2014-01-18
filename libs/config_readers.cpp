@@ -21,7 +21,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-ConfigReaderPtr GetConfigReader(std::string &filename)
+ConfigReaderPtr GetConfigReader(std::string filename)
 {
   boost::filesystem::path filepath( filename );
   std::string extension = filepath.extension().string();
