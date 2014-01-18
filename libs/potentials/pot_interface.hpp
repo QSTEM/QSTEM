@@ -25,7 +25,7 @@
 
 class IPotential;
 typedef boost::shared_ptr<IPotential> PotPtr;
-typedef PotPtr (__stdcall *CreatePotentialFn)(void); 
+typedef PotPtr (*CreatePotentialFn)(void); 
 
 class IPotential
 {

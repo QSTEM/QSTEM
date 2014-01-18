@@ -23,10 +23,21 @@ protected:
   unsigned m_sliceStep;  // number of float_tt to advance to next slice (2*m_nx*m_ny)
 
 private:
-	friend class CPotFactory;
-	// Create an instance of this class, wrapped in a shared ptr
-	//     This should not be inherited - any subclass needs its own implementation.
-	static PotPtr __stdcall Create() {return PotPtr(new C3DPotential());}
+  friend class CPotFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static PotPtr Create() {return PotPtr(new C3DPotential());}
+  static PotPtr Create(const ConfigReaderPtr &configReader){return PotPtr(new C3DPotential(configReader));}
 };
 
 #endif
+
+
+
+
+
+
+
+
+
+

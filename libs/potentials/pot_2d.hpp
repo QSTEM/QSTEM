@@ -22,20 +22,11 @@ public:
                          float_tt atomBoxY, unsigned int iy, 
                          float_tt atomZ, unsigned int iatomZ);
 private:
-	friend class CPotFactory;
-	// Create an instance of this class, wrapped in a shared ptr
-	//     This should not be inherited - any subclass needs its own implementation.
-	static PotPtr __stdcall Create(){return PotPtr(new C2DPotential());}
+  friend class CPotFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static PotPtr Create(){return PotPtr(new C2DPotential());}
+  static PotPtr Create(const ConfigReaderPtr &configReader){return PotPtr(new C2DPotential(configReader));}
 };
 
 #endif
-
-
-
-
-
-
-
-
-
-

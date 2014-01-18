@@ -3,7 +3,7 @@
 class C3DFFTPotential : public C3DPotential
 {
 public:
-	C3DFFTPotential();
+  C3DFFTPotential();
   C3DFFTPotential(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
   virtual void makeSlices(int nlayer, char *fileName, atom *center);
@@ -21,7 +21,18 @@ protected:
   complex_tt *GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut,float_tt q);private:
 private:	
   friend class CPotFactory;
-	// Create an instance of this class, wrapped in a shared ptr
-	//     This should not be inherited - any subclass needs its own implementation.
-	static PotPtr __stdcall Create() {return PotPtr(new C3DFFTPotential());}
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static PotPtr Create() {return PotPtr(new C3DFFTPotential());}
+  static PotPtr Create(const ConfigReaderPtr &configReader){return PotPtr(new C3DFFTPotential(configReader));}
 };
+
+
+
+
+
+
+
+
+
+

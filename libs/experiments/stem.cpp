@@ -51,7 +51,7 @@ void CExperimentSTEM::Run()
   //pre-allocate several waves (enough for one row of the scan.  
   for (int th=0; th<omp_get_max_threads(); th++)
     {
-      waves.push_back(WavePtr(new CConvergentWave(*m_wave.get())));
+      waves.push_back(WavePtr(new CConvergentWave(m_wave)));
       avgArrays.push_back(std::vector<float_tt>(nx*ny));
     }
 
