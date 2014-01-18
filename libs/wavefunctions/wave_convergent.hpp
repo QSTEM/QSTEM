@@ -23,7 +23,7 @@ class CConvergentWave : public CBaseWave
 {
 public:
   CConvergentWave(const ConfigReaderPtr &configReader);
-  CConvergentWave( const CBaseWave& other );
+  CConvergentWave( const WavePtr& other );
   virtual void FormProbe();
   virtual void DisplayParams();
 protected:

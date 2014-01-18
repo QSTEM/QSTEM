@@ -56,12 +56,12 @@ CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
 }
 
 /** Copy constructor - make sure arrays are deep-copied */
-CBaseWave::CBaseWave(const CBaseWave &other)
+CBaseWave::CBaseWave(const WavePtr &other)
 {
   // TODO: make sure arrays are deep copied
-  other.GetSizePixels(m_nx, m_ny);
-  other.GetResolution(m_dx, m_dy);
-  m_v0=other.GetVoltage();
+  other->GetSizePixels(m_nx, m_ny);
+  other->GetResolution(m_dx, m_dy);
+  m_v0=other->GetVoltage();
   
   Initialize(".img", ".img");
 }

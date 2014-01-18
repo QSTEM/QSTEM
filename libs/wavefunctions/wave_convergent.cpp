@@ -26,7 +26,7 @@ CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : CBaseWav
 }
 
 /** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
-CConvergentWave::CConvergentWave(const CBaseWave& other) : CBaseWave(other)
+CConvergentWave::CConvergentWave(const WavePtr& other) : CBaseWave(other)
 {
   // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
 }
