@@ -174,6 +174,20 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
       } // if within bounds        
 }
 
+void C3DFFTPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)
+{
+  unsigned iAtomX = (int)floor(atomX/m_dx);        
+  unsigned iAtomY = (int)floor(atomY/m_dy);
+
+  if (m_periodicXY)
+    {
+      AddAtomPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
+    }
+  else
+    {
+      AddAtomNonPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
+    }
+}
 
 void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom, 
                          float_tt atomBoxX, unsigned int iAtomX, 

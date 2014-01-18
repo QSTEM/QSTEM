@@ -6,11 +6,11 @@
 class C3DPotential : public CPotential
 {
 public:
-	C3DPotential();
+  C3DPotential();
   C3DPotential(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
-  virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
-  virtual void makeSlices(int nlayer, char *fileName, atom *center);
+  virtual void AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
+  //virtual void makeSlices(int nlayer, char *fileName, atom *center);
   void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   bool CheckAtomZInBounds(float_tt atomZ);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, 

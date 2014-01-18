@@ -11,8 +11,8 @@ public:
   virtual void Initialize();
   virtual void Initialize(const ConfigReaderPtr &configReader);
   virtual void DisplayParams();
-  virtual void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
-  virtual void makeSlices(int nlayer, char *fileName, atom *center);
+  virtual void AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
+  //virtual void MakeSlices(int nlayer, char *fileName, atom *center);
   bool CheckAtomZInBounds(float_tt atomZ);
   void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, 

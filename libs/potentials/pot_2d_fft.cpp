@@ -12,38 +12,46 @@ C2DFFTPotential::C2DFFTPotential(const ConfigReaderPtr &configReader) : C2DPoten
   m_nxyAtBox2 = 2*m_nxyAtBox;
 }
 
+void C2DFFTPotential::Initialize()
+{
+}
+
+void C2DFFTPotential::Initialize(const ConfigReaderPtr &configReader)
+{
+}
+
 void C2DFFTPotential::DisplayParams()
 {
   CPotential::DisplayParams();
   printf("* Potential calculation: 2D (FFT method)");
 }
 
-void C2DFFTPotential::makeSlices(int nlayer, char *fileName, atom *center)
+void C2DFFTPotential::MakeSlices(int nlayer, char *fileName, atom *center)
 {
   /* check whether we have constant slice thickness */
   for (unsigned i = 0;i<nlayer;i++) 
-	  {
-		  if (m_cz[0] != m_cz[i])
-		  {
-			printf("Warning: slice thickness not constant, will give wrong results (iz=%d)!\n",i);
-			break;
-		  }
-  }
+    {
+      if (m_cz[0] != m_cz[i])
+        {
+          printf("Warning: slice thickness not constant, will give wrong results (iz=%d)!\n",i);
+          break;
+        }
+    }
 }
 
 void C2DFFTPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)
 {
-	unsigned iAtomX = (int)floor(atomX/m_dx);        
-    unsigned iAtomY = (int)floor(atomY/m_dy);
+  unsigned iAtomX = (int)floor(atomX/m_dx);        
+  unsigned iAtomY = (int)floor(atomY/m_dy);
 
-	if (m_periodicXY)
-	{
-		AddAtomPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
-	}
-	else
-	{
-		AddAtomNonPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
-	}
+  if (m_periodicXY)
+    {
+      AddAtomPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
+    }
+  else
+    {
+      AddAtomNonPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
+    }
 }
 
 void C2DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom, 

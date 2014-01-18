@@ -43,14 +43,14 @@ public:
 
   virtual void DisplayParams();
 
-  void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
+  void AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
   virtual void MakeSlices(int nlayer,char *fileName,atom *center);
-  virtual void initSTEMSlices();
+  //virtual void initSTEMSlices();
   // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
   //    shake)
   virtual void Refresh();
   // TODO: need abstracted structure reader
-  virtual void ReadAtoms();
+  //virtual void ReadAtoms();
   virtual void ReadPotential(std::string &fileName, unsigned subSlabIdx);
   virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;

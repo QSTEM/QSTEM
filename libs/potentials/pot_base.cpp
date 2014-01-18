@@ -102,7 +102,7 @@ void CPotential::DisplayParams()
 * x,y,z = real space position (in A)
 * B = Debye-Waller factor, B=8 pi^2 <u^2>
 ***************************************************************************/
-void CPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B) 
+void CPotential::AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B) 
 {
   int boxNx,boxNy,boxNz;
   float_tt dx,dy,dz,ddx,ddy,ddz;
@@ -211,6 +211,13 @@ void CPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y
   }	
 }
 
+/** Shuffle the structure with random offsets and recompute potential.
+    Only for when you're computing potential (obviously), not loading it from files.
+*/
+void CPotential::Refresh()
+{
+  //
+}
 
 void CPotential::ReadPotential(std::string &fileName, unsigned subSlabIdx)
 {
@@ -282,16 +289,16 @@ void CPotential::MakeSlices(int nlayer,char *fileName, atom *center)
   /* we need to keep track of which subdivision of the unit cell we are in
    * If the cell is not subdivided, then m_cellDiv-1 = 0.
    */
-  if ((m_divCount == 0) || (m_equalDivs))
-    m_divCount = m_cellDiv;
-  m_divCount--;
+  //if ((m_divCount == 0) || (m_equalDivs))
+  //m_divCount = m_cellDiv;
+  //m_divCount--;
 
   /* we only want to reread and shake the atoms, if we have finished the
    * current unit cell.
    */
-  if (m_divCount == m_cellDiv-1) {
-    ReadAtoms();
-  } /* end of if divCount==cellDiv-1 ... */
+  //if (m_divCount == m_cellDiv-1) {
+  //ReadAtoms();
+  //} /* end of if divCount==cellDiv-1 ... */
 
   SliceSetup();
 

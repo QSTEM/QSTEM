@@ -66,17 +66,21 @@ CBaseWave::CBaseWave(const WavePtr &other)
   Initialize(".img", ".img");
 }
 
+void CBaseWave::CreateDataSets()
+{
+  m_diffpat = float1D(m_nx*m_ny,"diffpat");
+  m_wave = complex1D(m_nx*m_ny, "wave");
+}
+
 void CBaseWave::Initialize(std::string input_ext, std::string output_ext)
 {
   m_wavlen = Wavelength(m_v0);
   //m_wavlen = 12.26/ sqrt( m_v0*1.e3 + m_v0*m_v0*0.9788 );
-
-  m_diffpat = float1D(m_nx*m_ny,"diffpat");
-
   // TODO: need to pass file extension through to this constructor
   m_imageIO=ImageIOPtr(new CImageIO(m_nx, m_ny, input_ext, output_ext));
 	
-  m_wave = complex1D(m_nx*m_ny, "wave");
+  CreateDataSets();
+
 #if FLOAT_PRECISION == 1
   m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, k_fftMeasureFlag);
   m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, k_fftMeasureFlag);

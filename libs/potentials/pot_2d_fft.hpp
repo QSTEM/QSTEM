@@ -10,7 +10,7 @@ public:
   virtual void DisplayParams();
 
 
-  virtual void makeSlices(int nlayer, char *fileName, atom *center);
+  virtual void MakeSlices(int nlayer, char *fileName, atom *center);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, 
                                float_tt atomX, float_tt atomY, float_tt atomZ);
 protected:
