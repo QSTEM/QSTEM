@@ -399,10 +399,12 @@ int readParams(char *datFileName) {
 				return 0;       
 			}
 
+			ConfigReaderPtr cellReader=GetConfigReader(unitCellFile);
+
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			CCrystal cryst(unitCellFilePath);
+			CCrystal cryst(cellReader);
 			// Do not handle TDS - we want the atoms at their original locations.
 			cryst.SetTDS(false);
 			// 0 indicates no handling of vacancies
