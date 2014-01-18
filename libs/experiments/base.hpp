@@ -25,6 +25,8 @@
 #include "wavefunctions.hpp"
 #include "crystal.hpp"
 
+static std::string avgFilePrefix="diffAvg";
+
 class QSTEM_HELPER_DLL_EXPORT CExperimentBase : public IExperiment
 {
 public:

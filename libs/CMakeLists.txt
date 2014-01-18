@@ -20,7 +20,7 @@ function (add_lib_dir dirname)
         #  a better way would be to manually add files in CMakeLists.txt in each folder (still adding them ultimately
         #  to LIBS_FILES
 	FILE(GLOB TMP "${dirname}/*.?pp")
-	set(LIBS_C_FILES ${LIBS_C_FILES} ${TMP} PARENT_SCOPE)
+	set(LIBS_FILES ${LIBS_FILES} ${TMP} PARENT_SCOPE)
 	SOURCE_GROUP(${dirname} FILES ${TMP} PARENT_SCOPE)
 endfunction(add_lib_dir)
 

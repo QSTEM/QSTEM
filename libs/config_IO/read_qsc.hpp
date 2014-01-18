@@ -27,7 +27,7 @@ class CQscReader : public IConfigReader
 {
 public:
   CQscReader(boost::filesystem::path &filename);
-  //~CQscReader();
+  ~CQscReader();
 
   void ReadMode(std::string &mode);
   void ReadPrintLevel(unsigned &printLevel);
