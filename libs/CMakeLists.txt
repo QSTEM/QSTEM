@@ -12,23 +12,30 @@ find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 FIND_PACKAGE(HDF5 "1.8.5" REQUIRED)
 
-# Make boost, fftw3, and our headers available to all projects
-
 FILE(GLOB LIBS_C_FILES "*.cpp")
 FILE(GLOB LIBS_H_FILES "*.hpp")
 
+function (add_lib_dir dirname)
+	#add_subdirectory(${dirname})
+	FILE(GLOB TMP "${dirname}/*.?pp")
+	set(LIBS_C_FILES ${LIBS_C_FILES} ${TMP} PARENT_SCOPE)
+	SOURCE_GROUP(${dirname} FILES ${TMP} PARENT_SCOPE)
+endfunction(add_lib_dir)
+
 # defines qstem_config (config readers)
-add_subdirectory(config_IO)
+add_lib_dir(config_IO)
 # defines qstem_data (I/O for image data)
-add_subdirectory(data_IO)
+add_lib_dir(data_IO)
 #defines qstem_structure
-add_subdirectory(structure_IO)
+add_lib_dir(structure_IO)
 # defines qstem_wavefunctions
-add_subdirectory(wavefunctions)
+add_lib_dir(wavefunctions)
 # defines qstem_potentials
-add_subdirectory(potentials)
+add_lib_dir(potentials)
 # defines qstem_experiments
-add_subdirectory(experiments)
+add_lib_dir(experiments)
+
+MESSAGE(${LIBS_C_FILES})
 
 include_directories(
   ${PROJECT_SOURCE_DIR}
