@@ -50,15 +50,15 @@ endif(WIN32)
 # adds the libraries
 add_subdirectory(libs)
 add_subdirectory(stem3)
-add_subdirectory(gbmaker)
-add_subdirectory(qscRg12)
+#add_subdirectory(gbmaker)
+#add_subdirectory(qscRg12)
 OPTION( BUILD_TESTS "Set to ON to enable unit test target generation.  Requires Boost Test binary libraries to be installed." ON )
 
 if (BUILD_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 
   # this enables the RUN_TEST target, which runs tests, but doesn't give much info.
-  add_test (NAME TestLibs COMMAND test_libs)
   #add_test (NAME TestStem3 COMMAND test_stem3)
   #add_test (NAME TestGBMaker COMMAND test_gbmaker)
 
