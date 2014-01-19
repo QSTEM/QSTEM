@@ -1,19 +1,8 @@
 #include <boost/test/unit_test.hpp>
 
-#include "data_containers.hpp"
 #include <iostream>
 
-struct WaveFixture {
-  WaveFixture():
-    wave(WavePtr( new WAVEFUNC(10, 10, 1.0, 1.0)))
-  { 
-    std::cout << "setup wave fixture" << std::endl; 
-  }
-  ~WaveFixture()
-  { std::cout << "teardown wave fixture" << std::endl; }
 
-  WavePtr wave;
-};
 
 struct DetectorFixture {
   DetectorFixture() :
@@ -27,21 +16,6 @@ struct DetectorFixture {
   DetectorPtr det;
 };
 
-BOOST_FIXTURE_TEST_SUITE (TestWave, WaveFixture)
-
-BOOST_AUTO_TEST_CASE (testArrayAllocation)
-{
-  // Check array allocation
-  BOOST_CHECK(wave->diffpat != NULL);
-  BOOST_CHECK(wave->avgArray != NULL);
-  BOOST_CHECK(wave->wave != NULL);
-}
-
-// Test image saving
-
-// Test image reading
-
-BOOST_AUTO_TEST_SUITE_END( )
 
 
 BOOST_FIXTURE_TEST_SUITE (TestDetector, DetectorFixture)
