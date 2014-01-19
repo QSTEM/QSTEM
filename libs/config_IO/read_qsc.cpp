@@ -96,14 +96,17 @@ void CQscReader::ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ
 
 void CQscReader::ReadNSubSlabs(unsigned &cellDiv)
 {
-  char *strPtr;
-
+  cellDiv=0;
   // This is stored on the same line as nCellZ, hence the duplication.
   //    We don't store nCellZ again here.
   if (readparam(m_fp, "NCELLZ:",m_buf,1)) {
     std::vector<std::string> values;
     boost::split(values, m_buf, boost::is_any_of(" "));
-    cellDiv=atoi(values[1].c_str());
+    if (values.size()>1)
+      cellDiv=atoi(values[1].c_str());
+    // cellDiv=1 when cell is undivided
+    if (cellDiv==0)
+      cellDiv=1;
     //sscanf(m_buf,"%s",answer);
     //if ((strPtr = strchr(answer,'/')) != NULL) {
     //strPtr[0] = '\0';
