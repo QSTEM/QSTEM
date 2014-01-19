@@ -39,7 +39,7 @@ private:
   bool m_noVelocity;     // If true, the file does not provide velocity information
   unsigned m_entryCount; // The number of columns on any given line of data from the file
   bool m_isValid;  // If true, this object has a valid file to read atoms from.
-  char m_buf[256];
+  std::string m_buf;
 };
 
 class CCfgWriter : public IStructureOutput

@@ -44,7 +44,9 @@ public:
   CBaseWave(const ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
   CBaseWave( const WavePtr& other );
+  CBaseWave();
 
+  void Resize(unsigned x, unsigned y);
   void CreateDataSets();
   virtual void FormProbe()=0;
 
@@ -76,7 +78,7 @@ public:
   inline void SetDiffPatPixel(unsigned i, float_tt value) {m_diffpat[i]=value;}
   inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x+m_nx*y]=value;}
 
-  void ApplyTransferFunction(complex_tt *wave);
+  void ApplyTransferFunction(boost::shared_array<complex_tt> &wave);
 
   void WriteBeams(unsigned absoluteSlice);
 
@@ -137,11 +139,11 @@ public:
 
   // People can change the wavefunction - for example, that's what we have to do when we
   //    transmit the wave through the sample's potential.
-  complex_tt *GetWavePointer(){return m_wave;}
+  boost::shared_array<complex_tt> GetWavePointer(){return m_wave;}
   // People should not directly change the diffraction pattern, since we'll re-calculate it when 
   //   the wavefunction changes.
   //   They can, however, access it.
-  const float_tt *GetDPPointer(){return m_diffpat;}
+  const boost::shared_array<float_tt> GetDPPointer(){return m_diffpat;}
 
   float_tt GetIntegratedIntensity() const ;
 
@@ -162,7 +164,7 @@ protected:
   std::string m_fileout;
   unsigned m_detPosX, m_detPosY; 
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
-  float_tt *m_diffpat;
+  boost::shared_array<float_tt> m_diffpat;
   //float_tt **m_avgArray;
   //float_tt m_thickness;
   //float_tt m_intIntensity;
@@ -180,7 +182,7 @@ protected:
 
   float_tt m_dx, m_dy;  // physical pixel size of wavefunction array
 
-  complex_tt  *m_wave; /* complex wave function */
+  boost::shared_array<complex_tt> m_wave; /* complex wave function */
 
   std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
   float_tt m_k2max;

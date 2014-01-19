@@ -56,11 +56,11 @@ void ludcmp(float_tt **a, int n, int *indx, float_tt *d) {
   */
   int i,imax=0,j,k; 
   float_tt big,dum,sum,temp; 
-  float_tt *vv; 
   /*
     vv stores the implicit scaling of each row.
   */ 
-  vv=float1D(n,"vv"); 
+  std::vector<float_tt> vv(n);
+
   *d=1.0; //No row interchanges yet. 
   for (i=0;i<n;i++) { 
     // Loop over rows to get the implicit scaling information.
@@ -122,7 +122,7 @@ void ludcmp(float_tt **a, int n, int *indx, float_tt *d) {
     } 
   } 
   // Go back for the next column in the reduction. 
-  free(vv);
+  //free(vv);
   // free_vector(vv,1,n); 
 }
 
@@ -549,14 +549,15 @@ void showMatrix(float_tt **M,int Nx, int Ny,char *name) {
 float_tt findLambda(plane *p, float *point, int revFlag) {
   static float_tt **M=NULL;
   static float_tt **Minv=NULL;
-  static float_tt *diff=NULL;
+  //static float_tt *diff=NULL;
+  std::vector<float_tt> diff(3);
   float_tt lambda; /* dummy variable */
 
 
-  if ((M == NULL) || (Minv == NULL) || (diff==NULL)) {
+  if ((M == NULL) || (Minv == NULL)){// || (diff==NULL)) {
     M = float2D(3,3,"M");
     Minv = float2D(3,3,"Minv");
-    diff = float1D(3,"diff");
+    //diff = float1D(3,"diff");
   }
 
   /*
@@ -570,7 +571,7 @@ float_tt findLambda(plane *p, float *point, int revFlag) {
   M[0][6] = -((*p).normZ);
   M[0][1] = p->vect1X; M[1][1] = p->vect1Y; M[2][1] = p->vect1Z;
   M[0][2] = p->vect2X; M[1][2] = p->vect2Y; M[2][2] = p->vect2Z;
-  vectDiff_f(point,&(p->pointX),diff,revFlag);
+  vectDiff_f(point,&(p->pointX),&diff[0],revFlag);
 
   
   inverse_3x3 (Minv[0],M[0]);
@@ -580,7 +581,7 @@ float_tt findLambda(plane *p, float *point, int revFlag) {
   // ludcmp(M,3,index,&d);
   // lubksb(M,3,index,point);	
 
-  lambda = dotProduct(Minv[0],diff);
+  lambda = dotProduct(Minv[0],&diff[0]);
   // printf("lambda: %g\n",lambda);
   return lambda;
 
@@ -598,7 +599,8 @@ float_tt findLambda(plane *p, float *point, int revFlag) {
  */
 void rotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
   static float_tt **Mrot = NULL;
-  static float_tt *vectOutTemp = NULL;
+  //static float_tt *vectOutTemp = NULL;
+  std::vector<float_tt>vectOutTemp(3);
   static float_tt sphi_x=0, sphi_y=0, sphi_z=0;
   //  static float_tt *vectOut = NULL;
   // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
@@ -607,7 +609,7 @@ void rotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi
     Mrot = float2D(3,3,"Mrot");
     memset(Mrot[0],0,9*sizeof(float_tt));
     Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
-    vectOutTemp = float1D(3,"vectOutTemp");
+    //vectOutTemp = float1D(3,"vectOutTemp");
   }
   if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
     Mrot[0][0] = cos(phi_z)*cos(phi_y);
@@ -629,49 +631,50 @@ void rotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi
   vectOutTemp[0] = Mrot[0][0]*vectIn[0]+Mrot[0][1]*vectIn[1]+Mrot[0][2]*vectIn[2];
   vectOutTemp[1] = Mrot[1][0]*vectIn[0]+Mrot[1][1]*vectIn[1]+Mrot[1][2]*vectIn[2];
   vectOutTemp[2] = Mrot[2][0]*vectIn[0]+Mrot[2][1]*vectIn[1]+Mrot[2][2]*vectIn[2];
-  memcpy(vectOut,vectOutTemp,3*sizeof(float_tt));
+  memcpy(vectOut,&vectOutTemp[0],3*sizeof(float_tt));
 
   return;
 }
 
 void rotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z) {
-int i,j,k;
-static float_tt **Mrot = NULL;
-static float_tt *matrixOutTemp = NULL;
-static float_tt sphi_x=0, sphi_y=0, sphi_z=0;
-// static float_tt *vectOut = NULL;
-// printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
+  int i,j,k;
+  static float_tt **Mrot = NULL;
+  std::vector<float_tt>matrixOutTemp(9);
+  //static float_tt *matrixOutTemp = NULL;
+  static float_tt sphi_x=0, sphi_y=0, sphi_z=0;
+  // static float_tt *vectOut = NULL;
+  // printf("angles: %g %g %g\n",phi_x,phi_y,phi_z);
 
-if (Mrot == NULL) {
-	Mrot = float2D(3,3,"Mrot");
-	memset(Mrot[0],0,9*sizeof(float_tt));
-	Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
-	matrixOutTemp = float1D(9,"vectOutTemp");
-}
-if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
-	Mrot[0][0] = cos(phi_z)*cos(phi_y);
-	Mrot[0][1] = cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x);
-	Mrot[0][2] = cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x);
+  if (Mrot == NULL) {
+    Mrot = float2D(3,3,"Mrot");
+    memset(Mrot[0],0,9*sizeof(float_tt));
+    Mrot[0][0] = 1;Mrot[1][1] = 1;Mrot[2][2] = 1;
+    //matrixOutTemp = float1D(9,"vectOutTemp");
+  }
+  if ((phi_x!=sphi_x) || (phi_y!=sphi_y) || (phi_z!=sphi_z)) {
+    Mrot[0][0] = cos(phi_z)*cos(phi_y);
+    Mrot[0][1] = cos(phi_z)*sin(phi_y)*sin(phi_x)-sin(phi_z)*cos(phi_x);
+    Mrot[0][2] = cos(phi_z)*sin(phi_y)*cos(phi_x)+sin(phi_z)*sin(phi_x);
 
-	Mrot[1][0] = sin(phi_z)*cos(phi_y);
-	Mrot[1][1] = sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x);
-	Mrot[1][2] = sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x);
+    Mrot[1][0] = sin(phi_z)*cos(phi_y);
+    Mrot[1][1] = sin(phi_z)*sin(phi_y)*sin(phi_x)+cos(phi_z)*cos(phi_x);
+    Mrot[1][2] = sin(phi_z)*sin(phi_y)*cos(phi_x)-cos(phi_z)*sin(phi_x);
 
-	Mrot[2][0] = -sin(phi_y);
-	Mrot[2][1] = cos(phi_y)*sin(phi_x);
-	Mrot[2][2] = cos(phi_y)*cos(phi_x);
+    Mrot[2][0] = -sin(phi_y);
+    Mrot[2][1] = cos(phi_y)*sin(phi_x);
+    Mrot[2][2] = cos(phi_y)*cos(phi_x);
 
-	sphi_x = phi_x;
-	sphi_y = phi_y;
-	sphi_z = phi_z;
-}
-memset(matrixOutTemp,0,9*sizeof(float_tt));
-for (i=0;i<3;i++) for (j=0;j<3;j++) for (k=0;k<3;k++) {
-	matrixOutTemp[i*3+j] += Mrot[i][k]*matrixIn[k*3+j];
-}
-memcpy(matrixOut,matrixOutTemp,9*sizeof(float_tt));
+    sphi_x = phi_x;
+    sphi_y = phi_y;
+    sphi_z = phi_z;
+  }
+  memset(&matrixOutTemp[0],0,9*sizeof(float_tt));
+  for (i=0;i<3;i++) for (j=0;j<3;j++) for (k=0;k<3;k++) {
+        matrixOutTemp[i*3+j] += Mrot[i][k]*matrixIn[k*3+j];
+      }
+  memcpy(matrixOut,&matrixOutTemp[0],9*sizeof(float_tt));
 
-return;
+  return;
 }
 
 /* This function will create a basis vector set for the axes of the unit cell

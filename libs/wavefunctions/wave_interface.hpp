@@ -20,6 +20,11 @@
 #ifndef WAVE_INTERFACE_H
 #define WAVE_INTERFACE_H
 
+#include <map>
+#include <string>
+#include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
+
 #include "stemtypes_fftw3.hpp"
 
 
@@ -46,6 +51,8 @@ public:
   virtual float_tt GetKY2(unsigned iy) const =0;
   virtual float_tt GetK2Max() const =0;
 
+  virtual void Resize(unsigned x, unsigned y) = 0;
+
   virtual float_tt GetVoltage()  const =0;
   virtual float_tt GetWavelength()  const =0;
 
@@ -56,7 +63,7 @@ public:
   virtual void SetDiffPatPixel(unsigned i, float_tt value) =0;
   virtual void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) =0;
 
-  virtual void ApplyTransferFunction(complex_tt *wave)=0;
+  virtual void ApplyTransferFunction(boost::shared_array<complex_tt> &wave)=0;
 
   void WriteBeams(unsigned absoluteSlice);
 
@@ -92,11 +99,11 @@ public:
 
   // People can change the wavefunction - for example, that's what we have to do when we
   //    transmit the wave through the sample's potential.
-  virtual complex_tt *GetWavePointer()=0;
+  virtual boost::shared_array<complex_tt> GetWavePointer()=0;
   // People should not directly change the diffraction pattern, since we'll re-calculate it when 
   //   the wavefunction changes.
   //   They can, however, access it.
-  virtual const float_tt *GetDPPointer()=0;
+  virtual const boost::shared_array<float_tt> GetDPPointer()=0;
 
   virtual float_tt GetIntegratedIntensity() const =0;
 

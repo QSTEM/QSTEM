@@ -32,6 +32,10 @@
 // 4.46677327584453 /* 1e10/sqrt(THz*amu/(pi*hbar)) */
 #define THZ_HBAR_KB 1.90963567802059 /* THz*hbar/kB */
 
+CCrystal::CCrystal()
+{
+}
+
 CCrystal::CCrystal(ConfigReaderPtr &configReader)
 {
   boost::filesystem::path fileName;
@@ -864,8 +868,9 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
   static long iseed=0;
   static float_tt **Mm=NULL,**MmInv=NULL;
   // static float_tt **MmOrig=NULL,**MmOrigInv=NULL;
-  static float_tt *axCell,*byCell,*czCell,*uf,*b;
+  static float_tt *axCell,*byCell,*czCell;
   static float_tt wobScale = 0,sq3,scale=0;
+  std::vector<float_tt> uf(3), b(3);
 
   float_tt dw = atom.dw;
 
@@ -907,8 +912,8 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
     // MmOrigInv = float2D(3,3,"MmOrigInv");
     Mm = float2D(3,3,"Mm");
     MmInv = float2D(3,3,"Mminv");
-    uf = float1D(3,"uf");
-    b = float1D(3,"uf");
+    //uf = float1D(3,"uf");
+    //b = float1D(3,"uf");
     
     axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
     // memcpy(Mm[0],m_Mm[0],3*3*sizeof(double));
@@ -1087,7 +1092,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
     /* Finally we must convert the displacement for this atom back into its fractional
      * coordinates so that we can add it to the current position in vector a
      */
-    MatrixProduct(&u,1,3,MmInv,3,3,&uf);
+    MatrixProduct(&u,1,3,MmInv,3,3,&uf[0]);
 // test:
     /*
       matrixProduct(&uf,1,3,Mm,3,3,&b);
@@ -1098,7 +1103,7 @@ void CCrystal::PhononDisplacement(float_tt *u,int id,int icx,int icy,
       }
     */
 // end test
-    memcpy(u,uf,3*sizeof(double));
+    memcpy(u,&uf[0],3*sizeof(double));
   }
   else {
     // id seems to be the index of the correct atom, i.e. ranges from 0 .. Natom
@@ -1213,6 +1218,11 @@ void CCrystal::RotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, fl
 void CCrystal::MatrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt **c)
 {
   return matrixProduct(a, Nxa, Nya, b, Nxb, Nyb, c);
+}
+
+void CCrystal::MatrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt *c)
+{
+  return matrixProduct(a, Nxa, Nya, b, Nxb, Nyb, &c);
 }
 
 void CCrystal::RotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z)

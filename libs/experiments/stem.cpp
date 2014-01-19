@@ -90,8 +90,8 @@ void CExperimentSTEM::Run()
       // default(none) forces us to specify all of the variables that are used in the parallel section.  
       //    Otherwise, they are implicitly shared (and this was cause of several bugs.)
 #pragma omp parallel \
-  private(ix, iy, ixa, iya, wave, t, timer, m_avgArray)                   \
-  shared(pot, pCount, picts, muls, collectedIntensity, total_time, waves) \
+  private(ix, iy, ixa, iya, wave, t, timer)                   \
+  shared(pCount, picts, collectedIntensity, total_time, waves, avgArrays, dx, dy, nx, ny, potNX, potNY) \
   default(none)
 #pragma omp for
       for (i=0; i < (m_scanXN * m_scanYN); i++)
@@ -172,7 +172,7 @@ void CExperimentSTEM::Run()
             
             if (m_displayProgInterval > 0) if ((m_completePixels) % m_displayProgInterval == 0) 
                {
-#pragma omp atomic
+                 //#pragma omp atomic
                  //total_time += cputim()-timer;
                  printf("Pixels complete: (%d/%d), int.=%.3f, avg time per pixel: %.2fsec\n",
                         m_completePixels, m_scanXN*m_scanYN, m_intIntensity,

@@ -66,6 +66,18 @@ CBaseWave::CBaseWave(const WavePtr &other)
   Initialize(".img", ".img");
 }
 
+CBaseWave::CBaseWave()
+{
+}
+
+
+void CBaseWave::Resize(unsigned x, unsigned y)
+{
+  m_nx=x;
+  m_ny=y;
+  CreateDataSets();
+}
+
 void CBaseWave::CreateDataSets()
 {
   m_diffpat = float1D(m_nx*m_ny,"diffpat");
@@ -82,11 +94,11 @@ void CBaseWave::Initialize(std::string input_ext, std::string output_ext)
   CreateDataSets();
 
 #if FLOAT_PRECISION == 1
-  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, k_fftMeasureFlag);
-  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, k_fftMeasureFlag);
+  m_fftPlanWaveForw = fftwf_plan_dft_2d(m_nx,m_ny,m_wave.get(),m_wave.get(),FFTW_FORWARD, k_fftMeasureFlag);
+  m_fftPlanWaveInv = fftwf_plan_dft_2d(m_nx,m_ny,m_wave.get(),m_wave.get(),FFTW_BACKWARD, k_fftMeasureFlag);
 #else
-  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_FORWARD, k_fftMeasureFlag);
-  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave,m_wave,FFTW_BACKWARD, k_fftMeasureFlag);
+  m_fftPlanWaveForw = fftw_plan_dft_2d(m_nx,m_ny,m_wave.get(),m_wave.get(),FFTW_FORWARD, k_fftMeasureFlag);
+  m_fftPlanWaveInv = fftw_plan_dft_2d(m_nx,m_ny,m_wave.get(),m_wave.get(),FFTW_BACKWARD, k_fftMeasureFlag);
 #endif
   InitializeKVectors();
 }
@@ -175,13 +187,13 @@ float_tt CBaseWave::GetIntegratedIntensity() const
   return intIntensity/px;
 }
 
-void CBaseWave::ApplyTransferFunction(complex_tt *wave)
+void CBaseWave::ApplyTransferFunction(boost::shared_array<complex_tt> &wave)
 {
   // TODO: transfer function should be passed as a 1D vector that is half the size of the wavefunc.
   //       It should be applied by a radial lookup table (with interpolation?)
   //       Alternatively, is it easier to just use a 2D CTF?
   //       Whatever you do, use m_transferFunction as the storage for it.
-  if (wave == NULL) wave = complex1D(m_nx*m_ny,"imageWave");
+  if (wave == boost::shared_array<complex_tt>()) wave = complex1D(m_nx*m_ny,"imageWave");
   unsigned px=GetTotalPixels();
       
   // multiply wave (in rec. space) with transfer function and write result to imagewave
@@ -198,11 +210,7 @@ void CBaseWave::ApplyTransferFunction(complex_tt *wave)
       wave[i][0] = m_wave[i][0];
       wave[i][1] = m_wave[i][1];
     }
-#if FLOAT_PRECISION == 1
-  fftwf_execute_dft(m_fftPlanWaveInv,wave,wave);
-#elif FLOAT_PRECISION == 2
-  fftw_execute_dft(m_fftPlanWaveInv,wave,wave);
-#endif
+  ToRealSpace();
 }
 
 void CBaseWave::_WriteWave(std::string &fileName, std::string comment,
@@ -219,7 +227,7 @@ void CBaseWave::_WriteWave(std::string &fileName, std::string comment,
   //params["Convergence Angle"] = m_alpha;
   //params["Beam Tilt X"] = m_btiltx;
   //params["Beam Tilt Y"] = m_btilty;
-  m_imageIO->WriteComplexImage((void **)m_wave, fileName, params, comment, m_position);
+  m_imageIO->WriteComplexImage((void **)m_wave.get(), fileName, params, comment, m_position);
 }
 
 void CBaseWave::_WriteDiffPat(std::string &fileName, std::string comment,
@@ -227,7 +235,7 @@ void CBaseWave::_WriteDiffPat(std::string &fileName, std::string comment,
 {
   params["dx"]=1.0/(m_nx*m_dx);
   params["dy"]=1.0/(m_ny*m_dy);
-  m_imageIO->WriteRealImage((void **)m_diffpat, fileName, params, comment, m_position);
+  m_imageIO->WriteRealImage((void **)m_diffpat.get(), fileName, params, comment, m_position);
 }
 
 
@@ -260,38 +268,38 @@ void CBaseWave::SetWavePosition(unsigned posX, unsigned posY, unsigned posZ)
 void CBaseWave::ReadWave()
 {
   m_position.clear();
-  m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_wave.get(), waveFilePrefix, m_position);
 }
 
 void CBaseWave::ReadWave(unsigned navg)
 {
   SetWavePosition(navg);
-  m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_wave.get(), waveFilePrefix, m_position);
 
 }
 
 void CBaseWave::ReadWave(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  m_imageIO->ReadImage((void **)m_wave, waveFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_wave.get(), waveFilePrefix, m_position);
 }
 
 void CBaseWave::ReadDiffPat()
 {
   m_position.clear();
-  m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_diffpat.get(), dpFilePrefix, m_position);
 }
 
 void CBaseWave::ReadDiffPat(unsigned navg)
 {
   SetWavePosition(navg);
-  m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_diffpat.get(), dpFilePrefix, m_position);
 }
 
 void CBaseWave::ReadDiffPat(unsigned positionx, unsigned positiony)
 {
   SetWavePosition(positionx, positiony);
-  m_imageIO->ReadImage((void **)m_diffpat, dpFilePrefix, m_position);
+  m_imageIO->ReadImage((void **)m_diffpat.get(), dpFilePrefix, m_position);
 }
 
 /*--------------------- wavelength() -----------------------------------*/

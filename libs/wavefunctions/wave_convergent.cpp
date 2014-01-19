@@ -31,6 +31,10 @@ CConvergentWave::CConvergentWave(const WavePtr& other) : CBaseWave(other)
   // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
 }
 
+CConvergentWave::CConvergentWave() : CBaseWave()
+{
+}
+
 void CConvergentWave::DisplayParams()
 {
   CBaseWave::DisplayParams();

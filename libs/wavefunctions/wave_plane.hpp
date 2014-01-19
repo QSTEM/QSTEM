@@ -26,6 +26,7 @@ class CPlaneWave : public CBaseWave
 {
 public:
   CPlaneWave(const ConfigReaderPtr &configReader);
+  CPlaneWave();
   virtual void FormProbe();
   void TiltBeam(bool tiltBack=false);
   void TiltBack();

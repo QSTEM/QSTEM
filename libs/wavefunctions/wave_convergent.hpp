@@ -24,6 +24,7 @@ class CConvergentWave : public CBaseWave
 public:
   CConvergentWave(const ConfigReaderPtr &configReader);
   CConvergentWave( const WavePtr& other );
+  CConvergentWave();
   virtual void FormProbe();
   virtual void DisplayParams();
 protected:
@@ -53,5 +54,4 @@ protected:
   float_tt m_gaussScale;
 
   float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
-
 };

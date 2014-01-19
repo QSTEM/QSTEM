@@ -25,6 +25,10 @@ CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : CBaseWave(configRe
 {
 }
 
+CPlaneWave::CPlaneWave() : CBaseWave()
+{
+}
+
 void CPlaneWave::DisplayParams()
 {
   CBaseWave::DisplayParams();

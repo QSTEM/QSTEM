@@ -41,7 +41,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 	this save checking for a NULL return etc every time 
 	
 */
-float_tt *float1D( int n, const char *message )
+boost::shared_array<float_tt> float1D( int n, const char *message )
 {
 	float_tt *m;
 	
@@ -55,7 +55,7 @@ float_tt *float1D( int n, const char *message )
 	printf("allocated memory for %s\n",message);
 #endif
 
-	return( m );
+	return( boost::shared_array<float_tt>(m) );
 
 }  /* end float1D() */
 
@@ -68,7 +68,7 @@ float_tt *float1D( int n, const char *message )
 	this save checking for a NULL return etc every time 
 	
 */
-double* double1D( int n, const char *message )
+boost::shared_array<double> double1D( int n, const char *message )
 {
 	double *m;
 	
@@ -82,7 +82,7 @@ double* double1D( int n, const char *message )
 	printf("allocated memory for %s\n",message);
 #endif
 
-	return( m );
+	return( boost::shared_array<double>(m) );
 
 } /* end double1D() */
 
@@ -407,16 +407,14 @@ double **double2D( int nx, int ny, const char *message )
 	make space for m[0...(nx-1)][0..(ny-1)]
 
 */
-complex_tt *complex1D( int nx, const char *message)
+boost::shared_array<complex_tt> complex1D( int nx, const char *message)
 {
 
 #ifdef PRINT_MESSAGE
   printf("allocated memory for %s (complex_tt) = %d\n",message,(int)m);
 #endif
   
-  return (complex_tt*) fftw_malloc( nx * sizeof(complex_tt) ); 
-;
-  
+  return boost::shared_array<complex_tt>((complex_tt*) fftw_malloc( nx * sizeof(complex_tt) ));
 }  /* end complex1D() */
 
 /*---------------------------- complex2D() -------------------------------*/

@@ -45,7 +45,7 @@ void CExperimentTEM::Run()
   int oldMulsRepeat2 = 1;
   long iseed=0;
   std::map<std::string, double> params;
-  fftwf_complex *imageWave = NULL;
+  boost::shared_array<complex_tt> imageWave;
 
   unsigned nx, ny;
   m_wave->GetSizePixels(nx, ny);
