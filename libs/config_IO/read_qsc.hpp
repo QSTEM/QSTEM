@@ -60,7 +60,7 @@ public:
   void ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN);  
   void ReadAtomRadius(float_tt &radius);
-  void ReadStructureFactorType(int &type);
+  void ReadStructureFactorType(std::string &type);
   void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
                                    bool &lbeams, unsigned &nbout);
   void ReadStructureFileName(boost::filesystem::path &structure_file); // 
@@ -76,7 +76,7 @@ public:
   void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
   void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
-                           float_tt &df0, int &Scherzer, float_tt &astig,
+                           float_tt &df0, std::string &Scherzer, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,
@@ -87,9 +87,11 @@ public:
                        float_tt &phi55, float_tt &phi53, float_tt &phi51,
                        float_tt &phi66, float_tt &phi64, float_tt &phi62);
 protected:
-char buf[1024];
+  std::string m_buf;
   char answer[256];
-FILE *m_fp;
+  FILE *m_fp;
+
+  bool IsBufferYes(std::string &buf);
 };
 
 #endif

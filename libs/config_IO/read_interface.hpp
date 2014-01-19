@@ -57,7 +57,7 @@ public:
                                              bool &plotPotential)=0;
   virtual void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)=0;
   virtual void ReadAtomRadius(float_tt &radius)=0;
-  virtual void ReadStructureFactorType(int &type)=0;
+  virtual void ReadStructureFactorType(std::string &type)=0;
   virtual void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
                                            bool &lbeams, unsigned &nbout)=0;
   virtual void ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)=0;
@@ -83,7 +83,7 @@ public:
   virtual void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor)=0;
   virtual void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
-                           float_tt &df0, int &Scherzer, float_tt &astig,
+                           float_tt &df0, std::string &Scherzer, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,
