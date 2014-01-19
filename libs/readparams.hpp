@@ -28,6 +28,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #ifndef READPARAMS_H
 #define READPARAMS_H
 
+#include <string>
+
 #define	NCMAX	132	/* characters per line to read */
 
 /***********************************************************
@@ -49,7 +51,7 @@ void setComment(char newComment);
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(FILE *fp, const char *title, char *parString,int wrapFlag);
+int readparam(FILE *fp, const char *title, std::string &parString,int wrapFlag);
 
 
 /************************************************************

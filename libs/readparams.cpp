@@ -33,6 +33,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <string.h>
 #include "readparams.hpp"
 
+#include <boost/algorithm/string.hpp>
+
 #define COMMENT '%'
 #define PAR_BUF_LEN 1024
 //#define STACK_SIZE 5
@@ -64,9 +66,10 @@ void setComment(char newComment) {
  * It will therefore work faster if the parameters are called 
  * in order.
  ************************************************************/
-int readparam(FILE *fp, const char *title, char *parString, int wrapFlag) {
+int readparam(FILE *fp, const char *title, std::string &parString, int wrapFlag) {
   char *result;
   char *str=NULL,*comment;
+char output[PAR_BUF_LEN];
   // int iresult;
 
   if (fp == NULL)
@@ -100,7 +103,13 @@ int readparam(FILE *fp, const char *title, char *parString, int wrapFlag) {
     return 0;
   }
 
-  strcpy(parString,str+strlen(title));
+  strcpy(output,str+strlen(title));
+parString=output;
+// Chuck anything after a comment character
+parString=parString.substr(0,parString.find("%"));
+// Clean up whitespace that might ruin string matching
+  boost::algorithm::trim(parString);
+
   
   return 1;
 } 
