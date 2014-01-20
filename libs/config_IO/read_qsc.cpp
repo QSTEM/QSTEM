@@ -308,12 +308,12 @@ void CQscReader::ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)
 void CQscReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                     float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN)
 {
-  if (!readparam(m_fp, "scan_x_start:",m_buf,1))  scanXStart=atof(m_buf.c_str());
-  if (!readparam(m_fp, "scan_x_stop:",m_buf,1))   scanXStop=atof(m_buf.c_str());
-  if (!readparam(m_fp, "scan_x_pixels:",m_buf,1)) scanXN=atoi(m_buf.c_str());
-  if (!readparam(m_fp, "scan_y_start:",m_buf,1))  scanYStart=atof(m_buf.c_str());
-  if (!readparam(m_fp, "scan_y_stop:",m_buf,1))   scanYStop=atof(m_buf.c_str());
-  if (!readparam(m_fp, "scan_y_pixels:",m_buf,1)) scanYN=atoi(m_buf.c_str());
+  if (readparam(m_fp, "scan_x_start:",m_buf,1))  scanXStart=atof(m_buf.c_str());
+  if (readparam(m_fp, "scan_x_stop:",m_buf,1))   scanXStop=atof(m_buf.c_str());
+  if (readparam(m_fp, "scan_x_pixels:",m_buf,1)) scanXN=atoi(m_buf.c_str());
+  if (readparam(m_fp, "scan_y_start:",m_buf,1))  scanYStart=atof(m_buf.c_str());
+  if (readparam(m_fp, "scan_y_stop:",m_buf,1))   scanYStop=atof(m_buf.c_str());
+  if (readparam(m_fp, "scan_y_pixels:",m_buf,1)) scanYN=atoi(m_buf.c_str());
 }
 
 
@@ -413,7 +413,7 @@ void CQscReader::ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs
 }
 
 void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                                     float_tt &sourceRadius, bool &ismoth, float_tt &gaussScale, bool &gaussFlag)
+                                     float_tt &sourceRadius)
 {
   /**********************************************************************
    * Read STEM/CBED probe parameters 
@@ -437,8 +437,11 @@ void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &d
 
   if (readparam(m_fp, "Source Size (diameter):",m_buf,1)) 
     sourceRadius = atof(m_buf.c_str())/2.0;
+}
 
-  if (readparam(m_fp, "smooth:",m_buf,1)) ismoth = IsBufferYes(m_buf);
+void CQscReader::ReadSmoothingParameters(bool &smooth, float_tt &gaussScale, bool &gaussFlag)
+{
+  if (readparam(m_fp, "smooth:",m_buf,1)) smooth = IsBufferYes(m_buf);
   if (readparam(m_fp, "gaussian:",m_buf,1)) {
     std::vector<std::string> values;
     boost::split(values, m_buf, boost::is_any_of(" "));

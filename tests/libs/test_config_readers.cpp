@@ -18,6 +18,7 @@
 */
 #define BOOST_TEST_MODULE TestConfigReaders
 #include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
 #include <iostream>
 
 #include "config_readers.hpp"
@@ -40,7 +41,7 @@ struct STEMQscFixture {
 struct TEMQscFixture {
   TEMQscFixture()
   {
-    std::string filename="tem_STO_4x4.qsc";
+    std::string filename="tem_STO.qsc";
     configReader = GetConfigReader(filename);;
     //std::cout << "setup qsc config reader fixture" << std::endl; 
   }
@@ -50,16 +51,21 @@ struct TEMQscFixture {
   ConfigReaderPtr configReader;
 };
 
+struct TomoQscFixture {
+  TomoQscFixture()
+  {
+    std::string filename="tomo_STO.qsc";
+    configReader = GetConfigReader(filename);;
+    //std::cout << "setup qsc config reader fixture" << std::endl; 
+  }
+  ~TomoQscFixture()
+  { //std::cout << "teardown qsc config reader fixture" << std::endl;
+  }
+  ConfigReaderPtr configReader;
+};
+
 // Use the STEMQscFixture to run the base tests - could use any file, these traits are generic
 BOOST_FIXTURE_TEST_SUITE (TestBaseQsc, STEMQscFixture)
-
-BOOST_AUTO_TEST_CASE(testReadArraySize)
-{
-  unsigned nx, ny;
-  configReader->ReadProbeArraySize(nx, ny);
-  BOOST_CHECK_EQUAL(nx, 400);
-  BOOST_CHECK_EQUAL(ny, 400);
-}
 
 BOOST_AUTO_TEST_CASE(testReadMode)
 {
@@ -139,6 +145,121 @@ BOOST_AUTO_TEST_CASE( testTemperatureData )
 
 }
 
+BOOST_AUTO_TEST_CASE( testReadOffset )
+{
+  float_tt x=0, y=0;
+  configReader->ReadSliceOffset(x, y);
+  BOOST_CHECK_CLOSE(x, 0, 0.00005);
+  BOOST_CHECK_CLOSE(y, 0, 0.00005);
+}
+
+BOOST_AUTO_TEST_CASE(testReadArraySize)
+{
+  unsigned nx, ny;
+  configReader->ReadProbeArraySize(nx, ny);
+  BOOST_CHECK_EQUAL(nx, 400);
+  BOOST_CHECK_EQUAL(ny, 400);
+}
+
+BOOST_AUTO_TEST_CASE( testResolution )
+{
+  float_tt x=1, y=1;
+  configReader->ReadResolution(x, y);
+  BOOST_CHECK_CLOSE(x, 0.0625, 0.00005);
+  BOOST_CHECK_CLOSE(y, 0.0625, 0.00005);
+}
+
+BOOST_AUTO_TEST_CASE( testVoltage )
+{
+  float_tt v0;
+  configReader->ReadVoltage(v0);
+  BOOST_CHECK_CLOSE(v0, 200, 0.00005);
+}
+
+BOOST_AUTO_TEST_CASE( testSliceParams )
+{
+  bool center=true; //if read properly, should return false.
+  float_tt thickness=1, zOffset=0;
+  unsigned nslices, outputInterval;
+  configReader->ReadSliceParameters(center, thickness, nslices, outputInterval, zOffset);
+  BOOST_CHECK_EQUAL(center, false);
+  BOOST_CHECK_CLOSE(thickness, 1.925, 2);
+  BOOST_CHECK_EQUAL(nslices, 40);
+  BOOST_CHECK_EQUAL(outputInterval, 8);
+  BOOST_CHECK_CLOSE(zOffset, 0.976, 0.00005);
+}
+
+BOOST_AUTO_TEST_CASE( testPeriodicParams )
+{
+  bool xy, z;
+  configReader->ReadPeriodicParameters(xy, z);
+  BOOST_CHECK_EQUAL(xy, false);
+  BOOST_CHECK_EQUAL(z, false);
+}
+
+BOOST_AUTO_TEST_CASE( testBandLimitTrans )
+{
+  bool limit;
+  configReader->ReadBandLimitTrans(limit);
+  BOOST_CHECK_EQUAL(limit, false);
+}
+
+BOOST_AUTO_TEST_CASE(testLoadPotential)
+{
+  bool load;
+  configReader->ReadLoadPotential(load);
+  BOOST_CHECK_EQUAL(load, false);
+}
+
+BOOST_AUTO_TEST_CASE( testPotOutputParams )
+{
+  bool savePot, saveProjPot, plotPot;
+  configReader->ReadPotentialOutputParameters(savePot, saveProjPot, plotPot);
+  BOOST_CHECK_EQUAL(savePot, false);
+  BOOST_CHECK_EQUAL(saveProjPot, false);
+  BOOST_CHECK_EQUAL(plotPot, false);
+}
+
+BOOST_AUTO_TEST_CASE( testPotCalcParams )
+{
+  bool _3D, fft;
+  configReader->ReadPotentialCalculationParameters(fft, _3D);
+  BOOST_CHECK_EQUAL(_3D, true);
+  BOOST_CHECK_EQUAL(fft, true);
+}
+
+BOOST_AUTO_TEST_CASE( testAtomRadius )
+{
+  float_tt r;
+  configReader->ReadAtomRadius(r);
+  BOOST_CHECK_CLOSE(r, 5.0, 0.00005);
+}
+
+BOOST_AUTO_TEST_CASE( testStructureFactorType )
+{
+  std::string type;
+  configReader->ReadStructureFactorType(type);
+  BOOST_CHECK_EQUAL(type, "WK");
+}
+
+BOOST_AUTO_TEST_CASE( testAvgParameters )
+{
+  unsigned avgruns;
+  bool storeSeries;
+  configReader->ReadAverageParameters(avgruns, storeSeries);
+  BOOST_CHECK_EQUAL(avgruns, 10);
+  // TODO: need to check store series somewhere else
+}
+
+BOOST_AUTO_TEST_CASE( testStructureFilename )
+{
+  boost::filesystem::path filename;
+  configReader->ReadStructureFileName(filename);
+  BOOST_CHECK_EQUAL(filename, boost::filesystem::path("SrTiO3.cfg"));
+}
+
+
+
 BOOST_AUTO_TEST_SUITE_END( )
 
 
@@ -151,6 +272,114 @@ BOOST_AUTO_TEST_CASE( testProbeProgressInterval )
   unsigned interval;
   configReader->ReadSTEMProgressInterval(interval);
   BOOST_CHECK_EQUAL(interval, 12);
+}
+
+BOOST_AUTO_TEST_CASE( testScanParameters )
+{
+  float_tt xstart, xstop, ystart, ystop;
+  unsigned nx, ny;
+  configReader->ReadScanParameters(xstart, xstop, nx, ystart, ystop, ny);
+  BOOST_CHECK_CLOSE(xstart, 11.67, 0.05);
+  BOOST_CHECK_CLOSE(xstop, 19.71, 0.05);
+  BOOST_CHECK_CLOSE(ystart, 11.45, 0.05);
+  BOOST_CHECK_CLOSE(ystop, 19.32, 0.05);
+  BOOST_CHECK_EQUAL(nx, 8);
+  BOOST_CHECK_EQUAL(ny, 8);
+}
+
+BOOST_AUTO_TEST_CASE( testNumberOfDetectors )
+{
+  int num;
+  configReader->ReadNumberOfDetectors(num);
+  BOOST_CHECK_EQUAL(num, 4);
+}
+
+BOOST_AUTO_TEST_CASE( testDetectorParameters )
+{
+  float_tt rInside, rOutside, shiftx, shifty;
+  std::string name;
+  configReader->ReadDetectorParameters(1, rInside, rOutside, name, shiftx, shifty);
+  BOOST_CHECK_CLOSE(rInside, 50, 0.05);
+  BOOST_CHECK_CLOSE(rOutside, 70, 0.05);
+  BOOST_CHECK_EQUAL(name, "detector2");
+  BOOST_CHECK_CLOSE(shiftx, 0, 0.05);
+  BOOST_CHECK_CLOSE(shifty, 0, 0.05);
+}
+
+BOOST_AUTO_TEST_CASE( testDoseParameters )
+{
+  float_tt beamCurrent, dwellTimeMs;
+  configReader->ReadDoseParameters(beamCurrent, dwellTimeMs);
+  BOOST_CHECK_CLOSE(beamCurrent, 1, .05);
+  BOOST_CHECK_CLOSE(dwellTimeMs, 1.6021773e-4, .05);
+}
+
+BOOST_AUTO_TEST_CASE( testProbeParameters )
+{
+  float_tt dE_E=0, dI_I=0, dV_V=0, alpha, aAIS=0, sourceRadius=0;
+  configReader->ReadProbeParameters(dE_E, dI_I, dV_V, alpha, aAIS, sourceRadius);
+  BOOST_CHECK_CLOSE(dE_E, 0, 0.05);
+  BOOST_CHECK_CLOSE(dI_I, 0, 0.05);
+  BOOST_CHECK_CLOSE(dV_V, 0.000003, 0.05);
+  BOOST_CHECK_CLOSE(alpha, 15, 0.05);
+  BOOST_CHECK_CLOSE(aAIS, 0, 0.05);
+  BOOST_CHECK_CLOSE(sourceRadius, 0, 0.05);
+}
+
+BOOST_AUTO_TEST_CASE( testProbeSmoothing )
+{
+  bool smooth, gaussFlag;
+  float_tt gaussScale=0;
+  configReader->ReadSmoothingParameters(smooth, gaussScale, gaussFlag);
+  BOOST_CHECK_EQUAL(smooth, true);
+  BOOST_CHECK_CLOSE(gaussScale, 0, 0.05);
+  BOOST_CHECK_EQUAL(gaussFlag, false);
+}
+
+BOOST_AUTO_TEST_CASE( testAberrationAmplitudes )
+{
+  float_tt Cs=0, C5=0, Cc=0, df0=0, astig=0, \
+    a33=0, a31=0, a42=0, a44=0, a55=0, \
+    a53=0, a51=0, a66=0, a64=0, a62=0;
+  std::string Scherzer;
+  configReader->ReadAberrationAmplitudes(Cs, C5, Cc, df0, Scherzer, astig,
+                                         a33, a31, a44, a42, a55, a53, a51,
+                                         a66, a64, a62);
+  BOOST_CHECK_CLOSE(Cs, 0.05, 0.00005);
+  BOOST_CHECK_CLOSE(C5, 0, 0.05);
+  BOOST_CHECK_CLOSE(Cc, 1.0, 0.00005);
+  BOOST_CHECK_CLOSE(df0, -13.7, 0.00005);
+  BOOST_CHECK_CLOSE(astig, 0, 0.05);
+  BOOST_CHECK_CLOSE(a33, 0, 0.05);
+  BOOST_CHECK_CLOSE(a31, 0, 0.05);
+  BOOST_CHECK_CLOSE(a44, 0, 0.05);
+  BOOST_CHECK_CLOSE(a42, 0, 0.05);
+  BOOST_CHECK_CLOSE(a55, 0, 0.05);
+  BOOST_CHECK_CLOSE(a53, 0, 0.05);
+  BOOST_CHECK_CLOSE(a51, 0, 0.05);
+  BOOST_CHECK_CLOSE(a66, 0, 0.05);
+  BOOST_CHECK_CLOSE(a64, 0, 0.05);
+  BOOST_CHECK_CLOSE(a62, 0, 0.05);
+}
+
+
+BOOST_AUTO_TEST_CASE( testAberrationAngles )
+{
+  float_tt astig=0, phi33=0, phi31=0, phi42=0, phi44=0, phi55=0, \
+    phi53=0, phi51=0, phi66=0, phi64=0, phi62=0;
+  configReader->ReadAberrationAngles(astig, phi33, phi31, phi44, phi42, phi55, phi53, phi51,
+                                         phi66, phi64, phi62);
+  BOOST_CHECK_CLOSE(astig, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi33, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi31, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi44, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi42, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi55, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi53, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi51, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi66, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi64, 0.0, 0.05);
+  BOOST_CHECK_CLOSE(phi62, 0.0, 0.05);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -167,6 +396,31 @@ BOOST_AUTO_TEST_CASE( testBeamTilt )
   BOOST_CHECK_CLOSE(tx, 0, 0.00005);
   BOOST_CHECK_CLOSE(ty, 0, 0.00005);
   BOOST_CHECK_EQUAL(tiltBack, true);
+}
+
+BOOST_AUTO_TEST_CASE( testPendelloesung )
+{
+  std::vector<int> hbeams, kbeams;
+  bool lbeams;
+  unsigned nbout;
+  configReader->ReadPendelloesungParameters(hbeams, kbeams, lbeams, nbout);
+  // TODO: define tests for this
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+
+
+
+BOOST_FIXTURE_TEST_SUITE(TOMO_READER, TomoQscFixture)
+
+BOOST_AUTO_TEST_CASE( testTomoParameters )
+{
+  float_tt tilt, start, step;
+  int count;
+  float_tt zoomFactor;
+  configReader->ReadTomoParameters(tilt, start, step, count, zoomFactor);
+  //TODO: define tests for this
 }
 
 BOOST_AUTO_TEST_SUITE_END()
