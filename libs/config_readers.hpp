@@ -26,6 +26,6 @@
 #include "config_IO/read_interface.hpp"
 #include "config_IO/read_qsc.hpp"
 
-ConfigReaderPtr GetConfigReader(std::string filename);
+ConfigReaderPtr QSTEM_HELPER_DLL_EXPORT GetConfigReader(std::string filename);
 
 #endif

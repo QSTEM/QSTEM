@@ -36,7 +36,7 @@ static std::string waveIntensityFilePrefix="waveIntensity";
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
-class CBaseWave : public IWave
+class QSTEM_HELPER_DLL_EXPORT CBaseWave : public IWave
 {
 public:
   // initializing constructor:

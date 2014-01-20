@@ -22,7 +22,7 @@
 
 #include "wave_base.hpp"
 
-class CPlaneWave : public CBaseWave
+class QSTEM_HELPER_DLL_EXPORT CPlaneWave : public CBaseWave
 {
 public:
   CPlaneWave(const ConfigReaderPtr &configReader);

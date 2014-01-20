@@ -6,7 +6,7 @@ project(qstem)
 #set(CMAKE_SHARED_LINKER_FLAGS "-Wl")
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
 
-#set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS ON)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
@@ -50,7 +50,7 @@ include_directories(
   ${HDF5_INCLUDE_DIR}  )
 
 add_library(${PROJECT_NAME} SHARED ${LIBS_FILES})
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${HDF5_LIBRARIES} ${FFTW_LIBRARIES} )
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${HDF5_LIBRARIES} ${FFTW3F_LIBS} ${FFTW3_LIBS})
 
 if(OPENMP)
   SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "${OpenMP_C_FLAGS}" LINK_FLAGS  "${OpenMP_C_FLAGS}")

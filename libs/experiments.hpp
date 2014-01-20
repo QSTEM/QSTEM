@@ -25,6 +25,6 @@
 // Include this because we use ConfigReaderPtr below.
 #include "config_readers.hpp"
 
-ExperimentPtr GetExperiment(ConfigReaderPtr &configReader);
+ExperimentPtr QSTEM_HELPER_DLL_EXPORT GetExperiment(ConfigReaderPtr &configReader);
 
 #endif

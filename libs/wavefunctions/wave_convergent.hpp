@@ -19,7 +19,7 @@
 
 #include "wave_base.hpp"
 
-class CConvergentWave : public CBaseWave
+class QSTEM_HELPER_DLL_EXPORT CConvergentWave : public CBaseWave
 {
 public:
   CConvergentWave(const ConfigReaderPtr &configReader);
