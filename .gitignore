@@ -43,6 +43,7 @@ BuildLog.htm
 *.lastbuildstate
 *.cache
 *codeanalysis*
+*.exp
 
 # binaries
 /bin
@@ -53,6 +54,10 @@ BuildLog.htm
 *.cmake
 CMakeCache.txt
 generate.stamp*
+
+
+# test files
+CTest*
 
 
 # img results from debug testing
