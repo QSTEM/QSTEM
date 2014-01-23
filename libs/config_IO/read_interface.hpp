@@ -37,7 +37,7 @@ public:
   virtual void ReadOutputName(std::string &fileOrFolderName)=0;
   virtual void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ)=0;
   virtual void ReadNSubSlabs(unsigned &cellDiv)=0;
-  virtual void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)=0;
+  virtual void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool &tiltBack)=0;
   virtual void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                       float_tt &cubex, float_tt &cubey, float_tt &cubez,
                                       bool &adjustCubeSize)=0;

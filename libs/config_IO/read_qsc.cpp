@@ -118,7 +118,7 @@ void CQscReader::ReadNSubSlabs(unsigned &cellDiv)
   /*************************************************
    * Read the beam tilt parameters
    */
-void CQscReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)
+void CQscReader::ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool &tiltBack)
 {
   std::vector<std::string> values;
 
@@ -265,7 +265,7 @@ void CQscReader::ReadBandLimitTrans(bool &bandlimittrans)
 }
 
 void CQscReader::ReadLoadPotential(bool &readPotential)
-{    
+{
   if (readparam(m_fp, "read potential:",m_buf,1)) {
     readPotential = IsBufferYes(m_buf);
   }
