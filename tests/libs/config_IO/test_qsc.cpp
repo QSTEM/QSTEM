@@ -51,6 +51,7 @@ struct TEMQscFixture {
   ConfigReaderPtr configReader;
 };
 
+/*
 struct TomoQscFixture {
   TomoQscFixture()
   {
@@ -63,6 +64,7 @@ struct TomoQscFixture {
   }
   ConfigReaderPtr configReader;
 };
+*/
 
 // Use the STEMQscFixture to run the base tests - could use any file, these traits are generic
 BOOST_FIXTURE_TEST_SUITE (TestBaseQsc, STEMQscFixture)
@@ -199,14 +201,15 @@ BOOST_AUTO_TEST_CASE( testPeriodicParams )
 
 BOOST_AUTO_TEST_CASE( testBandLimitTrans )
 {
-  bool limit;
+  bool limit=true;
+  // should flip it to false
   configReader->ReadBandLimitTrans(limit);
   BOOST_CHECK_EQUAL(limit, false);
 }
 
 BOOST_AUTO_TEST_CASE(testLoadPotential)
 {
-  bool load;
+  bool load=false;
   configReader->ReadLoadPotential(load);
   BOOST_CHECK_EQUAL(load, false);
 }
@@ -393,8 +396,10 @@ BOOST_AUTO_TEST_CASE( testBeamTilt )
   float_tt tx, ty;
   bool tiltBack;
   configReader->ReadBeamTilt(tx, ty, tiltBack);
-  BOOST_CHECK_CLOSE(tx, 0, 0.00005);
-  BOOST_CHECK_CLOSE(ty, 0, 0.00005);
+  // 1 degree - output of function is in rad.
+  BOOST_CHECK_CLOSE(tx, .01745, 0.05);
+  // 2 degrees
+  BOOST_CHECK_CLOSE(ty, 0.0349, 0.05);
   BOOST_CHECK_EQUAL(tiltBack, true);
 }
 
@@ -411,7 +416,7 @@ BOOST_AUTO_TEST_SUITE_END()
 
 
 
-
+/*
 BOOST_FIXTURE_TEST_SUITE(TOMO_READER, TomoQscFixture)
 
 BOOST_AUTO_TEST_CASE( testTomoParameters )
@@ -424,3 +429,4 @@ BOOST_AUTO_TEST_CASE( testTomoParameters )
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+*/

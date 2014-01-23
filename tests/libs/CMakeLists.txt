@@ -20,7 +20,8 @@ include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" ${Boost_I
 #add_executable(test_libs test_main.cpp ${LIB_TEST_FILES})
 #target_link_libraries(test_libs ${Boost_LIBRARIES})
 
-add_executable(test_config_reader test_config_readers.cpp)
+FILE(GLOB CONFIG_TESTS "config_IO/*.cpp")
+add_executable(test_config_reader ${CONFIG_TESTS})
 target_link_libraries(test_config_reader qstem ${FFTW3_LIBS} ${FFTW3F_LIBS} ${Boost_LIBRARIES})
 add_test (NAME TestConfigReader WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/data"
   COMMAND test_config_reader)
