@@ -28,8 +28,7 @@
 struct STEMQscFixture {
   STEMQscFixture()
   {
-    std::string filename="stem_STO_4x4.qsc";
-    configReader = GetConfigReader(filename);;
+    configReader = GetConfigReader("stem_STO_4x4.qsc");
     //std::cout << "setup qsc config reader fixture" << std::endl; 
   }
   ~STEMQscFixture()
@@ -41,8 +40,7 @@ struct STEMQscFixture {
 struct TEMQscFixture {
   TEMQscFixture()
   {
-    std::string filename="tem_STO.qsc";
-    configReader = GetConfigReader(filename);;
+    configReader = GetConfigReader("tem_STO.qsc");
     //std::cout << "setup qsc config reader fixture" << std::endl; 
   }
   ~TEMQscFixture()

@@ -33,6 +33,10 @@ CQscReader::CQscReader(boost::filesystem::path &filename) : IConfigReader()
     printf("Cannot open file %s\n",filename.string().c_str());
     m_isValid=false;
   }
+  else
+    {
+      m_isValid=true;
+    }
 }
   
 CQscReader::~CQscReader()

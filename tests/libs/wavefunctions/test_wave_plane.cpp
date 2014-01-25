@@ -16,41 +16,34 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#define BOOST_TEST_MODULE TestPlaneWave
+#include <boost/test/unit_test.hpp>
+#include <iostream>
+
+#include "wavefunctions/wave_plane.hpp"
 
 #include "config_readers.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
 
-ConfigReaderPtr GetConfigReader(std::string filename)
-{
-  boost::filesystem::path filepath( filename );
-  std::string extension = filepath.extension().string();
-  boost::algorithm::to_lower(extension);
-  // check file extension, instantiate appropriate reader
-  if (extension == ".qsc")
-    return ConfigReaderPtr(new CQscReader(filepath));
-  else if (extension == ".qh5")
-    {
-      // TODO: flesh out qh5 as config option
-    }
-  else
-    {
-      printf("Unrecognized config file format: %s", extension.c_str());
-      exit(-1);
-    }
-}
+struct PlaneWaveFixture {
+  PlaneWaveFixture()
+  {
+    wave = WavePtr(new CPlaneWave());
+    //std::cout << "setup plane wave fixture" << std::endl; 
+  }
+  ~PlaneWaveFixture()
+  { 
+    //std::cout << "teardown plane wave fixture" << std::endl; 
+  }
+  WavePtr wave;
+};
+
+// Tests specific to the Plane Wave class
+BOOST_FIXTURE_TEST_SUITE (TestPlaneWave, PlaneWaveFixture)
+
+// Test probe calculation (parallel beam)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+BOOST_AUTO_TEST_SUITE_END( )
 

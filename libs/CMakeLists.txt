@@ -6,7 +6,9 @@ project(qstem)
 #set(CMAKE_SHARED_LINKER_FLAGS "-Wl")
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
 
-set(Boost_USE_STATIC_LIBS ON)
+if (WIN32)
+  set(Boost_USE_STATIC_LIBS ON)
+endif(WIN32)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 

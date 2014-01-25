@@ -16,30 +16,35 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define BOOST_TEST_MODULE TestWavefunctions
+
+#define BOOST_TEST_MODULE TestWaveBase
 #include <boost/test/unit_test.hpp>
-#include <iostream>
 
 #include "wavefunctions/wave_interface.hpp"
-#include "wavefunctions/wave_base.hpp"
 #include "wavefunctions/wave_plane.hpp"
-#include "wavefunctions/wave_convergent.hpp"
 
 #include "config_readers.hpp"
+
+// Although this uses the Plane wave fixture, we're testing fundamental methods
+//   that both plane waves and convergent waves share (both inherit, and neither 
+//   override the base class methods tested here.)
 
 struct PlaneWaveFixture {
   PlaneWaveFixture()
   {
     wave = WavePtr(new CPlaneWave());
-    std::cout << "setup plane wave fixture" << std::endl; 
+configReader=GetConfigReader("tem_STO.qsc");
+    //std::cout << "setup plane wave fixture" << std::endl; 
   }
   ~PlaneWaveFixture()
-  { std::cout << "teardown plane wave fixture" << std::endl; }
-
+  { 
+    //std::cout << "teardown plane wave fixture" << std::endl; 
+  }
   WavePtr wave;
+  ConfigReaderPtr configReader;
 };
 
-BOOST_FIXTURE_TEST_SUITE (TestWave, PlaneWaveFixture)
+BOOST_FIXTURE_TEST_SUITE(TestBaseWave, PlaneWaveFixture)
 
 BOOST_AUTO_TEST_CASE (testArrayAllocation)
 {
@@ -51,7 +56,8 @@ BOOST_AUTO_TEST_CASE (testArrayAllocation)
 
 BOOST_AUTO_TEST_CASE(testReadCfgFromFile)
 {
-  ConfigReaderPtr configReader=GetConfigReader("stem_STO_4x4.qsc");
+  BOOST_REQUIRE(configReader->IsValid());
+  
   wave=WavePtr(new CPlaneWave(configReader));
   unsigned nx, ny;
   wave->GetSizePixels(nx, ny);
@@ -63,10 +69,5 @@ BOOST_AUTO_TEST_CASE(testReadCfgFromFile)
 
 // Test image reading
 
-// Test probe calculation (parallel beam)
 
-// Test probe calculation (convergent beam)
-
-BOOST_AUTO_TEST_SUITE_END( )
-
-
+BOOST_AUTO_TEST_SUITE_END()

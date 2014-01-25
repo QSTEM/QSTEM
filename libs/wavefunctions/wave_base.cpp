@@ -53,6 +53,7 @@ CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
   // TODO: need to figure out how user is going to specify input/output formats
   //CBaseWave(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
   Initialize(".img", ".img");
+  printf("Initialized from cfg file");
 }
 
 /** Copy constructor - make sure arrays are deep-copied */
