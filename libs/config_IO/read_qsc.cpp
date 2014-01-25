@@ -42,7 +42,8 @@ CQscReader::CQscReader(boost::filesystem::path &filename) : IConfigReader()
 CQscReader::~CQscReader()
 {
   // make sure the file is closed
-  fclose(m_fp);
+	if(m_fp!=NULL)
+		fclose(m_fp);
 }
 
 void CQscReader::ReadMode(std::string &mode)
