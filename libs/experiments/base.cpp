@@ -324,7 +324,7 @@ void CExperimentBase::Propagate(WavePtr wave, float_tt dz)
   wave->GetResolution(dx, dy);
   wave->GetSizePixels(nx, ny);
 
-  complex_tt *w=wave->GetWavePointer().get();
+  complex_tt *w=wave->GetWavePointer();
 
   px=nx*ny;
 
@@ -391,7 +391,7 @@ void CExperimentBase::Transmit(WavePtr wave, unsigned sliceIdx) {
   
   complex_tt *w,**t;
   unsigned nx, ny;
-  w = wave->GetWavePointer().get();
+  w = wave->GetWavePointer();
   wave->GetSizePixels(nx, ny);
   t = m_potential->GetSlice(sliceIdx);
 
@@ -413,7 +413,7 @@ void CExperimentBase::AddDPToAvgArray(const WavePtr &wave)
   // get the pointer to the first data element, and do 1D addressing (it's faster)
   float_tt chisq;
 
-  const float_tt *dp = wave->GetDPPointer().get();
+  const float_tt *dp = wave->GetDPPointer();
 
   for (unsigned i=0; i<px; i++)
     {

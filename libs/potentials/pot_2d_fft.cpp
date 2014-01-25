@@ -210,17 +210,18 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
 
 
 
-    atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
-    for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
+    //atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
+    //for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
   }
   // initialize this atom, if it has not been done yet:
-  if (atPot[Znum] == NULL) {
+  if (m_atPot.count(Znum) == 0) {
     // setup cubic spline interpolation:
     splinh(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF);
     
-    atPot[Znum] = (fftwf_complex*) fftwf_malloc(nx*ny*sizeof(fftwf_complex));
-    // memset(temp,0,nx*nz*sizeof(fftwf_complex));
-    memset(atPot[Znum],0,nx*ny*sizeof(fftwf_complex));
+    //atPot[Znum] = (fftwf_complex*) fftwf_malloc(nx*ny*sizeof(fftwf_complex));
+    m_atPot[Znum]=ComplexVector(nx*ny);
+
+    //memset(atPot[Znum],0,nx*ny*sizeof(fftwf_complex));
     for (unsigned ix=0;ix<nx;ix++) {
       float_tt kx = dkx*(ix<nx/2 ? ix : nx-ix);
       for (unsigned iy=0;iy<ny;iy++) {
@@ -234,8 +235,7 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
           // printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
           float_tt f = seval(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF,sqrt(s2))*exp(-s2*B*0.25);
           float_tt phase = PI*(kx*m_dx*nx+ky*m_dy*ny);
-          atPot[Znum][ind][0] = f*cos(phase);
-          atPot[Znum][ind][1] = f*sin(phase);
+          m_atPot[Znum][ind]=std::complex<float_tt>(f*cos(phase),f*sin(phase));
         }
       }
     }
@@ -247,11 +247,13 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
     m_imageIO->WriteComplexImage((void**)atPot[Znum], fileName);
 #endif
 #if FLOAT_PRECISION == 1
-    fftwf_plan plan = fftwf_plan_dft_2d(nx,ny,atPot[Znum],atPot[Znum],FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftwf_complex *ptr=(fftwf_complex *)&m_atPot[Znum][0];
+    fftwf_plan plan = fftwf_plan_dft_2d(nx,ny,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 #else
-    fftw_plan plan = fftw_plan_dft_2d(nx,ny,atPot[Znum],atPot[Znum],FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_complex *ptr=(fftw_complex *)&m_atPot[Znum][0];
+    fftw_plan plan = fftw_plan_dft_2d(nx,ny,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_destroy_plan(plan);
 #endif

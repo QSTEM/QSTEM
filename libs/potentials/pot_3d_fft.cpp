@@ -64,11 +64,13 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
     unsigned iaz1 = iAtomZ+m_iRadZ >= m_nslices ? m_nslices-iAtomZ-1 : m_iRadZ;
     if ((iAtomZ+iaz0 <        m_nslices) && (iAtomZ+iaz1 >= 0)) {
       // retrieve the pointer for this atom
-      complex_tt *atPotPtr = GetAtomPotential3D(atom->Znum,m_tds ? 0 : atom->dw,nzSub,Nr,Nz_lut);
+      ComplexVector atPotPtr;
+      GetAtomPotential3D(atom->Znum,m_tds ? 0 : atom->dw,nzSub,Nr,Nz_lut,atPotPtr);
 #if USE_Q_POT_OFFSETS
       // retrieve the pointer to the array of charge-dependent potential offset
       // This function will return NULL; if the charge of this atom is zero:
-      atPotOffsPtr = GetAtomPotentialOffset3D(atom->Znum,muls,m_tds ? 0 : atoms[iatom].dw,nzSub,Nr,Nz_lut,atom->q);
+      ComplexVector atPotOffsPtr;
+      GetAtomPotentialOffset3D(atom->Znum,muls,m_tds ? 0 : atoms[iatom].dw,nzSub,Nr,Nz_lut,atom->q, atPotOffsPtr);
 #endif // USE_Q_POT_OFFSETS
       unsigned iOffsLimHi = Nr*(Nz_lut-1);
       int iOffsLimLo = -Nr*(Nz_lut-1);
@@ -209,11 +211,13 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
   // printf("%d: iatomZ: %d, %d cz=%g, %g\n",iatom,iAtomZ,iaz0,m_sliceThickness,atomZ);
   if ((iAtomZ+iaz0 < m_nslices) && (iAtomZ+iaz1 >= 0)) {
     // retrieve the pointer for this atom
-    complex_tt *atPotPtr = GetAtomPotential3D(atom->Znum,m_tds ? 0 : atom->dw,nzSub,Nr,Nz_lut);
+    ComplexVector atPotPtr;
+    GetAtomPotential3D(atom->Znum,m_tds ? 0 : atom->dw,nzSub,Nr,Nz_lut, atPotPtr);
 #if USE_Q_POT_OFFSETS
     // retrieve the pointer to the array of charge-dependent potential offset
     // This function will return NULL; if the charge of this atom is zero:
-    complex_tt *atPotOffsPtr = getAtomPotentialOffset3D(atoms[iatom].Znum,muls,m_tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut,atoms[iatom].q);
+    ComplexVector atPotOffsPtr;
+    getAtomPotentialOffset3D(atoms[iatom].Znum,muls,m_tds ? 0 : atoms[iatom].dw,&nzSub,&Nr,&Nz_lut,atoms[iatom].q, atPotOffsPtr);
 #endif // USE_Q_POT_OFFSETS
     unsigned iOffsLimHi =        Nr*(Nz_lut-1);
     int iOffsLimLo = -Nr*(Nz_lut-1);
@@ -325,8 +329,9 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
 * Create Lookup table for 3D potential due to neutral atoms
 ********************************************************************************/
 #define PHI_SCALE 47.87658
-complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
-                                                unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut) {
+void C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
+                                                unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut,
+                                                ComplexVector &output) {
 	/*
   int ix,iy,iz,iiz,ind3d,iKind,izOffset;
   double zScale,kzmax,zPos,xPos;
@@ -353,16 +358,19 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
   // largest k that we'll admit
   float_tt kmax2;
 
-  complex_tt **atPot=NULL, *temp=NULL;
+  ComplexVector temp(20);
 
   unsigned nx, ny, nz, nzPerSlice;
   std::vector<float_tt> splinb(N_SF), splinc(N_SF), splind(N_SF);
 
   // scattering factors in:
   // float scatPar[4][30]
-  if (atPot == NULL) {
+  // TODO: this section meant to speed things up by skipping initialization.  Can we keep values
+  //    as members instead, and move init to another function?
+  if (m_atPot.size()==0) {
     nx = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dx);
     ny = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
+    temp.resize(nx*nz);
     // The FFT-resolution in the z-direction must be high enough to avoid
     // artifacts due to premature cutoff of the rec. space scattering factor
     // we will therefore make it roughly the same as the x-resolution
@@ -379,7 +387,6 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
     dkz = nzPerSlice/(nz*m_sliceThickness);
     kmax2 = 0.5*nx*dkx/OVERSAMPLING; 
     // Don't square kmax2 yet!
-
 
     printf("dkx = %g, nx = %d, kmax2 = %g\n",dkx,nx,kmax2);
     if (m_printLevel > 1) printf("Cutoff scattering angle: kmax=%g (1/A), dk=(%g,%g %g)\n",kmax2,dkx,dkx,dkz);
@@ -408,22 +415,23 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
                                        scatPar[0][N_SF-4-ix]);
     }        // end of if (scatPar[0][N_SF-4] > scatPar[0][N_SF-3])
     // allocate a list of pointers for the element-specific potential lookup table
-    atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
-    for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
-    temp = (complex_tt*) fftw_malloc(nx*nz*sizeof(complex_tt));
+    //atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
+    //for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
+    //temp = (complex_tt*) fftw_malloc(nx*nz*sizeof(complex_tt));
   }
 
   // Now kmax2 is actually kmax**2.
   kmax2 *= kmax2;
 
   // initialize this atom, if it has not been done yet:
-  if (atPot[Znum] == NULL) {    
+  if (m_atPot.count(Znum) == 0) {
     // setup cubic spline interpolation:
     splinh(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF);
     
     // allocate a 3D array:
-    atPot[Znum] = (complex_tt*) fftw_malloc(nx*nz/4*sizeof(complex_tt));
-    memset(temp,0,nx*nz*sizeof(complex_tt));
+    m_atPot[Znum]=ComplexVector(nx*nz/4);
+    //atPot[Znum] = (complex_tt*) fftw_malloc(nx*nz/4*sizeof(complex_tt));
+    memset((void*)&temp[0],0,nx*nz*sizeof(complex_tt));
     float_tt kzmax         = dkz*nz/2.0;
     // define x-and z-position of atom center:
     // The atom should sit in the top-left corner,
@@ -468,8 +476,8 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
           // note that the factor 2 is missing in the phase (2pi k*r)
           // this places the atoms in the center of the box.
           float_tt phase        = kx*xPos + kz*zPos;
-          temp[ind3d][0] = f*cos(phase); // *zScale
-          temp[ind3d][1] = f*sin(phase); // *zScale
+          temp[ind3d]=std::complex<float_tt>(f*cos(phase), // *zScale
+                                   f*sin(phase)); // *zScale
           // if ((kx==0) && (ky==0)) printf(" f=%g (%g, [%g, %g])\n",f,f*zScale,atPot[Znum][ind3d][0],atPot[Znum][ind3d][1]);
         }
       }
@@ -486,11 +494,13 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
 #endif        
     // This converts the 2D kx-kz map of the scattering factor to a 2D real space map.
 #if FLOAT_PRECISION ==1
-    fftwf_plan plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftwf_complex *ptr=(fftwf_complex *)&temp[0];
+    fftwf_plan plan = fftwf_plan_dft_2d(nz,nx,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 #else
-    fftw_plan plan = fftw_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_complex *ptr=(fftw_complex *)&temp[0];
+    fftw_plan plan = fftw_plan_dft_2d(nz,nx,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_destroy_plan(plan);
 #endif
@@ -513,12 +523,13 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
         // if nothing has changed, then OVERSAMPLING=2 OVERSAMP_Z=18.
         // remember, that s=0.5*k;         
         // This potential will later again be scaled by lambda*gamma (=0.025*1.39139)
-        atPot[Znum][ind3d][0] = 47.8658*dkx*dkz/(nz)*zScale;
+        // Sets real value to this; imaginary value to 0
+        m_atPot[Znum][ind3d] = 47.8658*dkx*dkz/(nz)*zScale;
 
         // *8*14.4*0.529=4*a0*e (s. Kirkland's book, p. 207)
         // 2*pi*14.4*0.529 = 7.6176;
         // if (atPot[Znum][ind3d][0] < min) min = atPot[Znum][ind3d][0];        
-        atPot[Znum][ind3d][1]= 0;
+        //atPot[Znum][ind3d][1]= 0;
       }
     // make sure we don't produce negative potential:
     // if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
@@ -537,14 +548,14 @@ complex_tt *C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
   Nz_lut = nz/2;
   nzSub  = nzPerSlice;
   Nr     = nx/2;
-  return atPot[Znum];
+  output = m_atPot[Znum];
 }
 
 
 /********************************************************************************
 * Lookup function for 3D potential offset due to charged atoms (ions)
 ********************************************************************************/
-fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut,float_tt q) {
+void C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigned &nzSub,unsigned &Nr,unsigned &Nz_lut,float_tt q, ComplexVector &output) {
   /*
   int ix,iy,iz,iiz,ind3d,iKind,izOffset;
   double zScale,kzmax,zPos,xPos;
@@ -564,7 +575,7 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt
   */
 
   // if there is no charge to this atom, return NULL:
-  if (q == 0) return NULL;
+  if (q == 0) return;
 #if !USE_REZ_SFACTS
     printf("Using charged atoms only works with scattering factors by Rez et al!\n",Znum);
     exit(0);
@@ -576,14 +587,16 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt
   std::vector<float_tt> splinb(N_SF), splinc(N_SF), splind(N_SF);
   float_tt kmax2;
 
-  complex_tt **atPot=NULL;
+  ComplexVector temp;
 
   // scattering factors in:
   // float scatPar[4][30]
-  if (atPot == NULL) {
+  if (m_offsetPot.size() ==0) {
 
     nx = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dx);
     ny = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
+    temp.resize(nx*nz);
+
     // The FFT-resolution in the z-direction must be high enough to avoid
     // artifacts due to premature cutoff of the rec. space scattering factor
     // we will therefore make it roughly the same as the x-resolution
@@ -627,17 +640,19 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt
     } // end of if (scatParOffs[0][N_SF-4] > scatParOffs[0][N_SF-3])
     kmax2 *= kmax2;
 
-    atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
-    for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
+    //atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
+    //for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
   }
   // initialize this atom, if it has not been done yet:
-  if (atPot[Znum] == NULL) {
+  if (m_offsetPot.count(Znum)==0) {
     // setup cubic spline interpolation:
     splinh(scatParOffs[0],scatParOffs[Znum],&splinb[0],&splinc[0],&splind[0],N_SF);
 
-    atPot[Znum] = (complex_tt*)fftw_malloc(nx*nz/4*sizeof(complex_tt));
-    complex_tt *temp=(complex_tt *)fftw_malloc(nx*nz*sizeof(complex_tt));
-    memset(temp, 0, nx*nz*sizeof(complex_tt));
+    m_offsetPot[Znum] = ComplexVector(nx*nz/4);
+    memset((void*)&temp[0],0,nx*nz*sizeof(complex_tt));
+
+    //complex_tt *temp=(complex_tt *)fftw_malloc(nx*nz*sizeof(complex_tt));
+    //memset(temp, 0, nx*nz*sizeof(complex_tt));
 
     float_tt kzmax         = dkz*nz/2.0;
     // define x-and z-position of atom center:
@@ -695,11 +710,13 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt
 #endif        
 
 #if FLOAT_PRECISION ==1
-    fftwf_plan plan = fftwf_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftwf_complex *ptr=(fftwf_complex *)&temp[0];
+    fftwf_plan plan = fftwf_plan_dft_2d(nz,nx,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 #else
-    fftw_plan plan = fftw_plan_dft_2d(nz,nx,temp,temp,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_complex *ptr=(fftw_complex *)&temp[0];
+    fftw_plan plan = fftw_plan_dft_2d(nz,nx,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_destroy_plan(plan);
 #endif
@@ -722,8 +739,8 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt
         // if nothing has changed, then OVERSAMPLING=2 OVERSAMP_Z=18.
         // remember, that s=0.5*k;        
         // This potential will later again be scaled by lambda*gamma (=0.025*1.39139)
-        atPot[Znum][ind3d][0] = 47.8658*dkx*dkz/(nz)*zScale;
-        atPot[Znum][ind3d][1] = 0;
+        //    implicitly sets imaginary part to 0.
+        m_offsetPot[Znum][ind3d] = 47.8658*dkx*dkz/(nz)*zScale;
       }
 #if SHOW_SINGLE_POTENTIAL
     imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, 0, m_dx/OVERSAMPLING,
@@ -736,13 +753,11 @@ fftwf_complex *C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt
 #endif        
     if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential offset array for Z=%d (B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
                                      nx/2,nz/2,Znum,B,dkx,dky,dkz,izOffset);
-    // free the temp memory
-    fftw_free(temp);
   } // end of creating atom if not exist...
   Nz_lut = nz/2;
   nzSub  = nzPerSlice;
   Nr     = nx/2;
-  return atPot[Znum];
+  output = m_offsetPot[Znum];
 }
 // #undef SHOW_SINGLE_POTENTIAL
 // end of fftwf_complex *getAtomPotential3D(...)

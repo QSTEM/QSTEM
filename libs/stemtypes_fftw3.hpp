@@ -22,6 +22,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include <boost/shared_ptr.hpp>
 
+#include "fftw_allocator.hpp"
+
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
 ///////////////////////////////////////////////////////////////////////
@@ -63,12 +65,14 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
-typedef fftwf_complex complex_tt;
+typedef FFTWComplex<float> complex_tt;
 typedef float float_tt;
 #else  // FLOAT_PRECISION
-typedef fftw_complex complex_tt;
+typedef FFTWComplex<double> complex_tt;
 typedef double float_tt;
 #endif  // FLOAT_PRECISION
+typedef std::vector<float_tt, FFTWAllocator<float_tt> > RealVector;
+typedef std::vector<complex_tt, FFTWAllocator<complex_tt > > ComplexVector;
 ////////////////////////////////////////////////////////////////
 
 const float_tt PI = 2*acos(0.0);

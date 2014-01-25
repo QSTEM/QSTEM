@@ -1,3 +1,4 @@
+
 #include "pot_2d.hpp"
 
 class C2DFFTPotential : public C2DPotential
@@ -25,6 +26,7 @@ protected:
   complex_tt *GetAtomPotential2D(int Znum, double B);
 private:
   unsigned m_nyAtBox, m_nxyAtBox, m_nyAtBox2, m_nxyAtBox2; //Size of atom box in pixels
+  std::map<unsigned, ComplexVector> m_atPot;
 private:
   friend class CPotFactory;
   // Create an instance of this class, wrapped in a shared ptr

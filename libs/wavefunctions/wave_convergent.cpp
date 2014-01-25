@@ -156,7 +156,7 @@ void CConvergentWave::FormProbe()
   delta = m_Cc*m_dE_E;
   if (m_printLevel > 2) printf("defocus offset: %g nm (Cc = %g)\n",delta,m_Cc);
   
-  if (m_wave == NULL) {
+  if (m_wave.size()==0) {
     printf("Error in probe(): Wave not allocated!\n");
     exit(0);
   }

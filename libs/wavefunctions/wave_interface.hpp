@@ -99,11 +99,11 @@ public:
 
   // People can change the wavefunction - for example, that's what we have to do when we
   //    transmit the wave through the sample's potential.
-  virtual boost::shared_array<complex_tt> GetWavePointer()=0;
+  virtual complex_tt *GetWavePointer()=0;
   // People should not directly change the diffraction pattern, since we'll re-calculate it when 
   //   the wavefunction changes.
   //   They can, however, access it.
-  virtual const boost::shared_array<float_tt> GetDPPointer()=0;
+  virtual const float_tt *GetDPPointer()=0;
 
   virtual float_tt GetIntegratedIntensity() const =0;
 

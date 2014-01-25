@@ -139,11 +139,11 @@ public:
 
   // People can change the wavefunction - for example, that's what we have to do when we
   //    transmit the wave through the sample's potential.
-  boost::shared_array<complex_tt> GetWavePointer(){return m_wave;}
+  complex_tt *GetWavePointer(){return &m_wave[0];}
   // People should not directly change the diffraction pattern, since we'll re-calculate it when 
   //   the wavefunction changes.
   //   They can, however, access it.
-  const boost::shared_array<float_tt> GetDPPointer(){return m_diffpat;}
+  const float_tt *GetDPPointer(){return &m_diffpat[0];}
 
   float_tt GetIntegratedIntensity() const ;
 
@@ -164,7 +164,7 @@ protected:
   std::string m_fileout;
   unsigned m_detPosX, m_detPosY; 
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
-  boost::shared_array<float_tt> m_diffpat;
+  RealVector m_diffpat;
   //float_tt **m_avgArray;
   //float_tt m_thickness;
   //float_tt m_intIntensity;
@@ -182,9 +182,9 @@ protected:
 
   float_tt m_dx, m_dy;  // physical pixel size of wavefunction array
 
-  boost::shared_array<complex_tt> m_wave; /* complex wave function */
+  ComplexVector m_wave; /* complex wave function */
 
-  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  RealVector m_kx2,m_ky2,m_kx,m_ky;
   float_tt m_k2max;
 
 #if FLOAT_PRECISION == 1
