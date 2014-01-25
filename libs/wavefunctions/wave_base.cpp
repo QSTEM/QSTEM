@@ -108,6 +108,11 @@ void CBaseWave::Initialize(std::string input_ext, std::string output_ext)
 
  void CBaseWave::InitializeKVectors()
  {
+	m_kx.resize(m_nx);
+	m_kx2.resize(m_nx);
+	m_ky.resize(m_ny);
+	m_ky2.resize(m_ny);
+
   float_tt ax = m_dx*m_nx;
   float_tt by = m_dy*m_ny;
   for(unsigned ixa=0; ixa<m_nx; ixa++) 
