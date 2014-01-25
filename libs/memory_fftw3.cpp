@@ -414,7 +414,7 @@ boost::shared_array<complex_tt> complex1D( int nx, const char *message)
   printf("allocated memory for %s (complex_tt) = %d\n",message,(int)m);
 #endif
   
-  return boost::shared_array<complex_tt>((complex_tt*) fftw_malloc( nx * sizeof(complex_tt) ));
+  return boost::shared_array<complex_tt>((complex_tt*) fftw_malloc( nx * sizeof(complex_tt) ),fftw_free);
 }  /* end complex1D() */
 
 /*---------------------------- complex2D() -------------------------------*/

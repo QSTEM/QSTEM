@@ -65,6 +65,7 @@ BOOST_AUTO_TEST_CASE(testReadCfgFromFile)
   BOOST_CHECK(ny == 400);
 }
 
+
 // Test image saving
 
 // Test image reading
