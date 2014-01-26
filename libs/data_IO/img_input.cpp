@@ -41,8 +41,18 @@ void CImgReader::ReadHeader(const char *fileName)
       sprintf(m_buf, "Could not open file %s for reading header.\n",fileName);
 	  throw std::runtime_error(m_buf);
   }
-  // This sets many of the m_ variables!
-  fread((void*)this, 1, 56, fp);
+  fread((void*)&m_headerSize, 4, 1,fp);
+  fread((void*)&m_paramSize, 4, 1, fp);
+  fread((void*)&m_commentSize, 4, 1, fp);
+  fread((void*)&m_nx, 4, 1, fp);
+  fread((void*)&m_ny, 4, 1, fp);
+  fread((void*)&m_complexFlag, 4, 1, fp);
+  fread((void*)&m_dataSize, 4, 1, fp);
+  fread((void*)&m_version, 4, 1, fp);
+  fread((void*)&m_t, 8, 1, fp);  // thickness
+  fread((void*)&m_dx, 8, 1, fp); // resolution in X
+  fread((void*)&m_dy, 8, 1, fp); // resolution in Y
+
   if (m_paramSize>0)
     {
       m_params=std::vector<double>(m_paramSize);
@@ -52,6 +62,7 @@ void CImgReader::ReadHeader(const char *fileName)
     {
       fread((void*)m_buf, 1, m_commentSize, fp);
       m_comment = std::string(m_buf);
+	  m_comment.resize(m_commentSize);
     }
 
   if (fp != NULL) fclose(fp);

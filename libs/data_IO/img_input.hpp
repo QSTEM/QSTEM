@@ -24,16 +24,8 @@
 
 class CImgReader : public IDataReader
 {
-public:
-  CImgReader();
-  virtual void ReadImageData(const std::string &filename, void *pix);
-  virtual void ReadComment(const std::string &filename, std::string &comment);
-  virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters);
-  virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny);
-
-  virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
-                         std::string &comment);
-protected:
+	// The order of these data members matters!  Don't shuffle them.  Don't move them.  
+	//    Doing so will mess up the ability to read img files.
   int m_headerSize;  // first byte of image will be size of image header (in bytes)
                    // This is the size without the data, parameters, and comment!!!
   int m_paramSize;   // number of additional parameters
@@ -45,6 +37,16 @@ protected:
                    // distinguish between images produced by different versions of stem
   double m_t;        // thickness
   double m_dx,m_dy;    // size of one pixel
+public:
+  CImgReader();
+  virtual void ReadImageData(const std::string &filename, void *pix);
+  virtual void ReadComment(const std::string &filename, std::string &comment);
+  virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters);
+  virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny);
+
+  virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
+                         std::string &comment);
+protected:
   std::vector<double> m_params;  // array for additional parameters
   std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
