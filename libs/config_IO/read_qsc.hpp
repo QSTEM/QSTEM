@@ -93,6 +93,11 @@ protected:
   FILE *m_fp;
 
   bool IsBufferYes(std::string &buf);
+private:
+  friend class CConfigReaderFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static ConfigReaderPtr Create(boost::filesystem::path &filename){return ConfigReaderPtr(new CQscReader(filename));}
 };
 
 #endif

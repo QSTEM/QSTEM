@@ -22,12 +22,14 @@
 
 #include "wavefunctions/wave_plane.hpp"
 
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
+
 
 struct PlaneWaveFixture {
   PlaneWaveFixture()
   {
-    wave = WavePtr(new CPlaneWave());
+   configReader = CConfigReaderFactory::Get()->GetReader("tem_STO.qsc");
+    wave = WavePtr(new CPlaneWave(configReader));
     //std::cout << "setup plane wave fixture" << std::endl; 
   }
   ~PlaneWaveFixture()
@@ -35,6 +37,7 @@ struct PlaneWaveFixture {
     //std::cout << "teardown plane wave fixture" << std::endl; 
   }
   WavePtr wave;
+  ConfigReaderPtr configReader;
 };
 
 // Tests specific to the Plane Wave class

@@ -19,7 +19,6 @@
 
 
 #include "crystal.hpp"
-#include "config_readers.hpp"
 #include <boost/array.hpp>
 
 #include "memory_fftw3.hpp"

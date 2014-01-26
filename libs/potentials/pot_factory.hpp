@@ -26,18 +26,19 @@
 #include "pot_interface.hpp"
 
 // Include this because we use ConfigReaderPtr below.
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
+
 
 // Factory for creating instances of IPotential
 class CPotFactory
 {
 private:
-    CPotFactory();
-    CPotFactory(const CPotFactory &) { }
-    CPotFactory &operator=(const CPotFactory &) { return *this; }
+  CPotFactory();
+  CPotFactory(const CPotFactory &) { }
+  CPotFactory &operator=(const CPotFactory &) { return *this; }
 
-	typedef std::map<std::string, CreatePotentialFn> FactoryMap;
-    FactoryMap m_FactoryMap;
+  typedef std::map<std::string, CreatePotentialFn> FactoryMap;
+  FactoryMap m_FactoryMap;
 public:
     ~CPotFactory() { m_FactoryMap.clear(); }
 
@@ -48,13 +49,13 @@ public:
     }
 
     void Register(const std::string &potentialName, CreatePotentialFn pfnCreate);
-	// Looks up which potential to get based on string mapping of registered potentials
-	PotPtr GetPotential(const std::string &animalName);
-	// ultimately uses the string based method, but builds the string based on the standard 2d/3d fft/real-space options
-	PotPtr GetPotential(bool _3D, bool fft);
-	// ultimately uses the string-based method, but parses the config reader for you to make that string.  
-	//    Has side effect of initializing pot automatically for you using the passed in configReader.
-	PotPtr GetPotential(const ConfigReaderPtr &configReader);
+  // Looks up which potential to get based on string mapping of registered potentials
+  PotPtr GetPotential(const std::string &animalName);
+  // ultimately uses the string based method, but builds the string based on the standard 2d/3d fft/real-space options
+  PotPtr GetPotential(bool _3D, bool fft);
+  // ultimately uses the string-based method, but parses the config reader for you to make that string.  
+  //    Has side effect of initializing pot automatically for you using the passed in configReader.
+  PotPtr GetPotential(const ConfigReaderPtr &configReader);
 };
 
 #endif

@@ -26,9 +26,17 @@
 #include <string>
 #include <vector>
 
+class IConfigReader;
+typedef boost::shared_ptr<IConfigReader> ConfigReaderPtr;
+typedef ConfigReaderPtr (*CreateReaderFn)(boost::filesystem::path &filename);
+
 class IConfigReader
 {
 public:
+  // Any ConfigReader class should define this as a private static member.  See read_qsc.hpp for example.
+  // virtual ConfigReaderPtr Create()=0;
+
+
   virtual void ReadMode(std::string &mode)=0;
   virtual void ReadPrintLevel(unsigned &printLevel)=0;
   virtual void ReadSaveLevel(unsigned &saveLevel)=0;
@@ -98,7 +106,5 @@ public:
 protected:
   bool m_isValid;
 };
-
-typedef boost::shared_ptr<IConfigReader> ConfigReaderPtr;
 
 #endif

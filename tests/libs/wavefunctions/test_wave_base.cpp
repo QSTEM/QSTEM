@@ -23,7 +23,7 @@
 #include "wavefunctions/wave_interface.hpp"
 #include "wavefunctions/wave_plane.hpp"
 
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
 
 // Although this uses the Plane wave fixture, we're testing fundamental methods
 //   that both plane waves and convergent waves share (both inherit, and neither 
@@ -33,7 +33,7 @@ struct PlaneWaveFixture {
   PlaneWaveFixture()
   {
     wave = WavePtr(new CPlaneWave());
-configReader=GetConfigReader("tem_STO.qsc");
+   configReader = CConfigReaderFactory::Get()->GetReader("tem_STO.qsc");
     //std::cout << "setup plane wave fixture" << std::endl; 
   }
   ~PlaneWaveFixture()

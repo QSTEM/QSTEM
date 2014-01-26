@@ -23,13 +23,15 @@
 
 #include "wavefunctions/wave_convergent.hpp"
 
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
+
 
 struct ConvergentWaveFixture {
   ConvergentWaveFixture()
   {
+   configReader = CConfigReaderFactory::Get()->GetReader("stem_STO_4x4.qsc");
     // just default to using the STEM config file here
-    wave = WavePtr(new CConvergentWave(GetConfigReader("stem_STO_4x4.qsc")));
+    wave = WavePtr(new CConvergentWave(configReader));
     //std::cout << "setup convergent wave fixture" << std::endl; 
   }
   ~ConvergentWaveFixture()
@@ -38,6 +40,7 @@ struct ConvergentWaveFixture {
   }
 
   WavePtr wave;
+  ConfigReaderPtr configReader;
 };
 
 BOOST_FIXTURE_TEST_SUITE(TestConvergentWave, ConvergentWaveFixture)

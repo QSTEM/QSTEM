@@ -23,7 +23,7 @@
 // Inlcude this so that we know what an ExperimentPtr is
 #include "experiments/experiment_interface.hpp"
 // Include this because we use ConfigReaderPtr below.
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
 
 ExperimentPtr QSTEM_HELPER_DLL_EXPORT GetExperiment(ConfigReaderPtr &configReader);
 

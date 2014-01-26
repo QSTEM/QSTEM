@@ -23,7 +23,7 @@
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
 
 #include "wave_interface.hpp"
 

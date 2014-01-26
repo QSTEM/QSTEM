@@ -19,7 +19,7 @@
 
 #include "../stemtypes_fftw3.hpp"
 #include "../imagelib_fftw3.hpp"
-#include "../config_readers.hpp"
+//#include "config_reader_factory.hpp"
 #include "../memory_fftw3.hpp"
 #include "../crystal.hpp"
 #include "scatfactsRez.hpp"

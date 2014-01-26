@@ -21,14 +21,12 @@
 #include <boost/filesystem.hpp>
 #include <iostream>
 
-#include "config_readers.hpp"
-#include "config_IO/read_interface.hpp"
-#include "config_IO/read_qsc.hpp"
+#include "config_IO/config_reader_factory.hpp"
 
 struct STEMQscFixture {
   STEMQscFixture()
   {
-    configReader = GetConfigReader("stem_STO_4x4.qsc");
+   configReader = CConfigReaderFactory::Get()->GetReader("stem_STO_4x4.qsc");
     //std::cout << "setup qsc config reader fixture" << std::endl; 
   }
   ~STEMQscFixture()
@@ -40,8 +38,8 @@ struct STEMQscFixture {
 struct TEMQscFixture {
   TEMQscFixture()
   {
-    configReader = GetConfigReader("tem_STO.qsc");
-    //std::cout << "setup qsc config reader fixture" << std::endl; 
+   configReader = CConfigReaderFactory::Get()->GetReader("tem_STO.qsc");
+   //std::cout << "setup qsc config reader fixture" << std::endl; 
   }
   ~TEMQscFixture()
   { //std::cout << "teardown qsc config reader fixture" << std::endl;

@@ -605,14 +605,12 @@ inline typename FFTWComplex<R>::SquaredNormType squaredNorm(const FFTWComplex<R>
 
 
 namespace std {
-
-template <class Real>
-ostream & operator<<(ostream & s, FFTWComplex<Real> const & v)
-{
+  template <class Real>
+  ostream & operator<<(ostream & s, FFTWComplex<Real> const & v)
+  {
     s << std::complex<Real>(v.re(), v.im());
     return s;
-}
-
+  }
 }
 
 template<class Ty>
@@ -679,5 +677,15 @@ class FFTWAllocator
       //return NumericTraits<std::ptrdiff_t>::max() / sizeof(Ty);
     }
 };
+
+// determines if memory from another
+// allocator can be deallocated from this one
+
+template<typename T>
+inline bool operator==(FFTWAllocator<T> const& lhs, FFTWAllocator<T> const& rhs) { 
+    return operator==(static_cast<T&>(lhs), 
+                       static_cast<T&>(rhs)); 
+}
+
 
 #endif /* FFTW_ALLOCATOR_H_ */
