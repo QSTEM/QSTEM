@@ -25,7 +25,7 @@
 
 CConfigReaderFactory::CConfigReaderFactory()
 {
-	Register("qsc",    &CQscReader::Create);
+	Register(".qsc",    &CQscReader::Create);
 }
 
 void CConfigReaderFactory::Register(const std::string &extension, CreateReaderFn pfnCreate)

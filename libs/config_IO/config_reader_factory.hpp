@@ -26,7 +26,7 @@
 #include "read_interface.hpp"
 
 // Factory for creating instances of IPotential
-class CConfigReaderFactory
+class QSTEM_HELPER_DLL_EXPORT CConfigReaderFactory
 {
 public:
     ~CConfigReaderFactory() { m_FactoryMap.clear(); }

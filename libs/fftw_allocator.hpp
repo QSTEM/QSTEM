@@ -683,8 +683,9 @@ class FFTWAllocator
 
 template<typename T>
 inline bool operator==(FFTWAllocator<T> const& lhs, FFTWAllocator<T> const& rhs) { 
-    return operator==(static_cast<T&>(lhs), 
-                       static_cast<T&>(rhs)); 
+	return true;
+    //return operator==(static_cast<T&>(lhs), 
+     //                  static_cast<T&>(rhs)); 
 }
 
 
