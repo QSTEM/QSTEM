@@ -118,6 +118,28 @@ void CImgReader::_ReadSize(unsigned &nx, unsigned &ny)
   ny=m_ny;
 }
 
+void CImgReader::ReadComplex(const std::string &filebase, bool &complex)
+{
+  ReadHeader(BuildFilenameString(filebase).c_str());
+  _ReadComplex(complex);
+}
+
+void CImgReader::_ReadComplex(bool &complex)
+{
+	complex=(bool)m_complexFlag;
+}
+
+void CImgReader::ReadElementByteSize(const std::string &filebase, unsigned &elementSizeBytes)
+{
+	ReadHeader(BuildFilenameString(filebase).c_str());
+	_ReadElementByteSize(elementSizeBytes);
+}
+
+void CImgReader::_ReadElementByteSize(unsigned &elementByteSize)
+{
+	elementByteSize=m_dataSize;
+}
+
 void CImgReader::ReadImageData(const std::string &filebase, void *pix)
 {
   std::string filename=BuildFilenameString(filebase);

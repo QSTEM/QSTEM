@@ -68,6 +68,22 @@ BOOST_AUTO_TEST_CASE( testParameters )
   BOOST_CHECK_CLOSE(parameters["dy"],0.04, 0.05);
 }
 
+BOOST_AUTO_TEST_CASE( testComplex )
+{
+  std::string filename="diffAvg_0_16";
+  bool complex;
+  dataReader->ReadComplex(filename, complex);
+  BOOST_CHECK_EQUAL(complex, false);
+}
+
+BOOST_AUTO_TEST_CASE( testByteSize )
+{
+  std::string filename="diffAvg_0_16";
+  unsigned byteSize;
+  dataReader->ReadElementByteSize(filename, byteSize);
+  BOOST_CHECK_EQUAL(byteSize, 4);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 
