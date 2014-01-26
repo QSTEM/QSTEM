@@ -21,18 +21,18 @@
 #include "img_output.hpp"
 #include "img_VERSION.hpp"
 
-CImgOutput::CImgOutput() : CBinaryOutput(),
+CImgWriter::CImgWriter() : CBinaryOutput(),
                            m_headerSize(56),
                            m_version(IMG_VERSION)
 {
 }
 
-void CImgOutput::Initialize(std::string dirOrFileName, std::string run_id)
+void CImgWriter::Initialize(std::string dirOrFileName, std::string run_id)
 {
   // TODO: create the output folder if it doesn't exist
 }
 
-void CImgOutput::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+void CImgWriter::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
                                  const std::vector<unsigned> &position, const std::string &comment,
                                  std::map<std::string, double> &parameters)
 {
@@ -40,7 +40,7 @@ void CImgOutput::WriteComplexImage(complex_tt **data, const std::vector<unsigned
   WriteData((void **)data, true, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgOutput::WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+void CImgWriter::WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment,
                                   std::map<std::string, double> &parameters)
 {
@@ -48,7 +48,7 @@ void CImgOutput::WriteRealImage(float_tt **data, const std::vector<unsigned> &sh
     WriteData((void **)data, false, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgOutput::WriteData(void **pix, bool is_complex, unsigned dataSize, std::vector<unsigned> shape, 
+void CImgWriter::WriteData(void **pix, bool is_complex, unsigned dataSize, std::vector<unsigned> shape, 
                              std::string label, std::vector<unsigned> position, std::string comment,
                              std::map<std::string, double> parameters)
 {

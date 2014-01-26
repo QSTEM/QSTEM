@@ -26,14 +26,34 @@
 
 #include <boost/shared_ptr.hpp>
 
+class IDataReader;
+typedef boost::shared_ptr<IDataReader> DataReaderPtr;
+typedef DataReaderPtr (*CreateDataReaderFn)();
 
-class IDataInput
+class IDataReader
 {
 public:
-  virtual void ReadImage(void *pix, const std::string &label, std::map<std::string, double> &params,
-                         std::string &comment, const std::vector<unsigned> position=std::vector<unsigned>())=0;
+  virtual void ReadImageData(const std::string &filename, void *pix)=0;
+  virtual void ReadComment(const std::string &filename, std::string &comment)=0;
+  virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters)=0;
+  virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny)=0;
+  // One-shot catch-all
+  virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
+                         std::string &comment)=0;
 };
 
-typedef boost::shared_ptr<IDataInput> DataReaderPtr;
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+

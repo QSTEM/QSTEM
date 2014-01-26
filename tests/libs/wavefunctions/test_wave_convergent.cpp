@@ -55,6 +55,7 @@ BOOST_AUTO_TEST_CASE( testCopy )
 
 BOOST_AUTO_TEST_CASE( testFormProbe )
 {
+  
   wave->FormProbe();
   // TODO: how to best test?  
   // this will work if I turn the data into a vector

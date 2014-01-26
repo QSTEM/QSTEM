@@ -25,7 +25,7 @@
 // Include this so that people know what a ConfigReaderPtr is and how to create them
 #include "read_interface.hpp"
 
-// Factory for creating instances of IPotential
+// Factory for creating instances of IConfigReader
 class QSTEM_HELPER_DLL_EXPORT CConfigReaderFactory
 {
 public:

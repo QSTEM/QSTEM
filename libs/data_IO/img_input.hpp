@@ -17,15 +17,23 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef IMG_READER_H
+#define IMG_READER_H
+
 #include "input_interface.hpp"
 
-class CImgInput : public IDataInput 
+class CImgReader : public IDataReader
 {
 public:
-  CImgInput();
-  virtual void ReadImage(void *pix, const std::string &label, std::map<std::string, double> &params,
-                         std::string &comment, const std::vector<unsigned> position=std::vector<unsigned>());
-private:
+  CImgReader();
+  virtual void ReadImageData(const std::string &filename, void *pix);
+  virtual void ReadComment(const std::string &filename, std::string &comment);
+  virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters);
+  virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny);
+
+  virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
+                         std::string &comment);
+protected:
   int m_headerSize;  // first byte of image will be size of image header (in bytes)
                    // This is the size without the data, parameters, and comment!!!
   int m_paramSize;   // number of additional parameters
@@ -41,4 +49,18 @@ private:
   std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
   virtual void ReadHeader(const char *fileName);
+  std::string BuildFilenameString(const std::string &label);
+  void _ReadComment(std::string &comment);
+  void _ReadParameters(std::map<std::string, double> &params);
+  void _ReadImageData(const std::string &filename, void *pix);
+  void _ReadSize(unsigned &nx, unsigned &ny);
+
+
+private:
+  friend class CDataReaderFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static DataReaderPtr Create(void){return DataReaderPtr(new CImgReader());}
 };
+
+#endif

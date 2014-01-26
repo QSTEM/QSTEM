@@ -23,7 +23,7 @@
 #include "input_interface.hpp"
 #include "qh5.hpp"
 
-class CQH5Input : public IDataInput
+class CQH5Input : public IDataReader
 {
 public:
   CQH5Input();
