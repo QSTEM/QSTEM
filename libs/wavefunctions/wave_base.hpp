@@ -45,6 +45,7 @@ public:
   // define a copy constructor to create new arrays
   CBaseWave( const WavePtr& other );
   CBaseWave();
+  ~CBaseWave();
 
   void Resize(unsigned x, unsigned y);
   void CreateDataSets();

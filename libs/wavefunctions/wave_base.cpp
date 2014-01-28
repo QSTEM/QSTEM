@@ -38,11 +38,15 @@ CBaseWave::CBaseWave(unsigned x, unsigned y, float_tt resX, float_tt resY,
   m_dx(resX),
   m_dy(resY),
   m_params(std::map<std::string, double>())
+  , m_fftPlanWaveForw(NULL)
+  , m_fftPlanWaveInv(NULL)
 {
   Initialize(".img", ".img");
 }
 
 CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
+  : m_fftPlanWaveForw(NULL)
+  , m_fftPlanWaveInv(NULL)
 {
   configReader->ReadProbeArraySize(m_nx, m_ny);
   configReader->ReadResolution(m_dx, m_dy);
@@ -58,6 +62,8 @@ CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
 
 /** Copy constructor - make sure arrays are deep-copied */
 CBaseWave::CBaseWave(const WavePtr &other)
+  : m_fftPlanWaveForw(NULL)
+  , m_fftPlanWaveInv(NULL)
 {
   // TODO: make sure arrays are deep copied
   other->GetSizePixels(m_nx, m_ny);
@@ -68,9 +74,26 @@ CBaseWave::CBaseWave(const WavePtr &other)
 }
 
 CBaseWave::CBaseWave()
+  : m_fftPlanWaveForw(NULL)
+  , m_fftPlanWaveInv(NULL)
 {
 }
 
+CBaseWave::~CBaseWave()
+{
+  if (m_fftPlanWaveForw!=NULL)
+    {
+#if FLOAT_PRECISION == 1
+      fftwf_destroy_plan(m_fftPlanWaveForw);
+      fftwf_destroy_plan(m_fftPlanWaveInv);
+      fftwf_cleanup();
+#else
+      fftw_destroy_plan(m_fftPlanWaveForw);
+      fftw_destroy_plan(m_fftPlanWaveInv);
+      fftw_cleanup();
+#endif
+    }
+}
 
 void CBaseWave::Resize(unsigned x, unsigned y)
 {
