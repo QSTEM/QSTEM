@@ -37,6 +37,8 @@ public:
   virtual void ReadComment(const std::string &filename, std::string &comment)=0;
   virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters)=0;
   virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny)=0;
+  virtual void ReadElementByteSize(const std::string &filename, unsigned &elementByteSize)=0;
+  virtual void ReadComplex(const std::string &filename, bool &complex)=0;
   // One-shot catch-all
   virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
                          std::string &comment)=0;

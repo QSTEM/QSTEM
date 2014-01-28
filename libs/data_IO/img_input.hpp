@@ -43,6 +43,8 @@ public:
   virtual void ReadComment(const std::string &filename, std::string &comment);
   virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters);
   virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny);
+  virtual void ReadComplex(const std::string &filename, bool &complex);
+  virtual void ReadElementByteSize(const std::string &filename, unsigned &elementByteSize);
 
   virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
                          std::string &comment);
@@ -56,6 +58,8 @@ protected:
   void _ReadParameters(std::map<std::string, double> &params);
   void _ReadImageData(const std::string &filename, void *pix);
   void _ReadSize(unsigned &nx, unsigned &ny);
+  void _ReadElementByteSize(unsigned &elementByteSize);
+  void _ReadComplex(bool &complex);
 
 
 private:
