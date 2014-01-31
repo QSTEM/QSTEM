@@ -17,15 +17,29 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// TODO: implement some kind of dynamic registration here, like maybe:
-// http://stackoverflow.com/questions/9975672/c-automatic-factory-registration-of-derived-types
+#include <boost/algorithm/string.hpp>
 
-#ifndef CONFIG_READER_H
-#define CONFIG_READER_H
+#include "config_reader_factory.hpp"
 
-#include "config_IO/read_interface.hpp"
-#include "config_IO/read_qsc.hpp"
+#include "read_qsc.hpp"
 
-ConfigReaderPtr GetConfigReader(std::string &filename);
+CConfigReaderFactory::CConfigReaderFactory()
+{
+	Register(".qsc",    &CQscReader::Create);
+}
 
-#endif
+void CConfigReaderFactory::Register(const std::string &extension, CreateReaderFn pfnCreate)
+{
+	m_FactoryMap[extension] = pfnCreate;
+}
+
+ConfigReaderPtr CConfigReaderFactory::GetReader(const std::string &filename)
+{
+  boost::filesystem::path filepath( filename );
+  std::string extension = filepath.extension().string();
+  boost::algorithm::to_lower(extension);
+  FactoryMap::iterator it = m_FactoryMap.find(extension);
+  if( it != m_FactoryMap.end() )
+    return it->second(filepath);
+  return ConfigReaderPtr();
+}

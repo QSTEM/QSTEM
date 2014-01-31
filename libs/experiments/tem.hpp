@@ -23,7 +23,7 @@
 #include "base.hpp"
 #include "wavefunctions/wave_plane.hpp"
 
-class CExperimentTEM : public CExperimentBase
+class QSTEM_HELPER_DLL_EXPORT CExperimentTEM : public CExperimentBase
 {
 public:
   CExperimentTEM(const ConfigReaderPtr &configReader);
@@ -51,7 +51,7 @@ protected:
   bool m_tiltBack;                 /* tilt the beam back to the origin before outputting images */
 
   PlaneWavePtr m_wave;
-  float_tt ** m_imageWave;   /* The amplitude of the wavefunction, i.e. what a camera would record. */
+  boost::shared_array<float_tt> m_imageWave;   /* The amplitude of the wavefunction, i.e. what a camera would record. */
 };
 
 #endif

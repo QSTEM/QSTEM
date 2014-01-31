@@ -17,34 +17,37 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WAVEFUNC_H
-#define WAVEFUNC_H
+#ifndef WAVE_BASE_H
+#define WAVE_BASE_H
 
 #include "stemtypes_fftw3.hpp"
 #include "imagelib_fftw3.hpp"
 #include "memory_fftw3.hpp"
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
+
+#include "wave_interface.hpp"
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext);
 
 static std::string waveFilePrefix="mulswav";
 static std::string dpFilePrefix="diff";
-static std::string avgFilePrefix="diffAvg";
 static std::string probeFilePrefix="probe_wave";
-static std::string imageFilePrefix="image";
 static std::string waveIntensityFilePrefix="waveIntensity";
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
-class WAVEFUNC 
+class QSTEM_HELPER_DLL_EXPORT CBaseWave : public IWave
 {
 public:
   // initializing constructor:
-  WAVEFUNC(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
-  WAVEFUNC(const ConfigReaderPtr &configReader);
+  CBaseWave(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
+  CBaseWave(const ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
-  WAVEFUNC( const WAVEFUNC& other );
+  CBaseWave( const WavePtr& other );
+  CBaseWave();
+  ~CBaseWave();
 
+  void Resize(unsigned x, unsigned y);
   void CreateDataSets();
   virtual void FormProbe()=0;
 
@@ -57,39 +60,32 @@ public:
   //void CopyDPToAvgArray(float_tt *avgArray);
   //void AddDPToAvgArray(unsigned avgCount);
 
-  void GetElectronScale(float_tt &electronScale);
-  void GetSizePixels(unsigned &x, unsigned &y);
-  unsigned GetTotalPixels(){return m_nx*m_ny;}
-  void GetResolution(float_tt &x, float_tt &y);
-  void GetPositionOffset(unsigned &x, unsigned &y);
-  float_tt GetK2(unsigned ix, unsigned iy);
-  inline float_tt GetKX2(unsigned ix){return m_kx2[ix];}
-  inline float_tt GetKY2(unsigned iy){return m_ky2[iy];}
-  inline float_tt GetK2Max(){return m_k2max;}
+  void GetSizePixels(unsigned &x, unsigned &y) const ;
+  unsigned GetTotalPixels() const {return m_nx*m_ny;}
+  void GetResolution(float_tt &x, float_tt &y) const ;
+  void GetPositionOffset(unsigned &x, unsigned &y) const ;
+  float_tt GetK2(unsigned ix, unsigned iy) const ;
+  inline float_tt GetKX2(unsigned ix) const {return m_kx2[ix];}
+  inline float_tt GetKY2(unsigned iy) const {return m_ky2[iy];}
+  inline float_tt GetK2Max() const {return m_k2max;}
 
-  inline float_tt GetWavelength() {return m_wavlen;}
+  inline float_tt GetVoltage()  const {return m_v0;}
+  inline float_tt GetWavelength()  const {return m_wavlen;}
 
-  float_tt GetPixelIntensity(unsigned i);
-  inline float_tt GetPixelIntensity(unsigned x, unsigned y) {return GetPixelIntensity(x+m_nx*y);}
-  inline float_tt GetDiffPatPixel(unsigned i) {return m_diffpat[i];}
-  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) { return m_diffpat[x+m_nx*y];}
-  //inline float_tt GetAvgArrayPixel(unsigned x, unsigned y) {return m_avgArray[x][y];}
+  inline float_tt GetPixelIntensity(unsigned i) const {return m_wave[i][0]*m_wave[i][0] + m_wave[i][1]*m_wave[i][1];}
+  inline float_tt GetPixelIntensity(unsigned x, unsigned y) const  {return GetPixelIntensity(x+m_nx*y);}
+  inline float_tt GetDiffPatPixel(unsigned i)  const {return m_diffpat[i];}
+  inline float_tt GetDiffPatPixel(unsigned x, unsigned y) const  { return m_diffpat[x+m_nx*y];}
   inline void SetDiffPatPixel(unsigned i, float_tt value) {m_diffpat[i]=value;}
   inline void SetDiffPatPixel(unsigned x, unsigned y, float_tt value) {m_diffpat[x+m_nx*y]=value;}
-  //inline void SetAvgArrayPixel(unsigned x, unsigned y, float_tt value) {m_avgArray[x][y]=value;}
 
-  void ApplyTransferFunction(complex_tt *wave);
+  void ApplyTransferFunction(boost::shared_array<complex_tt> &wave);
 
   void WriteBeams(unsigned absoluteSlice);
 
   inline void WriteProbe()
   {
     _WriteWave(probeFilePrefix);
-  }
-  // WriteImage is for TEM mode
-  inline void WriteImage()
-  {
-    _WriteWave(imageFilePrefix, "Image intensity");
   }
 
   inline void WriteWave(std::string comment="Wavefunction", 
@@ -108,6 +104,12 @@ public:
                  std::map<std::string, double>params = std::map<std::string, double>())
   {
     SetWavePosition(posX, posY);
+    _WriteWave(waveFilePrefix, comment, params);
+  }
+  inline void WriteWave(unsigned posX, unsigned posY, unsigned posZ, std::string comment="Wavefunction", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY, posZ);
     _WriteWave(waveFilePrefix, comment, params);
   }
 
@@ -129,19 +131,23 @@ public:
     SetWavePosition(posX, posY);
     _WriteDiffPat(dpFilePrefix, comment, params);
   }
+  inline void WriteDiffPat(unsigned posX, unsigned posY, unsigned posZ, std::string comment="Diffraction Pattern", 
+                 std::map<std::string, double>params = std::map<std::string, double>())
+  {
+    SetWavePosition(posX, posY, posZ);
+    _WriteDiffPat(dpFilePrefix, comment, params);
+  }
 
   // People can change the wavefunction - for example, that's what we have to do when we
   //    transmit the wave through the sample's potential.
-  complex_tt *GetWavePointer(){return m_wave;}
+  complex_tt *GetWavePointer(){return &m_wave[0];}
   // People should not directly change the diffraction pattern, since we'll re-calculate it when 
   //   the wavefunction changes.
   //   They can, however, access it.
-  const float_tt *GetDPPointer(){return m_diffpat;}
+  const float_tt *GetDPPointer(){return &m_diffpat[0];}
 
-  float_tt GetIntegratedIntensity();
+  float_tt GetIntegratedIntensity() const ;
 
-  // ReadImage is for TEM mode
-  void ReadImage();
   void ReadWave();
   void ReadWave(unsigned navg);
   void ReadWave(unsigned posX, unsigned posY);
@@ -159,7 +165,7 @@ protected:
   std::string m_fileout;
   unsigned m_detPosX, m_detPosY; 
   unsigned m_nx, m_ny;		      /* size of wavefunc and diffpat arrays */
-  float_tt *m_diffpat;
+  RealVector m_diffpat;
   //float_tt **m_avgArray;
   //float_tt m_thickness;
   //float_tt m_intIntensity;
@@ -177,9 +183,9 @@ protected:
 
   float_tt m_dx, m_dy;  // physical pixel size of wavefunction array
 
-  complex_tt  *m_wave; /* complex wave function */
+  ComplexVector m_wave; /* complex wave function */
 
-  std::vector<float_tt> m_kx2,m_ky2,m_kx,m_ky;
+  RealVector m_kx2,m_ky2,m_kx,m_ky;
   float_tt m_k2max;
 
 #if FLOAT_PRECISION == 1
@@ -203,13 +209,13 @@ protected:
   void SetWavePosition(unsigned navg);
   // For STEM
   void SetWavePosition(unsigned posX, unsigned posY);
+  // If you need to save things wrt 3 dimensions...
+  void SetWavePosition(unsigned posX, unsigned posY, unsigned posZ);
 
   float_tt Wavelength(float_tt keV);
   float_tt m_wavlen;
 
   // m_transferFunction  // The transfer function - optionally applied (used by TEM mode)
 };
-
-typedef boost::shared_ptr<WAVEFUNC> WavePtr;
 
 #endif

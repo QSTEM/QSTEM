@@ -21,7 +21,7 @@
 #define CRYSTAL_H
 
 #include "stemtypes_fftw3.hpp"
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
 #include "structure_readers.hpp"
 #include <string>
 #include <map>
@@ -31,6 +31,7 @@
 class CCrystal
 {
 public:
+  CCrystal();  // default constructor: does nothing, so you have to add stuff to it after constructing.
   CCrystal(ConfigReaderPtr &configReader);
   CCrystal(unsigned ncx, unsigned ncy, unsigned ncz,    // ncells in any given direction
 	  float_tt tx, float_tt ty, float_tt tz				// Tilts in any given direction
@@ -99,6 +100,7 @@ protected:
   void Inverse_3x3 (float_tt *res, const float_tt *a);
   void RotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
   void MatrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt **c);
+  void MatrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt *c);
   void RotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
 
   static int AtomCompareZnum(const void *atPtr1,const void *atPtr2);

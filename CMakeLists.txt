@@ -19,14 +19,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-					
+
+find_package(Boost REQUIRED)					
 find_package(fftw3 REQUIRED)
 
 set (M_LIB "")
 
 if (UNIX)
-	set (M_LIB "m")
+  set (M_LIB "m")
 endif(UNIX)
+
+include_directories(${Boost_INCLUDE_DIRS} "${FFTW3_INCLUDE_DIRS}")
 
 if (NOT CMAKE_BUILD_TYPE)
 	message(STATUS "No build type selected, default to Debug")
@@ -47,15 +50,15 @@ endif(WIN32)
 # adds the libraries
 add_subdirectory(libs)
 add_subdirectory(stem3)
-add_subdirectory(gbmaker)
-add_subdirectory(qscRg12)
+#add_subdirectory(gbmaker)
+#add_subdirectory(qscRg12)
 OPTION( BUILD_TESTS "Set to ON to enable unit test target generation.  Requires Boost Test binary libraries to be installed." ON )
 
 if (BUILD_TESTS)
+  enable_testing()
   add_subdirectory(tests)
 
   # this enables the RUN_TEST target, which runs tests, but doesn't give much info.
-  add_test (NAME TestLibs COMMAND test_libs)
   #add_test (NAME TestStem3 COMMAND test_stem3)
   #add_test (NAME TestGBMaker COMMAND test_gbmaker)
 

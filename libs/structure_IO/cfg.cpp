@@ -30,7 +30,7 @@ CCfgReader::CCfgReader(boost::filesystem::path &filename)
   }
   if (readparam(m_fp, ".NO_VELOCITY.",m_buf,1)) m_noVelocity = true; 
   else m_noVelocity = false;
-  if (readparam(m_fp, "entry_count =",m_buf,1)) sscanf(m_buf,"%d",&m_entryCount);
+  if (readparam(m_fp, "entry_count =",m_buf,1)) m_entryCount=atoi(m_buf.c_str());
   if (!m_noVelocity) m_entryCount+=3;
   m_atomData.resize(m_entryCount);
   m_isValid=true;
@@ -169,24 +169,23 @@ int CCfgWriter::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char
 ***********************************************************************/
 int CCfgReader::ReadCellParams(float_tt **Mm) {
   int i;
-  char m_buf[256];
   double lengthScale;
 
   resetParamFile(m_fp);  
   setComment('#');  
-  if (readparam(m_fp, "A =",m_buf,1)) sscanf(m_buf,"%lf",&lengthScale);
+  if (readparam(m_fp, "A =",m_buf,1)) lengthScale=atof(m_buf.c_str());
 
-  if (readparam(m_fp, "H0(1,1) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+0);
-  if (readparam(m_fp, "H0(1,2) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+1);
-  if (readparam(m_fp, "H0(1,3) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+2);
+  if (readparam(m_fp, "H0(1,1) =",m_buf,1)) Mm[0][0] = atof(m_buf.c_str());
+  if (readparam(m_fp, "H0(1,2) =",m_buf,1)) Mm[0][1] = atof(m_buf.c_str());
+  if (readparam(m_fp, "H0(1,3) =",m_buf,1)) Mm[0][2] = atof(m_buf.c_str());
 
-  if (readparam(m_fp, "H0(2,1) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+3);
-  if (readparam(m_fp, "H0(2,2) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+4);
-  if (readparam(m_fp, "H0(2,3) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+5);
+  if (readparam(m_fp, "H0(2,1) =",m_buf,1)) Mm[0][3] = atof(m_buf.c_str());
+  if (readparam(m_fp, "H0(2,2) =",m_buf,1)) Mm[0][4] = atof(m_buf.c_str());
+  if (readparam(m_fp, "H0(2,3) =",m_buf,1)) Mm[0][5] = atof(m_buf.c_str());
 
-  if (readparam(m_fp, "H0(3,1) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+6);
-  if (readparam(m_fp, "H0(3,2) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+7);
-  if (readparam(m_fp, "H0(3,3) =",m_buf,1)) sscanf(m_buf,"%lf",Mm[0]+8);
+  if (readparam(m_fp, "H0(3,1) =",m_buf,1)) Mm[0][6] = atof(m_buf.c_str());
+  if (readparam(m_fp, "H0(3,2) =",m_buf,1)) Mm[0][7] = atof(m_buf.c_str());
+  if (readparam(m_fp, "H0(3,3) =",m_buf,1)) Mm[0][8] = atof(m_buf.c_str());
 
   /*
     if (readparam(".NO_VELOCITY.",m_buf,1)) noVelocityFlag = 1; 
@@ -208,7 +207,7 @@ int CCfgReader::ReadAtoms(std::vector<atom> &atoms)
     throw std::runtime_error("Invalid structure file in CCfgReader.");
 
   resetParamFile(m_fp);
-  if (readparam(m_fp, "Number of particles =",m_buf,1)) sscanf(m_buf,"%d",&ncoord);
+  if (readparam(m_fp, "Number of particles =",m_buf,1)) ncoord=atoi(m_buf.c_str());
   atoms.resize(ncoord);
   for (unsigned i=0; i<ncoord; i++)
     {
@@ -229,6 +228,7 @@ int CCfgReader::ReadNextAtom(atom *newAtom) {
   unsigned element;
   char *str = NULL;
   float_tt mass;
+  char buf[NCMAX];
 
   if (m_fp == NULL) {
     printf("Invalid CFG file!\n");
@@ -236,23 +236,23 @@ int CCfgReader::ReadNextAtom(atom *newAtom) {
   }
   resetParamFile(m_fp);  
 
-  if (fgets(m_buf,NCMAX,m_fp) == NULL) return -1;
+  if (fgets(buf,NCMAX,m_fp) == NULL) return -1;
   /* check, if this is a new mass number */
-  str = strnext(m_buf," \t");
-  if ((atof(m_buf) >= 1.0) && ((str==NULL) || (*str == '#'))) {
-    mass = atof(m_buf);
+  str = strnext(buf," \t");
+  if ((atof(buf) >= 1.0) && ((str==NULL) || (*str == '#'))) {
+    mass = atof(buf);
     // printf("nV: %d, eC: %d (%g)\n",noVelocityFlag, entryCount,atof(m_buf));
-    if (fgets(m_buf,NCMAX,m_fp) == NULL) return -1;    
-    element = getZNumber(m_buf); 
+    if (fgets(buf,NCMAX,m_fp) == NULL) return -1;    
+    element = getZNumber(buf); 
     // printf("*** found element %d (%s %d) ***\n",element,m_buf,strlen(m_buf));
-    if (fgets(m_buf,NCMAX,m_fp) == NULL) return -1;
+    if (fgets(buf,NCMAX,m_fp) == NULL) return -1;
   }
-  str = m_buf;
+  str = buf;
   // skip leading spaces:
   while (strchr(" \t",*str) != NULL) str++; 
   for (unsigned j=0;j<m_entryCount;j++) {
     if (str==NULL) {
-      printf("readNextCFGatom: Error: incomplete data line: >%s<\n",m_buf);
+      printf("readNextCFGatom: Error: incomplete data line: >%s<\n",buf);
       return -1;
     }
     m_atomData[j] = atof(str); str=strnext(str," \t");

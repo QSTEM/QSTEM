@@ -17,15 +17,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef IMG_READER_H
+#define IMG_READER_H
+
 #include "input_interface.hpp"
 
-class CImgInput : public IDataInput 
+class CImgReader : public IDataReader
 {
-public:
-  CImgInput();
-  virtual void ReadImage(void **pix, std::string label, std::map<std::string, double> &params,
-                         std::string &comment, std::vector<unsigned> position=std::vector<unsigned>());
-private:
+	// The order of these data members matters!  Don't shuffle them.  Don't move them.  
+	//    Doing so will mess up the ability to read img files.
   int m_headerSize;  // first byte of image will be size of image header (in bytes)
                    // This is the size without the data, parameters, and comment!!!
   int m_paramSize;   // number of additional parameters
@@ -37,8 +37,36 @@ private:
                    // distinguish between images produced by different versions of stem
   double m_t;        // thickness
   double m_dx,m_dy;    // size of one pixel
+public:
+  CImgReader();
+  virtual void ReadImageData(const std::string &filename, void *pix);
+  virtual void ReadComment(const std::string &filename, std::string &comment);
+  virtual void ReadParameters(const std::string &filename, std::map<std::string, double> &parameters);
+  virtual void ReadSize(const std::string &filename, unsigned &nx, unsigned &ny);
+  virtual void ReadComplex(const std::string &filename, bool &complex);
+  virtual void ReadElementByteSize(const std::string &filename, unsigned &elementByteSize);
+
+  virtual void ReadImage(const std::string &filename, void *pix, std::map<std::string, double> &params,
+                         std::string &comment);
+protected:
   std::vector<double> m_params;  // array for additional parameters
   std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
   virtual void ReadHeader(const char *fileName);
+  std::string BuildFilenameString(const std::string &label);
+  void _ReadComment(std::string &comment);
+  void _ReadParameters(std::map<std::string, double> &params);
+  void _ReadImageData(const std::string &filename, void *pix);
+  void _ReadSize(unsigned &nx, unsigned &ny);
+  void _ReadElementByteSize(unsigned &elementByteSize);
+  void _ReadComplex(bool &complex);
+
+
+private:
+  friend class CDataReaderFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static DataReaderPtr Create(void){return DataReaderPtr(new CImgReader());}
 };
+
+#endif

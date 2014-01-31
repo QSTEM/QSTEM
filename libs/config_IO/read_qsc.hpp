@@ -37,7 +37,7 @@ public:
   void ReadOutputName(std::string &fileOrFolderName);
   void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ);
   void ReadNSubSlabs(unsigned &cellDiv);
-  void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack);
+  void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool &tiltBack);
   void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                       float_tt &cubex, float_tt &cubey, float_tt &cubez,
                                       bool &adjustCubeSize);
@@ -60,7 +60,7 @@ public:
   void ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, unsigned &scanXN,
                                   float_tt &scanYStart, float_tt &scanYStop, unsigned &scanYN);  
   void ReadAtomRadius(float_tt &radius);
-  void ReadStructureFactorType(int &type);
+  void ReadStructureFactorType(std::string &type);
   void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
                                    bool &lbeams, unsigned &nbout);
   void ReadStructureFileName(boost::filesystem::path &structure_file); // 
@@ -72,11 +72,12 @@ public:
   //                           DetectorPtr &detector_to_copy)
   void ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs);
   void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                      float_tt &sourceRadius, bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
+                           float_tt &sourceRadius);
+  virtual void ReadSmoothingParameters(bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
   void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
   void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
-                           float_tt &df0, int &Scherzer, float_tt &astig,
+                           float_tt &df0, std::string &Scherzer, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,
@@ -87,9 +88,27 @@ public:
                        float_tt &phi55, float_tt &phi53, float_tt &phi51,
                        float_tt &phi66, float_tt &phi64, float_tt &phi62);
 protected:
-char buf[1024];
+  std::string m_buf;
   char answer[256];
-FILE *m_fp;
+  FILE *m_fp;
+
+  bool IsBufferYes(std::string &buf);
+private:
+  friend class CConfigReaderFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static ConfigReaderPtr Create(boost::filesystem::path &filename){return ConfigReaderPtr(new CQscReader(filename));}
 };
 
 #endif
+
+
+
+
+
+
+
+
+
+
+

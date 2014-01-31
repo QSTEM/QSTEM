@@ -1,5 +1,9 @@
 #include "pot_2d_fft.hpp"
 
+C2DFFTPotential::C2DFFTPotential() : C2DPotential()
+{
+}
+
 C2DFFTPotential::C2DFFTPotential(const ConfigReaderPtr &configReader) : C2DPotential(configReader)
 {
   m_nyAtBox = 2*OVERSAMPLING*(int)ceil(m_atomRadius/m_dy);
@@ -8,38 +12,46 @@ C2DFFTPotential::C2DFFTPotential(const ConfigReaderPtr &configReader) : C2DPoten
   m_nxyAtBox2 = 2*m_nxyAtBox;
 }
 
+void C2DFFTPotential::Initialize()
+{
+}
+
+void C2DFFTPotential::Initialize(const ConfigReaderPtr &configReader)
+{
+}
+
 void C2DFFTPotential::DisplayParams()
 {
   CPotential::DisplayParams();
   printf("* Potential calculation: 2D (FFT method)");
 }
 
-void C2DFFTPotential::makeSlices(int nlayer, char *fileName, atom *center)
+void C2DFFTPotential::MakeSlices(int nlayer, char *fileName, atom *center)
 {
   /* check whether we have constant slice thickness */
   for (unsigned i = 0;i<nlayer;i++) 
-	  {
-		  if (m_cz[0] != m_cz[i])
-		  {
-			printf("Warning: slice thickness not constant, will give wrong results (iz=%d)!\n",i);
-			break;
-		  }
-  }
+    {
+      if (m_cz[0] != m_cz[i])
+        {
+          printf("Warning: slice thickness not constant, will give wrong results (iz=%d)!\n",i);
+          break;
+        }
+    }
 }
 
 void C2DFFTPotential::AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)
 {
-	unsigned iAtomX = (int)floor(atomX/m_dx);        
-    unsigned iAtomY = (int)floor(atomY/m_dy);
+  unsigned iAtomX = (int)floor(atomX/m_dx);        
+  unsigned iAtomY = (int)floor(atomY/m_dy);
 
-	if (m_periodicXY)
-	{
-		AddAtomPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
-	}
-	else
-	{
-		AddAtomNonPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
-	}
+  if (m_periodicXY)
+    {
+      AddAtomPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
+    }
+  else
+    {
+      AddAtomNonPeriodic(atom, atomX, iAtomX, atomY, iAtomY, atomZ);
+    }
 }
 
 void C2DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom, 
@@ -198,17 +210,18 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
 
 
 
-    atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
-    for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
+    //atPot = (fftwf_complex **)malloc((N_ELEM+1)*sizeof(fftwf_complex *));
+    //for (unsigned ix=0;ix<=N_ELEM;ix++) atPot[ix] = NULL;
   }
   // initialize this atom, if it has not been done yet:
-  if (atPot[Znum] == NULL) {
+  if (m_atPot.count(Znum) == 0) {
     // setup cubic spline interpolation:
     splinh(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF);
     
-    atPot[Znum] = (fftwf_complex*) fftwf_malloc(nx*ny*sizeof(fftwf_complex));
-    // memset(temp,0,nx*nz*sizeof(fftwf_complex));
-    memset(atPot[Znum],0,nx*ny*sizeof(fftwf_complex));
+    //atPot[Znum] = (fftwf_complex*) fftwf_malloc(nx*ny*sizeof(fftwf_complex));
+    m_atPot[Znum]=ComplexVector(nx*ny);
+
+    //memset(atPot[Znum],0,nx*ny*sizeof(fftwf_complex));
     for (unsigned ix=0;ix<nx;ix++) {
       float_tt kx = dkx*(ix<nx/2 ? ix : nx-ix);
       for (unsigned iy=0;iy<ny;iy++) {
@@ -222,8 +235,7 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
           // printf("k2=%g,B=%g, exp(-k2B)=%g\n",k2,B,exp(-k2*B));
           float_tt f = seval(scatPar[0],scatPar[Znum],&splinb[0],&splinc[0],&splind[0],N_SF,sqrt(s2))*exp(-s2*B*0.25);
           float_tt phase = PI*(kx*m_dx*nx+ky*m_dy*ny);
-          atPot[Znum][ind][0] = f*cos(phase);
-          atPot[Znum][ind][1] = f*sin(phase);
+          m_atPot[Znum][ind]=std::complex<float_tt>(f*cos(phase),f*sin(phase));
         }
       }
     }
@@ -235,11 +247,13 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
     m_imageIO->WriteComplexImage((void**)atPot[Znum], fileName);
 #endif
 #if FLOAT_PRECISION == 1
-    fftwf_plan plan = fftwf_plan_dft_2d(nx,ny,atPot[Znum],atPot[Znum],FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftwf_complex *ptr=(fftwf_complex *)&m_atPot[Znum][0];
+    fftwf_plan plan = fftwf_plan_dft_2d(nx,ny,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 #else
-    fftw_plan plan = fftw_plan_dft_2d(nx,ny,atPot[Znum],atPot[Znum],FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_complex *ptr=(fftw_complex *)&m_atPot[Znum][0];
+    fftw_plan plan = fftw_plan_dft_2d(nx,ny,ptr,ptr,FFTW_BACKWARD,FFTW_ESTIMATE);
     fftw_execute(plan);
     fftw_destroy_plan(plan);
 #endif

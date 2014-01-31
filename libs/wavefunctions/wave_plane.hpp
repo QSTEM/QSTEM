@@ -22,16 +22,22 @@
 
 #include "wave_base.hpp"
 
-class CPlaneWave : public WAVEFUNC
+class QSTEM_HELPER_DLL_EXPORT CPlaneWave : public CBaseWave
 {
 public:
   CPlaneWave(const ConfigReaderPtr &configReader);
+  CPlaneWave();
   virtual void FormProbe();
   void TiltBeam(bool tiltBack=false);
   void TiltBack();
   virtual void DisplayParams();
+
+  // ReadImage is for TEM mode
+  void ReadImage();
+  void WriteImage();
 protected:
   float_tt m_btiltx, m_btilty;     /* beam tilt, mrad */
+  float_tt *m_image;               /* Real-space image output */
 };
 
 typedef boost::shared_ptr<CPlaneWave> PlaneWavePtr;

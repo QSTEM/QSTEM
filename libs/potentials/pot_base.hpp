@@ -19,11 +19,13 @@
 
 #include "../stemtypes_fftw3.hpp"
 #include "../imagelib_fftw3.hpp"
-#include "../config_readers.hpp"
+//#include "config_reader_factory.hpp"
 #include "../memory_fftw3.hpp"
 #include "../crystal.hpp"
 #include "scatfactsRez.hpp"
 #include <map>
+
+#include "pot_interface.hpp"
 
 #ifndef POTENTIAL_BASE_H
 #define POTENTIAL_BASE_H
@@ -31,32 +33,49 @@
 #define OVERSAMPLING 3
 #define OVERSAMPLINGZ 3*OVERSAMPLING
 
-class CPotential
+class CPotential : public IPotential
 {
 public:
+  CPotential();
   CPotential(unsigned nx, unsigned ny, unsigned nz, float_tt dx, float_tt dy, float_tt dz, float_tt atomRadius, float_tt v0);
   CPotential(const ConfigReaderPtr &configReader);
-  ~CPotential();
+  //~CPotential();
 
   virtual void DisplayParams();
 
-  void atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
+  void AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B);
   virtual void MakeSlices(int nlayer,char *fileName,atom *center);
-  virtual void initSTEMSlices();
+  //virtual void initSTEMSlices();
   // encapsulates make slices and initSTEMslices - used to refresh the potential with a new structure (after a random
   //    shake)
   virtual void Refresh();
   // TODO: need abstracted structure reader
-  virtual void ReadAtoms();
+  //virtual void ReadAtoms();
   virtual void ReadPotential(std::string &fileName, unsigned subSlabIdx);
   virtual void CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z);
   virtual void AddAtomToSlices(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ)=0;
   void AddAtomRealSpace(std::vector<atom>::iterator &atom, float_tt atomX, float_tt atomY, float_tt atomZ);
   
-  unsigned GetNSlices(){return m_nslices;}
-  float_tt GetSliceThickness(){return m_sliceThickness;}
-  float_tt GetSliceThickness(unsigned idx){return m_cz[idx];}
-  void GetSizePixels(unsigned &nx, unsigned &ny);
+  // *************************  Getters  ********************** 
+  unsigned GetNSlices() const {return m_nslices;}
+  float_tt GetSliceThickness() const {return m_sliceThickness;}
+  float_tt GetSliceThickness(unsigned idx) const {return m_cz[idx];}
+  void GetSizePixels(unsigned &nx, unsigned &ny) const;
+
+
+  // *************************** Setters **********************
+  //  For all of these, the potential needs to be recalculated after calling them.
+  //    Each of them set a flag on this class indicating that, such that getting a slice will either recompute the potential for you,
+  //       or raise an error (TODO!)
+  // Set m_thickness, the uniform slice thickness.  Overrides m_cz.  Implicitly sets number of slices.
+  void SetSliceThickness(float_tt thickness_Angstroms);
+  // Set m_cz, the vector of thicknesses.  Implicitly also sets number of slices!
+  void SetSliceThickness(std::vector<float_tt> thickness_Angstroms);
+  // Set number of slices.  Implicitly sets m_thickness to the sub-slab height divided by nslices, and empties m_cz.
+  void SetNSlices(unsigned slices);
+  // Sets the structure being used to calculate the potential.
+  void SetStructure(StructurePtr structure);
+
 
   void WriteSlice(unsigned idx);
   void WriteProjectedPotential();
@@ -80,7 +99,9 @@ protected:
 
   ImageIOPtr m_imageIO;
   StructurePtr m_crystal;
-  complex_tt ***m_trans;
+  complex_tt ***m_trans;    //  The 3D specimen potential array
+  bool m_currentPotential;  // Indicates whether computed potential matches current parameters.  
+							//    Set to true after computing potential.  Reset to false when parameters change.
   unsigned m_nx, m_ny;    /* size of projected potential in pixels, possibly larger than wavefunc's nx/ny */
   // resolutions
   float_tt m_dx, m_dy, m_dz;
@@ -136,7 +157,5 @@ protected:
   float_tt seval( float_tt *x, float_tt *y, float_tt *b, float_tt *c,
                   float_tt *d, int n, float_tt x0 );
 };
-
-typedef boost::shared_ptr<CPotential> PotPtr;
 
 #endif

@@ -16,25 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-#ifndef POTENTIAL_H
-#define POTENTIAL_H
-
-// Include this so that people know what a PotPtr is
-#include "potentials/pot_base.hpp"
-// Include this because we use ConfigReaderPtr below.
-#include "config_readers.hpp"
-
-PotPtr GetPotential(const ConfigReaderPtr &configReader);
-
-#endif
-
-
-
-
-
-
-
-
-
-
+#define BOOST_TEST_MODULE TestCfgStructure
+#include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
+#include <iostream>

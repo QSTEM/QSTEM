@@ -20,6 +20,10 @@
 
 #include "pot_3d.hpp"
 
+C3DPotential::C3DPotential() : CPotential()
+{
+}
+
 C3DPotential::C3DPotential(const ConfigReaderPtr &configReader) : CPotential(configReader)
 {
 	m_boxNz = (int)(m_atomRadius/m_ddz+2.0);
@@ -32,13 +36,13 @@ void C3DPotential::DisplayParams()
   printf("* Potential calculation: 3D (real space method)");
 }
 
-void C3DPotential::atomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B)
+void C3DPotential::AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y, float_tt z, float_tt B)
 {
   float_tt dx, dy, dz;
   int ix, iy, iz;
 
   // does the atom box lookup or calculation
-  CPotential::atomBoxLookUp(val, Znum, x, y, z, B);
+  CPotential::AtomBoxLookUp(val, Znum, x, y, z, B);
 
   /***************************************************************
    * Do the trilinear interpolation
@@ -147,7 +151,7 @@ void C3DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom,
      * We can look up the proj potential at that spot
      * using trilinear extrapolation.
      */
-    atomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,atomBoxZ,
+    AtomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,atomBoxZ,
                   m_tds ? 0 : atom->dw);
     // printf("access: %d %d %d\n",iz,ix,iy);
     m_trans[iz][ix][iy][0] += dPot[0];

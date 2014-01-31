@@ -26,9 +26,17 @@
 #include <string>
 #include <vector>
 
+class IConfigReader;
+typedef boost::shared_ptr<IConfigReader> ConfigReaderPtr;
+typedef ConfigReaderPtr (*CreateReaderFn)(boost::filesystem::path &filename);
+
 class IConfigReader
 {
 public:
+  // Any ConfigReader class should define this as a private static member.  See read_qsc.hpp for example.
+  // virtual ConfigReaderPtr Create()=0;
+
+
   virtual void ReadMode(std::string &mode)=0;
   virtual void ReadPrintLevel(unsigned &printLevel)=0;
   virtual void ReadSaveLevel(unsigned &saveLevel)=0;
@@ -37,7 +45,7 @@ public:
   virtual void ReadOutputName(std::string &fileOrFolderName)=0;
   virtual void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ)=0;
   virtual void ReadNSubSlabs(unsigned &cellDiv)=0;
-  virtual void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool tiltBack)=0;
+  virtual void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool &tiltBack)=0;
   virtual void ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_tt &tiltz, 
                                       float_tt &cubex, float_tt &cubey, float_tt &cubez,
                                       bool &adjustCubeSize)=0;
@@ -57,7 +65,7 @@ public:
                                              bool &plotPotential)=0;
   virtual void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)=0;
   virtual void ReadAtomRadius(float_tt &radius)=0;
-  virtual void ReadStructureFactorType(int &type)=0;
+  virtual void ReadStructureFactorType(std::string &type)=0;
   virtual void ReadPendelloesungParameters(std::vector<int> &hbeams, std::vector<int> &kbeams,
                                            bool &lbeams, unsigned &nbout)=0;
   virtual void ReadAverageParameters(unsigned &avgRuns, bool &storeSeries)=0;
@@ -79,11 +87,12 @@ public:
   //                 DetectorPtr &detector_to_copy)=0;
   virtual void ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs)=0;
   virtual void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                           float_tt &sourceRadius, bool &ismoth, float_tt &gaussScale, bool &gaussFlag)=0;
+                                   float_tt &sourceRadius)=0;
+  virtual void ReadSmoothingParameters(bool &smooth, float_tt &gaussScale, bool &gaussFlag)=0;
   virtual void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor)=0;
   virtual void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,
-                           float_tt &df0, int &Scherzer, float_tt &astig,
+                           float_tt &df0, std::string &Scherzer, float_tt &astig,
                            float_tt &a33, float_tt &a31,
                            float_tt &a44, float_tt &a42,
                            float_tt &a55, float_tt &a53, float_tt &a51,
@@ -97,7 +106,5 @@ public:
 protected:
   bool m_isValid;
 };
-
-typedef boost::shared_ptr<IConfigReader> ConfigReaderPtr;
 
 #endif

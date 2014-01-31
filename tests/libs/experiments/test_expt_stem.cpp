@@ -16,36 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-#include "config_readers.hpp"
+#define BOOST_TEST_MODULE TestStemExperiment
+#include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-
-ConfigReaderPtr GetConfigReader(std::string &filename)
-{
-  boost::filesystem::path filepath( filename );
-  std::string extension = filepath.extension().string();
-  boost::algorithm::to_lower(extension);
-  // check file extension, instantiate appropriate reader
-  if (extension == ".qsc")
-    return ConfigReaderPtr(new CQscReader(filepath));
-  else if (extension == ".qh5")
-    {
-      // TODO: flesh out qh5 as config option
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#include <iostream>

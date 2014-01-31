@@ -21,11 +21,13 @@
 #define EXPERIMENT_BASE_H
 
 #include "experiment_interface.hpp"
-#include "potential.hpp"
+#include "potentials/pot_factory.hpp"
 #include "wavefunctions.hpp"
 #include "crystal.hpp"
 
-class CExperimentBase : public IExperiment
+static std::string avgFilePrefix="diffAvg";
+
+class QSTEM_HELPER_DLL_EXPORT CExperimentBase : public IExperiment
 {
 public:
   CExperimentBase(const ConfigReaderPtr &configReader);

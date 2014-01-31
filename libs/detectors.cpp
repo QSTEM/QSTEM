@@ -29,11 +29,11 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavele
   : m_error(0),
     m_shiftX(0),
     m_shiftY(0),
-    m_Navg(0),
     m_nx(nx),
     m_ny(ny),
     m_dx(resX),
     m_dy(resY),
+    m_Navg(1),
     m_wavelength(wavelength)
 {
   m_image = float2D(nx,ny,"ADFimag");
@@ -89,17 +89,15 @@ void Detector::CollectIntensity(const WavePtr &wave)
   float_tt **diffpatAvg = NULL;
   int tCount = 0;
   unsigned nx, ny, offsetX, offsetY;
-  float_tt electronScale;
 
   std::vector<std::vector<DetectorPtr> > detectors;
 
-  wave->GetElectronScale(electronScale);
   wave->GetSizePixels(nx, ny);
   wave->GetPositionOffset(offsetX, offsetY);
 
   //scale=1;
   // TODO: come up with where electronScale belongs (might be STEM-specific?
-  scale = electronScale/((double)(nx*ny)*(nx*ny));
+  scale = m_electronScale/((double)(nx*ny)*(nx*ny));
   // scaleCBED = 1.0/(scale*sqrt((double)(muls->nx*muls->ny)));
   scaleDiff = 1.0/sqrt((double)(nx*ny));
 

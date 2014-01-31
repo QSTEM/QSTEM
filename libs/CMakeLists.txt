@@ -1,56 +1,59 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(qstem_libs)
+project(qstem)
+
+#set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--export-all-symbols")
+#set(CMAKE_SHARED_LINKER_FLAGS "-Wl")
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
+
+if (WIN32)
+  set(Boost_USE_STATIC_LIBS ON)
+endif(WIN32)
 
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 FIND_PACKAGE(HDF5 "1.8.5" REQUIRED)
 
-# Make boost, fftw3, and our headers available to all projects
+FILE(GLOB LIBS_FILES "*.?pp")
 
-include_directories(${Boost_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/libs "${FFTW3_INCLUDE_DIRS}")
-include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" "${HDF5_INCLUDE_DIR}" )	
+function (add_lib_dir dirname)
+	#add_subdirectory(${dirname})
+        #exploring this: not ideal to use glob because it defeats some of CMake's ability to detect changes
+        #  a better way would be to manually add files in CMakeLists.txt in each folder (still adding them ultimately
+        #  to LIBS_FILES
+	FILE(GLOB TMP "${dirname}/*.?pp")
+	set(LIBS_FILES ${LIBS_FILES} ${TMP} PARENT_SCOPE)
+	SOURCE_GROUP(${dirname} FILES ${TMP} PARENT_SCOPE)
+endfunction(add_lib_dir)
 
-FILE(GLOB LIBS_C_FILES "*.cpp")
-FILE(GLOB LIBS_H_FILES "*.hpp")
-# Include all of the IO functionality with the main library
-FILE(GLOB CONFIG_H_FILES "config_IO/*.hpp")
-FILE(GLOB DATA_H_FILES "data_IO/*.hpp")
-FILE(GLOB STRUCTURE_H_FILES "structure_IO/*.hpp")
-FILE(GLOB POTENTIAL_H_FILES "potentials/*.hpp")
-FILE(GLOB EXPERIMENT_H_FILES "experiments/*.hpp")
+# defines qstem_config (config readers)
+add_lib_dir(config_IO)
+# defines qstem_data (I/O for image data)
+add_lib_dir(data_IO)
+#defines qstem_structure
+add_lib_dir(structure_IO)
+# defines qstem_wavefunctions
+add_lib_dir(wavefunctions)
+# defines qstem_potentials
+add_lib_dir(potentials)
+# defines qstem_experiments
+add_lib_dir(experiments)
 
-set (qstem_libs_src ${LIBS_C_FILES} ${LIBS_H_FILES})
-set (qstem_libs_src ${qstem_libs_src} ${CONFIG_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${DATA_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${STRUCTURE_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${POTENTIAL_H_FILES} )
-set (qstem_libs_src ${qstem_libs_src} ${EXPERIMENT_H_FILES} )
+include_directories(
+  ${PROJECT_SOURCE_DIR}
+  config_IO
+  data_IO
+  structure_IO
+  wavefunctions
+  potentials
+  experiments
+  ${Boost_INCLUDE_DIRS} 
+  ${FFTW3_INCLUDE_DIRS} 
+  ${HDF5_INCLUDE_DIR}  )
 
-# defines qstem_config_lib (config readers)
-add_subdirectory(config_IO)
+add_library(${PROJECT_NAME} SHARED ${LIBS_FILES})
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${HDF5_LIBRARIES} ${FFTW3F_LIBS} ${FFTW3_LIBS})
 
-# defines qstem_data_lib (I/O for image data)
-add_subdirectory(data_IO)
-
-#defines qstem_structure_lib
-add_subdirectory(structure_IO)
-
-# defines qstem_wavefunctions_lib
-add_subdirectory(wavefunctions)
-
-# defines qstem_potentials_lib
-add_subdirectory(potentials)
-
-# defines qstem_experiments_lib
-add_subdirectory(experiments)
-
-
-add_library(qstem ${qstem_libs_src})
-target_link_libraries(qstem ${Boost_LIBRARIES})
-target_link_libraries(qstem qstem_config)
-target_link_libraries(qstem qstem_data)
-target_link_libraries(qstem qstem_structure)
-target_link_libraries(qstem qstem_wavefunctions)
-target_link_libraries(qstem qstem_potentials)
-target_link_libraries(qstem qstem_experiments)
+if(OPENMP)
+  SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "${OpenMP_C_FLAGS}" LINK_FLAGS  "${OpenMP_C_FLAGS}")
+endif(OPENMP)

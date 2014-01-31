@@ -1,9 +1,22 @@
 #include "pot_2d.hpp"
 
+C2DPotential::C2DPotential() : CPotential()
+{
+}
+
 C2DPotential::C2DPotential(const ConfigReaderPtr &configReader) : CPotential(configReader)
 {
 	m_boxNz = 1;
 }
+
+void C2DPotential::Initialize()
+{
+}
+
+void C2DPotential::Initialize(const ConfigReaderPtr &configReader)
+{
+}
+
 
 void C2DPotential::DisplayParams()
 {
@@ -11,13 +24,13 @@ void C2DPotential::DisplayParams()
   printf("* Potential calculation: 2D (real space method)");
 }
 
-void C2DPotential::atomBoxLookUp(complex_tt &sum, int Znum, float_tt x, float_tt y, float_tt z, float_tt B) 
+void C2DPotential::AtomBoxLookUp(complex_tt &sum, int Znum, float_tt x, float_tt y, float_tt z, float_tt B) 
 {
   float_tt dx, dy;
   int ix, iy;
 
   // does the atom box lookup or calculation
-  CPotential::atomBoxLookUp(sum, Znum, x, y, z, B);
+  CPotential::AtomBoxLookUp(sum, Znum, x, y, z, B);
 
   /***************************************************************
    * Do the trilinear interpolation
@@ -101,7 +114,7 @@ void C2DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom,
   }                
   iz = (iAtomZ+32*m_nslices) % m_nslices;         /* shift into the positive range */
   // x, y are the coordinates in the space of the atom box
-  atomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,0, m_tds ? 0 : atom->dw);
+  AtomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,0, m_tds ? 0 : atom->dw);
   float_tt atomBoxZ = (double)(iAtomZ+1)*m_cz[0]-atomZ;
 
   /* split the atom if it is close to the top edge of the slice */

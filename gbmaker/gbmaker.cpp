@@ -44,7 +44,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define AMORPHOUS 1
 #define SPECIAL_GRAIN 2
 
-MULS *muls = new MULS();
+//MULS *muls = new MULS();
+CCrystal superCrystal;
 grainBox *grains = NULL;
 int nGrains = 0;
 superCellBox superCell;
@@ -322,6 +323,7 @@ int readParams(char *datFileName) {
 	int gCount,i,Nkind;  
 	char unitCellFile[64];
 	atom *tempCell;
+	boost::filesystem::path unitCellFilePath;
 
 	FILE *fp=NULL;
 
@@ -398,13 +400,17 @@ int readParams(char *datFileName) {
 				return 0;       
 			}
 
+			ConfigReaderPtr cellReader=GetConfigReader(unitCellFile);
+
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			CCrystal cryst(1,1,1,0,0,0);
-			
+			CCrystal cryst(cellReader);
+			// Do not handle TDS - we want the atoms at their original locations.
 			cryst.SetTDS(false);
-			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
+			// 0 indicates no handling of vacancies
+			cryst.ReadUnitCell(0);
+			//tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			if (tempCell == NULL) {
 				printf("Error reading unit cell data - exit!\n");
 				exit(0);
@@ -462,8 +468,11 @@ int readParams(char *datFileName) {
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			CCrystal cryst(1,1,1,0,0,0);
-			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
+			ConfigReaderPtr cellReader=GetConfigReader(unitCellFile);
+
+			CCrystal cryst(cellReader);
+                        grains[gCount.natoms]=cryst.GetNumberOfAtoms();
+			//tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			grains[gCount].unitCell = (atom *)malloc(grains[gCount].natoms * sizeof(atom));
 			memcpy(grains[gCount].unitCell, tempCell, grains[gCount].natoms * sizeof(atom));
 			grains[gCount].alpha = 0;
@@ -568,12 +577,12 @@ int readParams(char *datFileName) {
 
 				// assign number of atoms directly, if specified in input file
 				if (Nkind > 0) grains[gCount].unitCell[grains[gCount].natoms-1].y = (float)Nkind;
-				for (i=0;i<muls->atomKinds;i++) 	
-					if (muls->Znums[i] == grains[gCount].unitCell[grains[gCount].natoms-1].Znum) break;
-				if (i == muls->atomKinds) {
-					muls->atomKinds++;
-					muls->Znums = (int *) realloc(muls->Znums,muls->atomKinds*sizeof(int));
-					muls->Znums[i] = grains[gCount].unitCell[grains[gCount].natoms-1].Znum;
+				for (i=0;i<superCrystal->GetNumberOfAtomTypes();i++) 	
+					if (superCrystal->GetAtomTypes()[i] == grains[gCount].unitCell[grains[gCount].natoms-1].Znum) break;
+				if (i == superCrystal->GetNumberOfAtomTypes()) {
+					superCrystal->GetNumberOfAtomTypes()++;
+					superCrystal->GetAtomTypes() = (int *) realloc(superCrystal->GetAtomTypes(),superCrystal->GetNumberOfAtomTypes()*sizeof(int));
+					superCrystal->GetAtomTypes()[i] = grains[gCount].unitCell[grains[gCount].natoms-1].Znum;
 				}
 			} /* end of if "atom:" */
 		} /* end of if gCount >=0 */

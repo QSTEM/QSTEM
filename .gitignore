@@ -2,6 +2,7 @@
 *.slo
 *.lo
 *.o
+*.exe
 
 # Compiled Python files
 *.pyc
@@ -9,6 +10,7 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
+*.dll
 
 # Compiled Static libraries
 *.lai
@@ -18,6 +20,7 @@
 
 
 # Visual studio project files
+*.ilk
 *.sdf
 *.opensdf
 *unsuccessfulbuild
@@ -42,6 +45,8 @@ BuildLog.htm
 *.log
 *.lastbuildstate
 *.cache
+*codeanalysis*
+*.exp
 
 # binaries
 /bin
@@ -51,6 +56,11 @@ BuildLog.htm
 */CMakeFiles
 *.cmake
 CMakeCache.txt
+generate.stamp*
+
+
+# test files
+CTest*
 
 
 # img results from debug testing

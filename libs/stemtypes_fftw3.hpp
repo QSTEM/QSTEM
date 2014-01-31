@@ -22,6 +22,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include <boost/shared_ptr.hpp>
 
+#include "fftw_allocator.hpp"
+
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
 ///////////////////////////////////////////////////////////////////////
@@ -41,7 +43,9 @@ QSTEM - image simulation for TEM/STEM/CBED
 // Helpful mathematical constants
 #define RAD2DEG 57.2958
 #define SQRT_2 1.4142135
-
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
+#endif
 
 // Scattering factor types
 #define DOYLE_TURNER 0
@@ -61,12 +65,14 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 ////////////////////////////////////////////////////////////////
 #if FLOAT_PRECISION == 1
-typedef fftwf_complex complex_tt;
+typedef FFTWComplex<float> complex_tt;
 typedef float float_tt;
 #else  // FLOAT_PRECISION
-typedef fftw_complex complex_tt;
+typedef FFTWComplex<double> complex_tt;
 typedef double float_tt;
 #endif  // FLOAT_PRECISION
+typedef std::vector<float_tt, FFTWAllocator<float_tt> > RealVector;
+typedef std::vector<complex_tt, FFTWAllocator<complex_tt > > ComplexVector;
 ////////////////////////////////////////////////////////////////
 
 const float_tt PI = 2*acos(0.0);
@@ -138,5 +144,23 @@ typedef struct atomBoxStruct {
 } atomBox;
 
 typedef boost::shared_ptr<atomBox> atomBoxPtr;
+
+
+// Generic helper definitions for shared library support
+#if defined _WIN32 || defined __CYGWIN__
+  #define QSTEM_HELPER_DLL_IMPORT __declspec(dllimport)
+  #define QSTEM_HELPER_DLL_EXPORT __declspec(dllexport)
+  #define QSTEM_HELPER_DLL_LOCAL
+#else
+  #if __GNUC__ >= 4
+    #define QSTEM_HELPER_DLL_IMPORT __attribute__ ((visibility ("default")))
+    #define QSTEM_HELPER_DLL_EXPORT __attribute__ ((visibility ("default")))
+    #define QSTEM_HELPER_DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+  #else
+    #define QSTEM_HELPER_DLL_IMPORT
+    #define QSTEM_HELPER_DLL_EXPORT
+    #define QSTEM_HELPER_DLL_LOCAL
+  #endif
+#endif
 
 #endif // STEMTYPES_H

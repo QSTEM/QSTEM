@@ -17,32 +17,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WAVEFUNCTIONS_H
-#define WAVEFUNCTIONS_H
+#ifndef WAVE_FACTORY_H
+#define WAVE_FACTORY_H
 
 // Include this so that people know what a PotPtr is
 #include "wavefunctions/wave_base.hpp"
 // Include this because we use ConfigReaderPtr below.
-#include "config_readers.hpp"
+#include "config_IO/config_reader_factory.hpp"
+
 
 WavePtr GetWaveFunction(const std::string &identifier, const ConfigReaderPtr &configReader);
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

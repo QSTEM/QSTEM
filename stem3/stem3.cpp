@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   else
     fileName=argv[1];
   // Initialize the config file reader
-  ConfigReaderPtr configReader = GetConfigReader(fileName);
+  ConfigReaderPtr configReader = CConfigReaderFactory::Get()->GetReader(fileName);
   
   if (!configReader->IsValid())
     {

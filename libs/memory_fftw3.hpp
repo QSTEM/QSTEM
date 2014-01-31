@@ -24,6 +24,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <stdio.h>
 // #include "floatdef.hpp"
 #include "fftw3.h"
+#include <boost/shared_array.hpp>
+
 
 #include "stemtypes_fftw3.hpp"
 
@@ -36,7 +38,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 	this save checking for a NULL return etc every time 
 	
 */
-float_tt *float1D( int n, const char *message );
+boost::shared_array<float_tt> float1D( int n, const char *message );
 
 /*---------------------------- double1D() -------------------------------*/
 /*
@@ -47,7 +49,7 @@ float_tt *float1D( int n, const char *message );
 	this save checking for a NULL return etc every time 
 	
 */
-double* double1D( int n, const char *message );
+boost::shared_array<double> double1D( int n, const char *message );
 
 
 /*---------------------------- short2D() -------------------------------*/
@@ -90,7 +92,7 @@ float ***float32_3D( int nx, int ny,int nz, const char *message );
 float_tt ***float3D( int nx, int ny,int nz, const char *message );
 double **double2D( int nx, int ny, const char *message );
 
-complex_tt *complex1D(int n, const char *message);
+boost::shared_array<complex_tt> complex1D(int n, const char *message);
 complex_tt  **complex2D(int nx, int ny, const char *message);
 fftw_complex **complex2Dd(int nx, int ny, const char *message);
 complex_tt  ***complex3D(int nx, int ny,int nz, const char *message);

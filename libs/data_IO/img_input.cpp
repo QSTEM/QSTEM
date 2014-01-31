@@ -26,13 +26,13 @@
 #include <stdexcept>
 #include <sstream>
 
-CImgInput::CImgInput() :
+CImgReader::CImgReader() :
 m_headerSize(56),
 m_version(IMG_VERSION)
 {
 }
 
-void CImgInput::ReadHeader(const char *fileName)
+void CImgReader::ReadHeader(const char *fileName)
 {
   FILE *fp;
   std::vector<double> params;
@@ -41,8 +41,18 @@ void CImgInput::ReadHeader(const char *fileName)
       sprintf(m_buf, "Could not open file %s for reading header.\n",fileName);
 	  throw std::runtime_error(m_buf);
   }
-  // This sets many of the m_ variables!
-  fread((void*)this, 1, 56, fp);
+  fread((void*)&m_headerSize, 4, 1,fp);
+  fread((void*)&m_paramSize, 4, 1, fp);
+  fread((void*)&m_commentSize, 4, 1, fp);
+  fread((void*)&m_nx, 4, 1, fp);
+  fread((void*)&m_ny, 4, 1, fp);
+  fread((void*)&m_complexFlag, 4, 1, fp);
+  fread((void*)&m_dataSize, 4, 1, fp);
+  fread((void*)&m_version, 4, 1, fp);
+  fread((void*)&m_t, 8, 1, fp);  // thickness
+  fread((void*)&m_dx, 8, 1, fp); // resolution in X
+  fread((void*)&m_dy, 8, 1, fp); // resolution in Y
+
   if (m_paramSize>0)
     {
       m_params=std::vector<double>(m_paramSize);
@@ -52,34 +62,32 @@ void CImgInput::ReadHeader(const char *fileName)
     {
       fread((void*)m_buf, 1, m_commentSize, fp);
       m_comment = std::string(m_buf);
+	  m_comment.resize(m_commentSize);
     }
 
   if (fp != NULL) fclose(fp);
 }
 
-void CImgInput::ReadImage(void **pix, std::string label, std::map<std::string, double> &params,
-                          std::string &comment, std::vector<unsigned> position)
+void CImgReader::ReadParameters(const std::string &filename, std::map<std::string, double> &params)
 {
-  FILE *fp;
-  size_t nRead=0;
-  int trial=0,maxTrial=3,freadError=0;
- 
-  std::stringstream filename, paramname;
-  filename<<label;
-  for (unsigned idx=0; idx<position.size(); idx++)
-    {
-      filename<<"_"<<idx;
-    }
-  filename<<".img";
+  ReadHeader(BuildFilenameString(filename).c_str());
+  _ReadParameters(params);
+}
 
-  // sets the important info from the header - most importantly, where to start reading the image.
-  //   This sets the member variables that are used in the read below - that's why you don't have to
-  //   specify them.
-  ReadHeader(filename.str().c_str());
+void CImgReader::ReadComment(const std::string &filename, std::string &comment)
+{
+  ReadHeader(BuildFilenameString(filename).c_str());
+  _ReadComment(comment);
+}
 
-
+void CImgReader::_ReadComment(std::string &comment)
+{
   comment=m_comment;
+}
 
+void CImgReader::_ReadParameters(std::map<std::string, double> &params)
+{
+  std::stringstream paramname;
   // Get a clear map for the parameters
   params=std::map<std::string, double>();
   params["Thickness"]=m_t;
@@ -94,10 +102,60 @@ void CImgInput::ReadImage(void **pix, std::string label, std::map<std::string, d
       paramname<<"parameter "<<param;
       params[paramname.str().c_str()]=m_params[param];
     }
-  
+}
+
+/** stores the image size, as read from the header. Reads the header first. */
+void CImgReader::ReadSize(const std::string &filename, unsigned int &nx, unsigned int &ny)
+{
+  ReadHeader(BuildFilenameString(filename).c_str());
+  _ReadSize(nx, ny);
+}
+
+/** stores the image size, as read from the header. */
+void CImgReader::_ReadSize(unsigned &nx, unsigned &ny)
+{
+  nx=m_nx;
+  ny=m_ny;
+}
+
+void CImgReader::ReadComplex(const std::string &filebase, bool &complex)
+{
+  ReadHeader(BuildFilenameString(filebase).c_str());
+  _ReadComplex(complex);
+}
+
+void CImgReader::_ReadComplex(bool &complex)
+{
+	complex=(bool)m_complexFlag;
+}
+
+void CImgReader::ReadElementByteSize(const std::string &filebase, unsigned &elementSizeBytes)
+{
+	ReadHeader(BuildFilenameString(filebase).c_str());
+	_ReadElementByteSize(elementSizeBytes);
+}
+
+void CImgReader::_ReadElementByteSize(unsigned &elementByteSize)
+{
+	elementByteSize=m_dataSize;
+}
+
+void CImgReader::ReadImageData(const std::string &filebase, void *pix)
+{
+  std::string filename=BuildFilenameString(filebase);
+  ReadHeader(filename.c_str());
+  _ReadImageData(filename, pix);
+}
+
+void CImgReader::_ReadImageData(const std::string &filename, void *pix)
+{
+  FILE *fp;
+  size_t nRead=0;
+  int trial=0,maxTrial=3,freadError=0;
+
   do {
-    if ((fp = fopen(filename.str().c_str(),"rb"))==NULL) {
-      printf("Could not open file %s for reading\n",filename.str().c_str());
+    if ((fp = fopen(filename.c_str(),"rb"))==NULL) {
+      printf("Could not open file %s for reading\n",filename.c_str());
       /* wait a short while */
       while (nRead < 1e5) nRead++;
     }
@@ -112,14 +170,14 @@ void CImgInput::ReadImage(void **pix, std::string label, std::map<std::string, d
       //   type of the data that it passed into this function.
       //   
       //   Complex data is determined/communicated by the m_complexFlag, which is read in the header.
-      nRead = fread(pix[0], sizeof(m_dataSize),(size_t)(m_nx*m_ny),fp);
+      nRead = fread(pix, sizeof(m_dataSize),(size_t)(m_nx*m_ny),fp);
       if (nRead != m_nx*m_ny) 
       {
         freadError = 1;
         sprintf(m_buf, "Error while reading data from file %s:"
                 " %d (of %d specified) elements read\n"
                 "EOF: %d, Ferror: %d, dataSize: %d\n",
-                filename.str().c_str(),nRead,m_nx*m_ny,
+                filename.c_str(),nRead,m_nx*m_ny,
                 feof(fp),ferror(fp),m_dataSize);
         fclose(fp);
         fp = NULL;
@@ -130,4 +188,35 @@ void CImgInput::ReadImage(void **pix, std::string label, std::map<std::string, d
   }  while ((freadError > 0) && (++trial < maxTrial));
   
   if (fp != NULL) fclose(fp);
+}
+
+std::string CImgReader::BuildFilenameString(const std::string &label)
+{
+  std::stringstream filename, paramname;
+  filename<<label;
+  /*
+  for (unsigned idx=0; idx<position.size(); idx++)
+    {
+      filename<<"_"<<idx;
+    }
+  */
+  filename<<".img";
+  return filename.str();
+}
+
+void CImgReader::ReadImage(const std::string &filebase, void *pix, std::map<std::string, double> &params,
+                         std::string &comment)
+{
+  // sets the important info from the header - most importantly, where to start reading the image.
+  //   This sets the member variables that are used in the read below - that's why you don't have to
+  //   specify them.
+  std::string filename=BuildFilenameString(filebase);
+  ReadHeader(filename.c_str());
+
+  // These essentially dump information read from the header into the desired variables
+  _ReadComment(comment);
+  _ReadParameters(params);
+  _ReadImageData(filename, pix);
+
+  
 }

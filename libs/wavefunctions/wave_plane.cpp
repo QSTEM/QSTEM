@@ -19,13 +19,19 @@
 
 #include "wave_plane.hpp"
 
-CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configReader)
+static std::string imageFilePrefix="image";
+
+CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : CBaseWave(configReader)
+{
+}
+
+CPlaneWave::CPlaneWave() : CBaseWave()
 {
 }
 
 void CPlaneWave::DisplayParams()
 {
-  WAVEFUNC::DisplayParams();
+  CBaseWave::DisplayParams();
 
   // TODO: transmit tiltBack status somehow (it's an experiment parameter, not a wave parameter.
   //printf("* Beam tilt:            x=%g deg, y=%g deg (tilt back == %s)\n",m_btiltx*RAD2DEG,m_btilty*RAD2DEG,
@@ -70,13 +76,20 @@ void CPlaneWave::TiltBeam(bool tiltBack)
     }
 }
 
-inline void CPlaneWave::TiltBack()
+void CPlaneWave::TiltBack()
 {
   TiltBeam(true);
 }
 
+void CPlaneWave::ReadImage()
+{
+  m_position.clear();
+  m_imageIO->ReadImage((void **)m_image, imageFilePrefix, m_position);
+}
 
-
-
-
-
+void CPlaneWave::WriteImage()
+{
+  std::map<std::string, double> params;
+  std::string comment;
+  m_imageIO->WriteRealImage((void **)m_image, imageFilePrefix, params, comment, m_position);
+}

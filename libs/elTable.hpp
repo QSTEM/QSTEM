@@ -20,7 +20,7 @@
 #ifndef ELTABLE_H
 #define ELTABLE_H
 
-char *elTable = {
+static char *elTable = {
 	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
 	"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
 	"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"

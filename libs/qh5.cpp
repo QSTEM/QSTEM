@@ -186,10 +186,12 @@ int QH5::ReadParameterOp(hid_t location_id, const char *attr_name,
 {
   std::map<std::string, double> pars = *static_cast<std::map<std::string, double> *>(op_data);
   double tmp;
+  int status;
   hid_t attr = H5Aopen(location_id, attr_name, H5P_DEFAULT);
-  H5Aread(attr, H5T_NATIVE_DOUBLE, &tmp);
+  status=H5Aread(attr, H5T_NATIVE_DOUBLE, &tmp);
   pars[attr_name]=tmp;
   H5Aclose(attr);
+  return status;
 }
 
 void QH5::ReadParameters(hid_t dataset, 

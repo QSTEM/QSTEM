@@ -28,8 +28,8 @@ CImageIO::CImageIO(int nx, int ny, std::string input_extension, std::string outp
 m_nx(nx),
 m_ny(ny)
 {
-  m_imageReader=GetDataReader(input_extension);
-  m_imageWriter=GetDataWriter(output_extension);
+  m_imageReader=CDataReaderFactory::Get()->GetReader(input_extension);
+  m_imageWriter=CDataWriterFactory::Get()->GetWriter(output_extension);
 };
 
 void CImageIO::CreateRealDataSet(const std::string &name, const std::vector<unsigned int> &positions)
@@ -59,7 +59,7 @@ void CImageIO::ReadImage(void **pix, std::string &fileName, std::map<std::string
                          std::string &comment, std::vector<unsigned> position)
 {
   
-  m_imageReader->ReadImage(pix, fileName, params, comment, position);
+  m_imageReader->ReadImage(fileName, pix, params, comment);
 }
 
 /*****************************************************************

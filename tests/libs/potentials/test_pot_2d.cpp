@@ -16,41 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-
-#include "potential.hpp"
-
-#include "potentials/pot_2d.hpp"
-#include "potentials/pot_2d_fft.hpp"
-#include "potentials/pot_3d.hpp"
-#include "potentials/pot_3d_fft.hpp"
-
-
-PotPtr GetPotential(const ConfigReaderPtr &configReader)
-{
-  bool _3D, fft;
-  configReader->ReadPotentialCalculationParameters(fft, _3D);
-
-  if (_3D)
-    {
-      if (fft)
-        {
-          return PotPtr(new C3DFFTPotential(configReader));
-        }
-      else
-        {
-          return PotPtr(new C3DPotential(configReader));
-        }
-    }
-  else
-    {
-      if (fft)
-        {
-          return PotPtr(new C2DFFTPotential(configReader));
-        }
-      else
-        {
-          return PotPtr(new C2DPotential(configReader));
-        }
-    }
-}
+#define BOOST_TEST_MODULE Test2DPotential
+#include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
+#include <iostream>

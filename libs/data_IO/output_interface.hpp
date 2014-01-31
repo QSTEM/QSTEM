@@ -27,6 +27,10 @@
 #include "stemtypes_fftw3.hpp"
 #include "boost/shared_ptr.hpp"
 
+class IDataWriter;
+typedef boost::shared_ptr<IDataWriter> DataWriterPtr;
+typedef DataWriterPtr (*CreateDataWriterFn)();
+
 class IDataWriter
 {
 public:
@@ -43,8 +47,6 @@ public:
                                  const std::vector<unsigned> &position, const std::string &comment,
                                  std::map<std::string, double> &parameters)=0;
 };
-
-typedef boost::shared_ptr<IDataWriter> DataWriterPtr;
 
 #endif
 

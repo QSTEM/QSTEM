@@ -26,7 +26,6 @@
 class Detector {
   ImageIOPtr m_imageIO;
 public:
-  int m_Navg;
   unsigned m_nx, m_ny;
   float_tt **m_image;        // place for storing avg image = sum(data)/Navg
   float_tt **m_image2;        // we will store sum(data.^2)/Navg 
@@ -36,7 +35,9 @@ public:
   float_tt m_error;
   float_tt m_shiftX, m_shiftY;
   float_tt m_dx, m_dy;
+  float_tt m_electronScale;
   float_tt m_wavelength;
+  unsigned m_Navg;
 
 public:
   Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavelength);

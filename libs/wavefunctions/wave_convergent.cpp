@@ -19,15 +19,25 @@
 
 #include "wave_convergent.hpp"
 
-CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : WAVEFUNC(configReader)
+CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : CBaseWave(configReader)
 {
   // TODO: where does beam current belong?
   //configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
 }
 
+/** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
+CConvergentWave::CConvergentWave(const WavePtr& other) : CBaseWave(other)
+{
+  // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
+}
+
+CConvergentWave::CConvergentWave() : CBaseWave()
+{
+}
+
 void CConvergentWave::DisplayParams()
 {
-  WAVEFUNC::DisplayParams();
+  CBaseWave::DisplayParams();
 
   printf("* Aperture half angle:  %g mrad\n",m_alpha);
   printf("* AIS aperture:         ");
@@ -146,7 +156,7 @@ void CConvergentWave::FormProbe()
   delta = m_Cc*m_dE_E;
   if (m_printLevel > 2) printf("defocus offset: %g nm (Cc = %g)\n",delta,m_Cc);
   
-  if (m_wave == NULL) {
+  if (m_wave.size()==0) {
     printf("Error in probe(): Wave not allocated!\n");
     exit(0);
   }
