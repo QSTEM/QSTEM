@@ -358,7 +358,7 @@ void C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
   // largest k that we'll admit
   float_tt kmax2;
 
-  ComplexVector temp(20);
+  ComplexVector temp;
 
   unsigned nx, ny, nz, nzPerSlice;
   std::vector<float_tt> splinb(N_SF), splinc(N_SF), splind(N_SF);
@@ -525,23 +525,8 @@ void C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
         // This potential will later again be scaled by lambda*gamma (=0.025*1.39139)
         // Sets real value to this; imaginary value to 0
         m_atPot[Znum][ind3d] = 47.8658*dkx*dkz/(nz)*zScale;
-
-        // *8*14.4*0.529=4*a0*e (s. Kirkland's book, p. 207)
-        // 2*pi*14.4*0.529 = 7.6176;
-        // if (atPot[Znum][ind3d][0] < min) min = atPot[Znum][ind3d][0];        
-        //atPot[Znum][ind3d][1]= 0;
       }
     // make sure we don't produce negative potential:
-    // if (min < 0) for (ix=0;ix<nx;ix++) for (iy=0;iy<ny;iy++) atPot[Znum][iy+ix*ny][0] -= min;
-#if SHOW_SINGLE_POTENTIAL
-    imageio = ImageIOPtr(new CImageIO(nz/2, nx/2, 0, m_sliceThickness/nzPerSlice,
-                                      m_dx/OVERSAMPLING));
-    // This scattering factor agrees with Kirkland's scattering factor fe(q)
-    imageio->SetThickness(nz*m_sliceThickness/nzPerSlice);
-    sprintf(fileName,"potential_rz_%d.img",Znum);
-    ptr = atPot[Znum];
-    imageio->WriteComplexImage((void**)ptr, fileName);
-#endif        
     if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential array for Z=%d (B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
                                      nx/2,nz/2,Znum,B,dkx,dkx,dkz,izOffset);
   }
