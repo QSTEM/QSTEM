@@ -20,3 +20,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/filesystem.hpp>
 #include <iostream>
+
+#include "structure_IO/structure_factories.hpp"
+

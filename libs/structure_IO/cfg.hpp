@@ -23,10 +23,10 @@
 #include "structureInterface.hpp"
 #include <boost/filesystem.hpp>
 
-class CCfgReader : public IStructureInput
+class CCfgReader : public IStructureReader
 {
 public:
-  CCfgReader(boost::filesystem::path &structure_file);
+  CCfgReader(const boost::filesystem::path &structure_file);
   ~CCfgReader();
   
   int ReadCellParams(float_tt **Mm);
@@ -40,12 +40,17 @@ private:
   unsigned m_entryCount; // The number of columns on any given line of data from the file
   bool m_isValid;  // If true, this object has a valid file to read atoms from.
   std::string m_buf;
+private:
+  friend class CStructureReaderFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static StructureReaderPtr Create(const boost::filesystem::path &file){return StructureReaderPtr(new CCfgReader(file));}
 };
 
-class CCfgWriter : public IStructureOutput
+class CCfgWriter : public IStructureWriter
 {
 public:
-  CCfgWriter(boost::filesystem::path &structure_file, float_tt ax, float_tt by, float_tt cz);
+  CCfgWriter(const boost::filesystem::path &file, float_tt ax, float_tt by, float_tt cz);
   ~CCfgWriter();
 
   int Write(std::vector <atom> &atoms, unsigned run_number);
@@ -54,7 +59,13 @@ public:
 private:
   FILE *m_fp;
   float_tt m_ax, m_by, m_cz;
-  
+private:
+  friend class CStructureWriterFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static StructureWriterPtr Create(const boost::filesystem::path &file, float_tt ax, float_tt by, float_tt cz){
+    return StructureWriterPtr(new CCfgWriter(file, ax, by, cz));
+  }  
 };
 
 #endif

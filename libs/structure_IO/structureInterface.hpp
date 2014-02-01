@@ -21,29 +21,34 @@
 #define STRUCTURE_INTERFACE_H
 
 #include <boost/shared_ptr.hpp>
-#include "../stemtypes_fftw3.hpp"
-#include <string>
-#include <vector>
+#include <boost/filesystem.hpp>
+#include "stemtypes_fftw3.hpp"
 
 #include <cstring>
-#include "../readparams.hpp"
 
-class IStructureInput
+class IStructureReader;
+typedef boost::shared_ptr<IStructureReader> StructureReaderPtr;
+typedef StructureReaderPtr (*CreateStructureReaderFn)(const boost::filesystem::path &filename);
+
+class IStructureReader
 {
 public:
   virtual int ReadCellParams(float_tt **Mm)=0;
   virtual int ReadAtoms(std::vector<atom> &atoms)=0;
 };
 
-typedef boost::shared_ptr<IStructureInput> StructureReaderPtr;
 
-class IStructureOutput
+class IStructureWriter;
+typedef boost::shared_ptr<IStructureWriter> StructureWriterPtr;
+typedef StructureWriterPtr (*CreateStructureWriterFn)(const boost::filesystem::path &filename, 
+                                                      float_tt ax, float_tt by, float_tt cz);
+
+class IStructureWriter
 {
 public:
   virtual int Write(std::vector<atom> &atoms, unsigned run_number)=0;
 };
 
-typedef boost::shared_ptr<IStructureOutput> StructureWriterPtr;
 /*--------------------- ReadLine() -----------------------*/
 /*
 read a full line from a file and 

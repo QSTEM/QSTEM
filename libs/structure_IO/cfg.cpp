@@ -20,7 +20,9 @@
 #include "cfg.hpp"
 #include "elTable.hpp"
 
-CCfgReader::CCfgReader(boost::filesystem::path &filename)
+#include "readparams.hpp"
+
+CCfgReader::CCfgReader(const boost::filesystem::path &filename)
 {
   m_fp = fopen(filename.string().c_str(), "r" );
   if( m_fp == NULL ) {
@@ -41,7 +43,7 @@ CCfgReader::~CCfgReader()
   fclose(m_fp);
 }
 
-CCfgWriter::CCfgWriter(boost::filesystem::path &path, float_tt ax, float_tt by, float_tt cz) :
+CCfgWriter::CCfgWriter(const boost::filesystem::path &path, float_tt ax, float_tt by, float_tt cz) :
   m_ax(ax)
   , m_by(by)
   , m_cz(cz)

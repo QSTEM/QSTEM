@@ -30,7 +30,7 @@
 
 
 // Factory for creating instances of IPotential
-class CPotFactory
+class QSTEM_HELPER_DLL_EXPORT CPotFactory
 {
 private:
   CPotFactory();

@@ -24,6 +24,8 @@
 #include "memory_fftw3.hpp"
 #include "random.hpp"
 
+#include "structure_factories.hpp"
+
 #define PID 3.14159265358979 /* pi */
 #define PI180 1.7453292519943e-2
 
@@ -42,11 +44,12 @@ CCrystal::CCrystal(ConfigReaderPtr &configReader)
   configReader->ReadStructureFileName(fileName);
   configReader->ReadNCells(m_nCellX, m_nCellY, m_nCellZ);
   // Get the object that we'll use to read in the array of atoms
-  m_reader = GetStructureReader(fileName);
+  m_structureReader = CStructureReaderFactory::Get()->GetReader(fileName);
+  m_structureWriter = CStructureWriterFactory::Get()->GetWriter(fileName, m_ax, m_by, m_cz);
   m_Mm = float2D(3,3,"");
-  m_reader->ReadCellParams(m_Mm);
+  m_structureReader->ReadCellParams(m_Mm);
   // Read in the initial atomic positions from the file (do duplication, tilt, and shaking later)
-  m_reader->ReadAtoms(m_baseAtoms);
+  m_structureReader->ReadAtoms(m_baseAtoms);
 }
 
 CCrystal::CCrystal(unsigned ncx, unsigned ncy, unsigned ncz, 
