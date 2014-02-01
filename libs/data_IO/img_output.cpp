@@ -33,29 +33,32 @@ void CImgWriter::Initialize(std::string dirOrFileName, std::string run_id)
 }
 
 void CImgWriter::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
-                                 const std::vector<unsigned> &position, const std::string &comment,
-                                 std::map<std::string, double> &parameters)
+                                  const std::vector<unsigned> &position, const std::string &comment, 
+								  const std::map<std::string, double> &parameters)
 {
   unsigned dataSize = 2*sizeof(float_tt);
-  WriteData((void **)data, true, dataSize, shape, label, position, comment, parameters);
+  bool is_complex=true;
+  WriteData((void **)data, is_complex, dataSize, shape, label, position, comment, parameters);
 }
 
 void CImgWriter::WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
-                                  const std::vector<unsigned> &position, const std::string &comment,
-                                  std::map<std::string, double> &parameters)
+                                  const std::vector<unsigned> &position, const std::string &comment, 
+								  const std::map<std::string, double> &parameters)
 {
   unsigned dataSize = sizeof(float_tt);
-    WriteData((void **)data, false, dataSize, shape, label, position, comment, parameters);
+  bool is_complex=false;
+  WriteData((void **)data, is_complex, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgWriter::WriteData(void **pix, bool is_complex, unsigned dataSize, std::vector<unsigned> shape, 
-                             std::string label, std::vector<unsigned> position, std::string comment,
-                             std::map<std::string, double> parameters)
+void CImgWriter::WriteData(void **pix, bool is_complex, unsigned dataSize, const std::vector<unsigned> &shape, 
+                             const std::string &filebase, const std::vector<unsigned> &position, 
+							 const std::string &comment, const std::map<std::string, double> &parameters)
 {
   //FILE *fp;
   std::stringstream filename;
   char buf[200];
-  filename<<label;
+  filename<<filebase;
+  
   for (unsigned idx=0; idx<position.size(); idx++)
     {
       filename<<"_"<<position[idx];
@@ -66,15 +69,15 @@ void CImgWriter::WriteData(void **pix, bool is_complex, unsigned dataSize, std::
 
   // Sychronize lengths of comments and parameters
   size_t paramSize = parameters.size();
-  std::map<std::string, double>::iterator param;
+  std::map<std::string, double>::const_iterator param;
   
   // TODO: need to parse parameters to pull out thickness, complexFlag, and dataSize.
   //    Hardcode version?  Things aren't going to change anymore...
 
   size_t commentSize = comment.size();
-  double thickness = parameters["Thickness"];
-  double resX = parameters["dx"];
-  double resY = parameters["dy"];
+  double thickness = parameters.at("Thickness");
+  double resX = parameters.at("dx");
+  double resY = parameters.at("dy");
   int complexFlag = (int) is_complex;
 
   if(!file.is_open()) 

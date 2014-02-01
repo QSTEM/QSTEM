@@ -23,23 +23,33 @@
 
 #include "data_IO/data_io_factories.hpp"
 
-struct imgFixture {
-  imgFixture()
+struct imgReaderFixture {
+  imgReaderFixture()
   {
     dataReader = CDataReaderFactory::Get()->GetReader(".img");
-    dataWriter = CDataWriterFactory::Get()->GetWriter(".img");
     //std::cout << "setup qsc config reader fixture" << std::endl; 
   }
-  ~imgFixture()
+  ~imgReaderFixture()
   { //std::cout << "teardown qsc config reader fixture" << std::endl;
   }
   DataReaderPtr dataReader;
+};
+
+struct imgWriterFixture {
+  imgWriterFixture()
+  {
+    dataWriter = CDataWriterFactory::Get()->GetWriter(".img");
+    //std::cout << "setup qsc config reader fixture" << std::endl; 
+  }
+  ~imgWriterFixture()
+  { //std::cout << "teardown qsc config reader fixture" << std::endl;
+  }
   DataWriterPtr dataWriter;
 };
 
-BOOST_FIXTURE_TEST_SUITE(TestImgInput, imgFixture)
+BOOST_FIXTURE_TEST_SUITE(TestImgInput, imgReaderFixture)
 
-BOOST_AUTO_TEST_CASE( test_size )
+BOOST_AUTO_TEST_CASE( testReadSize )
 {
   std::string filename="diffAvg_0_16";
   unsigned nx, ny;
@@ -48,7 +58,7 @@ BOOST_AUTO_TEST_CASE( test_size )
   BOOST_CHECK_EQUAL(ny, 400);
 }
 
-BOOST_AUTO_TEST_CASE( testComment )
+BOOST_AUTO_TEST_CASE( testReadComment )
 {
   std::string filename="diffAvg_0_16";
   std::string comment;
@@ -56,7 +66,7 @@ BOOST_AUTO_TEST_CASE( testComment )
   BOOST_CHECK_EQUAL(comment, "Average Array");
 }
 
-BOOST_AUTO_TEST_CASE( testParameters )
+BOOST_AUTO_TEST_CASE( testReadParameters )
 {
   std::map<std::string, double> parameters;
   std::string filename="diffAvg_0_16";
@@ -68,7 +78,7 @@ BOOST_AUTO_TEST_CASE( testParameters )
   BOOST_CHECK_CLOSE(parameters["dy"],0.04, 0.05);
 }
 
-BOOST_AUTO_TEST_CASE( testComplex )
+BOOST_AUTO_TEST_CASE( testReadComplex )
 {
   std::string filename="diffAvg_0_16";
   bool complex;
@@ -76,7 +86,7 @@ BOOST_AUTO_TEST_CASE( testComplex )
   BOOST_CHECK_EQUAL(complex, false);
 }
 
-BOOST_AUTO_TEST_CASE( testByteSize )
+BOOST_AUTO_TEST_CASE( testReadByteSize )
 {
   std::string filename="diffAvg_0_16";
   unsigned byteSize;
@@ -89,8 +99,12 @@ BOOST_AUTO_TEST_SUITE_END()
 
 
 
+BOOST_FIXTURE_TEST_SUITE(TestImgOutput, imgWriterFixture)
 
+BOOST_AUTO_TEST_CASE(testWriteHeader)
+{
+	std::vector<unsigned> size(2);
+	std::map<std::string, double> pars;
+}
 
-
-
-
+BOOST_AUTO_TEST_SUITE_END()

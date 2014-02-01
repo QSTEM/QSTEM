@@ -40,12 +40,78 @@ public:
   virtual void CreateRealDataSet(const std::string &name, unsigned nx, unsigned ny, 
                                  const std::vector<unsigned> &positions){};
   virtual void CreateComplexDataSet(const std::string &name, unsigned nx, unsigned ny, const std::vector<unsigned> &positions){};
+  // They must know how to write real images and complex images.
+  // The actual function that does the work
   virtual void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
-                              const std::vector<unsigned> &position, const std::string &comment,
-                              std::map<std::string, double> &parameters)=0;
+                                  const std::vector<unsigned> &position, const std::string &comment, 
+								  const std::map<std::string, double> &parameters)=0;
+  // Alternate signatures to not require creation of passed in arguments when not necessary
+  // Barebones call
+  inline void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label)
+  {
+	std::vector<unsigned> position;
+	std::string comment;
+	std::map<std::string, double> pars;
+	WriteRealImage(data, shape, label, position, comment, pars);
+  }
+  // Include position
+  inline void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                  const std::vector<unsigned> &position)
+  {
+	std::string comment;
+	std::map<std::string, double> pars;
+	WriteRealImage(data, shape, label, position, comment, pars);
+  }
+  // Include position and comment (no parameters)
+  virtual void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                  const std::vector<unsigned> &position, const std::string &comment)
+  {
+	std::map<std::string, double> pars;
+	WriteRealImage(data, shape, label, position, comment, pars);
+  }
+  // exclude position
+  virtual void WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+								const std::string &comment, const std::map<std::string, double> &parameters)
+  {
+	std::vector<unsigned> position;
+	WriteRealImage(data, shape, label, position, comment, parameters);
+  }
+
+  // The actual function doing the work
   virtual void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
-                                 const std::vector<unsigned> &position, const std::string &comment,
-                                 std::map<std::string, double> &parameters)=0;
+                                  const std::vector<unsigned> &position, const std::string &comment, 
+								  const std::map<std::string, double> &parameters)=0;
+  // Alternate signatures to not require creation of passed in arguments when not necessary
+  // Barebones call
+  inline void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label)
+  {
+	std::vector<unsigned> position;
+	std::string comment;
+	std::map<std::string, double> pars;
+	WriteComplexImage(data, shape, label, position, comment, pars);
+  }
+  // Include position
+  inline void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                  const std::vector<unsigned> &position)
+  {
+	std::string comment;
+	std::map<std::string, double> pars;
+	WriteComplexImage(data, shape, label, position, comment, pars);
+  }
+  // Include position and comment (no parameters)
+  virtual void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+                                  const std::vector<unsigned> &position, const std::string &comment)
+  {
+	std::map<std::string, double> pars;
+	WriteComplexImage(data, shape, label, position, comment, pars);
+  }
+  // exclude position
+  virtual void WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+								const std::string &comment, const std::map<std::string, double> &parameters)
+  {
+	std::vector<unsigned> position;
+	WriteComplexImage(data, shape, label, position, comment, parameters);
+  }
 };
 
 #endif
