@@ -79,7 +79,8 @@ public:
 
   void WriteSlice(unsigned idx);
   void WriteProjectedPotential();
-  complex_tt **GetSlice(unsigned idx){return m_trans[idx];}
+  void GetSlice(unsigned idx, ComplexVector &vec){vec=m_trans[idx];}
+  complex_tt GetSlicePixel(unsigned iz, unsigned ix, unsigned iy);
 
   atom GetAtom(unsigned idx){return m_atoms[idx];}
 
@@ -90,7 +91,8 @@ public:
 protected:
   void Initialize();
   void SliceSetup();
-  void ReadSlice(std::string &fileName, complex_tt **, unsigned idx);
+  void ResizeSlices();
+  void ReadSlice(const std::string &fileName, ComplexVector &slice, unsigned idx);
   virtual void _AddAtomRealSpace(std::vector<atom>::iterator &atom, 
                                  float_tt atomX, unsigned int ix, 
                                  float_tt atomY, unsigned int iy, 
@@ -99,7 +101,8 @@ protected:
 
   ImageIOPtr m_imageIO;
   StructurePtr m_crystal;
-  complex_tt ***m_trans;    //  The 3D specimen potential array
+  std::vector<ComplexVector> m_trans; //  The 3D specimen potential array as a vector of 1D vectors
+  //complex_tt ***m_trans;    //  The 3D specimen potential array
   bool m_currentPotential;  // Indicates whether computed potential matches current parameters.  
 							//    Set to true after computing potential.  Reset to false when parameters change.
   unsigned m_nx, m_ny;    /* size of projected potential in pixels, possibly larger than wavefunc's nx/ny */

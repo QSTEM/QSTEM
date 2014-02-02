@@ -79,7 +79,8 @@ void C3DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
       // Slices around the slice that this atom is located in must be affected by this atom:
       // iaz must be relative to the first slice of the atom potential box.
       for (unsigned iax=iax0; iax <= iax1; iax++) {
-        float_tt *potPtr = &(m_trans[iAtomZ+iaz0][iax][iay0][0]);
+        unsigned idx = iax*m_ny+iay0;
+        float_tt *potPtr = &(m_trans[iAtomZ+iaz0][idx][0]);
 
         //////////////////////////////////////////////////////////////////////
         // Computation of Radius must be made faster by using pre-calculated ddx
@@ -226,7 +227,8 @@ void C3DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
     // Slices around the slice that this atom is located in must be affected by this atom:
     // iaz must be relative to the first slice of the atom potential box.
     for (unsigned iax=iax0; iax < iax1; iax++) {
-      float_tt *potPtr = &(m_trans[iAtomZ+iaz0][(iax+2*m_nx) % m_nx][(iay0+2*m_ny) % m_ny][0]);
+      unsigned idx = ((iax+2*m_nx) % m_nx)*m_ny + (iay0+2*m_ny) % m_ny;
+      float_tt *potPtr = &(m_trans[iAtomZ+iaz0][idx][0]);
       // potPtr = &(m_trans[iAtomZ-iaz0+iaz][iax][iay0][0]);
       float_tt x2 = iax*m_dx - atomBoxX;        x2 *= x2;
       for (unsigned iay=iay0; iay < iay1; ) {

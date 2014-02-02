@@ -117,24 +117,21 @@ void C2DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom,
   AtomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,0, m_tds ? 0 : atom->dw);
   float_tt atomBoxZ = (double)(iAtomZ+1)*m_cz[0]-atomZ;
 
+  unsigned idx=ix*m_ny+iy;
+
   /* split the atom if it is close to the top edge of the slice */
   if ((atomBoxZ<0.15*m_cz[0]) && (iz >0)) {
-    m_trans[iz][ix][iy][0] += 0.5*dPot[0];
-    m_trans[iz][ix][iy][1] += 0.5*dPot[1];
-    m_trans[iz-1][ix][iy][0] += 0.5*dPot[0];
-    m_trans[iz-1][ix][iy][1] += 0.5*dPot[1];                        
+    m_trans[iz][idx] += 0.5*dPot;
+    m_trans[iz-1][idx] += 0.5*dPot;
   }
   /* split the atom if it is close to the bottom edge of the slice */
   else {
     if ((atomBoxZ>0.85*m_cz[0]) && (iz < m_nslices-1)) {
-      m_trans[iz][ix][iy][0] += 0.5*dPot[0];
-      m_trans[iz][ix][iy][1] += 0.5*dPot[1];        
-      m_trans[iz+1][ix][iy][0] += 0.5*dPot[0];
-      m_trans[iz+1][ix][iy][1] += 0.5*dPot[1];                 
+      m_trans[iz][idx] += 0.5*dPot;
+      m_trans[iz+1][idx] += 0.5*dPot;
     }
     else {
-      m_trans[iz][ix][iy][0] += dPot[0];
-      m_trans[iz][ix][iy][1] += dPot[1];        
+      m_trans[iz][idx] += dPot;
     }
   }
 }

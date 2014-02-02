@@ -81,9 +81,10 @@ void C2DFFTPotential::AddAtomNonPeriodic(std::vector<atom>::iterator &atom,
                   
       for (unsigned iax=iax0; iax < iax1; iax++) 
         {
+          unsigned idx = iax*m_ny+iay0;
           // printf("(%d, %d): %d,%d\n",iax,nyAtBox,(iOffsX+OVERSAMPLING*(iax-iax0)),iOffsY+iay1-iay0);
           // potPtr and ptr are of type (float *)
-          float_tt *potPtr = &(m_trans[iAtomZ][iax][iay0][0]);
+          float_tt *potPtr = &(m_trans[iAtomZ][idx][0]);
           float_tt *ptr = &(atPotPtr[(iOffsX+OVERSAMPLING*(iax-iax0))*m_nyAtBox+iOffsY][0]);
           for (unsigned iay=iay0; iay < iay1; iay++) 
             {
@@ -137,7 +138,8 @@ void C2DFFTPotential::AddAtomPeriodic(std::vector<atom>::iterator &atom,
           int atPosY = (iay-iay0)*OVERSAMPLING-iOffsY;
           if ((atPosY < m_nyAtBox-1) && (atPosY >=0)) {
             // do the real part
-            m_trans[iAtomZ][iax % m_nx][iay % m_ny][0] +=
+            unsigned idx = (iax % m_nx)*m_ny + (iay % m_ny);
+            m_trans[iAtomZ][idx][0] +=
               s11*(*ptr)+s12*(*(ptr+2))+s21*(*(ptr+m_nyAtBox2))+s22*(*(ptr+m_nyAtBox2+2));
           }
           // make imaginary part zero for now

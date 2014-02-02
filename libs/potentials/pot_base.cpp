@@ -35,6 +35,11 @@ CPotential::CPotential(const ConfigReaderPtr &configReader) : IPotential()
   configReader->ReadAtomRadius(m_atomRadius);
   configReader->ReadSliceParameters(m_centerSlices, m_sliceThickness, m_nslices, m_outputInterval, m_zOffset);
   configReader->ReadSliceOffset(m_offsetX, m_offsetY);
+
+  // Read if we should load the pot from a file
+
+  // if not, we should initialize the crystal structure
+
   Initialize();
 }
 
@@ -212,11 +217,11 @@ void CPotential::AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y
 }
 
 /** Shuffle the structure with random offsets and recompute potential.
-    Only for when you're computing potential (obviously), not loading it from files.
+    Only for when you're computing potential, not loading it from files.
 */
 void CPotential::Refresh()
 {
-  //
+  // 
 }
 
 void CPotential::ReadPotential(std::string &fileName, unsigned subSlabIdx)
@@ -224,16 +229,23 @@ void CPotential::ReadPotential(std::string &fileName, unsigned subSlabIdx)
   /*************************************************************************
    * read the potential that has been created externally!
    */
+  boost::filesystem::path path=fileName;
   unsigned slice_idx=0;
+  // Set the potential size based on the contents of the first slice
+  DataReaderPtr reader = CDataReaderFactory::Get()->GetReader(path.extension().string());
+  
+  reader->ReadSize(path.stem().string(), slice_idx, m_nx, m_ny);
+  ResizeSlices();
   for (unsigned i=(subSlabIdx+1)*m_nslices-1;i>=(subSlabIdx)*m_nslices;i--,slice_idx++) 
     {
-      ReadSlice(fileName, m_trans[slice_idx], i);
+      ReadSlice(path.stem().string(), m_trans[slice_idx], i);
     }
     return;
 }
 
-void CPotential::ReadSlice(std::string &fileName, complex_tt **, unsigned idx)
+void CPotential::ReadSlice(const std::string &fileName, ComplexVector &slice, unsigned idx)
 {
+  
 }
 
 void CPotential::SliceSetup()
@@ -256,6 +268,13 @@ void CPotential::SliceSetup()
     m_slicePos[i] = m_slicePos[i-1]+m_cz[i-1]/2.0+m_cz[i]/2.0;
   }
 }
+
+complex_tt CPotential::GetSlicePixel(unsigned iz, unsigned ix, unsigned iy)
+{
+  unsigned idx = iy*m_nx + ix;
+  return m_trans[iz][idx];
+}
+
 
 void CPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 {
@@ -303,7 +322,7 @@ void CPotential::MakeSlices(int nlayer,char *fileName, atom *center)
   SliceSetup();
 
   // reset the potential to zero:
-  memset((void *)&(m_trans[0][0][0][0]),0,
+  memset((void *)&(m_trans[0][0][0]),0,
          m_nslices*m_nx*m_ny*sizeof(complex_tt));
 
   /****************************************************************
@@ -349,10 +368,10 @@ void CPotential::MakeSlices(int nlayer,char *fileName, atom *center)
   if (m_savePotential) {
     for (unsigned iz = 0;iz<nlayer;iz++){
       // find the maximum value of each layer:
-      float_tt potVal = m_trans[iz][0][0][0];
+      float_tt potVal = m_trans[iz][0][0];
       float_tt ddx = potVal;
       float_tt ddy = potVal;
-      for (unsigned ix=0;ix<m_ny*m_nx;potVal = m_trans[iz][0][++ix][0]) {
+      for (unsigned ix=0;ix<m_ny*m_nx;potVal = m_trans[iz][++ix][0]) {
         if (ddy<potVal) ddy = potVal;
         if (ddx>potVal) ddx = potVal;
       }
@@ -430,23 +449,25 @@ void CPotential::WriteSlice(unsigned idx)
     params["Thickness"]=m_sliceThickness;
     sprintf(buf,"Projected Potential (slice %d)",idx);
     std::string comment = buf;
-    m_imageIO->WriteComplexImage((void **)m_trans[idx], kPotFileName, params, comment);
+    m_imageIO->WriteComplexImage((void **)&m_trans[idx][0], kPotFileName, params, comment);
 }
 
 void CPotential::WriteProjectedPotential()
 {
   std::map<std::string, double> params;
   char buf[255];
-  float_tt **tempPot = float2D(m_nx,m_ny,"total projected potential");
+  //float_tt **tempPot = float2D(m_nx,m_ny,"total projected potential");
+  RealVector tempPot;
   float_tt potVal=0;
     
-  for (unsigned ix=0;ix<m_nx;ix++) for (unsigned iy=0;iy<m_ny;iy++) {
-      tempPot[ix][iy] = 0;
-      for (unsigned iz=0;iz<m_nslices;iz++) tempPot[ix][iy] += m_trans[iz][ix][iy][0];
+  for (unsigned idx=0;idx<m_nx*m_ny;idx++){
+      tempPot[idx] = 0;
+      for (unsigned iz=0;iz<m_nslices;iz++) 
+        tempPot[idx] += m_trans[iz][idx][0];
     }
 
-  float_tt ddx=tempPot[0][0], ddy=potVal;
-  for (unsigned ix=0;ix<m_ny*m_nx;potVal = tempPot[0][++ix]) {
+  float_tt ddx=tempPot[0], ddy=potVal;
+  for (unsigned ix=0;ix<m_ny*m_nx;potVal = tempPot[++ix]) {
     if (ddy<potVal) ddy = potVal;
     if (ddx>potVal) ddx = potVal;
   }
@@ -456,7 +477,7 @@ void CPotential::WriteProjectedPotential()
   sprintf(buf,"Projected Potential (sum of %d slices)",m_nslices);
   std::string comment = buf;
   std::string fileName = "ProjectedPot";
-  m_imageIO->WriteRealImage((void **)tempPot, fileName, params, comment);
+  m_imageIO->WriteRealImage((void **)&tempPot[0], fileName, params, comment);
 }
 
 /*
@@ -660,4 +681,13 @@ void CPotential::GetSizePixels(unsigned int &nx, unsigned int &ny) const
 {
   nx=m_nx;
   ny=m_ny;
+}
+
+void CPotential::ResizeSlices()
+{
+  std::vector<ComplexVector>::iterator slice=m_trans.begin(), end=m_trans.end();
+  for (slice; slice!=end; ++slice)
+    {
+      (*slice).resize(m_nx*m_ny);
+    }
 }

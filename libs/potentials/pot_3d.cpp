@@ -154,8 +154,10 @@ void C3DPotential::_AddAtomRealSpace(std::vector<atom>::iterator &atom,
     AtomBoxLookUp(dPot,atom->Znum,atomBoxX,atomBoxY,atomBoxZ,
                   m_tds ? 0 : atom->dw);
     // printf("access: %d %d %d\n",iz,ix,iy);
-    m_trans[iz][ix][iy][0] += dPot[0];
-    m_trans[iz][ix][iy][1] += dPot[1];         
+    unsigned idx=ix*m_ny+iy;
+    m_trans[iz][idx]+=dPot;
+    //m_trans[iz][ix][iy][0] += dPot[0];
+    //m_trans[iz][ix][iy][1] += dPot[1];         
   } /* end of for iaz=-iRadZ .. iRadZ */
 }
 
