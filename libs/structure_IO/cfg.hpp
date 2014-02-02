@@ -54,11 +54,11 @@ public:
   CCfgWriter(const boost::filesystem::path &file, float_tt ax, float_tt by, float_tt cz);
   ~CCfgWriter();
 
-  int Write(std::vector <atom> &atoms, unsigned run_number);
+  int Write(std::vector <atom> &atoms, std::string run_id);
   int WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
                   double a,double b,double c);
 private:
-  FILE *m_fp;
+  boost::filesystem::path m_basePath;
   float_tt m_ax, m_by, m_cz;
 private:
   friend class CStructureWriterFactory;

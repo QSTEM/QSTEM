@@ -160,22 +160,18 @@ int CCfgReader::ReadNextAtom(atom *newAtom) {
 }
 
 CCfgWriter::CCfgWriter(const boost::filesystem::path &path, float_tt ax, float_tt by, float_tt cz)
-  : m_ax(ax)
+  : m_basePath(path)
+  , m_ax(ax)
   , m_by(by)
   , m_cz(cz)
 {
-  m_fp = fopen(path.string().c_str(), "w" );
-  if( m_fp == NULL ) {
-    printf("Cannot open file %s\n",path.string().c_str());
-  }
 }
 
 CCfgWriter::~CCfgWriter()
 {
-  fclose(m_fp);
 }
 
-int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
+int CCfgWriter::Write(std::vector<atom> &atoms, std::string run_id) {
   int j;
   char elem[16];
 
@@ -183,14 +179,27 @@ int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
     printf("Atom array empty - no file written\n");
     return 1;
   }
+  
+  std::string outputFile = m_basePath.stem().string();
+  if (run_id!="")
+    {
+      outputFile+="_";
+      outputFile+=run_id;
+    }
+  outputFile+=m_basePath.extension().string();
+  FILE *fp = fopen(outputFile.c_str(), "w" );
+  if( fp == NULL ) {
+    printf("Cannot open file %s\n",outputFile.c_str());
+  }
 
-  fprintf(m_fp,"Number of particles = %d\n",atoms.size());
-  fprintf(m_fp,"A = 1.0 Angstrom (basic length-scale)\n");
-  fprintf(m_fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",m_ax);
-  fprintf(m_fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",m_by);
-  fprintf(m_fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",m_cz);
-  fprintf(m_fp,".NO_VELOCITY.\nentry_count = 6\n");
-  printf("ax: %g, by: %g, cz: %g n: %d\n",m_ax,m_by,m_cz,atoms.size());
+  fprintf(fp,"Number of particles = %d\n",atoms.size());
+  fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
+  fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",m_ax);
+  fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",m_by);
+  fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",m_cz);
+  fprintf(fp,".NO_VELOCITY.\nentry_count = 6\n");
+
+  //printf("ax: %g, by: %g, cz: %g n: %d\n",m_ax,m_by,m_cz,atoms.size());
 
 
   elem[2] = '\0';
@@ -198,8 +207,8 @@ int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
   elem[1] = elTable[2*atoms[0].Znum-1];
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
   if (elem[1] == ' ') elem[1] = '\0';
-  fprintf(m_fp,"%g\n%s\n",atoms[0].mass,elem);
-  fprintf(m_fp,"%g %g %g %g %g %g\n",atoms[0].x/m_ax,atoms[0].y/m_by,atoms[0].z/m_cz,
+  fprintf(fp,"%g\n%s\n",atoms[0].mass,elem);
+  fprintf(fp,"%g %g %g %g %.4f %.4f\n",atoms[0].x/m_ax,atoms[0].y/m_by,atoms[0].z/m_cz,
           atoms[0].dw,atoms[0].occ,atoms[0].q);
 
   for (j=1;j<atoms.size();j++) {
@@ -207,14 +216,14 @@ int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
       elem[0] = elTable[2*atoms[j].Znum-2];
       elem[1] = elTable[2*atoms[j].Znum-1];
       if (elem[1] == ' ') elem[1] = '\0';
-      fprintf(m_fp,"%g\n%s\n",atoms[j].mass,elem);
+      fprintf(fp,"%g\n%s\n",atoms[j].mass,elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
-    fprintf(m_fp,"%g %g %g %g %g %g\n",atoms[j].x/m_ax,atoms[j].y/m_by,atoms[j].z/m_cz,
+    fprintf(fp,"%g %g %g %g %.4f %.4f\n",atoms[j].x/m_ax,atoms[j].y/m_by,atoms[j].z/m_cz,
             atoms[j].dw,atoms[j].occ,atoms[j].q);
     // if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
-  } 
-  fclose(m_fp);
+  }
+  fclose(fp);
 
   return 1;
 }

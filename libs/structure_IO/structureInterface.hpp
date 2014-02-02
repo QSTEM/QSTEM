@@ -46,7 +46,7 @@ typedef StructureWriterPtr (*CreateStructureWriterFn)(const boost::filesystem::p
 class IStructureWriter
 {
 public:
-  virtual int Write(std::vector<atom> &atoms, unsigned run_number)=0;
+  virtual int Write(std::vector<atom> &atoms, std::string run_id)=0;
 };
 
 /*--------------------- ReadLine() -----------------------*/
