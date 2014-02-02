@@ -114,23 +114,23 @@ BOOST_AUTO_TEST_CASE( testWriteCfg )
   // Make sure that we read all the atoms in the file
   BOOST_CHECK_EQUAL(read_atoms.size(), 5);
   // Make sure that we read the first atom correctly
-  BOOST_CHECK_CLOSE(read_atoms[0].x, 0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[0].y, 0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[0].z, 0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[0].dw, 0.6214, 0.05);  
-  BOOST_CHECK_CLOSE(read_atoms[0].occ, 1.0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[0].q, 2.0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[0].mass, 76, 0.05);
-  BOOST_CHECK_EQUAL(read_atoms[0].Znum, 38);
+  BOOST_CHECK_CLOSE(read_atoms[0].x, atoms[0].x/a, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].y, atoms[0].y/b, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].z, atoms[0].z/c, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].dw, atoms[0].dw, 0.05);  
+  BOOST_CHECK_CLOSE(read_atoms[0].occ, atoms[0].occ, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].q, atoms[0].q, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].mass, atoms[0].mass, 0.05);
+  BOOST_CHECK_EQUAL(read_atoms[0].Znum, atoms[0].Znum);
   // make sure second atom is read correctly - if it is, then the loop over atoms is behaving OK.
-  BOOST_CHECK_CLOSE(read_atoms[1].x, 0.5, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[1].y, 0.5, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[1].z, 0.5, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[1].dw, 0.4390, 0.05);  
-  BOOST_CHECK_CLOSE(read_atoms[1].occ, 1.0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[1].q, 4.0, 0.05);
-  BOOST_CHECK_CLOSE(read_atoms[1].mass, 44, 0.05);
-  BOOST_CHECK_EQUAL(read_atoms[1].Znum, 22);
+  BOOST_CHECK_CLOSE(read_atoms[1].x, atoms[1].x/a, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].y, atoms[1].y/b, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].z, atoms[1].z/c, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].dw, atoms[1].dw, 0.05);  
+  BOOST_CHECK_CLOSE(read_atoms[1].occ, atoms[1].occ, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].q, atoms[1].q, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].mass, atoms[1].mass, 0.05);
+  BOOST_CHECK_EQUAL(read_atoms[1].Znum, atoms[1].Znum);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
