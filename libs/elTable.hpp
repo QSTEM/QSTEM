@@ -21,6 +21,7 @@
 #define ELTABLE_H
 
 #include <string>
+#include <boost/algorithm/string.hpp>
 
 static std::string elTable = 
 	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
@@ -32,6 +33,7 @@ static std::string elTable =
 
 inline int getZNumber(std::string element) 
 {  
+	boost::algorithm::trim(element);
   if (element.size()==1)
     {
       element += " ";
