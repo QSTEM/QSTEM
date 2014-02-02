@@ -15,8 +15,8 @@ set(BOOST_ALL_DYN_LINK           ON)   # force dynamic linking for all libraries
 find_package(Boost 1.35.0 COMPONENTS unit_test_framework REQUIRED)
 
 FILE(GLOB QSTEM_LIB_HEADERS "${CMAKE_SOURCE_DIR}/libs/*.h")
-FILE(GLOB STEM3_HEADERS "${CMAKE_SOURCE_DIR}/stem3/*.h")
-include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" ${Boost_INCLUDE_DIRS})
+FILE(GLOB STEM3_HEADERS "${CMAKE_SOURCE_DIR}/stem3/*.h" )
+include_directories("${CMAKE_SOURCE_DIR}/libs" "${FFTW3_INCLUDE_DIRS}" ${Boost_INCLUDE_DIRS} "${CMAKE_SOURCE_DIR}/tests")
 link_directories(${Boost_LIBRARY_DIRS})
 
 #debugging - no QSTEM libraries at all.
