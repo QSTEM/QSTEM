@@ -45,6 +45,9 @@ endif(OPENMP)
 if(WIN32)
 	# Squelch Visual studio's warnings about insecure functions - will replace these over time, but must maintain Linux compatibility.
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+else(WIN32)
+  # specify C++0x support for GCC
+  ADD_DEFINITIONS(-std=c++0x) # Or -std=c++11
 endif(WIN32)
 
 # adds the libraries
