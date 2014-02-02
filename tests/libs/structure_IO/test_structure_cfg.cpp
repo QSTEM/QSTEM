@@ -52,13 +52,26 @@ BOOST_AUTO_TEST_CASE( testReadAtoms )
 {
   std::vector<atom> atoms;
   reader->ReadAtoms(atoms);
+  // Make sure that we read all the atoms in the file
   BOOST_CHECK_EQUAL(atoms.size(), 5);
+  // Make sure that we read the first atom correctly
   BOOST_CHECK_CLOSE(atoms[0].x, 0, 0.05);
   BOOST_CHECK_CLOSE(atoms[0].y, 0, 0.05);
   BOOST_CHECK_CLOSE(atoms[0].z, 0, 0.05);
   BOOST_CHECK_CLOSE(atoms[0].dw, 0.6214, 0.05);  
   BOOST_CHECK_CLOSE(atoms[0].occ, 1.0, 0.05);
   BOOST_CHECK_CLOSE(atoms[0].q, 2.0, 0.05);
+  BOOST_CHECK_CLOSE(atoms[0].mass, 76, 0.05);
+  BOOST_CHECK_EQUAL(atoms[0].Znum, 38);
+  // make sure second atom is read correctly - if it is, then the loop over atoms is behaving OK.
+  BOOST_CHECK_CLOSE(atoms[1].x, 0.5, 0.05);
+  BOOST_CHECK_CLOSE(atoms[1].y, 0.5, 0.05);
+  BOOST_CHECK_CLOSE(atoms[1].z, 0.5, 0.05);
+  BOOST_CHECK_CLOSE(atoms[1].dw, 0.4390, 0.05);  
+  BOOST_CHECK_CLOSE(atoms[1].occ, 1.0, 0.05);
+  BOOST_CHECK_CLOSE(atoms[1].q, 4.0, 0.05);
+  BOOST_CHECK_CLOSE(atoms[1].mass, 44, 0.05);
+  BOOST_CHECK_EQUAL(atoms[1].Znum, 22);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -73,6 +86,8 @@ struct cfgWriterFixture {
   }
   ~cfgWriterFixture()
   { //std::cout << "teardown qsc config reader fixture" << std::endl;
+	  // delete the file now that we're done with it
+	boost::filesystem::remove("SrTiO3_test_write.cfg");
   }
   StructureWriterPtr writer;
 };
@@ -83,12 +98,39 @@ BOOST_FIXTURE_TEST_SUITE(testCfgWrite, cfgWriterFixture)
 BOOST_AUTO_TEST_CASE( testWriteCfg )
 {
   std::vector<atom> atoms(5);
-  atoms[0] = atom(76, "Sr", 0, 0, 0, 0.6214, 1.0, 2.0);
-  atoms[1] = atom(44, "Ti", 0.5, 0.5, 0.5, 0.4390, 1.0, 4.0);
-  atoms[2] = atom(16, "O", 0, 0.5, 0.5, 0.7323, 1.0, -2.0);
-  atoms[3] = atom(16, "O", 0.5, 0, 0.5, 0.7323, 1.0, -2.0);
-  atoms[4] = atom(16, "O", 0.5, 0.5, 0, 0.7323, 1.0, -2.0);
+  // input expects atom positions in true space; converts them into fractional coordinates
+  //    before writing
+  float_tt a=3.905, b=3.905, c=3.905;
+  atoms[0] = atom(76, "Sr", 0*a, 0*b, 0*c, 0.6214, 1.0, 2.0);
+  atoms[1] = atom(44, "Ti", 0.5*a, 0.5*b, 0.5*c, 0.4390, 1.0, 4.0);
+  atoms[2] = atom(16, "O", 0*a, 0.5*b, 0.5*c, 0.7323, 1.0, -2.0);
+  atoms[3] = atom(16, "O", 0.5*a, 0*b, 0.5*c, 0.7323, 1.0, -2.0);
+  atoms[4] = atom(16, "O", 0.5*a, 0.5*b, 0*c, 0.7323, 1.0, -2.0);
   writer->Write(atoms,1);
+
+  StructureReaderPtr reader = CStructureReaderFactory::Get()->GetReader("SrTiO3_test_write.cfg");
+  std::vector<atom> read_atoms;
+  reader->ReadAtoms(read_atoms);
+  // Make sure that we read all the atoms in the file
+  BOOST_CHECK_EQUAL(read_atoms.size(), 5);
+  // Make sure that we read the first atom correctly
+  BOOST_CHECK_CLOSE(read_atoms[0].x, 0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].y, 0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].z, 0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].dw, 0.6214, 0.05);  
+  BOOST_CHECK_CLOSE(read_atoms[0].occ, 1.0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].q, 2.0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[0].mass, 76, 0.05);
+  BOOST_CHECK_EQUAL(read_atoms[0].Znum, 38);
+  // make sure second atom is read correctly - if it is, then the loop over atoms is behaving OK.
+  BOOST_CHECK_CLOSE(read_atoms[1].x, 0.5, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].y, 0.5, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].z, 0.5, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].dw, 0.4390, 0.05);  
+  BOOST_CHECK_CLOSE(read_atoms[1].occ, 1.0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].q, 4.0, 0.05);
+  BOOST_CHECK_CLOSE(read_atoms[1].mass, 44, 0.05);
+  BOOST_CHECK_EQUAL(read_atoms[1].Znum, 22);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
