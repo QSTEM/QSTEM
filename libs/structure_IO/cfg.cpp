@@ -90,7 +90,7 @@ int CCfgReader::ReadAtoms(std::vector<atom> &atoms)
     {
       ReadNextAtom(&atoms[i]);
     }
-
+  return 0;
 }
 
 /*******************************************************************************
@@ -198,7 +198,7 @@ int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
   elem[1] = elTable[2*atoms[0].Znum-1];
   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
   if (elem[1] == ' ') elem[1] = '\0';
-  fprintf(m_fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
+  fprintf(m_fp,"%g\n%s\n",atoms[0].mass,elem);
   fprintf(m_fp,"%g %g %g %g %g %g\n",atoms[0].x/m_ax,atoms[0].y/m_by,atoms[0].z/m_cz,
           atoms[0].dw,atoms[0].occ,atoms[0].q);
 
@@ -207,7 +207,7 @@ int CCfgWriter::Write(std::vector<atom> &atoms, unsigned run_number) {
       elem[0] = elTable[2*atoms[j].Znum-2];
       elem[1] = elTable[2*atoms[j].Znum-1];
       if (elem[1] == ' ') elem[1] = '\0';
-      fprintf(m_fp,"%g\n%s\n",2.0*atoms[j].mass,elem);
+      fprintf(m_fp,"%g\n%s\n",atoms[j].mass,elem);
       // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
     }
     fprintf(m_fp,"%g %g %g %g %g %g\n",atoms[j].x/m_ax,atoms[j].y/m_by,atoms[j].z/m_cz,

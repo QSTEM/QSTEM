@@ -55,7 +55,7 @@ StructureReaderPtr CStructureReaderFactory::GetReader(const boost::filesystem::p
 
 CStructureWriterFactory::CStructureWriterFactory()
 {
-  Register(".img",    &CCfgWriter::Create);
+  Register(".cfg",    &CCfgWriter::Create);
 }
 
 CStructureWriterFactory *CStructureWriterFactory::Get()
