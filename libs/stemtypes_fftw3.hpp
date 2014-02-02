@@ -24,6 +24,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include "fftw_allocator.hpp"
 
+#include "elTable.hpp"
+
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
 ///////////////////////////////////////////////////////////////////////
@@ -87,7 +89,39 @@ typedef struct atomStruct {
   float_tt occ;     // occupancy
   float_tt q;       // charge 
   unsigned Znum;
+  float_tt mass;
+  atomStruct();
+  // constructor (used for testing)
+  atomStruct(float_tt _mass, std::string _symbol, 
+             float_tt _x, float_tt _y, float_tt _z, 
+             float_tt _dw, float_tt _occ, float_tt _charge);
 } atom;
+
+inline atomStruct::atomStruct()
+  : x(0)
+  , y(0)
+  , z(0)
+  , dw(0)
+  , occ(1)
+  , q(0)
+  , Znum(0)
+  , mass(0)
+{
+}
+
+inline atomStruct::atomStruct(float_tt _mass, std::string _symbol, 
+                              float_tt _x, float_tt _y, float_tt _z, 
+                              float_tt _dw, float_tt _occ, float_tt _charge)
+  : x(_x)
+  , y(_y)
+  , z(_z)
+  , dw(_dw)
+  , occ(_occ)
+  , q(_charge)
+  , mass(_mass)
+{
+  Znum = getZNumber(_symbol.c_str());
+}
 
 typedef boost::shared_ptr<atom> atomPtr;
 

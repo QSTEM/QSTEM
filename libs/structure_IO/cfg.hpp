@@ -44,7 +44,8 @@ private:
   friend class CStructureReaderFactory;
   // Create an instance of this class, wrapped in a shared ptr
   //     This should not be inherited - any subclass needs its own implementation.
-  static StructureReaderPtr Create(const boost::filesystem::path &file){return StructureReaderPtr(new CCfgReader(file));}
+  static StructureReaderPtr Create(const boost::filesystem::path &file){
+    return StructureReaderPtr(new CCfgReader(file));}
 };
 
 class CCfgWriter : public IStructureWriter

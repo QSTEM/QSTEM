@@ -20,36 +20,27 @@
 #ifndef ELTABLE_H
 #define ELTABLE_H
 
-static char *elTable = {
+#include <string>
+
+static std::string elTable = 
 	"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
 	"ArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBr"
 	"KrRbSrY ZrNbMoTcRuRhPdAgCdInSnSbTe"
 	"I XeCsBaLaCePrNdPmSmEuGdTbDyHoErTm"
 	"YbLuHfTaW ReOsIrPtAuHgTlPbBiPoAtRn"
-	"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr"
-};
+	"FrRaAcThPaU NpPuAmCmBkCfEsFmMdNoLr";
 
-inline int getZNumber(char *element) {
-	char *elem;
-#ifndef WIN32
-	char widows = '\n';
-	widows = (char)((int)widows + 3);
-
-	// fprintf(stderr,"getZnumber : element = *%s* \n",element); 
-	element[2] = '\0'; 
-	if ((atoi(element+1) != 0) || (element[1] == '\n')|| (element[1] == '\0') || element[1] == widows){
-		element[1] = ' ';
-		// fprintf(stderr,"getZnumber : element = *%s*  conversion \n",element); 
-	} 
-#else
-	element[2] = '\0';
-	if ((atoi(element+1) != 0) || (element[1] == '\n')|| (element[1] == '\0'))
-		element[1] = ' ';
-#endif
-	if ((elem = strstr(elTable,element)) == NULL)
-		return 0;	
-	else
-		return (int)(elem-elTable)/2+1;
+inline int getZNumber(std::string element) 
+{  
+  if (element.size()==1)
+    {
+      element += " ";
+    }
+  size_t elem = elTable.find(element);
+  if (elem == std::string::npos)
+    return 0;	
+  else
+    return (int)(elem)/2+1;
 
 }
 
