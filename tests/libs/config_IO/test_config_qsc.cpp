@@ -315,13 +315,18 @@ BOOST_AUTO_TEST_CASE( testDoseParameters )
 
 BOOST_AUTO_TEST_CASE( testProbeParameters )
 {
-  float_tt dE_E=0, dI_I=0, dV_V=0, alpha, aAIS=0, sourceRadius=0;
-  configReader->ReadProbeParameters(dE_E, dI_I, dV_V, alpha, aAIS, sourceRadius);
+  float_tt dE_E=0, dI_I=0, dV_V=0, alpha, aAIS=0;
+  configReader->ReadProbeParameters(dE_E, dI_I, dV_V, alpha, aAIS);
   BOOST_CHECK_CLOSE(dE_E, 0, 0.05);
   BOOST_CHECK_CLOSE(dI_I, 0, 0.05);
   BOOST_CHECK_CLOSE(dV_V, 0.000003, 0.05);
   BOOST_CHECK_CLOSE(alpha, 15, 0.05);
   BOOST_CHECK_CLOSE(aAIS, 0, 0.05);
+}
+
+BOOST_AUTO_TEST_CASE( testSourceRadius )
+{
+  float_tt sourceRadius=0;
   BOOST_CHECK_CLOSE(sourceRadius, 0, 0.05);
 }
 

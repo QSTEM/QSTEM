@@ -71,9 +71,9 @@ public:
   //void ReadDetectors(std::vector<std::vector<DetectorPtr> > &detectors, std::vector<float_tt> &thicknesses,
   //                           DetectorPtr &detector_to_copy)
   void ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs);
-  void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                           float_tt &sourceRadius);
-  virtual void ReadSmoothingParameters(bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
+  void ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS);
+  void ReadSourceRadius(float_tt &sourceRadius);
+  void ReadSmoothingParameters(bool &ismoth, float_tt &gaussScale, bool &gaussFlag);
   void ReadTomoParameters(float_tt &tomoTilt, float_tt &tomoStart, float_tt &tomoStep, int &tomoCount,
                      float_tt &zoomFactor);
   void ReadAberrationAmplitudes(float_tt &Cs, float_tt &C5, float_tt &Cc,

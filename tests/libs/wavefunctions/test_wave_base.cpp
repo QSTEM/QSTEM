@@ -63,6 +63,8 @@ BOOST_AUTO_TEST_CASE(testReadCfgFromFile)
   wave->GetSizePixels(nx, ny);
   BOOST_CHECK(nx == 400);
   BOOST_CHECK(ny == 400);
+  
+  
 }
 
 

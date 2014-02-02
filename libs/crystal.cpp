@@ -17,14 +17,17 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <boost/array.hpp>
+#include <stdlib.h>
 
 #include "crystal.hpp"
-#include <boost/array.hpp>
 
 #include "memory_fftw3.hpp"
 #include "random.hpp"
 
 #include "structure_factories.hpp"
+
+#include <string>
 
 #define PID 3.14159265358979 /* pi */
 #define PI180 1.7453292519943e-2
@@ -1184,7 +1187,8 @@ int CCrystal::AtomCompareZYX(const void *atPtr1,const void *atPtr2) {
 
 void CCrystal::WriteStructure(unsigned run_number)
 {
-  m_structureWriter->Write(m_atoms, run_number);
+  // to_string is C++0x - may not work on older compilers
+  m_structureWriter->Write(m_atoms, std::to_string(run_number));
   /*
   if (m_cfgFile != NULL) {
     sprintf(buf,"%s/%s",m_folder,m_cfgFile);

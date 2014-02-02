@@ -23,6 +23,12 @@ CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : CBaseWav
 {
   // TODO: where does beam current belong?
   //configReader->ReadDoseParameters(m_beamCurrent, m_dwellTime);
+  configReader->ReadAberrationAmplitudes(m_Cs, m_C5, m_Cc, m_df0, m_Scherzer, m_astigMag,
+                                         m_a33, m_a31, m_a44, m_a42, m_a55, m_a53, m_a51, m_a66, m_a64, m_a62);
+  configReader->ReadAberrationAngles(m_astigAngle, m_phi33, m_phi31, m_phi44, m_phi42,
+                                     m_phi55, m_phi53, m_phi51, m_phi66, m_phi64, m_phi62);
+  configReader->ReadSmoothingParameters(m_ismoth, m_gaussScale, m_gaussFlag);
+  configReader->ReadProbeParameters(m_dE_E, m_dI_I, m_dV_V, m_alpha, m_aAIS);
 }
 
 /** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
@@ -45,8 +51,9 @@ void CConvergentWave::DisplayParams()
   else printf("none\n");
 
   printf("* C_3 (C_s):            %g mm\n",m_Cs*1e-7);
-  printf("* C_1 (Defocus):        %g nm%s\n",0.1*m_df0,
-         (m_Scherzer == 1) ? " (Scherzer)" : (m_Scherzer==2) ? " (opt.)":"");
+  printf("* C_1 (Defocus):        %g nm%s\n",0.1*m_df0, 
+         // TODO: what are the available options for defocus?
+         (m_Scherzer == "Scherzer") ? " (Scherzer)" : (m_Scherzer=="") ? " (opt.)":"");
   printf("* Astigmatism:          %g nm, %g deg\n",0.1*m_astigMag,RAD2DEG*m_astigAngle);
 
   // more aberrations:

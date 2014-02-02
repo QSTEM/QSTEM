@@ -23,6 +23,7 @@
 CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
   m_mode="CBED";
+  configReader->ReadSourceRadius(m_sourceRadius);
 }
 
 void CExperimentCBED::DisplayParams()

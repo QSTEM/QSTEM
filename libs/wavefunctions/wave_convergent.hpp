@@ -54,4 +54,6 @@ protected:
   float_tt m_gaussScale;
 
   float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
+
+  std::string m_Scherzer;
 };

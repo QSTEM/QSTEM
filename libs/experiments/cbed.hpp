@@ -40,9 +40,9 @@ protected:
 
   unsigned m_scanXStart, m_scanYStart;     /* The beam position on the sample */
 
-  float_tt m_sourceRadius;                 /* The source radius in angstroms */
-
   bool m_showProbe;            /* if true, saves a plot of the probe */
+
+  float_tt m_sourceRadius;                 /* The source radius in angstroms */
 
   bool m_storeSeries;          
 

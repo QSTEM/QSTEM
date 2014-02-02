@@ -417,8 +417,7 @@ void CQscReader::ReadDoseParameters(float_tt &beamCurrent, float_tt &dwellTimeMs
   }
 }
 
-void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS,
-                                     float_tt &sourceRadius)
+void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &dV_V, float_tt &alpha, float_tt &aAIS)
 {
   /**********************************************************************
    * Read STEM/CBED probe parameters 
@@ -436,10 +435,9 @@ void CQscReader::ReadProbeParameters(float_tt &dE_E, float_tt &dI_I, float_tt &d
 
   if (readparam(m_fp, "AIS aperture:",m_buf,1)) 
     aAIS=atof(m_buf.c_str()); /* in A */
-
-	
-  //////////////////////////////////////////////////////////////////////
-
+}
+void CQscReader::ReadSourceRadius(float_tt &sourceRadius)
+{
   if (readparam(m_fp, "Source Size (diameter):",m_buf,1)) 
     sourceRadius = atof(m_buf.c_str())/2.0;
 }
