@@ -58,9 +58,8 @@ BOOST_AUTO_TEST_CASE( testFormProbe )
   
   wave->FormProbe();
   // TODO: how to best test?  
-  // this will work if I turn the data into a vector
-  //BOOST_CHECK_EQUAL_COLLECTIONS(values.begin(), values.end(), 
-  //                            expected.begin(), expected.end());
+  // Data is a vector, use some reference that we load in?
+  //CHECK_CLOSE_COLLECTION(aa, bb, tol)
 }
 
 BOOST_AUTO_TEST_SUITE_END()

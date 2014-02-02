@@ -25,6 +25,8 @@
 
 #include "config_IO/config_reader_factory.hpp"
 
+#include "boost_collection_close.hpp"
+
 // Although this uses the Plane wave fixture, we're testing fundamental methods
 //   that both plane waves and convergent waves share (both inherit, and neither 
 //   override the base class methods tested here.)
@@ -63,14 +65,32 @@ BOOST_AUTO_TEST_CASE(testReadCfgFromFile)
   wave->GetSizePixels(nx, ny);
   BOOST_CHECK(nx == 400);
   BOOST_CHECK(ny == 400);
-  
+}
+
+BOOST_AUTO_TEST_CASE(testSetPosition)
+{
+}
+
+BOOST_AUTO_TEST_CASE( testReadWave )
+{
+  // our reference data is mulswav_16_2.img
+  wave->ReadWave(16, 2);
+}
+
+BOOST_AUTO_TEST_CASE( testReadDiffPat )
+{
+  //wave->ReadDiffPat();
   
 }
 
+BOOST_AUTO_TEST_CASE( testWriteWave )
+{
+  
+}
 
-// Test image saving
-
-// Test image reading
-
+BOOST_AUTO_TEST_CASE( testWriteDiffPat )
+{
+  
+}
 
 BOOST_AUTO_TEST_SUITE_END()
