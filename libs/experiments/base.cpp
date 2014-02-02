@@ -389,19 +389,21 @@ only waver,i will be changed by this routine
 void CExperimentBase::Transmit(WavePtr wave, unsigned sliceIdx) {
   double wr, wi, tr, ti;
   
-  complex_tt *w,**t;
+  complex_tt *w;
   unsigned nx, ny;
+  
   w = wave->GetWavePointer();
   wave->GetSizePixels(nx, ny);
-  t = m_potential->GetSlice(sliceIdx);
 
   /*  trans += posx; */
   for(unsigned ix=0; ix<nx; ix++) for(unsigned iy=0; iy<ny; iy++) {
       unsigned offset=ix+nx*iy;
+      complex_tt t = m_potential->GetSlicePixel(sliceIdx, ix+m_iPosX, iy+m_iPosY);
+
       wr = w[offset][0];
       wi = w[offset][1];
-      tr = t[ix+m_iPosX][iy+m_iPosY][0];
-      ti = t[ix+m_iPosX][iy+m_iPosY][1];
+      tr = t[0];
+      ti = t[1];
       w[offset][0] = wr*tr - wi*ti;
       w[offset][1] = wr*ti + wi*tr;
     } /* end for(iy.. ix .) */
