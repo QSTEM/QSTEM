@@ -79,7 +79,7 @@ int **int2D( int nx, int ny, const char *message );
 	make space for m[0...(nx-1)][0..(ny-1)]
 
 */
-float_tt **float2D( int nx, int ny, const char *message );
+float_tt QSTEM_HELPER_DLL_EXPORT **float2D( int nx, int ny, const char *message );
 float **float32_2D( int nx, int ny, const char *message );
 float ***float32_3D( int nx, int ny,int nz, const char *message );
 
@@ -93,7 +93,7 @@ float_tt ***float3D( int nx, int ny,int nz, const char *message );
 double **double2D( int nx, int ny, const char *message );
 
 boost::shared_array<complex_tt> complex1D(int n, const char *message);
-complex_tt  **complex2D(int nx, int ny, const char *message);
+complex_tt QSTEM_HELPER_DLL_EXPORT **complex2D(int nx, int ny, const char *message);
 fftw_complex **complex2Dd(int nx, int ny, const char *message);
 complex_tt  ***complex3D(int nx, int ny,int nz, const char *message);
 fftw_complex  ***complex3Dd(int nx, int ny,int nz, const char *message);

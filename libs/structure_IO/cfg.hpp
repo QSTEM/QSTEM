@@ -23,7 +23,7 @@
 #include "structureInterface.hpp"
 #include <boost/filesystem.hpp>
 
-class CCfgReader : public IStructureReader
+class QSTEM_HELPER_DLL_EXPORT CCfgReader : public IStructureReader
 {
 public:
   CCfgReader(const boost::filesystem::path &structure_file);
