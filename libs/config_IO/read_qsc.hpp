@@ -52,7 +52,7 @@ public:
                                    float_tt &zOffset);
   void ReadPeriodicParameters(bool &periodicXY, bool &periodicZ);
   void ReadBandLimitTrans(bool &limit);
-  void ReadLoadPotential(bool &loadPotential);
+  void ReadLoadPotential(bool &loadPotential, std::string &filename);
   void ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
                                              bool &plotPotential);
   void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D);

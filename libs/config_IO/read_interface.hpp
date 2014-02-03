@@ -60,7 +60,7 @@ public:
                                    float_tt &zOffset)=0;
   virtual void ReadPeriodicParameters(bool &periodicXY, bool &periodicZ)=0;
   virtual void ReadBandLimitTrans(bool &limit)=0;
-  virtual void ReadLoadPotential(bool &loadPotential)=0;
+  virtual void ReadLoadPotential(bool &loadPotential, std::string &filename)=0;
   virtual void ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
                                              bool &plotPotential)=0;
   virtual void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D)=0;

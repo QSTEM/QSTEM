@@ -269,11 +269,15 @@ void CQscReader::ReadBandLimitTrans(bool &bandlimittrans)
   }
 }
 
-void CQscReader::ReadLoadPotential(bool &readPotential)
+void CQscReader::ReadLoadPotential(bool &readPotential, std::string &filename)
 {
   if (readparam(m_fp, "read potential:",m_buf,1)) {
     readPotential = IsBufferYes(m_buf);
   }
+  if (readPotential)
+    {
+      // TODO: what is the format for reading the potential filename?
+    }
 }
 
 void CQscReader::ReadPotentialOutputParameters(bool &savePotential, bool &saveTotalPotential, 
