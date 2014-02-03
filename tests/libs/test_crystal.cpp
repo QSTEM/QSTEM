@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE( testDuplicateAtoms )
 {
   bool handleVacancies=false;
   cryst->ReplicateUnitCell(handleVacancies);
-  BOOST_CHECK_EQUAL(cryst->GetNumberOfAtoms(),8840);
+  BOOST_CHECK_EQUAL(cryst->GetNumberOfAtoms(),8100);
 }
 
 BOOST_AUTO_TEST_CASE( testPhononDisplacement )
