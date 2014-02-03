@@ -728,14 +728,14 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
   int 	atomKinds = 0;
   double totOcc;
   double choice,lastOcc;
-  // seed for random number generation
-  static long idum = -1;
 
   ncx = m_nCellX;
   ncy = m_nCellY;
   ncz = m_nCellZ;
   std::vector<float_tt> u(3,0);
   //u = (double *)malloc(3*sizeof(double));
+
+  m_atoms.resize(ncx*ncy*ncz*m_baseAtoms.size());
 
   //////////////////////////////////////////////////////////////////////////////
   // Look for atoms which share the same position:
