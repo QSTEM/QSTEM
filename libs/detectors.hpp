@@ -23,7 +23,7 @@
 #include "imagelib_fftw3.hpp"
 #include "wavefunctions.hpp"
 
-class Detector {
+class QSTEM_HELPER_DLL_EXPORT Detector {
   ImageIOPtr m_imageIO;
 public:
   unsigned m_nx, m_ny;

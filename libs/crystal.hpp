@@ -28,7 +28,7 @@
 
 #include <boost/filesystem.hpp>
 
-class CCrystal
+class QSTEM_HELPER_DLL_EXPORT CCrystal
 {
 public:
   CCrystal();  // default constructor: does nothing, so you have to add stuff to it after constructing.
