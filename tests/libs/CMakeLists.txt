@@ -20,5 +20,14 @@ FOREACH(dirname ${DIRS})
 	add_subdirectory(${dirname})
 ENDFOREACH(dirname ${DIRS})
 
-
+FILE(GLOB TEST_FILES "*.cpp")
+FOREACH(TEST_FILE ${TEST_FILES})
+  GET_FILENAME_COMPONENT(filename ${TEST_FILE} NAME_WE)
+  add_executable(${filename} ${TEST_FILE})
+  target_link_libraries(${filename} qstem ${FFTW3_LIBS} ${FFTW3F_LIBS} ${Boost_LIBRARIES})
+  Message(${CMAKE_SOURCE_DIR}/tests/data)
+  add_test (NAME ${filename} 
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/data
+    COMMAND ${filename})
+ENDFOREACH(TEST_FILE ${TEST_FILES})
 
