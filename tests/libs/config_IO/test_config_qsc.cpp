@@ -206,7 +206,8 @@ BOOST_AUTO_TEST_CASE( testBandLimitTrans )
 BOOST_AUTO_TEST_CASE(testLoadPotential)
 {
   bool load=false;
-  configReader->ReadLoadPotential(load);
+  std::string filename;
+  configReader->ReadLoadPotential(load, filename);
   BOOST_CHECK_EQUAL(load, false);
 }
 
