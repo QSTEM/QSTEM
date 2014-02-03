@@ -38,7 +38,7 @@ protected:
   float_tt **m_pendelloesung;
   bool m_lbeams;				/* flag indicating whether to record beams */	
 
-  unsigned m_scanXStart, m_scanYStart;     /* The beam position on the sample */
+  float_tt m_scanXStart, m_scanYStart;     /* The beam position on the sample */
 
   bool m_showProbe;            /* if true, saves a plot of the probe */
 
