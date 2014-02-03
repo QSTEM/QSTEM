@@ -43,7 +43,8 @@ public:
   }
   inline void ReadImageData(const std::string &filename, unsigned position, void *pix)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadImageData(filename, posvec, pix);
   }
 
@@ -57,7 +58,8 @@ public:
   }
 inline void ReadComment(const std::string &filename, unsigned position, std::string &comment)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadComment(filename, posvec, comment);
   }
 
@@ -71,7 +73,8 @@ inline void ReadComment(const std::string &filename, unsigned position, std::str
   }
 inline void ReadParameters(const std::string &filename, unsigned position, std::map<std::string, double> &parameters)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadParameters(filename, posvec, parameters);
   }
 
@@ -85,7 +88,8 @@ inline void ReadParameters(const std::string &filename, unsigned position, std::
   }
   inline void ReadSize(const std::string &filename, unsigned position, unsigned &nx, unsigned &ny)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadSize(filename, posvec, nx, ny);
   }
 
@@ -98,7 +102,8 @@ inline void ReadParameters(const std::string &filename, unsigned position, std::
   }
   inline void ReadElementByteSize(const std::string &filename, unsigned position, unsigned &elementByteSize)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadElementByteSize(filename, posvec, elementByteSize);
   }
 
@@ -111,7 +116,8 @@ inline void ReadParameters(const std::string &filename, unsigned position, std::
   }
   inline void ReadComplex(const std::string &filename, unsigned position, bool &complex)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadComplex(filename, posvec, complex);
   }
 
@@ -127,7 +133,8 @@ inline void ReadParameters(const std::string &filename, unsigned position, std::
   inline void ReadImage(const std::string &filename, unsigned position, void *pix, 
                         std::map<std::string, double> &params, std::string &comment)
   {
-    std::vector<unsigned> posvec={position};
+    std::vector<unsigned> posvec(1);
+	posvec[0]=position;
     return ReadImage(filename, posvec, pix, params, comment);
   }
 };
