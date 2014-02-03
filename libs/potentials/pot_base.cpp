@@ -37,7 +37,7 @@ CPotential::CPotential(const ConfigReaderPtr &configReader) : IPotential()
   configReader->ReadSliceOffset(m_offsetX, m_offsetY);
 
   // Read if we should load the pot from a file
-
+  configReader->ReadLoadPotential(m_readPotential, m_potFileBase);
   // if not, we should initialize the crystal structure
 
   Initialize();
@@ -265,8 +265,24 @@ void CPotential::SliceSetup()
       fgets(buf,BUF_LEN,sliceFp);
       m_cz[i] = atof(buf);
     }
+    // Slice position is last slice position + half width of last slice + half width of this slice
     m_slicePos[i] = m_slicePos[i-1]+m_cz[i-1]/2.0+m_cz[i]/2.0;
   }
+  m_trans.resize(m_nslices);
+  // If we are going to read the potential, then we need to size the slices according to the first read pot slice
+  if (m_readPotential)
+    {
+    }
+  // If we are going to calculate the potential, then we need to size the slices according to the size of the
+  //    structure and the corresponding resolution.
+  else
+    {
+      float_tt max_x, min_x, max_y, min_y;
+      m_crystal->GetCrystalBoundaries(min_x, max_x, min_y, max_y);
+      m_nx = ceil((max_x-min_x)/m_dx);
+      m_ny = ceil((max_y-min_y)/m_dy);
+    }
+  ResizeSlices();
 }
 
 complex_tt CPotential::GetSlicePixel(unsigned iz, unsigned ix, unsigned iy)

@@ -104,16 +104,13 @@ protected:
   std::vector<ComplexVector> m_trans; //  The 3D specimen potential array as a vector of 1D vectors
   //complex_tt ***m_trans;    //  The 3D specimen potential array
   bool m_currentPotential;  // Indicates whether computed potential matches current parameters.  
-							//    Set to true after computing potential.  Reset to false when parameters change.
+                            //    Set to true after computing potential.  Reset to false when parameters change.
   unsigned m_nx, m_ny;    /* size of projected potential in pixels, possibly larger than wavefunc's nx/ny */
-  // resolutions
-  float_tt m_dx, m_dy, m_dz;
-  // oversampled resolutions
-  float_tt m_ddx, m_ddy, m_ddz;
+  float_tt m_dx, m_dy, m_dz;   // resolutions
+  float_tt m_ddx, m_ddy, m_ddz;   // oversampled resolutions
   //
   int m_boxNx, m_boxNy, m_boxNz;
-  // voltage
-  float_tt m_v0;
+  float_tt m_v0;   // voltage
   std::map<unsigned, atomBoxPtr> m_atomBoxes;
   std::vector<atom> m_atoms;
 
@@ -152,6 +149,9 @@ protected:
   int m_scatFactor;  // The scattering factor type.  One of: 0 (Doyle-Turner); 1 (Wieck-Kohl); 2 (Custom)
   
   std::string m_fileBase; // base filename for saving potential.  Will have slice index appended.
+  std::string m_potFileBase; //base filename for loading potential from files.  Will have slice index appended.
+
+  bool m_readPotential;
 
   float_tt sfLUT(float_tt s,int atKind);
 

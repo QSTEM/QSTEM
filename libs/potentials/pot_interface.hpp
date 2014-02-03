@@ -60,7 +60,6 @@ public:
   virtual void WriteProjectedPotential()=0;
   virtual void GetSlice(unsigned idx, ComplexVector &vec)=0;
   virtual complex_tt GetSlicePixel(unsigned iz, unsigned ix, unsigned iy)=0;
-
 };
 
 #endif
