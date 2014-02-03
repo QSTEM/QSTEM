@@ -61,10 +61,12 @@ public:
   inline float_tt GetU2(unsigned znum){return m_u2[znum];}
   inline float_tt GetU2avg(unsigned znum){return m_u2avg[znum];}
   inline void GetAtom(unsigned idx, atom &_atom){_atom=m_atoms[idx];}
+  inline unsigned GetNumberOfCellAtoms(){return m_baseAtoms.size();}
   inline unsigned GetNumberOfAtoms(){return m_atoms.size();}
+  void GetCrystalBoundaries(float_tt &min_x, float_tt &max_x, float_tt &min_y, float_tt &max_y);
   
 protected:
-	boost::filesystem::path m_structureFile;
+  boost::filesystem::path m_structureFile;
 
   std::vector<atom> m_atoms; // The atoms after duplication, tilt, and phonon shaking
   std::vector<atom> m_baseAtoms; // The atoms read directly from the input file (no alteration)
@@ -73,6 +75,10 @@ protected:
   float_tt m_cAlpha, m_cBeta, m_cGamma;
   float_tt m_cubex, m_cubey, m_cubez;  /* dimension of crystal cube, if zero, then nx,ny,nz *
   //					 * will be used */
+  float_tt m_maxX, m_minX;
+  float_tt m_maxY, m_minY;
+  float_tt m_maxZ, m_minZ;
+
   bool m_adjustCubeSize;  
   float_tt m_offsetX, m_offsetY;
   float_tt m_ctiltx, m_ctilty, m_ctiltz;  /* crystal tilt in mrad */

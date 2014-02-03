@@ -37,11 +37,18 @@
 #define THZ_HBAR_KB 1.90963567802059 /* THz*hbar/kB */
 
 CCrystal::CCrystal()
+  : m_minX(0)
+  , m_maxX(0)
+  , m_minY(0)
+  , m_maxY(0)
+  , m_minZ(0)
+  , m_maxZ(0)
 {
 }
 
 CCrystal::CCrystal(ConfigReaderPtr &configReader)
 {
+  CCrystal();
   boost::filesystem::path fileName;
   // Read a few things from the master config file
   configReader->ReadStructureFileName(fileName);
@@ -51,6 +58,7 @@ CCrystal::CCrystal(ConfigReaderPtr &configReader)
   m_structureWriter = CStructureWriterFactory::Get()->GetWriter(fileName, m_ax, m_by, m_cz);
   m_Mm = float2D(3,3,"");
   m_structureReader->ReadCellParams(m_Mm);
+  CalculateCellDimensions();
   // Read in the initial atomic positions from the file (do duplication, tilt, and shaking later)
   m_structureReader->ReadAtoms(m_baseAtoms);
 }
@@ -66,6 +74,10 @@ CCrystal::CCrystal(unsigned ncx, unsigned ncy, unsigned ncz,
 {
 }
 
+CCrystal::~CCrystal()
+{
+}
+
 void CCrystal::Init(unsigned run_number)
 {
   CalculateCellDimensions();
@@ -73,18 +85,13 @@ void CCrystal::Init(unsigned run_number)
   if (m_printLevel>=3)
     printf("Read %d atoms, tds: %d\n",m_atoms.size(),m_tds);
 
-  float_tt maxX, maxY, maxZ;
-  float_tt minX = maxX = m_atoms[0].x;
-  float_tt minY = maxY = m_atoms[0].y;
-  float_tt minZ = maxZ = m_atoms[0].z;
-
   for (unsigned i=0;i<m_atoms.size();i++) {
-    if (m_atoms[i].x < minX) minX = m_atoms[i].x;
-    if (m_atoms[i].x > maxX) maxX = m_atoms[i].x;
-    if (m_atoms[i].y < minY) minY = m_atoms[i].y;
-    if (m_atoms[i].y > maxY) maxY = m_atoms[i].y;
-    if (m_atoms[i].z < minZ) minZ = m_atoms[i].z;
-    if (m_atoms[i].z > maxZ) maxZ = m_atoms[i].z;
+    if (m_atoms[i].x < m_minX) m_minX = m_atoms[i].x;
+    if (m_atoms[i].x > m_maxX) m_maxX = m_atoms[i].x;
+    if (m_atoms[i].y < m_minY) m_minY = m_atoms[i].y;
+    if (m_atoms[i].y > m_maxY) m_maxY = m_atoms[i].y;
+    if (m_atoms[i].z < m_minZ) m_minZ = m_atoms[i].z;
+    if (m_atoms[i].z > m_maxZ) m_maxZ = m_atoms[i].z;
   }
 
   /*
@@ -93,9 +100,9 @@ void CCrystal::Init(unsigned run_number)
   */
   if (m_printLevel >= 2) {
     printf("range of thermally displaced atoms (%d atoms): \n",m_atoms.size());
-    printf("X: %g .. %g\n",minX,maxX);
-    printf("Y: %g .. %g\n",minY,maxY);
-    printf("Z: %g .. %g\n",minZ,maxZ);
+    printf("X: %g .. %g\n",m_minX,m_maxX);
+    printf("Y: %g .. %g\n",m_minY,m_maxY);
+    printf("Z: %g .. %g\n",m_minZ,m_maxZ);
   }
 
   // 20131218 - MCS - center is not actually used in old code.  Ignore it here.
@@ -733,7 +740,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
   //////////////////////////////////////////////////////////////////////////////
   // Look for atoms which share the same position:
   jVac = 0;  // no atoms have been removed yet
-  for (i=m_atoms.size()-1;i>=0;) {
+  for (i=m_baseAtoms.size()-1;i>=0;) {
 
     ////////////////
     if ((handleVacancies) && (m_atoms[i].Znum > 0)) {
@@ -770,10 +777,10 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
           jCell = (icz+icy*ncz+icx*ncy*ncz)*m_baseAtoms.size();
           j = jCell+i;
           /* We will also add the phonon displacement to the atomic positions now: */
-          m_atoms[j].dw = m_atoms[i].dw;
-          m_atoms[j].occ = m_atoms[i].occ;
-          m_atoms[j].q = m_atoms[i].q;
-          m_atoms[j].Znum = m_atoms[i].Znum; 
+          m_atoms[j].dw = m_baseAtoms[i].dw;
+          m_atoms[j].occ = m_baseAtoms[i].occ;
+          m_atoms[j].q = m_baseAtoms[i].q;
+          m_atoms[j].Znum = m_baseAtoms[i].Znum; 
           
           // Now is the time to remove atoms that are on the same position or could be vacancies:
           // if we encountered atoms in the same position, or the occupancy of the current atom is not 1, then
@@ -789,14 +796,14 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
             // printf("Choice: %g %g %d, %d %d\n",totOcc,choice,j,i,jequal);
             lastOcc = 0;
             for (i2=i;i2>jequal;i2--) {
-              m_atoms[jCell+i2].dw = m_atoms[i2].dw;
-              m_atoms[jCell+i2].occ = m_atoms[i2].occ;
-              m_atoms[jCell+i2].q = m_atoms[i2].q;
-              m_atoms[jCell+i2].Znum = m_atoms[i2].Znum; 
+              m_atoms[jCell+i2].dw = m_baseAtoms[i2].dw;
+              m_atoms[jCell+i2].occ = m_baseAtoms[i2].occ;
+              m_atoms[jCell+i2].q = m_baseAtoms[i2].q;
+              m_atoms[jCell+i2].Znum = m_baseAtoms[i2].Znum; 
 
               // if choice does not match the current atom:
               // choice will never be 0 or 1(*totOcc) 
-              if ((choice <lastOcc) || (choice >=lastOcc+m_atoms[i2].occ)) {
+              if ((choice <lastOcc) || (choice >=lastOcc+m_baseAtoms[i2].occ)) {
                 // printf("Removing atom %d, Z=%d\n",jCell+i2,atoms[jCell+i2].Znum);
                 m_atoms[jCell+i2].Znum =  0;  // vacancy
                 jVac++;
@@ -804,7 +811,7 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
               else {
                 jChoice = i2;
               }
-              lastOcc += m_atoms[i2].occ;
+              lastOcc += m_baseAtoms[i2].occ;
             }
             
             // Keep a record of the kinds of atoms we are reading
@@ -820,9 +827,9 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
           // printf("atomKinds: %d (jz = %d, %d)\n",atomKinds,jz,atoms[jChoice].Znum);
 
           for (i2=i;i2>jequal;i2--) {
-            m_atoms[jCell+i2].x = m_atoms[i2].x+icx+u[0];
-            m_atoms[jCell+i2].y = m_atoms[i2].y+icy+u[1];
-            m_atoms[jCell+i2].z = m_atoms[i2].z+icz+u[2];
+            m_atoms[jCell+i2].x = m_baseAtoms[i2].x+icx+u[0];
+            m_atoms[jCell+i2].y = m_baseAtoms[i2].y+icy+u[1];
+            m_atoms[jCell+i2].z = m_baseAtoms[i2].z+icz+u[2];
           }
         }  // for (icz=ncz-1;icz>=0;icz--)
       } // for (icy=ncy-1;icy>=0;icy--) 
@@ -1201,6 +1208,14 @@ void CCrystal::WriteStructure(unsigned run_number)
     writeCFG(atoms,natom,buf,muls);
   }
   */
+}
+
+void CCrystal::GetCrystalBoundaries(float_tt &min_x, float_tt &max_x, float_tt &min_y, float_tt &max_y)
+{
+  min_x = m_minX;
+  max_x = m_maxX;
+  min_y = m_minY;
+  max_y = m_maxY;
 }
 
 
