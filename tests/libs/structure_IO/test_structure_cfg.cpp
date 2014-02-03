@@ -87,7 +87,7 @@ struct cfgWriterFixture {
   ~cfgWriterFixture()
   { //std::cout << "teardown qsc config reader fixture" << std::endl;
 	  // delete the file now that we're done with it
-    //boost::filesystem::remove("SrTiO3_test_write.cfg");
+    boost::filesystem::remove("SrTiO3_test_write.cfg");
   }
   StructureWriterPtr writer;
 };
