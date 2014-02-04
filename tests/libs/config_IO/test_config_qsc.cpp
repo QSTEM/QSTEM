@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE( testPotOutputInterval )
 
 BOOST_AUTO_TEST_CASE( testOutputName )
 {
-  std::string filename;
+  boost::filesystem::path filename;
   configReader->ReadOutputName(filename);
   BOOST_CHECK_EQUAL(filename, "\"STO_4x4\"");
 }
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE( testCrystalCubeAndTilt )
 BOOST_AUTO_TEST_CASE( testTemperatureData )
 {
   bool doTDS, useEinstein;
-  std::string phononFile;
+  boost::filesystem::path phononFile;
   float_tt tds_temp;
   configReader->ReadTemperatureData(doTDS, tds_temp, phononFile, useEinstein);
   BOOST_CHECK_EQUAL(doTDS, true);
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE( testBandLimitTrans )
 BOOST_AUTO_TEST_CASE(testLoadPotential)
 {
   bool load=false;
-  std::string filename;
+  boost::filesystem::path filename;
   configReader->ReadLoadPotential(load, filename);
   BOOST_CHECK_EQUAL(load, false);
 }

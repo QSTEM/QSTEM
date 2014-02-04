@@ -187,7 +187,7 @@ void CQscReader::ReadCrystalCubeAndTilt(float_tt &tiltx, float_tt &tilty, float_
   }
 }
 
-void CQscReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std::string &phononFile, 
+void CQscReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, boost::filesystem::path &phononFile, 
                                      bool &useEinstein)
 {
   if (readparam(m_fp, "tds:",m_buf,1)) {
@@ -199,8 +199,11 @@ void CQscReader::ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, std:
   else tdsTemperature = 300.0;
 
   useEinstein = true;  //phononFile = NULL;
-  if (readparam(m_fp, "phonon-File:",phononFile,1)) {
+  std::string readout;
+  if (readparam(m_fp, "phonon-File:",readout,1)) {
     useEinstein = false;
+    // convert the read out string into a boost::filesystem::path
+    phononFile=readout;
   }
 }
 
@@ -269,7 +272,7 @@ void CQscReader::ReadBandLimitTrans(bool &bandlimittrans)
   }
 }
 
-void CQscReader::ReadLoadPotential(bool &readPotential, std::string &filename)
+void CQscReader::ReadLoadPotential(bool &readPotential, boost::filesystem::path &filename)
 {
   if (readparam(m_fp, "read potential:",m_buf,1)) {
     readPotential = IsBufferYes(m_buf);
@@ -326,14 +329,17 @@ void CQscReader::ReadScanParameters(float_tt &scanXStart, float_tt &scanXStop, u
 }
 
 
-void CQscReader::ReadOutputName(std::string &fileOrFolderName)
+void CQscReader::ReadOutputName(boost::filesystem::path &fileOrFolderName)
 {
   /**********************************************************************
    * Parameters for image display and directories, etc.
    */
   fileOrFolderName = "data";
   //sprintf(fileOrFolderName,"data");
-  readparam(m_fp, "Folder:",fileOrFolderName,1);
+  std::string readout;
+  readparam(m_fp, "Folder:",readout,1);
+  // convert the read back file or folder name into a boost::filesystem::path
+  fileOrFolderName=readout;
 }
 
 void CQscReader::ReadAtomRadius(float_tt &radius)

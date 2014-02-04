@@ -34,7 +34,7 @@ public:
   void ReadSaveLevel(unsigned &saveLevel);
   void ReadPotentialOutputInterval(unsigned &displayPotCalcInterval);
   void ReadSTEMProgressInterval(unsigned &displayProgInterval);
-  void ReadOutputName(std::string &fileOrFolderName);
+  void ReadOutputName(boost::filesystem::path &fileOrFolderName);
   void ReadNCells(unsigned &nCellX, unsigned &nCellY, unsigned &nCellZ);
   void ReadNSubSlabs(unsigned &cellDiv);
   void ReadBeamTilt(float_tt &btiltx, float_tt &btilty, bool &tiltBack);
@@ -42,7 +42,7 @@ public:
                                       float_tt &cubex, float_tt &cubey, float_tt &cubez,
                                       bool &adjustCubeSize);
   void ReadTemperatureData(bool &doTDS, float_tt &tdsTemperature, 
-                                   std::string &phononFile, bool &useEinstein);
+                           boost::filesystem::path &phononFile, bool &useEinstein);
   void ReadSliceOffset(float_tt &xOffset, float_tt &yOffset);
   void ReadProbeArraySize(unsigned &nx, unsigned &ny);
   void ReadResolution(float_tt &resolutionX, float_tt &resolutionY);
@@ -52,7 +52,7 @@ public:
                                    float_tt &zOffset);
   void ReadPeriodicParameters(bool &periodicXY, bool &periodicZ);
   void ReadBandLimitTrans(bool &limit);
-  void ReadLoadPotential(bool &loadPotential, std::string &filename);
+  void ReadLoadPotential(bool &loadPotential, boost::filesystem::path &filename);
   void ReadPotentialOutputParameters(bool &savePotential, bool &saveProjectedPotential, 
                                              bool &plotPotential);
   void ReadPotentialCalculationParameters(bool &fftPotential, bool &potential3D);
