@@ -150,6 +150,16 @@ void CCrystal::SetCellParameters(float_tt ax, float_tt by, float_tt cz)
 	m_cz=cz;
 }
 
+void CCrystal::SetNCells(unsigned nx, unsigned ny, unsigned nz)
+{
+	m_nCellX=nx;
+	m_nCellY=ny;
+	m_nCellZ=nz;
+	// TODO: should this ever be false?
+	bool handleVacancies = true;
+	ReplicateUnitCell(handleVacancies);
+}
+
 void CCrystal::GetCellAngles(float_tt &alpha, float_tt &beta, float_tt &gamma)
 {
 	alpha=m_cAlpha;

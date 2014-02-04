@@ -50,6 +50,7 @@ public:
 
   void SetTDS(bool state){m_tds=state;}
   void SetCellParameters(float_tt ax, float_tt by, float_tt cz);
+  void SetNCells(unsigned nx, unsigned ny, unsigned nz);
 
   float_tt GetCZ(){return m_cz;}
   bool GetTDS(){return m_tds;}
