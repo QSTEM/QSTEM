@@ -65,6 +65,18 @@ BOOST_AUTO_TEST_CASE( testDuplicateAtoms )
   BOOST_CHECK_EQUAL(cryst->GetNumberOfAtoms(),8100);
 }
 
+BOOST_AUTO_TEST_CASE( testDuplicateAtomsSpecifyCells )
+{
+	unsigned nx=3, ny=3, nz=3;
+	// This should automatically resize and re-fill the atoms vector
+	cryst->SetNCells(nx, ny, nz);
+	BOOST_CHECK_EQUAL(cryst->GetNumberOfAtoms(), nx*ny*nz*cryst->GetNumberOfCellAtoms());
+}
+
+BOOST_AUTO_TEST_CASE( testEinstenDisplacement )
+{
+}
+
 BOOST_AUTO_TEST_CASE( testPhononDisplacement )
 {
   
@@ -77,7 +89,11 @@ BOOST_AUTO_TEST_CASE( testTiltBoxed )
 
 BOOST_AUTO_TEST_CASE( testWriteStructure )
 {
-  
+	bool handleVacancies=false;
+	cryst->ReplicateUnitCell(handleVacancies);
+	// should write file with 8100 entries, because the displaced atoms need to be recorded
+	cryst->WriteStructure(1);
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
