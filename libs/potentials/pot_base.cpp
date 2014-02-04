@@ -156,7 +156,7 @@ void CPotential::AtomBoxLookUp(complex_tt &val, int Znum, float_tt x, float_tt y
       
     }
     fgets(systStr,250,fp);
-    sscanf(systStr,"%d %le %d %d %d %le %le %le %d %le\n",
+    sscanf(systStr,"%d %f %d %d %d %f %f %f %d %f\n",
            &tZ, &tB, &tnx, &tny, &tnz, &tdx, &tdy, &tdz, &tzOversample, &tv0);
     /* If the parameters in the file don't match the current ones,
      * we need to create a new potential file

@@ -149,7 +149,7 @@ protected:
   int m_scatFactor;  // The scattering factor type.  One of: 0 (Doyle-Turner); 1 (Wieck-Kohl); 2 (Custom)
   
   std::string m_fileBase; // base filename for saving potential.  Will have slice index appended.
-  std::string m_potFileBase; //base filename for loading potential from files.  Will have slice index appended.
+  boost::filesystem::path m_potFileBase; //base filename for loading potential from files.  Will have slice index appended.
 
   bool m_readPotential;
 
@@ -162,3 +162,11 @@ protected:
 };
 
 #endif
+
+
+
+
+
+
+
+
