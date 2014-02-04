@@ -41,7 +41,8 @@ public:
   void Init(unsigned run_number);
   void ReadUnitCell(bool handleVacancies);
   void TiltBoxed(int ncoord,bool handleVacancies);
-  void PhononDisplacement(float_tt *u,int id,int icx,int icy,
+  void EinsteinDisplacement(std::vector<float_tt> &u, atom &_atom);
+  void PhononDisplacement(std::vector<float_tt> &u,int id,int icx,int icy,
                           int icz,atom &atom,bool printReport);
   void ReplicateUnitCell(int handleVacancies);
   void WriteStructure(unsigned run_number);
@@ -63,6 +64,7 @@ public:
   inline void GetAtom(unsigned idx, atom &_atom){_atom=m_atoms[idx];}
   inline unsigned GetNumberOfCellAtoms(){return m_baseAtoms.size();}
   inline unsigned GetNumberOfAtoms(){return m_atoms.size();}
+  void CalculateCrystalBoundaries();
   void GetCrystalBoundaries(float_tt &min_x, float_tt &max_x, float_tt &min_y, float_tt &max_y);
   
 protected:
@@ -70,7 +72,10 @@ protected:
 
   std::vector<atom> m_atoms; // The atoms after duplication, tilt, and phonon shaking
   std::vector<atom> m_baseAtoms; // The atoms read directly from the input file (no alteration)
-  float_tt **m_Mm;                     /* metric matrix Mm(ax,by,cz,alpha,beta,gamma) */
+  float_tt **m_Mm;                     /* metric matrix Mm(ax,by,cz,alpha,beta,gamma).  Used to go from fractional
+                                          coordinates to physical cartesian coordinates.  */
+  float_tt **m_MmInv;                  /* inverse of metric matrix.  Used to go from physical, cartesian coordinates
+                                          back to fractional coordinates. */
   float_tt m_ax, m_by, m_cz;           /* lattice parameters */
   float_tt m_cAlpha, m_cBeta, m_cGamma;
   float_tt m_cubex, m_cubey, m_cubez;  /* dimension of crystal cube, if zero, then nx,ny,nz *
@@ -96,6 +101,7 @@ protected:
   bool m_tds; // if set, TDS will be applied to atom positions
   bool m_Einstein; /* if set (default=set), the Einstein model will be used */
   float_tt m_tds_temp;  // The temperature for TDS calculations
+  float_tt m_wobble_temp_scale;
 
   int m_printLevel;
 
