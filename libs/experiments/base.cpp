@@ -117,11 +117,11 @@ void CExperimentBase::DisplayProgress(int flag)
       printf("\n********************** run %3d ************************\n",m_avgCount+1);
       // if (muls.avgCount < 1) {
 
-	  std::vector<unsigned> atomTypes(m_crystal->GetAtomTypes());
-	  std::vector<unsigned>::iterator atom=atomTypes.begin(), end=atomTypes.end();
+      std::map<unsigned, float_tt> displacements(m_crystal->GetU2());
+      std::map<unsigned, float_tt>::iterator disp=displacements.begin(), end=displacements.end();
 
-      printf("* <u>: %3d |",(*atom++));
-	  while(atom!=end) printf(" %8d |",(*atom++));  
+      printf("* <u>: %3d |",(*disp++).first);
+	  while(disp!=end) printf(" %8d |",(*disp++).first);  
 
       printf(" intensity | time(sec) |    chi^2  |\n");
       // }
@@ -132,13 +132,18 @@ void CExperimentBase::DisplayProgress(int flag)
       */
       printf("*");
 
-      atom = atomTypes.begin();
-      while (atom!=end) printf(" %8f |",(float)(m_crystal->GetU2((*atom++))));  
+      //ComputeAverageU2();
+
+      disp = displacements.begin();
+      while (disp!=end) printf(" %8f |",(*disp++).second);  
       printf(" %9f | %9f | %9f |\n",m_intIntensity,curTime,m_avgCount > 0 ? m_chisq[m_avgCount-1] : 0);
       printf("*");
 
+      /*
+        // TODO: averaging should be handled on this class, not on lower level crystal class.
       atom = atomTypes.begin();
       while (atom!=end) printf(" %8f |",(float)(m_crystal->GetU2avg((*atom++))));  
+      */
       printf(" %9f | %9f \n",intensityAvg,timeAvg);
     }
     else {
@@ -150,6 +155,19 @@ void CExperimentBase::DisplayProgress(int flag)
   //  timer = cputim();
 }
 
+/*
+// TODO: this is very broken.  displaced here from Crystal because I want to handle averages outside of the 
+//     lower level classes.
+void CExperimentBase::ComputeAverageU2()
+{
+  
+  (*z)->second /= u2Count[(*z)->first];
+  if (runCount > 0) 
+    m_u2avg[(*z)] = sqrt(((runCount-1)*(m_u2avg[(*z)]*m_u2avg[(*z)])+u2[(*z)])/runCount);
+  else
+    m_u2avg[(*z)] = sqrt(m_u2[(*z)]);
+}
+*/
 
 ////////////////////////////////////////////////////////////////
 // save the current wave function at this intermediate thickness:

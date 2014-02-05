@@ -141,8 +141,6 @@ void CCrystal::DisplayParams()
          m_ctiltx*RAD2DEG,m_ctilty*RAD2DEG,m_ctiltz*RAD2DEG);
   printf("* Model dimensions:     ax=%gA, by=%gA, cz=%gA (after tilt)\n",
 		m_ax,m_by,m_cz);
-  printf("* Atom species:         %d (Z=%d",m_Znums.size(),m_Znums[0]);
-  for (unsigned i=1;i<m_Znums.size();i++) printf(", %d",m_Znums[i]); printf(")\n");
   printf("* Temperature:          %gK\n",m_tds_temp);
   if (m_tds)
     printf("* TDS:                  yes\n");
@@ -282,14 +280,10 @@ void CCrystal::ReadUnitCell(bool handleVacancies)
     // allocate more memory, if there is a new element
     if (jz == atomKinds) {
     */
-    if (std::find(m_Znums.begin(), m_Znums.end(), m_baseAtoms[i].Znum)==m_Znums.end())
+    
+    if (m_tds)
       {
-        m_Znums.push_back(m_atoms[i].Znum);
-        if (m_tds)
-          {
-            m_u2[m_baseAtoms[i].Znum]=0;
-            m_u2avg[m_baseAtoms[i].Znum]=0;
-          }
+        m_u2[m_baseAtoms[i].Znum]=0;
       }
 
     ////////////////////////////////////////////////////////////////
@@ -442,7 +436,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
   std::vector<float_tt> u(3,0), uf(3,0);
   //static float_tt *u;
 
-  unsigned jz;
+  //unsigned jz;
 
   Ncells = m_nCellX * m_nCellY * m_nCellZ;
 
@@ -527,7 +521,7 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
     // printf("%d: (%g %g %g) %d\n",iatom,unitAtoms[iatom].x,unitAtoms[iatom].y,
     //   unitAtoms[iatom].z,unitAtoms[iatom].Znum);
     memcpy(&newAtom,&m_baseAtoms[iatom],sizeof(atom));
-    for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == newAtom.Znum) break;
+    //for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == newAtom.Znum) break;
     // allocate more memory, if there is a new element
     /*
       if (jz == atomKinds) {
@@ -600,12 +594,12 @@ void CCrystal::TiltBoxed(int ncoord,bool handleVacancies) {
             }
           }
           // here we select the index of our chosen atom
-          if (jChoice != iatom) {
-            std::vector<unsigned>::iterator item = std::find(m_Znums.begin(), m_Znums.end(), m_baseAtoms[jChoice].Znum);
-            if (item!=m_Znums.end())
-              jz=item-m_Znums.begin();
+          //if (jChoice != iatom) {
+          //std::vector<unsigned>::iterator item = std::find(m_Znums.begin(), m_Znums.end(), m_baseAtoms[jChoice].Znum);
+          //if (item!=m_Znums.end())
+          //jz=item-m_Znums.begin();
             //for (jz=0;jz<m_Znums.size();jz++)	if (m_Znums[jz] == m_baseAtoms[jChoice].Znum) break;
-          }
+          //}
 
           // here we need to call phononDisplacement:
           // phononDisplacement(u,muls,iatom,ix,iy,iz,atomCount,atoms[i].dw,*natom,atoms[i].Znum);
@@ -788,7 +782,20 @@ void CCrystal::ReplicateUnitCell(int handleVacancies) {
   if ((jVac > 0 ) &&(m_printLevel)) printf("Removed %d atoms because of occupancies < 1 or multiple atoms in the same place\n",jVac);
 }
 
-
+void CCrystal::DisplaceAtoms()
+{
+  std::vector<atom>::iterator at=m_atoms.begin(), end=m_atoms.end();
+  std::vector<float_tt> u(3,0);
+  
+  for (at; at!=end; ++at)
+    {
+      EinsteinDisplacement(u, (*at));
+      // Add obtained u to atomic position
+      (*at).x+=u[0];
+      (*at).y+=u[1];
+      (*at).z+=u[2];
+    }
+}
 
 void CCrystal::EinsteinDisplacement(std::vector<float_tt>&u, atom &_atom)
 {
@@ -799,9 +806,9 @@ void CCrystal::EinsteinDisplacement(std::vector<float_tt>&u, atom &_atom)
     u[2] = (wobble*k_sq3 * gasdev());
     ///////////////////////////////////////////////////////////////////////
     // Book keeping:
-    //u2[atom.Znum] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
+    m_u2[_atom.Znum] += u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
     //ux += u[0]; uy += u[1]; uz += u[2];
-    //u2Count[atom.Znum]++;
+    m_u2Count[_atom.Znum]++;
 
     /* Finally we must convert the displacement for this atom back into its fractional
      * coordinates so that we can add it to the current position in vector a
@@ -859,37 +866,6 @@ void CCrystal::PhononDisplacement(std::vector<float_tt> &u,int id,int icx,int ic
 
   if (m_tds == 0) return;
 
-  /***************************************************************************
-   * We will give a statistics report, everytime, when we find atomCount == 0
-   ***************************************************************************/
-
-  if (printReport) {
-    std::vector<unsigned>::iterator z=m_Znums.begin();
-    for(z; z!=m_Znums.end(); ++z)
-      {
-        //for (ix=0;ix<m_Znums.size();ix++) {
-      // u2Collect += u2[ix]/u2Count[ix];
-      // uxCollect += ux/maxAtom; uyCollect += uy/maxAtom; uzCollect += uz/maxAtom;
-      /*
-        printf("STATISTICS: sqrt(<u^2>): %g, CM: (%g %g %g) %d atoms, wob: %g\n"
-        "                         %g, CM: (%g %g %g) run %d\n",
-        sqrt(u2/u2Count),ux/u2Count,uy/u2Count,uz/u2Count,u2Count,scale*sqrt(dw*wobScale),
-        sqrt(u2Collect/runCount),uxCollect/runCount,uyCollect/runCount,uzCollect/runCount,
-        runCount);
-      */
-      // printf("Count: %d %g\n",u2Count[ix],u2[ix]);
-        u2[(*z)] /= u2Count[(*z)];
-      if (runCount > 0) 
-        m_u2avg[(*z)] = sqrt(((runCount-1)*(m_u2avg[(*z)]*m_u2avg[(*z)])+u2[(*z)])/runCount);
-      else
-        m_u2avg[(*z)] = sqrt(u2[(*z)]);
-      m_u2[(*z)]    = sqrt(u2[(*z)]);
-      
-      u2[(*z)]=0; u2Count[(*z)]=0;
-    }
-    runCount++;
-    ux=0; uy=0; uz=0; 
-  }
   if (Mm == NULL) {
     // MmOrig = float2D(3,3,"MmOrig");
     // MmOrigInv = float2D(3,3,"MmOrigInv");

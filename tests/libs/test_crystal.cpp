@@ -67,14 +67,24 @@ BOOST_AUTO_TEST_CASE( testDuplicateAtoms )
 
 BOOST_AUTO_TEST_CASE( testDuplicateAtomsSpecifyCells )
 {
-	unsigned nx=3, ny=3, nz=3;
-	// This should automatically resize and re-fill the atoms vector
-	cryst->SetNCells(nx, ny, nz);
-	BOOST_CHECK_EQUAL(cryst->GetNumberOfAtoms(), nx*ny*nz*cryst->GetNumberOfCellAtoms());
+  unsigned nx=3, ny=3, nz=3;
+  // This should automatically resize and re-fill the atoms vector
+  cryst->SetNCells(nx, ny, nz);
+  BOOST_CHECK_EQUAL(cryst->GetNumberOfAtoms(), nx*ny*nz*cryst->GetNumberOfCellAtoms());
 }
 
 BOOST_AUTO_TEST_CASE( testEinstenDisplacement )
 {
+  // the default (from the config file) is einstein displacement.  Don't change it.
+  cryst->DisplaceAtoms();
+  // check the random offset for oxygen in STO.  Should be close to 
+  cryst->GetU2(8);
+  // check the random offset for titanium in STO.  Should be close to ...
+  cryst->GetU2(22);
+  // check the random offset for strontium in STO.  Should be close to ...
+  cryst->GetU2(38);
+
+
 }
 
 BOOST_AUTO_TEST_CASE( testPhononDisplacement )

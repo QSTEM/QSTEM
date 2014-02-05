@@ -53,15 +53,18 @@ public:
   void SetCellParameters(float_tt ax, float_tt by, float_tt cz);
   void SetNCells(unsigned nx, unsigned ny, unsigned nz);
 
+  void DisplaceAtoms();
+
   float_tt GetCZ(){return m_cz;}
   bool GetTDS(){return m_tds;}
   void GetCellAngles(float_tt &alpha, float_tt &beta, float_tt &gamma);
   void GetCellParameters(float_tt &ax, float_tt &by, float_tt &cz);
-  inline unsigned GetZnum(unsigned idx){return m_Znums[idx];}
-  inline std::vector<unsigned> GetAtomTypes(){return m_Znums;}
-  inline unsigned GetNumberOfAtomTypes(){return m_Znums.size();}
+  //inline unsigned GetZnum(unsigned idx){return m_Znums[idx];}
+  //inline std::vector<unsigned> GetAtomTypes(){return m_Znums;}
+  inline unsigned GetNumberOfAtomTypes(){return m_u2.size();}
+  inline std::map<unsigned, float_tt> GetU2(){return m_u2;}
   inline float_tt GetU2(unsigned znum){return m_u2[znum];}
-  inline float_tt GetU2avg(unsigned znum){return m_u2avg[znum];}
+  inline float_tt GetU2avg(unsigned znum){return m_u2[znum]/m_u2Count[znum];} //returns Mean Squared displacement
   inline void GetAtom(unsigned idx, atom &_atom){_atom=m_atoms[idx];}
   inline unsigned GetNumberOfCellAtoms(){return m_baseAtoms.size();}
   inline unsigned GetNumberOfAtoms(){return m_atoms.size();}
@@ -91,8 +94,9 @@ protected:
   unsigned m_nCellX, m_nCellY, m_nCellZ;  /* number of unit cells in x-y-z dir*/
   StructureReaderPtr m_reader;
 
-  std::vector<unsigned> m_Znums; // Z numbers for the atom types that are present
-  std::map<unsigned, float_tt> m_u2, m_u2avg;  /* (current/averaged) rms displacement of atoms */
+  std::map<unsigned, float_tt> m_u2;  /* (current) rms displacement of atoms */
+  std::map<unsigned, unsigned> m_u2Count; /* count of atoms that have been displaced.  Used for computing
+                                             m_u2avg. */
 
   boost::filesystem::path m_phononFile;
 
