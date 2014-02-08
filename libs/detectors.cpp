@@ -36,8 +36,8 @@ Detector::Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavele
     m_Navg(1),
     m_wavelength(wavelength)
 {
-  m_image = float2D(nx,ny,"ADFimag");
-  m_image2 = float2D(nx,ny,"ADFimag");
+  m_image.resize(nx,ny);
+  m_image2.resize(nx,ny);
   
   // TODO: need way of passing file formats into constructor here
   m_imageIO=ImageIOPtr(new CImageIO(nx, ny));
@@ -69,7 +69,7 @@ void Detector::WriteImage(std::map<std::string, double> &params,
   params["dy"]=m_dy;
   std::string comment;
   // Thickness is set externally and passed in on params
-  m_imageIO->WriteRealImage((void **)m_image, m_name, params, comment, position);
+  m_imageIO->WriteRealImage(m_image, m_name, params, comment, position);
 }
 
 void Detector::CollectIntensity(const WavePtr &wave)
@@ -104,8 +104,8 @@ void Detector::CollectIntensity(const WavePtr &wave)
   int position_offset = offsetY * m_nx + offsetX;
 
   // Multiply each image by its number of averages and divide by it later again:
-  m_image[offsetX][offsetY]  *= m_Navg;	
-  m_image2[offsetX][offsetY] *= m_Navg;	
+  m_image[position_offset]  *= m_Navg;	
+  m_image2[position_offset] *= m_Navg;	
   m_error = 0;
 
   /* add the intensities in the already 
@@ -125,7 +125,7 @@ void Detector::CollectIntensity(const WavePtr &wave)
               // detector in center of diffraction pattern:
               if ((m_shiftX == 0) && (m_shiftY == 0)) 
                 {
-                  m_image[offsetX][offsetY] += intensity;
+                  m_image[position_offset] += intensity;
                   // misuse the error number for collecting this pixels raw intensity
                   m_error += intensity;
                 }
@@ -136,7 +136,7 @@ void Detector::CollectIntensity(const WavePtr &wave)
                   ixs = (ix+(int)m_shiftX+nx) % nx;
                   iys = (iy+(int)m_shiftY+ny) % ny;	    
                   intensity = scale * wave->GetPixelIntensity(ixs, iys);
-                  m_image[offsetX][offsetY] += intensity;
+                  m_image[position_offset] += intensity;
                   // repurpose the error number for collecting this pixels raw intensity
                   m_error += intensity;
                   /* restore intensity, so that it will not be shifted for the other detectors */
@@ -150,11 +150,11 @@ void Detector::CollectIntensity(const WavePtr &wave)
   
   // Divide each image by its number of averages again:
   // add intensity squared to image2 for this detector and pixel, then rescale:
-  m_image2[offsetX][offsetY] += m_error*m_error;
-  m_image2[offsetX][offsetY] /= m_Navg+1;	
+  m_image2[position_offset] += m_error*m_error;
+  m_image2[position_offset] /= m_Navg+1;	
     
   // do the rescaling for the average image:
-  m_image[offsetX][offsetY] /= m_Navg+1;	
+  m_image[position_offset] /= m_Navg+1;	
 }
 
 

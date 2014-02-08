@@ -27,8 +27,8 @@ class QSTEM_HELPER_DLL_EXPORT Detector {
   ImageIOPtr m_imageIO;
 public:
   unsigned m_nx, m_ny;
-  float_tt **m_image;        // place for storing avg image = sum(data)/Navg
-  float_tt **m_image2;        // we will store sum(data.^2)/Navg 
+  RealVector m_image;        // place for storing avg image = sum(data)/Navg
+  RealVector m_image2;        // we will store sum(data.^2)/Navg 
   float_tt m_rInside, m_rOutside;
   float_tt m_k2Inside, m_k2Outside;
   std::string m_name;

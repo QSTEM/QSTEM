@@ -32,25 +32,25 @@ void CImgWriter::Initialize(std::string dirOrFileName, std::string run_id)
   // TODO: create the output folder if it doesn't exist
 }
 
-void CImgWriter::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+void CImgWriter::WriteComplexImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
   unsigned dataSize = 2*sizeof(float_tt);
   bool is_complex=true;
-  WriteData((void **)data, is_complex, dataSize, shape, label, position, comment, parameters);
+  WriteData((void *)&data[0], is_complex, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgWriter::WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+void CImgWriter::WriteRealImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
   unsigned dataSize = sizeof(float_tt);
   bool is_complex=false;
-  WriteData((void **)data, is_complex, dataSize, shape, label, position, comment, parameters);
+  WriteData((void *)&data[0], is_complex, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgWriter::WriteData(void **pix, bool is_complex, unsigned dataSize, const std::vector<unsigned> &shape, 
+void CImgWriter::WriteData(void *pix, bool is_complex, unsigned dataSize, const std::vector<unsigned> &shape, 
                              const std::string &filebase, const std::vector<unsigned> &position, 
 							 const std::string &comment, const std::map<std::string, double> &parameters)
 {
@@ -104,7 +104,7 @@ void CImgWriter::WriteData(void **pix, bool is_complex, unsigned dataSize, const
     }
   
   file.write(comment.c_str(), commentSize);
-  file.write(reinterpret_cast<char*>(pix[0]), shape[0]*shape[1]*dataSize);
+  file.write(reinterpret_cast<char*>(pix), shape[0]*shape[1]*dataSize);
   file.close();
 }
 

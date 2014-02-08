@@ -452,20 +452,20 @@ void CExperimentBase::_WriteAvgArray(std::string &fileName, std::string &comment
   //params["dx"]=1.0/(m_nx*m_dx);
   //params["dy"]=1.0/(m_ny*m_dy);
   params["Thickness"]=m_thickness;
-  m_imageIO->WriteRealImage((void **)m_avgArray, fileName, params, comment, position);
+  m_imageIO->WriteRealImage(m_avgArray, fileName, params, comment, position);
 }
 
 void CExperimentBase::ReadAvgArray()
 {
   std::vector<unsigned> position;
-  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, position);
+  m_imageIO->ReadImage(m_avgArray, avgFilePrefix, position);
 }
 
 void CExperimentBase::ReadAvgArray(unsigned navg)
 {
   std::vector<unsigned> position(1);
   position[0]=navg;
-  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, position);
+  m_imageIO->ReadImage(m_avgArray, avgFilePrefix, position);
 }
 
 void CExperimentBase::ReadAvgArray(unsigned positionx, unsigned positiony)
@@ -473,7 +473,7 @@ void CExperimentBase::ReadAvgArray(unsigned positionx, unsigned positiony)
   std::vector<unsigned>position(2);
   position[0]=positionx;
   position[1]=positiony;
-  m_imageIO->ReadImage((void **)m_avgArray, avgFilePrefix, position);
+  m_imageIO->ReadImage(m_avgArray, avgFilePrefix, position);
 }
 
 void CExperimentBase::fft_normalize(WavePtr wave) 

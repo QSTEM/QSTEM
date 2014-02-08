@@ -465,7 +465,7 @@ void CPotential::WriteSlice(unsigned idx)
     params["Thickness"]=m_sliceThickness;
     sprintf(buf,"Projected Potential (slice %d)",idx);
     std::string comment = buf;
-    m_imageIO->WriteComplexImage((void **)&m_trans[idx][0], kPotFileName, params, comment);
+    m_imageIO->WriteComplexImage(m_trans[idx], kPotFileName, params, comment);
 }
 
 void CPotential::WriteProjectedPotential()
@@ -493,7 +493,7 @@ void CPotential::WriteProjectedPotential()
   sprintf(buf,"Projected Potential (sum of %d slices)",m_nslices);
   std::string comment = buf;
   std::string fileName = "ProjectedPot";
-  m_imageIO->WriteRealImage((void **)&tempPot[0], fileName, params, comment);
+  m_imageIO->WriteRealImage(tempPot, fileName, params, comment);
 }
 
 /*

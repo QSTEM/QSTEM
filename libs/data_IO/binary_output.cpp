@@ -75,19 +75,19 @@ void CBinaryOutput::WriteComplexVolume(complex_tt *data, std::vector<unsigned> s
   DescribeFile(shape, sizeof(complex_tt), label, position, comment, parameters);
 }
 
-void CBinaryOutput::WriteRealImage(float_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+void CBinaryOutput::WriteRealImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
-  WriteBlob(data[0], shape, label, position, parameters);
+  WriteBlob(&data[0], shape, label, position, parameters);
   DescribeFile(shape, sizeof(float_tt), label, position, comment, parameters);
 }
 
-void CBinaryOutput::WriteComplexImage(complex_tt **data, const std::vector<unsigned> &shape, const std::string &label, 
+void CBinaryOutput::WriteComplexImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
-  WriteBlob(data[0], shape, label, position, parameters);
+  WriteBlob(&data[0], shape, label, position, parameters);
   DescribeFile(shape, sizeof(complex_tt), label, position, comment, parameters);
 }
 

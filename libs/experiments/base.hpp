@@ -100,10 +100,10 @@ protected:
 
   float_tt m_thickness;       // The total thickness of the sample at the current slice
 
-  std::vector<float_tt> m_chisq;
+  RealVector m_chisq;
   std::string m_mode;      // String representing the multislice mode (e.g. TEM, STEM, etc.)
 
-  float_tt *m_avgArray;   // The averaged diffraction pattern (m_avgCount says how many are averaged currently)
+  RealVector m_avgArray;   // The averaged diffraction pattern (m_avgCount says how many are averaged currently)
 
   unsigned m_iPosX,m_iPosY;           /* integer offset for positioning probe within potential array */
 
