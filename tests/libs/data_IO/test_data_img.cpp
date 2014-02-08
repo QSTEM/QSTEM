@@ -107,4 +107,18 @@ BOOST_AUTO_TEST_CASE(testWriteHeader)
 	std::map<std::string, double> pars;
 }
 
+
+BOOST_AUTO_TEST_CASE(testWriteFile)
+{
+	std::vector<unsigned> size(2,500);
+	RealVector data(500*500,0);
+	std::map<std::string, double> pars;
+	pars["dx"]=0.5;
+	pars["dy"]=0.5;
+	pars["Thickness"]=10;
+	std::string label = "test";
+	std::string comment = "test_comment";
+	dataWriter->WriteRealImage(data, size, label, comment, pars);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
