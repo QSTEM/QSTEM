@@ -37,7 +37,14 @@ public:
   void WriteImage();
 protected:
   float_tt m_btiltx, m_btilty;     /* beam tilt, mrad */
-  float_tt *m_image;               /* Real-space image output */
+  RealVector m_image;               /* Real-space image output */
+private:
+  friend class CWaveFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static WavePtr Create(const ConfigReaderPtr &reader){
+    return WavePtr(new CPlaneWave(reader));
+  }  
 };
 
 typedef boost::shared_ptr<CPlaneWave> PlaneWavePtr;

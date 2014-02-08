@@ -56,4 +56,11 @@ protected:
   float_tt m_aAIS, m_rmin, m_rmax, m_aimin, m_aimax;
 
   std::string m_Scherzer;
+private:
+  friend class CWaveFactory;
+  // Create an instance of this class, wrapped in a shared ptr
+  //     This should not be inherited - any subclass needs its own implementation.
+  static WavePtr Create(const ConfigReaderPtr &reader){
+    return WavePtr(new CConvergentWave(reader));
+  }  
 };

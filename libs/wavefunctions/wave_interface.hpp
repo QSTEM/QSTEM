@@ -25,8 +25,12 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 
+#include "config_IO/config_reader_factory.hpp"
 #include "stemtypes_fftw3.hpp"
 
+class IWave;
+typedef boost::shared_ptr<IWave> WavePtr;
+typedef WavePtr (*CreateWaveFn)(const ConfigReaderPtr &reader);
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
@@ -71,8 +75,7 @@ public:
 
   // Methods for writing wavefunction
   // Method 1: no position reference
-  virtual void WriteWave(std::string comment="Wavefunction", 
-                 std::map<std::string, double>params = std::map<std::string, double>())=0;
+  virtual void WriteWave(std::string comment="Wavefunction")=0;
   // Method 2: pass an unsigned integer.  Use for either output at varying thickness, or navg
   virtual void WriteWave(unsigned navg, std::string comment="Wavefunction", 
                  std::map<std::string, double>params = std::map<std::string, double>())=0;
@@ -114,7 +117,5 @@ public:
   virtual void ReadDiffPat(unsigned navg)=0;
   virtual void ReadDiffPat(unsigned posX, unsigned posY)=0;
 };
-
-typedef boost::shared_ptr<IWave> WavePtr;
 
 #endif

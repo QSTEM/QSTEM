@@ -88,10 +88,10 @@ public:
     _WriteWave(probeFilePrefix);
   }
 
-  inline void WriteWave(std::string comment="Wavefunction", 
-                 std::map<std::string, double>params = std::map<std::string, double>())
+  inline void WriteWave(std::string comment="Wavefunction")
   {
     m_position.clear();
+	std::map<std::string, double> params;
     _WriteWave(waveFilePrefix, comment, params);
   }
   inline void WriteWave(unsigned navg, std::string comment="Wavefunction", 

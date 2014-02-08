@@ -21,8 +21,7 @@
 #include <iostream>
 #include <exception>
 
-#include "wavefunctions/wave_convergent.hpp"
-
+#include "wavefunctions/wave_factory.hpp"
 #include "config_IO/config_reader_factory.hpp"
 
 
@@ -31,7 +30,7 @@ struct ConvergentWaveFixture {
   {
    configReader = CConfigReaderFactory::Get()->GetReader("stem_STO_4x4.qsc");
     // just default to using the STEM config file here
-    wave = WavePtr(new CConvergentWave(configReader));
+   wave = CWaveFactory::Get()->GetWave("Convergent",configReader);
     //std::cout << "setup convergent wave fixture" << std::endl; 
   }
   ~ConvergentWaveFixture()
@@ -55,8 +54,8 @@ BOOST_AUTO_TEST_CASE( testCopy )
 
 BOOST_AUTO_TEST_CASE( testFormProbe )
 {
-  
   wave->FormProbe();
+  wave->WriteWave();
   // TODO: how to best test?  
   // Data is a vector, use some reference that we load in?
   //CHECK_CLOSE_COLLECTION(aa, bb, tol)

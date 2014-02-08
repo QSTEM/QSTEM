@@ -128,28 +128,27 @@ void CConvergentWave::DisplayParams()
 void CConvergentWave::FormProbe()
 {
   // static char *plotFile = "probePlot.dat",systStr[32];
-  int ix, iy, nx, ny, ixmid, iymid;
+  int ix, iy, ixmid, iymid;
   int CsDefAstOnly = 0;
   float rmin, rmax, aimin, aimax;
   // float **pixr, **pixi;
-  double dx, dy;
-  double  kx, ky, ky2,k2, ktheta2, ktheta, k2max, v0, wavlen,ax,by,x,y,
-    rx2, ry2,rx,ry, pi, scale, pixel,alpha,
+  double  kx, ky, ky2,k2, ktheta2, ktheta, k2max, v0, wavlen,x,y,
+    scale, pixel,alpha,
     df, df_eff, chi1, chi2,chi3, sum, chi, time,r,phi;
-  double envelope,delta,avgRes,edge;
+  double envelope;
 
   // FILE *fp=NULL;
 
   /* temporary fix, necessary, because fftw has rec. space zero 
      in center of image:
   */
-  ax = m_nx*m_dx; 
-  by = m_ny*m_dy; 
-  dx = ax-dx;
-  dy = by-dy;
+  float_tt ax = m_nx*m_dx; 
+  float_tt by = m_ny*m_dy; 
+  float_tt dx = ax-m_dx;
+  float_tt dy = by-m_dy;
   // average resolution:
-  avgRes = sqrt(0.5*(m_dx*m_dx+m_dy*m_dy));
-  edge = SMOOTH_EDGE*avgRes;
+  float_tt avgRes = sqrt(0.5*(m_dx*m_dx+m_dy*m_dy));
+  float_tt edge = SMOOTH_EDGE*avgRes;
 
   /********************************************************
    * formulas from:
@@ -160,7 +159,7 @@ void CConvergentWave::FormProbe()
    * dI_I = dI/I = lens current fluctuations
    * delta defocus in Angstroem (Cc in A)
    *******************************************************/
-  delta = m_Cc*m_dE_E;
+  float_tt delta = m_Cc*m_dE_E;
   if (m_printLevel > 2) printf("defocus offset: %g nm (Cc = %g)\n",delta,m_Cc);
   
   if (m_wave.size()==0) {
@@ -171,21 +170,19 @@ void CConvergentWave::FormProbe()
   /**********************************************************
    *  Calculate misc constants  
    *********************************************************/  
-  pi = 4.0 * atan( 1.0 );
 
-  rx = 1.0/ax;
-  rx2 = rx * rx;
-  ry = 1.0/by;
-  ry2 = ry * ry;
+  float_tt rx = 1.0/ax;
+  float_tt rx2 = rx * rx;
+  float_tt ry = 1.0/by;
+  float_tt ry2 = ry * ry;
 
-  ixmid = nx/2;
-  iymid = ny/2;
+  ixmid = m_nx/2;
+  iymid = m_ny/2;
 
   // df = m_df0;
   //v0 = m_v0;
   
-  /*  printf("Wavelength: %g A\n",wavlen);
-   */
+  /*  printf("Wavelength: %g A\n",wavlen);  */
 
 
   // chi2 = (*muls).Cs*0.5*wavlen*wavlen;
@@ -207,7 +204,7 @@ void CConvergentWave::FormProbe()
        of 1/2 otherwise 1 or 0
   */
   pixel = ( rx2 + ry2 );
-  scale = 1.0/sqrt((double)nx*(double)ny);
+  scale = 1.0/sqrt((double)m_nx*(double)m_ny);
 
   /*
     if ((m_a33 == 0) && (m_a31 == 0) && (m_a44 == 0) && (m_a42 == 0) &&
@@ -217,15 +214,15 @@ void CConvergentWave::FormProbe()
     }
   */
 
-  for( iy=0; iy<ny; iy++) {
+  for( iy=0; iy<m_ny; iy++) {
     ky = (double) iy;
-    if( iy > iymid ) ky = (double) (iy-ny);
+    if( iy > iymid ) ky = (double) (iy-m_ny);
     ky2 = ky*ky*ry2;
-    for( ix=0; ix<nx; ix++) {
+    for( ix=0; ix<m_nx; ix++) {
       kx = (double) ix;
-      if( ix > ixmid ) kx = (double) (ix-nx);
+      if( ix > ixmid ) kx = (double) (ix-m_nx);
       k2 = kx*kx*rx2 + ky2;
-      ktheta2 = k2*(wavlen*wavlen);
+      ktheta2 = k2*(m_wavlen*m_wavlen);
       ktheta = sqrt(ktheta2);
       phi = atan2(ry*ky,rx*kx);
       // compute the effective defocus from the actual defocus and the astigmatism: 
@@ -255,8 +252,8 @@ void CConvergentWave::FormProbe()
         //                     1/6*(a(6,6).*cos(6*(kphi-phi(6,6)))+a(6,4).*cos(4*(kphi-phi(6,4)))+a(6,2).*cos(2*(kphi-phi(6,2)))+c(6)).*ktheta.^6);
       }
 
-      chi *= 2*pi/wavlen;
-      chi -= 2.0*pi*( (dx*kx/ax) + (dy*ky/by) );
+      chi *= 2*M_PI/m_wavlen;
+      chi -= 2.0*M_PI*( (dx*kx/ax) + (dy*ky/by) );
       // include higher order aberrations
 
 
@@ -282,8 +279,8 @@ void CConvergentWave::FormProbe()
   
   /* multiply with gaussian in Real Space in order to avoid artifacts */
   if (m_gaussFlag) {
-    for( ix=0; ix<nx; ix++) {
-      for( iy=0; iy<ny; iy++) {
+    for( ix=0; ix<m_nx; ix++) {
+      for( iy=0; iy<m_ny; iy++) {
         r = exp(-((ix-m_nx/2)*(ix-m_nx/2)+(iy-m_ny/2)*(iy-m_ny/2))/(m_nx*m_nx*m_gaussScale));
         m_wave[ix+m_nx*iy][0] *= (float)r;
         m_wave[ix+m_nx*iy][1] *= (float)r;
@@ -305,7 +302,7 @@ void CConvergentWave::FormProbe()
           m_wave[ix+m_nx*iy][1] = 0;
         }
         else if (delta >= -edge) {
-          scale = 0.5*(1-cos(pi*delta/edge));
+          scale = 0.5*(1-cos(M_PI*delta/edge));
           m_wave[ix+m_nx*iy][0] = scale*m_wave[ix+m_nx*iy][0];
           m_wave[ix+m_nx*iy][1] = scale*m_wave[ix+m_nx*iy][1];
         }
