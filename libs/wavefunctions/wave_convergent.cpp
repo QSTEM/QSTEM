@@ -144,8 +144,11 @@ void CConvergentWave::FormProbe()
   */
   float_tt ax = m_nx*m_dx; 
   float_tt by = m_ny*m_dy; 
-  float_tt dx = ax-m_dx;
-  float_tt dy = by-m_dy;
+  // these are offsets of some kind:
+
+  float_tt dx = ax-m_nx/2*m_dx;
+  float_tt dy = by-m_ny/2*m_dy;
+  
   // average resolution:
   float_tt avgRes = sqrt(0.5*(m_dx*m_dx+m_dy*m_dy));
   float_tt edge = SMOOTH_EDGE*avgRes;
@@ -161,11 +164,6 @@ void CConvergentWave::FormProbe()
    *******************************************************/
   float_tt delta = m_Cc*m_dE_E;
   if (m_printLevel > 2) printf("defocus offset: %g nm (Cc = %g)\n",delta,m_Cc);
-  
-  if (m_wave.size()==0) {
-    printf("Error in probe(): Wave not allocated!\n");
-    exit(0);
-  }
 
   /**********************************************************
    *  Calculate misc constants  
@@ -178,16 +176,6 @@ void CConvergentWave::FormProbe()
 
   ixmid = m_nx/2;
   iymid = m_ny/2;
-
-  // df = m_df0;
-  //v0 = m_v0;
-  
-  /*  printf("Wavelength: %g A\n",wavlen);  */
-
-
-  // chi2 = (*muls).Cs*0.5*wavlen*wavlen;
-  // chi3 = (*muls).C5*0.25*wavlen*wavlen*wavlen*wavlen;
-  /* delta *= 0.5*delta*pi*pi*wavlen*wavlen; */
 
   /* convert convergence angle from mrad to rad */
   alpha = 0.001*m_alpha;
@@ -206,14 +194,6 @@ void CConvergentWave::FormProbe()
   pixel = ( rx2 + ry2 );
   scale = 1.0/sqrt((double)m_nx*(double)m_ny);
 
-  /*
-    if ((m_a33 == 0) && (m_a31 == 0) && (m_a44 == 0) && (m_a42 == 0) &&
-    (m_a55 == 0) && (m_a53 == 0) && (m_a51 == 0) && 
-    (m_a66 == 0) && (m_a64 == 0) && (m_a62 == 0) && (m_C5 == 0)) {
-    CsDefAstOnly = 1;
-    }
-  */
-
   for( iy=0; iy<m_ny; iy++) {
     ky = (double) iy;
     if( iy > iymid ) ky = (double) (iy-m_ny);
@@ -225,11 +205,8 @@ void CConvergentWave::FormProbe()
       ktheta2 = k2*(m_wavlen*m_wavlen);
       ktheta = sqrt(ktheta2);
       phi = atan2(ry*ky,rx*kx);
-      // compute the effective defocus from the actual defocus and the astigmatism: 
-      // df_eff = df + m_astigMag*cos(m_astigAngle+phi);
-
-      // chi = chi1*k2*(df_eff +chi2*k2)-2.0*pi*( (dx*kx/ax) + (dy*ky/by) );
-      // defocus, astigmatism, and shift:
+      
+	  // defocus, astigmatism, and shift:
       chi = ktheta2*(m_df0+delta + m_astigMag*cos(2.0*(phi-m_astigAngle)))/2.0;
       ktheta2 *= ktheta;  // ktheta^3 
       if ((m_a33 > 0) || (m_a31 > 0)) {
@@ -237,25 +214,19 @@ void CConvergentWave::FormProbe()
       }	
       ktheta2 *= ktheta;   // ktheta^4
       if ((m_a44 > 0) || (m_a42 > 0) || (m_Cs != 0)) {
-        // chi += ktheta2*(m_a33*cos(3*(phi-m_phi33))+m_a31*cos(phi-m_phi31))/3.0;
         chi += ktheta2*(m_a44*cos(4.0*(phi-m_phi44))+m_a42*cos(2.0*(phi-m_phi42))+m_Cs)/4.0;  
-        //                     1/4*(a(4,4).*cos(4*(kphi-phi(4,4)))+a(4,2).*cos(2*(kphi-phi(4,2)))+c(4)).*ktheta.^4+...
       }
       ktheta2 *= ktheta;    // ktheta^5
       if ((m_a55 > 0) || (m_a53 > 0) || (m_a51 > 0)) {
         chi += ktheta2*(m_a55*cos(5.0*(phi-m_phi55))+m_a53*cos(3.0*(phi-m_phi53))+m_a51*cos(phi-m_phi51))/5.0;
-        //                     1/5*(a(5,5).*cos(5*(kphi-phi(5,5)))+a(5,3).*cos(3*(kphi-phi(5,3)))+a(5,1).*cos(1*(kphi-phi(5,1)))).*ktheta.^5+...
       }
       ktheta2 *= ktheta;    // ktheta^6
       if ((m_a66 > 0) || (m_a64 > 0) || (m_a62 = 0) || (m_C5 != 0)) {
         chi += ktheta2*(m_a66*cos(6.0*(phi-m_phi66))+m_a64*cos(4.0*(phi-m_phi64))+m_a62*cos(2.0*(phi-m_phi62))+m_C5)/6.0;
-        //                     1/6*(a(6,6).*cos(6*(kphi-phi(6,6)))+a(6,4).*cos(4*(kphi-phi(6,4)))+a(6,2).*cos(2*(kphi-phi(6,2)))+c(6)).*ktheta.^6);
       }
 
       chi *= 2*M_PI/m_wavlen;
       chi -= 2.0*M_PI*( (dx*kx/ax) + (dy*ky/by) );
-      // include higher order aberrations
-
 
       if ( ( m_ismoth != 0) && 
            ( fabs(k2-k2max) <= pixel)) {
