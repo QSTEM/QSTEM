@@ -70,7 +70,7 @@ void CImgWriter::WriteData(void *pix, bool is_complex, unsigned dataSize, const 
   // Sychronize lengths of comments and parameters
   size_t paramSize = parameters.size();
   std::map<std::string, double>::const_iterator param;
-  
+
   // TODO: need to parse parameters to pull out thickness, complexFlag, and dataSize.
   //    Hardcode version?  Things aren't going to change anymore...
 
@@ -79,6 +79,7 @@ void CImgWriter::WriteData(void *pix, bool is_complex, unsigned dataSize, const 
   double resX = parameters.at("dx");
   double resY = parameters.at("dy");
   int complexFlag = (int) is_complex;
+  std::string usedParams = "Thickness dx dy";
 
   if(!file.is_open()) 
     {
@@ -98,9 +99,13 @@ void CImgWriter::WriteData(void *pix, bool is_complex, unsigned dataSize, const 
   file.write(reinterpret_cast <const char*> (&resX), 8);
   file.write(reinterpret_cast <const char*> (&resY), 8);
 
+  // TODO: this will probably break the old code, since order of parameters matters, and map
+  //     has its own order (need to fix Matlab code, or indicate a different file version?)
   for (param=parameters.begin(); param!=parameters.end(); param++)
     {
-      file.write(reinterpret_cast<const char*>(&(param->second)), sizeof(double));
+		// if this parameter isn't already recorded in the header, record it
+		if (usedParams.find(param->first)==std::string::npos)
+			file.write(reinterpret_cast<const char*>(&(param->second)), sizeof(double));
     }
   
   file.write(comment.c_str(), commentSize);
