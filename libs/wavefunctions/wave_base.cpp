@@ -57,7 +57,7 @@ CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
   // TODO: need to figure out how user is going to specify input/output formats
   //CBaseWave(m_nx, m_ny, m_dx, m_dy, ".img", ".img");
   Initialize(".img", ".img");
-  printf("Initialized from cfg file");
+  //printf("Initialized from cfg file");
 }
 
 /** Copy constructor - make sure arrays are deep-copied */
@@ -247,9 +247,10 @@ void CBaseWave::ApplyTransferFunction(boost::shared_array<complex_tt> &wave)
 void CBaseWave::_WriteWave(std::string &fileName, std::string comment,
                          std::map<std::string, double>params)
 {
-	std::map<std::string, double> pars;
-  pars["dx"]=m_dx;
-  pars["dy"]=m_dy;
+  if (params.count("Thickness")==0)
+	  params["Thickness"]=0;
+  params["dx"]=m_dx;
+  params["dy"]=m_dy;
   //params["HT"] = m_v0;
   //params["Cs"] = m_Cs;
   //params["Defocus"] = m_df0;
@@ -259,7 +260,7 @@ void CBaseWave::_WriteWave(std::string &fileName, std::string comment,
   //params["Convergence Angle"] = m_alpha;
   //params["Beam Tilt X"] = m_btiltx;
   //params["Beam Tilt Y"] = m_btilty;
-  m_imageIO->WriteComplexImage(m_wave, fileName, pars, comment, m_position);
+  m_imageIO->WriteComplexImage(m_wave, fileName, params, comment, m_position);
 }
 
 void CBaseWave::_WriteDiffPat(std::string &fileName, std::string comment,
