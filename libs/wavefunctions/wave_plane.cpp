@@ -29,6 +29,17 @@ CPlaneWave::CPlaneWave() : CBaseWave()
 {
 }
 
+/** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
+CPlaneWave::CPlaneWave(const CPlaneWave& other) : CBaseWave(other)
+{
+  // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
+}
+
+WavePtr CPlaneWave::Clone()
+{
+	return WavePtr(new CPlaneWave(*this));
+}
+
 void CPlaneWave::DisplayParams()
 {
   CBaseWave::DisplayParams();
@@ -91,5 +102,5 @@ void CPlaneWave::WriteImage()
 {
   std::map<std::string, double> params;
   std::string comment;
-  m_imageIO->WriteRealImage(m_image, imageFilePrefix, params, comment, m_position);
+  m_imageIO->WriteImage(m_image, imageFilePrefix, params, comment, m_position);
 }

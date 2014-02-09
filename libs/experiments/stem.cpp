@@ -18,13 +18,15 @@
 */
 
 #include "stem.hpp"
-#include "wavefunctions/wave_convergent.hpp"
+#include "wavefunctions/wave_factory.hpp"
 
 #include <omp.h>
 
 CExperimentSTEM::CExperimentSTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
   m_mode="STEM";
+  m_wave = CWaveFactory::Get()->GetWave("Convergent", configReader);
+  m_wave->FormProbe();
 }
 
 void CExperimentSTEM::Run()
@@ -51,7 +53,7 @@ void CExperimentSTEM::Run()
   //pre-allocate several waves (enough for one row of the scan.  
   for (int th=0; th<omp_get_max_threads(); th++)
     {
-      waves.push_back(WavePtr(new CConvergentWave(m_wave)));
+      waves.push_back(m_wave->Clone());
       avgArrays.push_back(std::vector<float_tt>(nx*ny));
     }
 

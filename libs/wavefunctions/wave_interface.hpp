@@ -34,7 +34,7 @@ typedef WavePtr (*CreateWaveFn)(const ConfigReaderPtr &reader);
 
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
-class IWave 
+class IWave
 {
 public:
   virtual void CreateDataSets()=0;
@@ -45,6 +45,8 @@ public:
   virtual void ToRealSpace()=0;
   virtual void ToFourierSpace()=0;
   virtual bool IsRealSpace()=0;
+
+  virtual WavePtr Clone()=0;
 
   virtual void GetSizePixels(unsigned &x, unsigned &y) const =0;
   virtual unsigned GetTotalPixels() const =0;

@@ -17,16 +17,20 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef CONVERGENT_WAVE_H
+#define CONVERGENT_WAVE_H
+
 #include "wave_base.hpp"
 
 class QSTEM_HELPER_DLL_EXPORT CConvergentWave : public CBaseWave
 {
 public:
   CConvergentWave(const ConfigReaderPtr &configReader);
-  CConvergentWave( const WavePtr& other );
+  CConvergentWave( const CConvergentWave& other );
   CConvergentWave();
   virtual void FormProbe();
   virtual void DisplayParams();
+  WavePtr Clone();
 protected:
   // Coefficients to aberration function:
   float_tt m_a33, m_a31;
@@ -64,3 +68,5 @@ private:
     return WavePtr(new CConvergentWave(reader));
   }  
 };
+
+#endif

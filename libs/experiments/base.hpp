@@ -22,8 +22,9 @@
 
 #include "experiment_interface.hpp"
 #include "potentials/pot_factory.hpp"
-#include "wavefunctions.hpp"
+#include "wavefunctions/wave_factory.hpp"
 #include "crystal.hpp"
+#include "imagelib_fftw3.hpp"
 
 static std::string avgFilePrefix="diffAvg";
 

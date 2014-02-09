@@ -68,3 +68,8 @@ CTest*
 # but include the ones from any testing directory
 #    these are for the unit tests.
 !/tests/data/*.img
+test_bin/Release
+stem3/debug_data/STO_4x4/_0.cfg
+tests/data/test.img
+tests/data/mulswav.img
+tests/data/SrTiO3_test_write_1.cfg

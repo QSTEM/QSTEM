@@ -21,7 +21,7 @@
 #define DETECTORS_H
 
 #include "imagelib_fftw3.hpp"
-#include "wavefunctions.hpp"
+#include "wavefunctions/wave_factory.hpp"
 
 class QSTEM_HELPER_DLL_EXPORT Detector {
   ImageIOPtr m_imageIO;

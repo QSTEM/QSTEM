@@ -26,11 +26,14 @@ class QSTEM_HELPER_DLL_EXPORT CPlaneWave : public CBaseWave
 {
 public:
   CPlaneWave(const ConfigReaderPtr &configReader);
+  CPlaneWave(const CPlaneWave& other);
   CPlaneWave();
   virtual void FormProbe();
   void TiltBeam(bool tiltBack=false);
   void TiltBack();
   virtual void DisplayParams();
+
+  WavePtr Clone();
 
   // ReadImage is for TEM mode
   void ReadImage();

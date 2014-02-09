@@ -32,13 +32,18 @@ CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : CBaseWav
 }
 
 /** Copy constructor - used to copy wave just before dispatching multiple threads for STEM simulations */
-CConvergentWave::CConvergentWave(const WavePtr& other) : CBaseWave(other)
+CConvergentWave::CConvergentWave(const CConvergentWave& other) : CBaseWave(other)
 {
   // TODO: need to copy arrays and anything pointed to - anything that needs to be thread-local
 }
 
 CConvergentWave::CConvergentWave() : CBaseWave()
 {
+}
+
+WavePtr CConvergentWave::Clone()
+{
+	return WavePtr(new CConvergentWave(*this));
 }
 
 void CConvergentWave::DisplayParams()
@@ -128,14 +133,12 @@ void CConvergentWave::DisplayParams()
 void CConvergentWave::FormProbe()
 {
   // static char *plotFile = "probePlot.dat",systStr[32];
-  int ix, iy, ixmid, iymid;
-  int CsDefAstOnly = 0;
-  float rmin, rmax, aimin, aimax;
+  unsigned ix, iy, ixmid, iymid;
+  ///int CsDefAstOnly = 0;
+  float_tt rmin, rmax, aimin, aimax;
   // float **pixr, **pixi;
-  double  kx, ky, ky2,k2, ktheta2, ktheta, k2max, v0, wavlen,x,y,
-    scale, pixel,alpha,
-    df, df_eff, chi1, chi2,chi3, sum, chi, time,r,phi;
-  double envelope;
+  float_tt k2max, x, y, scale, pixel,alpha, r;
+  //double envelope;
 
   // FILE *fp=NULL;
 
@@ -177,6 +180,9 @@ void CConvergentWave::FormProbe()
   ixmid = m_nx/2;
   iymid = m_ny/2;
 
+  // Start in Fourier space
+  ToFourierSpace();
+
   /* convert convergence angle from mrad to rad */
   alpha = 0.001*m_alpha;
   k2max = sin(alpha)/m_wavlen;  /* = K0*sin(alpha) */
@@ -194,20 +200,20 @@ void CConvergentWave::FormProbe()
   pixel = ( rx2 + ry2 );
   scale = 1.0/sqrt((double)m_nx*(double)m_ny);
 
-  for( iy=0; iy<m_ny; iy++) {
-    ky = (double) iy;
+  for(iy=0; iy<m_ny; iy++) {
+    float_tt ky = (float_tt) iy;
     if( iy > iymid ) ky = (double) (iy-m_ny);
-    ky2 = ky*ky*ry2;
-    for( ix=0; ix<m_nx; ix++) {
-      kx = (double) ix;
+    float_tt ky2 = ky*ky*ry2;
+    for(ix=0; ix<m_nx; ix++) {
+      float_tt kx = (double) ix;
       if( ix > ixmid ) kx = (double) (ix-m_nx);
-      k2 = kx*kx*rx2 + ky2;
-      ktheta2 = k2*(m_wavlen*m_wavlen);
-      ktheta = sqrt(ktheta2);
-      phi = atan2(ry*ky,rx*kx);
+      float_tt k2 = kx*kx*rx2 + ky2;
+      float_tt ktheta2 = k2*(m_wavlen*m_wavlen);
+      float_tt ktheta = sqrt(ktheta2);
+      float_tt phi = atan2(ry*ky,rx*kx);
       
 	  // defocus, astigmatism, and shift:
-      chi = ktheta2*(m_df0+delta + m_astigMag*cos(2.0*(phi-m_astigAngle)))/2.0;
+      float_tt chi = ktheta2*(m_df0+delta + m_astigMag*cos(2.0*(phi-m_astigAngle)))/2.0;
       ktheta2 *= ktheta;  // ktheta^3 
       if ((m_a33 > 0) || (m_a31 > 0)) {
         chi += ktheta2*(m_a33*cos(3.0*(phi-m_phi33))+m_a31*cos(phi-m_phi31))/3.0;
@@ -283,7 +289,8 @@ void CConvergentWave::FormProbe()
 
   /*  Normalize probe intensity to unity  */
   
-  sum = 0.0;
+  /*
+  float_tt sum = 0.0;
   for( ix=0; ix<m_nx; ix++) 
     for( iy=0; iy<m_ny; iy++) 
       sum +=  m_wave[ix+m_nx*iy][0]*m_wave[ix+m_nx*iy][0]
@@ -298,6 +305,7 @@ void CConvergentWave::FormProbe()
       m_wave[ix+m_nx*iy][0] *= (float) scale;
       m_wave[ix+m_nx*iy][1] *= (float) scale;
     }
+	*/
 
   /*  Output results and find min and max to echo
       remember that complex pix are stored in the file in FORTRAN

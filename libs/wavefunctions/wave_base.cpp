@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "wavefunctions.hpp"
+#include "wave_base.hpp"
 
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext)
 {
@@ -61,14 +61,14 @@ CBaseWave::CBaseWave(const ConfigReaderPtr &configReader)
 }
 
 /** Copy constructor - make sure arrays are deep-copied */
-CBaseWave::CBaseWave(const WavePtr &other)
+CBaseWave::CBaseWave(const CBaseWave &other)
   : m_fftPlanWaveForw(NULL)
   , m_fftPlanWaveInv(NULL)
 {
   // TODO: make sure arrays are deep copied
-  other->GetSizePixels(m_nx, m_ny);
-  other->GetResolution(m_dx, m_dy);
-  m_v0=other->GetVoltage();
+  other.GetSizePixels(m_nx, m_ny);
+  other.GetResolution(m_dx, m_dy);
+  m_v0=other.GetVoltage();
   
   Initialize(".img", ".img");
 }
@@ -260,7 +260,7 @@ void CBaseWave::_WriteWave(std::string &fileName, std::string comment,
   //params["Convergence Angle"] = m_alpha;
   //params["Beam Tilt X"] = m_btiltx;
   //params["Beam Tilt Y"] = m_btilty;
-  m_imageIO->WriteComplexImage(m_wave, fileName, params, comment, m_position);
+  m_imageIO->WriteImage(m_wave, fileName, params, comment, m_position);
 }
 
 void CBaseWave::_WriteDiffPat(std::string &fileName, std::string comment,
@@ -268,7 +268,7 @@ void CBaseWave::_WriteDiffPat(std::string &fileName, std::string comment,
 {
   params["dx"]=1.0/(m_nx*m_dx);
   params["dy"]=1.0/(m_ny*m_dy);
-  m_imageIO->WriteRealImage(m_diffpat, fileName, params, comment, m_position);
+  m_imageIO->WriteImage(m_diffpat, fileName, params, comment, m_position);
 }
 
 

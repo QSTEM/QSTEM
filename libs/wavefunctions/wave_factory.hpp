@@ -36,7 +36,7 @@ public:
 
   void Register(const std::string &type, CreateWaveFn pfnCreate);
   // Looks up which reader to get based on string mapping of registered readers
-  WavePtr GetWave(const std::string &type, ConfigReaderPtr &reader);
+  WavePtr GetWave(const std::string &type, const ConfigReaderPtr &reader);
 
 private:
   CWaveFactory();

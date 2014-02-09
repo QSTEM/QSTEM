@@ -19,6 +19,7 @@
 
 #include "cbed.hpp"
 #include "random.hpp"
+#include "memory_fftw3.hpp"
 
 CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {

@@ -43,9 +43,11 @@ public:
   CBaseWave(unsigned nx, unsigned ny, float_tt resX, float_tt resY, std::string input_ext, std::string output_ext);
   CBaseWave(const ConfigReaderPtr &configReader);
   // define a copy constructor to create new arrays
-  CBaseWave( const WavePtr& other );
+  CBaseWave( const CBaseWave& other );
   CBaseWave();
   ~CBaseWave();
+
+  virtual WavePtr Clone()=0;
 
   void Resize(unsigned x, unsigned y);
   void CreateDataSets();
