@@ -55,12 +55,6 @@ protected:
 
 public:
   template <typename T>
-  inline void ReadImageData(const std::string &filename, const std::vector<unsigned> &position,
-                             T &pix)
-  {
-	  static_cast<Derived*>(this)->_ReadImageData(filename, position, (void *)&pix[0]);
-  };
-  template <typename T>
   inline void ReadImageData(const std::string &filename, T &pix)
   {
     std::vector<unsigned> position;
@@ -70,7 +64,7 @@ public:
   inline void ReadImageData(const std::string &filename, unsigned position, T &pix)
   {
     std::vector<unsigned> posvec(1);
-	posvec[0]=position;
+    posvec[0]=position;
     return ReadImageData(filename, posvec, pix);
   }
 
@@ -144,7 +138,7 @@ public:
   {
 	  ReadParameters(filename, position, params);
 	  ReadComment(filename, position, comment);
-	  ReadImageData(filename, posiiton, pix);
+	  ReadImageData(filename, position, pix);
   };
   template <typename T>
   inline void ReadImage(const std::string &filename, T &pix, std::map<std::string, double> &params,

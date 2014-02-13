@@ -63,7 +63,7 @@ void CExperimentBase::DisplayParams() {
   strftime( Time, 9, "%H:%M:%S", mytime );
   
   printf("\n*****************************************************\n");
-  printf("* Running program STEM3 (version %.2f) in %s mode\n",VERSION, m_mode.c_str());
+  printf("* Running program STEM3 (version %s) in %s mode\n",VERSION, m_mode.c_str());
   printf("* Date: %s, Time: %s\n",Date,Time);
   
   // create the data folder ... 
