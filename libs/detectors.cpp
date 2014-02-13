@@ -69,7 +69,7 @@ void Detector::WriteImage(std::map<std::string, double> &params,
   params["dy"]=m_dy;
   std::string comment;
   // Thickness is set externally and passed in on params
-  m_imageIO->WriteRealImage(m_image, m_name, params, comment, position);
+  m_imageIO->WriteImage(m_image, m_name, params, comment, position);
 }
 
 void Detector::CollectIntensity(const WavePtr &wave)

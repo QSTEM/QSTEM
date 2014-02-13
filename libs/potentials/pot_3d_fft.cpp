@@ -492,7 +492,7 @@ void C3DFFTPotential::GetAtomPotential3D(unsigned Znum, float_tt B,
     // This scattering factor agrees with Kirkland's scattering factor fe(q)
     sprintf(fileName,"pot_rec_%d.img",Znum);
     imageio->SetThickness(m_sliceThickness);
-    imageio->WriteComplexImage((void**)temp, fileName);
+    imageio->WriteImage((void**)temp, fileName);
 #endif        
     // This converts the 2D kx-kz map of the scattering factor to a 2D real space map.
 #if FLOAT_PRECISION ==1
@@ -693,7 +693,7 @@ void C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigne
                                       "rec. space potential"));
     // This scattering factor agrees with Kirkland's scattering factor fe(q)
     imageio->SetThickness(m_sliceThickness);
-    imageio->WriteComplexImage((void**)temp, fileName);
+    imageio->WriteImage((void**)temp, fileName);
 #endif        
 
 #if FLOAT_PRECISION ==1
@@ -736,7 +736,7 @@ void C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigne
     imageio->SetThickness(nz*m_sliceThickness/nzPerSlice);
     sprintf(fileName,"potentialOffs_rz_%d.img",Znum);
     ptr = atPot[Znum];
-    imageio->WriteComplexImage((void**)ptr, fileName);
+    imageio->WriteImage((void**)ptr, fileName);
 #endif        
     if (m_printLevel > 1) printf("Created 3D (r-z) %d x %d potential offset array for Z=%d (B=%g, dkx=%g, dky=%g. dkz=%g,sps=%d)\n",
                                      nx/2,nz/2,Znum,B,dkx,dky,dkz,izOffset);

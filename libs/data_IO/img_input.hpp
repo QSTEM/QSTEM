@@ -21,6 +21,7 @@
 #define IMG_READER_H
 
 #include "input_interface.hpp"
+#include "stemtypes_fftw3.hpp"
 
 class CImgReader : public IDataReader
 {
@@ -39,7 +40,12 @@ class CImgReader : public IDataReader
   double m_dx,m_dy;    // size of one pixel
 public:
   CImgReader();
-  virtual void ReadImageData(const std::string &filename, const std::vector<unsigned> &position, void *pix);
+  void ReadImageData(const std::string &filename, const std::vector<unsigned> &position, RealVector &data);
+  void ReadImageData(const std::string &filename, const std::vector<unsigned> &position, ComplexVector &data);
+  void ReadImage(const std::string &filename, const std::vector<unsigned> &position, RealVector &data,
+				std::map<std::string, double> &params, std::string &comment);
+  void ReadImage(const std::string &filename, const std::vector<unsigned> &position, ComplexVector &data,
+				std::map<std::string, double> &params, std::string &comment);
   virtual void ReadComment(const std::string &filename, const std::vector<unsigned> &position, std::string &comment);
   virtual void ReadParameters(const std::string &filename, const std::vector<unsigned> &position, 
                               std::map<std::string, double> &parameters);
@@ -49,23 +55,20 @@ public:
                            const std::vector<unsigned> &position, bool &complex);
   virtual void ReadElementByteSize(const std::string &filename, 
                                    const std::vector<unsigned> &position, unsigned &elementByteSize);
-
-  virtual void ReadImage(const std::string &filename, const std::vector<unsigned> &position, 
-                         void *pix, std::map<std::string, double> &params,
-                         std::string &comment);
+  
 protected:
   std::vector<double> m_params;  // array for additional parameters
   std::string m_comment;   // comment of prev. specified length
   char m_buf[200];  // General purpose temporary text buffer
-  virtual void ReadHeader(const std::string &fileName);
+  virtual void ReadHeader(const std::string &fileName, const std::vector<unsigned> &position);
   std::string BuildFilenameString(const std::string &label, const std::vector<unsigned> &position);
   void _ReadComment(std::string &comment);
   void _ReadParameters(std::map<std::string, double> &params);
-  void _ReadImageData(const std::string &filename, void *pix);
   void _ReadSize(unsigned &nx, unsigned &ny);
   void _ReadElementByteSize(unsigned &elementByteSize);
   void _ReadComplex(bool &complex);
 
+  void _ReadImageData(const std::string &filename, const std::vector<unsigned> &position, void *pix);
 
 private:
   friend class CDataReaderFactory;

@@ -32,7 +32,7 @@ void CImgWriter::Initialize(std::string dirOrFileName, std::string run_id)
   // TODO: create the output folder if it doesn't exist
 }
 
-void CImgWriter::WriteComplexImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
+void CImgWriter::WriteImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
@@ -41,7 +41,7 @@ void CImgWriter::WriteComplexImage(const ComplexVector &data, const std::vector<
   WriteData((void *)&data[0], is_complex, dataSize, shape, label, position, comment, parameters);
 }
 
-void CImgWriter::WriteRealImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
+void CImgWriter::WriteImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
@@ -65,10 +65,10 @@ void CImgWriter::WriteData(void *pix, bool is_complex, unsigned dataSize, const 
     }
   filename<<".img";
 
-  std::fstream file(filename.str().c_str(), std::ios::out|std::ios::binary);
+  std::ofstream file(filename.str().c_str(), std::ios::out|std::ios::binary);
 
-  // Sychronize lengths of comments and parameters
-  size_t paramSize = parameters.size();
+  // Sychronize lengths of comments and parameters. -3 is because Thickness, dx, dy are used automatically.
+  size_t paramSize = parameters.size()-3;
   std::map<std::string, double>::const_iterator param;
 
   // TODO: need to parse parameters to pull out thickness, complexFlag, and dataSize.

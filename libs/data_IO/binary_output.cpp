@@ -75,7 +75,7 @@ void CBinaryOutput::WriteComplexVolume(complex_tt *data, std::vector<unsigned> s
   DescribeFile(shape, sizeof(complex_tt), label, position, comment, parameters);
 }
 
-void CBinaryOutput::WriteRealImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
+void CBinaryOutput::WriteImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
@@ -83,7 +83,7 @@ void CBinaryOutput::WriteRealImage(const RealVector &data, const std::vector<uns
   DescribeFile(shape, sizeof(float_tt), label, position, comment, parameters);
 }
 
-void CBinaryOutput::WriteComplexImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
+void CBinaryOutput::WriteImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters)
 {
@@ -92,7 +92,7 @@ void CBinaryOutput::WriteComplexImage(const ComplexVector &data, const std::vect
 }
 
 /*
-void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<unsigned> position, 
+void CBinaryOutput::WriteImage(QSfMat data, std::string label, std::vector<unsigned> position, 
                     std::map<std::string, double> parameters)
 {
   std::vector<unsigned> shape(2);
@@ -103,7 +103,7 @@ void CBinaryOutput::WriteRealImage(QSfMat data, std::string label, std::vector<u
 }
 
 
-void CBinaryOutput::WriteComplexImage(QScMat data, std::string label, std::vector<unsigned> position, 
+void CBinaryOutput::WriteImage(QScMat data, std::string label, std::vector<unsigned> position, 
                        std::map<std::string, double> parameters)
 {
   std::vector<unsigned> shape(2);

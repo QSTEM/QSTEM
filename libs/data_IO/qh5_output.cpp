@@ -45,14 +45,14 @@ void CQH5Output::CreateComplexDataSet(std::string name, unsigned size_x, unsigne
   m_qh5->CreateComplexDataSet(name, size_x, size_y, positions);
 }
 
-void CQH5Output::WriteRealImage(float_tt **data, std::vector<unsigned int> &shape, std::string &label, 
+void CQH5Output::WriteImage(float_tt **data, std::vector<unsigned int> &shape, std::string &label, 
                            std::vector<unsigned int> &position, std::string &comment, 
                            std::map<std::string, double> &parameters)
 {  
   m_qh5->WriteRealDataSlab(*data, label, shape[0], shape[1], position, parameters);
 }
 
-void CQH5Output::WriteComplexImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label,
+void CQH5Output::WriteImage(complex_tt **data, std::vector<unsigned> &shape, std::string &label,
                               std::vector<unsigned> &position, std::string &comment, 
                               std::map<std::string, double> &parameters)
 {

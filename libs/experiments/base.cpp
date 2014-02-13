@@ -29,7 +29,7 @@ CExperimentBase::CExperimentBase(const ConfigReaderPtr &configReader) : IExperim
   //    provide enough information to determine this ATM.
 
   // Read potential parameters and initialize a pot object
-  m_potential = CPotFactory::Get()->GetPotential(configReader);
+  //m_potential = CPotFactory::Get()->GetPotential(configReader);
   DisplayParams();
 }
 
@@ -452,7 +452,7 @@ void CExperimentBase::_WriteAvgArray(std::string &fileName, std::string &comment
   //params["dx"]=1.0/(m_nx*m_dx);
   //params["dy"]=1.0/(m_ny*m_dy);
   params["Thickness"]=m_thickness;
-  m_imageIO->WriteRealImage(m_avgArray, fileName, params, comment, position);
+  m_imageIO->WriteImage(m_avgArray, fileName, params, comment, position);
 }
 
 void CExperimentBase::ReadAvgArray()

@@ -397,7 +397,7 @@ void CPotential::MakeSlices(int nlayer,char *fileName, atom *center)
 
       WriteSlice(iz);
 
-      //imageIO->WriteComplexImage((void **)m_trans[iz], params, std::string(buf));
+      //imageIO->WriteImage((void **)m_trans[iz], params, std::string(buf));
     } // loop through all slices
   } /* end of if savePotential ... */
   if (m_saveProjectedPotential) {
@@ -465,7 +465,7 @@ void CPotential::WriteSlice(unsigned idx)
     params["Thickness"]=m_sliceThickness;
     sprintf(buf,"Projected Potential (slice %d)",idx);
     std::string comment = buf;
-    m_imageIO->WriteComplexImage(m_trans[idx], kPotFileName, params, comment);
+    m_imageIO->WriteImage(m_trans[idx], kPotFileName, params, comment);
 }
 
 void CPotential::WriteProjectedPotential()
@@ -493,7 +493,7 @@ void CPotential::WriteProjectedPotential()
   sprintf(buf,"Projected Potential (sum of %d slices)",m_nslices);
   std::string comment = buf;
   std::string fileName = "ProjectedPot";
-  m_imageIO->WriteRealImage(tempPot, fileName, params, comment);
+  m_imageIO->WriteImage(tempPot, fileName, params, comment);
 }
 
 /*

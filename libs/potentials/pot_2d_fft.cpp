@@ -246,7 +246,7 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
                                       "potential"));
     // This scattering factor agrees with Kirkland's scattering factor fe(q)
     m_imageIO->SetThickness(m_sliceThickness);
-    m_imageIO->WriteComplexImage((void**)atPot[Znum], fileName);
+    m_imageIO->WriteImage((void**)atPot[Znum], fileName);
 #endif
 #if FLOAT_PRECISION == 1
     fftwf_complex *ptr=(fftwf_complex *)&m_atPot[Znum][0];
@@ -270,7 +270,7 @@ complex_tt *C2DFFTPotential::GetAtomPotential2D(int Znum, double B) {
     // This scattering factor agrees with Kirkland's scattering factor fe(q)
     //imageio->SetThickness(nz*m_sliceThickness/nzPerSlice);
     sprintf(fileName,"potential_%d.img",Znum);
-    imageio->WriteComplexImage((void**)atPot[Znum], fileName);
+    imageio->WriteImage((void**)atPot[Znum], fileName);
 #endif
     printf("Created 2D %d x %d potential array for Z=%d (B=%g A^2)\n",nx,ny,Znum,B);
   }

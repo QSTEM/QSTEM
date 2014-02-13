@@ -28,17 +28,17 @@ public:
                                   std::vector<unsigned> position=std::vector<unsigned>(), 
                                   std::string comment=std::string(),
                                   std::map<std::string, double> parameters=std::map<std::string, double>());
-  virtual void WriteRealImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
+  virtual void WriteImage(const RealVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters);
-  virtual void WriteComplexImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
+  virtual void WriteImage(const ComplexVector &data, const std::vector<unsigned> &shape, const std::string &label, 
                                   const std::vector<unsigned> &position, const std::string &comment, 
 								  const std::map<std::string, double> &parameters);
 
   /*
-  virtual void WriteRealImage(QSfMat data, std::string label, std::vector<unsigned> position=std::vector<unsigned>(), 
+  virtual void WriteImage(QSfMat data, std::string label, std::vector<unsigned> position=std::vector<unsigned>(), 
                       std::map<std::string, double> parameters=std::map<std::string, double>());
-  virtual void WriteComplexImage(QScMat data, std::string label, std::vector<unsigned> position=std::vector<unsigned>(), 
+  virtual void WriteImage(QScMat data, std::string label, std::vector<unsigned> position=std::vector<unsigned>(), 
                          std::map<std::string, double> parameters=std::map<std::string, double>());
   */
 protected:

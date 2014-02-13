@@ -28,7 +28,7 @@ std::string AddPositionToFilename(const std::string &label, const std::vector<un
   
   for (unsigned idx=0; idx<position.size(); idx++)
     {
-      filename<<"_"<<idx;
+      filename<<"_"<<position[idx];
     }  
   return filename.str();
 }
