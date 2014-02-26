@@ -4,6 +4,7 @@ compiler: gcc
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libfftw3-dev libboost-dev libboost-filesystem-dev libboost-test-dev
+  - sudo pip install cpp-coveralls --use-mirrors
 
 before_script:
   - mkdir build
@@ -11,4 +12,7 @@ before_script:
   - cmake ..
   
 script: make && make test
+
+after_success:
+  - coveralls --exclude tests
 
