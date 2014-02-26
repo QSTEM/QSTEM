@@ -10,3 +10,5 @@ http://qstem.org
 
 Build instructions here:
 http://qstem.org/?page_id=14
+
+[![Build Status](https://travis-ci.org/QSTEM/QSTEM.png?branch=master)](https://travis-ci.org/QSTEM/QSTEM)
