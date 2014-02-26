@@ -1,7 +1,7 @@
 language: cpp
 script: cmake
 
-before_script:
+before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libfftw3-dev libboost-dev libboost-filesystem-dev libboost-test-dev
 
