@@ -1,5 +1,6 @@
 language: cpp
 script: cmake
+compiler: gcc 
 
 before_script:
   - sudo apt-get update -qq
@@ -8,5 +9,17 @@ before_script:
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=Release ..
 
-compiler: gcc 
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libfftw3-dev libboost-dev libboost-filesystem-dev libboost-test-dev
+  - sudo pip install cpp-coveralls --use-mirrors
 
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+  
+script: make && make test
+
+after_success:
+  - coveralls --exclude test
