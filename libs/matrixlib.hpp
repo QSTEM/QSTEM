@@ -21,10 +21,12 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define MATRIXLIB_H
 
 #include "stemtypes_fftw3.hpp"
-#include "data_containers.hpp"
 
 #define PI 3.1415926535898
 #define PI180 1.7453292519943e-2
+
+namespace QSTEM
+{
 
 void ludcmp(float_tt **a, int n, int *indx, float_tt *d);
 void lubksb(float_tt **a, int n, int *indx, float_tt b[]);
@@ -45,7 +47,7 @@ void showMatrix(float_tt **M,int Nx, int Ny,char *name);
 void vectDiff_f(float *a, float_tt *b, float_tt *c,int revFlag);
 float_tt vectLength(float_tt *vect);
 void makeCellVect(grainBox *grain, float_tt *vax, float_tt *vby, float_tt *vcz);
-void makeCellVectMuls(MULS *muls, float_tt *vax, float_tt *vby, float_tt *vcz);
+//void makeCellVectMuls(MULS *muls, float_tt *vax, float_tt *vby, float_tt *vcz);
 void rotateVect(float_tt *vectIn,float_tt *vectOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
 void rotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi_x, float_tt phi_y, float_tt phi_z);
 
@@ -55,5 +57,7 @@ float_tt vectLength(float_tt *vect);
 /* c = a*b */
 void matrixProduct(float_tt **a,int Nxa, int Nya, float_tt **b,int Nxb, int Nyb, float_tt **c);
 void matrixProductInt(float_tt **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, float_tt **c);
+
+} // end namespace QSTEM
 
 #endif

@@ -19,6 +19,9 @@
 
 #include "tem.hpp"
 
+namespace QSTEM
+{
+
 CExperimentTEM::CExperimentTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
   m_mode="TEM";
@@ -309,3 +312,5 @@ void CExperimentTEM::SaveImages()
 {
   // TODO: define the images that should be saved
 }
+
+} // end namespace QSTEM

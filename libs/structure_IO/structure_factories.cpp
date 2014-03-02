@@ -22,6 +22,10 @@
 #include "structure_factories.hpp"
 #include "cfg.hpp"
 
+
+namespace QSTEM
+{
+  
 /************** Structure readers *************/
 
 CStructureReaderFactory::CStructureReaderFactory()
@@ -78,4 +82,6 @@ std::string extension = filename.extension().string();
   if( it != m_FactoryMap.end() )
     return it->second(filename, ax, by, cz);
   return StructureWriterPtr();
+}
+
 }

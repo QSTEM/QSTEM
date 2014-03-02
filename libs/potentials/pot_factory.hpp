@@ -28,6 +28,8 @@
 // Include this because we use ConfigReaderPtr below.
 #include "config_IO/config_reader_factory.hpp"
 
+namespace QSTEM
+{
 
 // Factory for creating instances of IPotential
 class QSTEM_HELPER_DLL_EXPORT CPotFactory
@@ -57,5 +59,7 @@ public:
   //    Has side effect of initializing pot automatically for you using the passed in configReader.
   PotPtr GetPotential(const ConfigReaderPtr &configReader);
 };
+
+}
 
 #endif

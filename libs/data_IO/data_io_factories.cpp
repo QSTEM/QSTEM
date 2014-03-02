@@ -21,11 +21,12 @@
 
 #include "data_io_factories.hpp"
 
-
 /************** data readers *************/
 
 #include "img_input.hpp"
 
+namespace QSTEM
+{
 CDataReaderFactory::CDataReaderFactory()
 {
   Register(".img",    &CImgReader::Create);
@@ -43,12 +44,14 @@ DataReaderPtr CDataReaderFactory::GetReader(const std::string &extension)
     return it->second();
   return DataReaderPtr();
 }
+}
 
 
 /********** data writers **************/
 
 #include "img_output.hpp"
-
+namespace QSTEM
+{
 CDataWriterFactory::CDataWriterFactory()
 {
   Register(".img",    &CImgWriter::Create);
@@ -67,3 +70,4 @@ DataWriterPtr CDataWriterFactory::GetWriter(const std::string &extension)
   return DataWriterPtr();
 }
 
+}

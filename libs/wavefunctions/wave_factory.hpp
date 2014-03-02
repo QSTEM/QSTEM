@@ -26,6 +26,9 @@
 #include "config_IO/config_reader_factory.hpp"
 #include <boost/filesystem.hpp>
 
+namespace QSTEM
+{
+
 // Factory for creating instances of IWave
 class QSTEM_HELPER_DLL_EXPORT CWaveFactory
 {
@@ -46,5 +49,7 @@ private:
   typedef std::map<std::string, CreateWaveFn> FactoryMap;
   FactoryMap m_FactoryMap;
 };
+
+}
 
 #endif

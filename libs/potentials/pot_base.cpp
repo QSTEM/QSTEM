@@ -22,6 +22,9 @@
 const std::string kPotFileName = "potslice";
 const int BUF_LEN = 256;
 
+namespace QSTEM
+{
+
 CPotential::CPotential() : IPotential()
 {
 }
@@ -707,3 +710,5 @@ void CPotential::ResizeSlices()
       (*slice).resize(m_nx*m_ny);
     }
 }
+
+} // end namespace QSTEM

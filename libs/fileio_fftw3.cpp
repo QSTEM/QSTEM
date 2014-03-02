@@ -88,7 +88,8 @@ double massArray[MAX_MASS_INDEX]={1.008,                                        
 /* so far this list goes up to Xe (from Gerthsen) .. Ta (webelememts) */
 double chargeTable[MAX_MASS_INDEX];
 
-
+namespace QSTEM
+{
 
 // #define NCINMAX 500
 // #define NPARAM	64    /* number of parameters */
@@ -357,3 +358,5 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 		fprintf(fp,"end\n");
 	}  // end of if fp != NULL
 }
+
+} // end namespace QSTEM

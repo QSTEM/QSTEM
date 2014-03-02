@@ -23,6 +23,9 @@
 
 #include "read_qsc.hpp"
 
+namespace QSTEM
+{
+
 CConfigReaderFactory::CConfigReaderFactory()
 {
 	Register(".qsc",    &CQscReader::Create);
@@ -42,4 +45,6 @@ ConfigReaderPtr CConfigReaderFactory::GetReader(const std::string &filename)
   if( it != m_FactoryMap.end() )
     return it->second(filepath);
   return ConfigReaderPtr();
+}
+
 }

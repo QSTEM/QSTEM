@@ -23,6 +23,9 @@
 #ifndef POTENTIAL_INTERFACE_H
 #define POTENTIAL_INTERFACE_H
 
+namespace QSTEM
+{
+
 class IPotential;
 typedef boost::shared_ptr<IPotential> PotPtr;
 typedef PotPtr (*CreatePotentialFn)(void); 
@@ -61,5 +64,7 @@ public:
   virtual void GetSlice(unsigned idx, ComplexVector &vec)=0;
   virtual complex_tt GetSlicePixel(unsigned iz, unsigned ix, unsigned iy)=0;
 };
+
+}
 
 #endif

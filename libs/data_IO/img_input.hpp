@@ -23,6 +23,9 @@
 #include "input_interface.hpp"
 #include "stemtypes_fftw3.hpp"
 
+namespace QSTEM
+{
+
 class CImgReader : public IDataReader
 {
 	// The order of these data members matters!  Don't shuffle them.  Don't move them.  
@@ -76,5 +79,7 @@ private:
   //     This should not be inherited - any subclass needs its own implementation.
   static DataReaderPtr Create(void){return DataReaderPtr(new CImgReader());}
 };
+
+}
 
 #endif

@@ -24,6 +24,9 @@
 #endif
 #endif
 
+namespace QSTEM
+{
+
 CImageIO::CImageIO(int nx, int ny, std::string input_extension, std::string output_extension) :
 m_nx(nx),
 m_ny(ny)
@@ -94,3 +97,5 @@ std::vector<unsigned> CImageIO::GetShapeVector()
   size[1]=m_ny;
   return size;
 }
+
+} // end namespace QSTEM

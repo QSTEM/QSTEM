@@ -22,6 +22,9 @@
 
 #include "readparams.hpp"
 
+namespace QSTEM
+{
+
 CCfgReader::CCfgReader(const boost::filesystem::path &filename)
 {
   m_fp = fopen(filename.string().c_str(), "r" );
@@ -290,3 +293,4 @@ int CCfgWriter::WriteFractCubic(double *pos,int *Znum,double *dw,int natoms,char
   return 1;
 }
 
+} // end namespace QSTEM

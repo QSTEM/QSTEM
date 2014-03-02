@@ -23,6 +23,8 @@
 
 #include "data_IO/data_io_factories.hpp"
 
+using namespace QSTEM;
+
 struct imgReaderFixture {
   imgReaderFixture()
   {

@@ -23,6 +23,9 @@
 // for memset
 #include <cstring>
 
+namespace QSTEM
+{
+
 C3DFFTPotential::C3DFFTPotential() : C3DPotential()
 {
 }
@@ -749,4 +752,4 @@ void C3DFFTPotential::GetAtomPotentialOffset3D(unsigned Znum, float_tt B,unsigne
 // #undef SHOW_SINGLE_POTENTIAL
 // end of fftwf_complex *getAtomPotential3D(...)
 
-
+} // end namespace QSTEM

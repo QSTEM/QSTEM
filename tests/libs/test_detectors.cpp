@@ -25,6 +25,8 @@
 
 #include "detectors.hpp"
 
+using namespace QSTEM;
+
 struct DetectorFixture {
   DetectorFixture() :
     det(DetectorPtr(new Detector(10, 10, 0.2f, 0.2f, 25.0f)))

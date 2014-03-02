@@ -1,7 +1,9 @@
 #include "binary_output.hpp"
 
 #include "boost/filesystem.hpp"   
-using namespace boost::filesystem; 
+
+namespace QSTEM
+{
 
 CBinaryOutput::CBinaryOutput() : IDataWriter()
 {
@@ -113,3 +115,5 @@ void CBinaryOutput::WriteImage(QScMat data, std::string label, std::vector<unsig
   DescribeFile(shape, label, position, parameters);
 }
 */
+
+} // end namespace QSTEM

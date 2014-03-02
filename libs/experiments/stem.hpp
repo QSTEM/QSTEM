@@ -22,7 +22,9 @@
 
 #include "base.hpp"
 #include "detectors.hpp"
-
+namespace QSTEM
+{
+  
 class QSTEM_HELPER_DLL_EXPORT CExperimentSTEM : public CExperimentBase
 {
 public:
@@ -46,6 +48,7 @@ private:
 
 };
 
+}
 #endif
 
 

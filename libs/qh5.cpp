@@ -22,6 +22,9 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace QSTEM
+{
+
 QH5::QH5() :
   m_file(-1)
 {
@@ -225,3 +228,4 @@ void QH5::WriteParameters(hid_t dataset,
     }
 }
 
+}  // end namespace QSTEM

@@ -19,6 +19,9 @@
 
 #include "wave_convergent.hpp"
 
+namespace QSTEM
+{
+
 CConvergentWave::CConvergentWave(const ConfigReaderPtr &configReader) : CBaseWave(configReader)
 {
   // TODO: where does beam current belong?
@@ -332,3 +335,5 @@ void CConvergentWave::FormProbe()
   /**********************************************************/
 
 }  /* end probe() */
+
+} // end namespace QSTEM

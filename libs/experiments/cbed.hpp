@@ -22,6 +22,9 @@
 
 #include "base.hpp"
 
+namespace QSTEM
+{
+  
 class CExperimentCBED : public CExperimentBase
 {
 public:
@@ -48,6 +51,7 @@ protected:
 
 };
 
+}
 #endif
 
 

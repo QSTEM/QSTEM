@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   else
     fileName=argv[1];
   // Initialize the config file reader
-  ConfigReaderPtr configReader = CConfigReaderFactory::Get()->GetReader(fileName);
+  QSTEM::ConfigReaderPtr configReader = QSTEM::CConfigReaderFactory::Get()->GetReader(fileName);
   
   if (!configReader->IsValid())
     {
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
       usage();
     }
   
-  ExperimentPtr expt = GetExperiment(configReader);
+  QSTEM::ExperimentPtr expt = QSTEM::GetExperiment(configReader);
   expt->Run();
 
 #if _DEBUG

@@ -26,6 +26,9 @@
 #include <string>
 #include <vector>
 
+namespace QSTEM
+{
+
 class IConfigReader;
 typedef boost::shared_ptr<IConfigReader> ConfigReaderPtr;
 typedef ConfigReaderPtr (*CreateReaderFn)(boost::filesystem::path &filename);
@@ -107,5 +110,7 @@ public:
 protected:
   bool m_isValid;
 };
+
+}
 
 #endif

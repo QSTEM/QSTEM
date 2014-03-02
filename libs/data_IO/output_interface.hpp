@@ -27,6 +27,9 @@
 #include "stemtypes_fftw3.hpp"
 #include "boost/shared_ptr.hpp"
 
+namespace QSTEM
+{
+
 class IDataWriter;
 typedef boost::shared_ptr<IDataWriter> DataWriterPtr;
 typedef DataWriterPtr (*CreateDataWriterFn)();
@@ -85,14 +88,7 @@ public:
   }
 };
 
+
+}
+
 #endif
-
-
-
-
-
-
-
-
-
-

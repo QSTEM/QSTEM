@@ -28,6 +28,9 @@
 
 static std::string avgFilePrefix="diffAvg";
 
+namespace QSTEM
+{
+
 class QSTEM_HELPER_DLL_EXPORT CExperimentBase : public IExperiment
 {
 public:
@@ -113,14 +116,5 @@ protected:
   std::vector<float_tt> m_propxr, m_propxi, m_propyr, m_propyi;
 };
 
+}
 #endif
-
-
-
-
-
-
-
-
-
-

@@ -22,6 +22,9 @@
 #include "experiments/cbed.hpp"
 #include "experiments/tem.hpp"
 
+namespace QSTEM
+{
+
 ExperimentPtr GetExperiment(ConfigReaderPtr &configReader)
 {
   std::string mode;
@@ -37,23 +40,6 @@ ExperimentPtr GetExperiment(ConfigReaderPtr &configReader)
       printf("Unrecognized experiment type: %s.  Exiting.", mode.c_str());
       exit(-1);
     }
-
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}

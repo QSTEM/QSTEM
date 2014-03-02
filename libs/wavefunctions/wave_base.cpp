@@ -19,6 +19,9 @@
 
 #include "wave_base.hpp"
 
+namespace QSTEM
+{
+
 void CreateWaveFunctionDataSets(unsigned x, unsigned y, std::vector<unsigned> positions, std::string output_ext)
 {
   CImageIO imageIO(x, y, "", output_ext);
@@ -402,3 +405,5 @@ void CBaseWave::ToRealSpace()
 #endif
     }
 }
+
+} //end namespace QSTEM

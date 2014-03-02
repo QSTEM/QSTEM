@@ -21,6 +21,9 @@
 
 static std::string imageFilePrefix="image";
 
+namespace QSTEM
+{
+
 CPlaneWave::CPlaneWave(const ConfigReaderPtr &configReader) : CBaseWave(configReader)
 {
 }
@@ -104,3 +107,5 @@ void CPlaneWave::WriteImage()
   std::string comment;
   m_imageIO->WriteImage(m_image, imageFilePrefix, params, comment, m_position);
 }
+
+} // end namespace QSTEM

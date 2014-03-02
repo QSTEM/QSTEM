@@ -22,10 +22,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <string.h>
 #include <math.h> 
 #include "matrixlib.hpp"
-#include "stemtypes_fftw3.hpp"
-// #include "stemlib.hpp"
 #include "memory_fftw3.hpp"
-// #include "nrutil.hpp" 
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdio.h>	/* ANSI C libraries */
@@ -43,6 +40,9 @@ static float sqrarg = 0.0f;
 #define FMAX(a,b) ((a) > (b) ? (a) : (b))    // maximum of a and b
 #define SIGN(a,b) ((b) >= 0 ? (a) : -(a))    // Magnitude of a times sign of b.
 #define SQR(a) (((sqrarg=(a)) == 0.0) ? 0.0 : sqrarg*sqrarg)
+
+namespace QSTEM
+{
 
 void ludcmp(float_tt **a, int n, int *indx, float_tt *d) {
   /* Given a matrix a[1..n][1..n], this routine replaces it by the
@@ -801,3 +801,4 @@ void matrixProductInt(float_tt **a,int Nxa, int Nya, int **b,int Nxb, int Nyb, f
     }
 }
 
+} // end namespace QSTEM

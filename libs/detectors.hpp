@@ -23,6 +23,9 @@
 #include "imagelib_fftw3.hpp"
 #include "wavefunctions/wave_factory.hpp"
 
+namespace QSTEM
+{
+
 class QSTEM_HELPER_DLL_EXPORT Detector {
   ImageIOPtr m_imageIO;
 public:
@@ -82,6 +85,7 @@ private:
 
 typedef boost::shared_ptr<DetectorManager> DetectorMgrPtr;
 
+}
 #endif
 
 

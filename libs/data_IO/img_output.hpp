@@ -3,6 +3,9 @@
 
 #include "binary_output.hpp"
 
+namespace QSTEM
+{
+
 class CImgWriter : public CBinaryOutput
 {
   int m_headerSize;
@@ -35,14 +38,7 @@ private:
   static DataWriterPtr Create(void){return DataWriterPtr(new CImgWriter());}
 };
 
+}
+
 #endif
-
-
-
-
-
-
-
-
-
 

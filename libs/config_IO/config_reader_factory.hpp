@@ -25,6 +25,9 @@
 // Include this so that people know what a ConfigReaderPtr is and how to create them
 #include "read_interface.hpp"
 
+namespace QSTEM
+{
+
 // Factory for creating instances of IConfigReader
 class QSTEM_HELPER_DLL_EXPORT CConfigReaderFactory
 {
@@ -49,6 +52,8 @@ private:
   typedef std::map<std::string, CreateReaderFn> FactoryMap;
   FactoryMap m_FactoryMap;
 };
+
+}
 
 #endif
 

@@ -30,7 +30,8 @@ QSTEM - image simulation for TEM/STEM/CBED
 */
 
 
-
+namespace QSTEM
+{
 
 /*---------------------------- float1D() -------------------------------*/
 /*
@@ -654,4 +655,4 @@ void ***any3D( int nx, int ny,int nz,int size, const char *message )
     
 }  /* end any3D() */
 
-
+} // end namespace QSTEM

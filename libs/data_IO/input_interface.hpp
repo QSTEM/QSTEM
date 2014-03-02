@@ -28,6 +28,9 @@
 
 #include "stemtypes_fftw3.hpp"
 
+namespace QSTEM
+{
+
 class IDataReader;
 typedef boost::shared_ptr<IDataReader> DataReaderPtr;
 typedef DataReaderPtr (*CreateDataReaderFn)();
@@ -158,7 +161,7 @@ public:
 };
 
 
-
+}
 
 #endif
 

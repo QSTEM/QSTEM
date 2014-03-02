@@ -21,7 +21,9 @@
 #define CONVERGENT_WAVE_H
 
 #include "wave_base.hpp"
-
+namespace QSTEM
+{
+  
 class QSTEM_HELPER_DLL_EXPORT CConvergentWave : public CBaseWave
 {
 public:
@@ -68,5 +70,7 @@ private:
     return WavePtr(new CConvergentWave(reader));
   }  
 };
+
+}
 
 #endif

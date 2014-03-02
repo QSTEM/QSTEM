@@ -23,6 +23,9 @@
 #include "read_interface.hpp"
 #include <boost/filesystem.hpp>
 
+namespace QSTEM 
+{
+
 class CQscReader : public IConfigReader
 {
 public:
@@ -100,15 +103,6 @@ private:
   static ConfigReaderPtr Create(boost::filesystem::path &filename){return ConfigReaderPtr(new CQscReader(filename));}
 };
 
+} // end namespace QSTEM
+
 #endif
-
-
-
-
-
-
-
-
-
-
-

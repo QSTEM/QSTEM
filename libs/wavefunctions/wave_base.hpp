@@ -34,6 +34,9 @@ static std::string dpFilePrefix="diff";
 static std::string probeFilePrefix="probe_wave";
 static std::string waveIntensityFilePrefix="waveIntensity";
 
+namespace QSTEM
+{
+
 // a structure for a probe/parallel beam wavefunction.
 // Separate from mulsliceStruct for parallelization.
 class QSTEM_HELPER_DLL_EXPORT CBaseWave : public IWave
@@ -219,5 +222,7 @@ protected:
 
   // m_transferFunction  // The transfer function - optionally applied (used by TEM mode)
 };
+
+}
 
 #endif

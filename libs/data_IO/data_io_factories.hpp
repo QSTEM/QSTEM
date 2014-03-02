@@ -5,6 +5,9 @@
 
 #include "input_interface.hpp"
 
+namespace QSTEM
+{
+
 // Factory for creating instances of IDataReader
 class QSTEM_HELPER_DLL_EXPORT CDataReaderFactory
 {
@@ -55,5 +58,7 @@ private:
   typedef std::map<std::string, CreateDataWriterFn> FactoryMap;
   FactoryMap m_FactoryMap;
 };
+
+}
 
 #endif

@@ -3,6 +3,9 @@
 
 #include "pot_base.hpp"
 
+namespace QSTEM
+{
+
 class C2DPotential : public CPotential
 {
 public:
@@ -28,5 +31,7 @@ private:
   static PotPtr Create(){return PotPtr(new C2DPotential());}
   static PotPtr Create(const ConfigReaderPtr &configReader){return PotPtr(new C2DPotential(configReader));}
 };
+
+}
 
 #endif

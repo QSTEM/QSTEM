@@ -25,6 +25,9 @@
 #include "pot_3d.hpp"
 #include "pot_3d_fft.hpp"
 
+namespace QSTEM
+{
+
 CPotFactory::CPotFactory()
 {
 	Register("2D",    &C2DPotential::Create);
@@ -65,3 +68,5 @@ PotPtr CPotFactory::GetPotential(const ConfigReaderPtr &configReader)
 
   return pot;
 }
+
+} // end namespace QSTEM

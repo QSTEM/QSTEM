@@ -19,6 +19,9 @@
 
 #include "base.hpp"
 
+namespace QSTEM
+{
+
 // This file defines a base class that should cover most multislice simulations.
 // Things like displaying progress after a multislice run, handling multiple runs, etc are covered here.
 
@@ -489,12 +492,4 @@ void CExperimentBase::fft_normalize(WavePtr wave)
     }
 }
 
-
-
-
-
-
-
-
-
-
+} // end namespace QSTEM

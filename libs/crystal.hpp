@@ -27,7 +27,9 @@
 #include <map>
 
 #include <boost/filesystem.hpp>
-
+namespace QSTEM
+{
+  
 class QSTEM_HELPER_DLL_EXPORT CCrystal
 {
 public:
@@ -126,6 +128,7 @@ protected:
 
 typedef boost::shared_ptr<CCrystal> StructurePtr;
 
+}
 #endif
 
 

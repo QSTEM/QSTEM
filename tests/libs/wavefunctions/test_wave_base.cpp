@@ -31,6 +31,8 @@
 //   that both plane waves and convergent waves share (both inherit, and neither 
 //   override the base class methods tested here.)
 
+using namespace QSTEM;
+
 struct PlaneWaveFixture {
   PlaneWaveFixture()
   {

@@ -7,6 +7,7 @@
 #include <string>
 #include "boost/shared_ptr.hpp"
 #include "data_IO/data_io_factories.hpp"
+#include "crystal.hpp"
 
 /**************************************************************
  * Here is how to use the new image writing routines
@@ -28,6 +29,9 @@
  *   only set them.  They will be recorded to any file saved from this
  *   this object.
  **************************************************************/
+
+namespace QSTEM
+{
 
 class CImageIO {
   int m_nx,m_ny;
@@ -153,11 +157,6 @@ private:
 
 typedef boost::shared_ptr<CImageIO> ImageIOPtr;
 
+}  // end namespace QSTEM
+
 #endif
-
-
-
-
-
-
-

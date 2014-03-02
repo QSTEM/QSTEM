@@ -22,6 +22,9 @@
 #include "wave_convergent.hpp"
 #include "wave_plane.hpp"
 
+namespace QSTEM
+{
+
 CWaveFactory::CWaveFactory()
 {
   Register("convergent",    &CConvergentWave::Create);
@@ -47,4 +50,6 @@ WavePtr CWaveFactory::GetWave(const std::string &type, const ConfigReaderPtr &re
   if( it != m_FactoryMap.end() )
     return it->second(reader);
   return WavePtr();
+}
+
 }

@@ -24,6 +24,7 @@
 #include "wavefunctions/wave_factory.hpp"
 #include "config_IO/config_reader_factory.hpp"
 
+using namespace QSTEM;
 
 struct ConvergentWaveFixture {
   ConvergentWaveFixture()

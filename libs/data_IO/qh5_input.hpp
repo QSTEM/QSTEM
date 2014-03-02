@@ -23,6 +23,9 @@
 #include "input_interface.hpp"
 #include "qh5.hpp"
 
+namespace QSTEM
+{
+
 class CQH5Input : public IDataReader
 {
 public:
@@ -34,5 +37,7 @@ public:
                          std::vector<unsigned> &position);
   void SetFile(std::string filename);
 };
+
+}
 
 #endif

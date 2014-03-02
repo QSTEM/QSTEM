@@ -24,6 +24,8 @@
 #include "memory_fftw3.hpp"
 #include "structure_IO/structure_factories.hpp"
 
+using namespace QSTEM;
+
 struct cfgReaderFixture {
   cfgReaderFixture()
   {

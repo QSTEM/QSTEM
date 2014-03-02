@@ -21,6 +21,9 @@
 #include "random.hpp"
 #include "memory_fftw3.hpp"
 
+namespace QSTEM
+{
+
 CExperimentCBED::CExperimentCBED(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
   m_mode="CBED";
@@ -334,3 +337,5 @@ void CExperimentCBED::PostSliceProcess(unsigned absoluteSlice)
       //m_detectors->CollectIntensity(m_wave, absoluteSlice);
     }
 }
+
+} // end namespace QSTEM

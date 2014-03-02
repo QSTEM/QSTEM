@@ -24,7 +24,9 @@
 
 #include "detectors.hpp"
 #include "memory_fftw3.hpp"
-
+namespace QSTEM
+{
+  
 Detector::Detector(int nx, int ny, float_tt resX, float_tt resY, float_tt wavelength)
   : m_error(0),
     m_shiftX(0),
@@ -318,3 +320,4 @@ void DetectorManager::PrintDetectors()
   }
 }
 
+}

@@ -26,6 +26,9 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include "elTable.hpp"
 
+namespace QSTEM
+{
+
 ////////////////////////////////////////////////////////////////////////
 // define whether to use single or double precision
 ///////////////////////////////////////////////////////////////////////
@@ -196,5 +199,7 @@ typedef boost::shared_ptr<atomBox> atomBoxPtr;
     #define QSTEM_HELPER_DLL_LOCAL
   #endif
 #endif
+
+}
 
 #endif // STEMTYPES_H

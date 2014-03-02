@@ -8,6 +8,9 @@
 
 #include <stdexcept>
 
+namespace QSTEM
+{
+
 /**
 Binary output included as a fall-back for output writers that don't implement all features.
 For example, the .IMG writer is not designed for 3D data, so it uses this class' WriteBlob method.
@@ -70,14 +73,7 @@ protected:
       file.close();
     }
 };
+
+}
+
 #endif
-
-
-
-
-
-
-
-
-
-

@@ -33,6 +33,9 @@
 #define OVERSAMPLING 3
 #define OVERSAMPLINGZ 3*OVERSAMPLING
 
+namespace QSTEM
+{
+
 class CPotential : public IPotential
 {
 public:
@@ -161,12 +164,6 @@ protected:
                   float_tt *d, int n, float_tt x0 );
 };
 
+}
+
 #endif
-
-
-
-
-
-
-
-

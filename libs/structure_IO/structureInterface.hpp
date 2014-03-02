@@ -26,6 +26,9 @@
 
 #include <cstring>
 
+namespace QSTEM
+{
+
 class IStructureReader;
 typedef boost::shared_ptr<IStructureReader> StructureReaderPtr;
 typedef StructureReaderPtr (*CreateStructureReaderFn)(const boost::filesystem::path &filename);
@@ -74,4 +77,5 @@ inline int ReadLine( FILE* fpRead, char* cRead, int cMax, const char *mesg )
   return( strlen( cRead ) );
 }  /* end ReadLine */
 
+}
 #endif

@@ -29,6 +29,9 @@
 #include "img_VERSION.hpp"
 #include "filename_utilities.hpp"
 
+namespace QSTEM
+{
+
 CImgReader::CImgReader() :
 m_headerSize(56),
 m_version(IMG_VERSION)
@@ -221,3 +224,5 @@ void CImgReader::ReadImage(const std::string &filebase, const std::vector<unsign
 	_ReadComment(comment);
 	_ReadParameters(params);
 }
+
+} // end namespace QSTEM

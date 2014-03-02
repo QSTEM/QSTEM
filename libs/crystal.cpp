@@ -34,13 +34,15 @@
 #define THZ_AMU_HBAR 0.15745702964189 /* A°^2*THz*amu/(hbar) */
 // 4.46677327584453 /* 1e10/sqrt(THz*amu/(pi*hbar)) */
 #define THZ_HBAR_KB 1.90963567802059 /* THz*hbar/kB */
-
+namespace QSTEM
+{         
+  
 static const float_tt k_wobScale = 1.0/(8*M_PI*M_PI);
 static const float_tt k_sq3 = 1.0/sqrt(3.0);  /* sq3 is an additional needed factor which stems from
                            * int_-infty^infty exp(-x^2/2) x^2 dx = sqrt(pi)
                            * introduced in order to match the wobble factor with <u^2>
-                           */
-
+                           */                
+                           
 CCrystal::CCrystal()
   : m_minX(0)
   , m_maxX(0)
@@ -1073,12 +1075,16 @@ void CCrystal::GetCrystalBoundaries(float_tt &min_x, float_tt &max_x, float_tt &
   max_y = m_maxY;
 }
 
+} // end namespace QSTEM
 
 // *******************  Matrix manipulation ***********************
 //    For now, use our own internal routines as has been done always.
 //    For the future, consider using a linear algebra library instead - Eigen, BLAS/ATLAS/MKL/GOTO
 
 #include "matrixlib.hpp"
+
+namespace QSTEM
+{
 
 void CCrystal::Inverse_3x3(float_tt *res, const float_tt *a)
 {
@@ -1107,3 +1113,5 @@ void CCrystal::RotateMatrix(float_tt *matrixIn,float_tt *matrixOut, float_tt phi
 }
 
 // ******************  end matrix manipulation
+
+} // end namespace QSTEM

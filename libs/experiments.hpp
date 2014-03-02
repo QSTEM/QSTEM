@@ -25,6 +25,11 @@
 // Include this because we use ConfigReaderPtr below.
 #include "config_IO/config_reader_factory.hpp"
 
+namespace QSTEM
+{
+
 ExperimentPtr QSTEM_HELPER_DLL_EXPORT GetExperiment(ConfigReaderPtr &configReader);
+
+}
 
 #endif

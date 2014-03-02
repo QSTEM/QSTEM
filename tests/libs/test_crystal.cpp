@@ -23,19 +23,21 @@
 
 #include "crystal.hpp"
 
+using namespace QSTEM;
+
 struct CrystalFixture {
   CrystalFixture()
   {
-    configReader = CConfigReaderFactory::Get()->GetReader("stem_STO_4x4.qsc");
-    cryst = StructurePtr(new CCrystal(configReader));
+    configReader = QSTEM::CConfigReaderFactory::Get()->GetReader("stem_STO_4x4.qsc");
+    cryst = QSTEM::StructurePtr(new CCrystal(configReader));
     //std::cout << "setup plane wave fixture" << std::endl; 
   }
   ~CrystalFixture()
   { 
     //std::cout << "teardown plane wave fixture" << std::endl; 
   }
-  StructurePtr cryst;
-  ConfigReaderPtr configReader;
+  QSTEM::StructurePtr cryst;
+  QSTEM::ConfigReaderPtr configReader;
 };
 
 

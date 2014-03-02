@@ -23,6 +23,8 @@
 
 #include "potentials/pot_factory.hpp"
 
+using namespace QSTEM;
+
 struct PotFixture {
   PotFixture()
   {

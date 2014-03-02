@@ -19,6 +19,9 @@
 
 #include "qh5_input.hpp"
 
+namespace QSTEM
+{
+
 CQH5Input::CQH5Input()
 {}
 
@@ -51,18 +54,4 @@ void CQH5Input::SetFile(std::string filename)
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} // end namespace QSTEM

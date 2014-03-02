@@ -22,6 +22,9 @@
 #ifndef EXPERIMENT_INTERFACE_H
 #define EXPERIMENT_INTERFACE_H
 
+namespace QSTEM
+{
+
 class IExperiment
 {
 public:
@@ -33,5 +36,7 @@ protected:
 };
 
 typedef boost::shared_ptr<IExperiment> ExperimentPtr;
+
+}
 
 #endif

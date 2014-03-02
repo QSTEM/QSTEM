@@ -22,6 +22,9 @@
 
 #include <omp.h>
 
+namespace QSTEM
+{
+
 CExperimentSTEM::CExperimentSTEM(const ConfigReaderPtr &configReader) : CExperimentBase(configReader)
 {
   m_mode="STEM";
@@ -225,3 +228,5 @@ void CExperimentSTEM::CollectIntensity(unsigned absoluteSlice)
 {
 	m_detectors->CollectIntensity(m_wave, absoluteSlice);//m_totalSliceCount+islice*(1+mRepeat));
 }
+
+} // end namespace QSTEM

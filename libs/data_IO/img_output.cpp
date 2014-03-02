@@ -21,6 +21,9 @@
 #include "img_output.hpp"
 #include "img_VERSION.hpp"
 
+namespace QSTEM
+{
+
 CImgWriter::CImgWriter() : CBinaryOutput(),
                            m_headerSize(56),
                            m_version(IMG_VERSION)
@@ -113,7 +116,4 @@ void CImgWriter::WriteData(void *pix, bool is_complex, unsigned dataSize, const 
   file.close();
 }
 
-
-
-
-
+} // end namespace QSTEM

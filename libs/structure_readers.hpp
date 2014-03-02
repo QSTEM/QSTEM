@@ -25,6 +25,9 @@
 
 #include "structure_IO/cfg.hpp"
 
+namespace QSTEM
+{
+
 inline StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_file)
 {
   std::string extension = structure_file.extension().string();
@@ -33,4 +36,5 @@ inline StructureReaderPtr GetStructureReader(boost::filesystem::path &structure_
     return StructureReaderPtr(new CCfgReader(structure_file));
 }
 
+}
 #endif

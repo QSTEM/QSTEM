@@ -29,6 +29,9 @@ QSTEM - image simulation for TEM/STEM/CBED
 
 #include "stemtypes_fftw3.hpp"
 
+namespace QSTEM
+{
+
 /*---------------------------- float1D() -------------------------------*/
 /*
 	1D array allocator for type float
@@ -101,14 +104,7 @@ fftw_complex  ***complex3Dd(int nx, int ny,int nz, const char *message);
 void **any2D( int nx, int ny,int size, const char *message );
 void ***any3D( int nx, int ny,int nz,int size, const char *message );
 
+}
+
 #endif
-
-
-
-
-
-
-
-
-
 

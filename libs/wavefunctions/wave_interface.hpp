@@ -28,6 +28,9 @@
 #include "config_IO/config_reader_factory.hpp"
 #include "stemtypes_fftw3.hpp"
 
+namespace QSTEM
+{
+
 class IWave;
 typedef boost::shared_ptr<IWave> WavePtr;
 typedef WavePtr (*CreateWaveFn)(const ConfigReaderPtr &reader);
@@ -120,4 +123,5 @@ public:
   virtual void ReadDiffPat(unsigned posX, unsigned posY)=0;
 };
 
+}
 #endif

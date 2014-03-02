@@ -25,6 +25,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
+namespace QSTEM
+{
 
 CQscReader::CQscReader(boost::filesystem::path &filename) : IConfigReader()
 {
@@ -562,3 +564,5 @@ bool CQscReader::IsBufferYes(std::string &buf)
   boost::algorithm::to_lower(buf);
   return ("yes"==m_buf);
 }
+
+} // end namespace QSTEM

@@ -19,6 +19,9 @@
 
 #include "qh5_output.hpp"
 
+namespace QSTEM
+{
+
 CQH5Output::CQH5Output(std::string fileName, std::string run_id)
 {
   Initialize(fileName, run_id);
@@ -60,7 +63,7 @@ void CQH5Output::WriteImage(complex_tt **data, std::vector<unsigned> &shape, std
 }
 
 
-
+} // end namespace QSTEM
 
 
 

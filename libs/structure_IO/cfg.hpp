@@ -22,7 +22,8 @@
 
 #include "structureInterface.hpp"
 #include <boost/filesystem.hpp>
-
+namespace QSTEM
+{
 class QSTEM_HELPER_DLL_EXPORT CCfgReader : public IStructureReader
 {
 public:
@@ -69,6 +70,7 @@ private:
   }  
 };
 
+}
 #endif
 
 

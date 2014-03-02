@@ -23,6 +23,9 @@
 #include "../qh5.hpp"
 #include "output_interface.hpp"
 
+namespace QSTEM
+{
+
 class CQH5Output : public IDataWriter
 {
 public:
@@ -40,5 +43,7 @@ public:
 private:
   QH5ptr m_qh5;
 };
+
+}
 
 #endif

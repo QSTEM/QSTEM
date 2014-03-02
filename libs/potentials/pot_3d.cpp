@@ -20,6 +20,9 @@
 
 #include "pot_3d.hpp"
 
+namespace QSTEM
+{
+
 C3DPotential::C3DPotential() : CPotential()
 {
 }
@@ -169,9 +172,4 @@ void C3DPotential::CenterAtomZ(std::vector<atom>::iterator &atom, float_tt &z)
 }
 
 
-
-
-
-
-
-
+} // end namespace QSTEM

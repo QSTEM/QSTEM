@@ -22,6 +22,9 @@
 
 #include "wave_base.hpp"
 
+namespace QSTEM
+{
+
 class QSTEM_HELPER_DLL_EXPORT CPlaneWave : public CBaseWave
 {
 public:
@@ -51,5 +54,7 @@ private:
 };
 
 typedef boost::shared_ptr<CPlaneWave> PlaneWavePtr;
+
+}
 
 #endif

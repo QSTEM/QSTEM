@@ -31,6 +31,9 @@
 
 // This class provides utilities for opening hdf5 files and for creating default data sets.
 
+namespace QSTEM
+{
+
 class QH5
 {
 public:
@@ -190,7 +193,6 @@ private:
 
 typedef boost::shared_ptr<QH5> QH5ptr;
 
+}
+
 #endif
-
-
-
