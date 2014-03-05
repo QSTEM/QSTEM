@@ -1,0 +1,98 @@
+#### CIF created by Crystallographica 2 ####
+
+data_StrontiumTitanate
+
+_audit_creation_method                    'Crystallographica 2' 
+_cell_angle_alpha                         90 
+_cell_angle_beta                          90 
+_cell_angle_gamma                         90 
+_cell_formula_units_Z                     1 
+_cell_length_a                            3.905 
+_cell_length_b                            3.905 
+_cell_length_c                            3.905 
+_cell_volume                              59.5474 
+_cgraph_comments                         'High-resolution (direct space) studies of anharmonic motion 
+     associated with the structural phase transition in Sr Ti O3
+'
+_cgraph_title                            'Strontium Titanate'
+_chemical_formula_sum                    'Sr (Ti O3)'
+_symmetry_space_group_name_H-M           'P m -3 m'
+_symmetry_space_group_name_Hall          '-P 4 2 3'
+
+loop_
+        _symmetry_equiv_pos_as_xyz
+        'x, y, z'
+        '-x, -y, -z'
+        '-y, x, z'
+        'y, -x, -z'
+        '-x, -y, z'
+        'x, y, -z'
+        'y, -x, z'
+        '-y, x, -z'
+        'x, -z, y'
+        '-x, z, -y'
+        'x, -y, -z'
+        '-x, y, z'
+        'x, z, -y'
+        '-x, -z, y'
+        'z, y, -x'
+        '-z, -y, x'
+        '-x, y, -z'
+        'x, -y, z'
+        '-z, y, x'
+        'z, -y, -x'
+        'z, x, y'
+        '-z, -x, -y'
+        'y, z, x'
+        '-y, -z, -x'
+        '-y, -z, x'
+        'y, z, -x'
+        'z, -x, -y'
+        '-z, x, y'
+        '-y, z, -x'
+        'y, -z, x'
+        '-z, -x, y'
+        'z, x, -y'
+        '-z, x, -y'
+        'z, -x, y'
+        'y, -z, -x'
+        '-y, z, x'
+        'y, x, -z'
+        '-y, -x, z'
+        '-y, -x, -z'
+        'y, x, z'
+        '-x, z, y'
+        'x, -z, -y'
+        '-x, -z, -y'
+        'x, z, y'
+        'z, -y, x'
+        '-z, y, -x'
+        '-z, -y, -x'
+        'z, y, x'
+
+loop_
+        _atom_site_label
+        _atom_site_type_symbol
+        _atom_site_fract_x
+        _atom_site_fract_y
+        _atom_site_fract_z
+        _atom_site_U_iso_or_equiv
+        _atom_site_thermal_displace_type
+        _atom_site_occupancy
+        Sr1 Sr2+ 0 0 0 0.0052 Uiso 1
+        Ti1 Ti4+ 0.5 0.5 0.5 0.004 Uiso 1
+        O1 O2- 0 0.5 0.5 0 Uani 1
+
+loop_
+        _atom_site_aniso_label
+        _atom_site_aniso_U_11
+        _atom_site_aniso_U_22
+        _atom_site_aniso_U_33
+        _atom_site_aniso_U_12
+        _atom_site_aniso_U_13
+        _atom_site_aniso_U_23
+        O1 0.0101 0.0101 0.0039 0 0 0
+
+_eof
+
+#### End of Crystallographic Information File ####

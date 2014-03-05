@@ -29,20 +29,23 @@ QSTEM - image simulation for TEM/STEM/CBED
 #include <ctype.h>
 
 
-#include "floatdef.h"
-#include "stemtypes_fftw3.h"
-#include "memory_fftw3.h"	/* memory allocation routines */
-// #include "../lib/tiffsubs.h"
-#include "readparams.h"
-#include "matrixlib.h"
-#include "fileio_fftw3.h"
+#include "floatdef.hpp"
+#include "stemtypes_fftw3.hpp"
+#include "memory_fftw3.hpp"	/* memory allocation routines */
+// #include "../lib/tiffsubs.hpp"
+#include "readparams.hpp"
+#include "matrixlib.hpp"
+#include "fileio_fftw3.hpp"
+
+#include "crystal.hpp"
 
 #define NAME_BUF_LEN 64
 #define CRYSTALLINE 0
 #define AMORPHOUS 1
 #define SPECIAL_GRAIN 2
 
-MULS *muls = new MULS();
+//MULS *muls = new MULS();
+CCrystal superCrystal;
 grainBox *grains = NULL;
 int nGrains = 0;
 superCellBox superCell;
@@ -52,15 +55,15 @@ superCellBox superCell;
 * Taken from http://www.physlink.com/Reference/PeriodicTable.cfm
 * Needs to be completed one day ...
 */
-double atRadf[]  = {0.79,0.49,
+float_tt atRadf[]  = {0.79,0.49,
 2.05,1.40,1.17,0.91,0.75,0.65,0.57,0.51,
 2.23,1.72,0.00,1.46,0.00,0.00,0.97,0.88,
 2.77,2.23,2.09,2.00,1.92,1.85,1.79,1.72,1.67,1.62,1.57,1.53,1.81,1.52,1.33,1.22,1.12,1.03};
-double covRadf[] = {0.32,0.93,
+float_tt covRadf[] = {0.32,0.93,
 1.23,0.90,0.82,0.77,0.75,0.73,0.72,0.71,
 1.54,1.36,0.00,1.90,0.00,0.00,0.99,0.98,
 2.03,1.74,1.44,1.32,1.63,1.18,1.17,1.17,1.16,1.15,1.17,1.25,1.26,1.22,1.20,1.16,1.14,1.12};
-double *covRad,*atRad;
+float_tt *covRad,*atRad;
 
 int readParams(char *datFileName);
 void showData();
@@ -69,9 +72,9 @@ void makeAmorphous();
 void makeSpecial(int distPlotFlag);
 int removeVacancies(atom *atoms,int natoms);
 void computeCenterofMass();
-void makeDistrPlot(atom *atoms,int natoms,double ax);
-double xDistrFun1(double xcenter,double width);
-double xDistrFun2(double xcenter,double width1,double width2);
+void makeDistrPlot(atom *atoms,int natoms,float_tt ax);
+float_tt xDistrFun1(float_tt xcenter,float_tt width);
+float_tt xDistrFun2(float_tt xcenter,float_tt width1,float_tt width2);
 
 
 int main(int argc, char *argv[]) {
@@ -80,18 +83,18 @@ int main(int argc, char *argv[]) {
 	// atom *atomPtr;
 	int g,nstart,j,ak,count;
 	FILE *fp;
-	double charge;
+	float_tt charge;
 	int moldyFlag = 0;     // suppress creation of ..._moldy.in file
 	int distPlotFlag = 0;  // suppress creation of disList.dat
 
 	/* Let's set the radii of certain elements by hand:
 	*/
-	//	atRad  = (double *)realloc(atRadf, 109*sizeof(double));
-	// covRad = (double *)realloc(covRadf,109*sizeof(double));
-	atRad  = (double *)malloc(109*sizeof(double));
-	covRad = (double *)malloc(109*sizeof(double));
-	memcpy(atRad,  atRadf,36*sizeof(double));
-	memcpy(covRad,covRadf,36*sizeof(double));
+	//	atRad  = (float_tt *)realloc(atRadf, 109*sizeof(float_tt));
+	// covRad = (float_tt *)realloc(covRadf,109*sizeof(float_tt));
+	atRad  = (float_tt *)malloc(109*sizeof(float_tt));
+	covRad = (float_tt *)malloc(109*sizeof(float_tt));
+	memcpy(atRad,  atRadf,36*sizeof(float_tt));
+	memcpy(covRad,covRadf,36*sizeof(float_tt));
 	atRad[39-1]=2.27; covRad[39-1]=2.62;  // Y
 	atRad[57-1]=2.74; covRad[57-1]=1.69;  // La
 	atRad[71-1]=2.25; covRad[71-1]=1.56;  // Lu
@@ -108,12 +111,8 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	muls->nCellX = 1;
-	muls->nCellY = 1;
-	muls->nCellZ = 1;
-	muls->ctiltx = 0;
-	muls->ctilty = 0;
-	muls->ctiltz = 0;
+
+	CCrystal cryst(1,1,1,0,0,0);
 	superCell.atoms = NULL;
 	superCell.natoms = 0;
 
@@ -192,9 +191,8 @@ int main(int argc, char *argv[]) {
 	str = strchr(outFileName,'.');
 	if (str == NULL) str=outFileName+strlen(outFileName);
 	sprintf(str,".cfg");
-	muls->ax = (float)superCell.ax;
-	muls->by = (float)superCell.by;
-	muls->c	= (float)superCell.cz;
+
+	cryst.SetCellParameters(superCell.ax, superCell.by, superCell.cz);
 
 	superCell.natoms = removeVacancies(superCell.atoms,superCell.natoms);
 
@@ -207,13 +205,13 @@ int main(int argc, char *argv[]) {
 	*/
 	charge = 0.0;
 	if (0) {
-		for (ak=0;ak<muls->atomKinds;ak++) {
+		for (ak=0;ak<cryst.GetNumberOfAtomTypes();ak++) {
 			count =0;
 			for (j=0;j<superCell.natoms;j++) {
-				if (muls->Znums[ak] == superCell.atoms[j].Znum) count++;
+				if (cryst.GetZnum(ak) == superCell.atoms[j].Znum) count++;
 			}
-			printf("Z=%3d: %d\n",muls->Znums[ak],count);
-			switch (muls->Znums[ak]) {
+			printf("Z=%3d: %d\n",cryst.GetZnum(ak),count);
+			switch (cryst.GetZnum(ak)) {
 			case  7: charge += count*(-3.0); break;
 			case  8: charge += count*(-2.0);  break;
 			case  38: charge += count*(2.0);  break;
@@ -240,7 +238,7 @@ int main(int argc, char *argv[]) {
 int removeVacancies(atom *atoms,int natoms) {
 	int natomsFinal;
 	int i,i2,j,jz;
-	double totOcc,lastOcc, choice;
+	float_tt totOcc,lastOcc, choice;
 	long idum = -(long)time(NULL);
 	int printLevel = 1;
 	
@@ -303,7 +301,7 @@ int removeVacancies(atom *atoms,int natoms) {
 
 void computeCenterofMass() {
 	int i;
-	double cmx=0.0,cmy=0.0,cmz=0.0;
+	float_tt cmx=0.0,cmy=0.0,cmz=0.0;
 
 	for (i=0;i<superCell.natoms;i++) {
 		cmx += superCell.atoms[i].x;
@@ -325,17 +323,20 @@ int readParams(char *datFileName) {
 	int gCount,i,Nkind;  
 	char unitCellFile[64];
 	atom *tempCell;
+	boost::filesystem::path unitCellFilePath;
+
+	FILE *fp=NULL;
 
 	if (!parOpen(datFileName)) {
 		printf("Could not open data input file %s\n",datFileName);
 		return 0;
 	}
-	resetParamFile();
-	while(readparam("crystal:",parStr,0)) nGrains++;  
-	resetParamFile();
-	while(readparam("amorph:",parStr,0)) nGrains++;  
-	resetParamFile();
-	while(readparam("special:",parStr,0)) nGrains++;  
+	resetParamFile(fp);
+	while(readparam(fp, "crystal:",parStr,0)) nGrains++;  
+	resetParamFile(fp);
+	while(readparam(fp, "amorph:",parStr,0)) nGrains++;  
+	resetParamFile(fp);
+	while(readparam(fp, "special:",parStr,0)) nGrains++;  
 	printf("Found data for %d grain(s) (crystalline frame work and amorphous)\n",nGrains);
 	if (nGrains == 0) return 0;
 
@@ -343,7 +344,7 @@ int readParams(char *datFileName) {
 	/* Now we will loop through all the grains and lok for the necessary 
 	* data for each grain 
 	*/
-	if (readparam("box:",parStr,1)) {
+	if (readparam(fp, "box:",parStr,1)) {
 		sscanf(parStr,"%lf %lf %lf",&(superCell.ax),&(superCell.by),&(superCell.cz));
 	}
 	else {
@@ -352,7 +353,7 @@ int readParams(char *datFileName) {
 	} 
 
 	/* reset the input file and advance to the next crystal row */
-	resetParamFile();
+	resetParamFile(fp);
 	/*
 	readparam("crystal:",parStr,0);
 	grains[0].name = (char *)malloc(NAME_BUF_LEN);
@@ -366,7 +367,7 @@ int readParams(char *datFileName) {
 	* translation: shiftx shifty shiftz
 	* plane: vectX vectY vectZ pointX pointY pointZ
 	*/
-	while (readNextParam(title,parStr)) {
+	while (readNextParam(fp, title,parStr)) {
 		// printf("%s\n",parStr);
 		/* if we found a new crystal ... */
 		if (strncmp(title,"crystal:",8) == 0) {
@@ -399,18 +400,17 @@ int readParams(char *datFileName) {
 				return 0;       
 			}
 
+			ConfigReaderPtr cellReader=GetConfigReader(unitCellFile);
+
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			muls->nCellX = 1;
-			muls->nCellY = 1;
-			muls->nCellZ = 1;
-			muls->ctiltx = 0;
-			muls->ctilty = 0;
-			muls->ctiltz = 0;
-
-			muls->tds = 0;
-			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
+			CCrystal cryst(cellReader);
+			// Do not handle TDS - we want the atoms at their original locations.
+			cryst.SetTDS(false);
+			// 0 indicates no handling of vacancies
+			cryst.ReadUnitCell(0);
+			//tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			if (tempCell == NULL) {
 				printf("Error reading unit cell data - exit!\n");
 				exit(0);
@@ -428,12 +428,9 @@ int readParams(char *datFileName) {
 			grains[gCount].unitCell = (atom *)malloc(grains[gCount].natoms*sizeof(atom));
 			memcpy(grains[gCount].unitCell,tempCell,grains[gCount].natoms*sizeof(atom));
 
-			grains[gCount].alpha = muls->cAlpha;
-			grains[gCount].beta  = muls->cBeta;
-			grains[gCount].gamma = muls->cGamma;
-			grains[gCount].ax = muls->ax;
-			grains[gCount].by = muls->by;
-			grains[gCount].cz = muls->c;
+			// Sets grain's cell parameters to those of cryst
+			cryst.GetCellAngles(grains[gCount].alpha,grains[gCount].beta,grains[gCount].gamma);
+			cryst.GetCellParameters(grains[gCount].ax, grains[gCount].by, grains[gCount].cz);
 		}
 		/***************************************************
 		* amorphous stuff
@@ -471,12 +468,11 @@ int readParams(char *datFileName) {
 			// sscanf(parStr,"%s %s",grains[gCount].name,unitCellFile);
 			grains[gCount].nplanes = 0;
 			grains[gCount].planes = NULL;
-			muls->nCellX = 1;
-			muls->nCellY = 1;
-			muls->nCellZ = 1;
-			muls->ctiltx = 0;
-			muls->ctilty = 0;
-			tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
+			ConfigReaderPtr cellReader=GetConfigReader(unitCellFile);
+
+			CCrystal cryst(cellReader);
+                        grains[gCount.natoms]=cryst.GetNumberOfAtoms();
+			//tempCell = readUnitCell(&(grains[gCount].natoms), unitCellFile, muls, 0);
 			grains[gCount].unitCell = (atom *)malloc(grains[gCount].natoms * sizeof(atom));
 			memcpy(grains[gCount].unitCell, tempCell, grains[gCount].natoms * sizeof(atom));
 			grains[gCount].alpha = 0;
@@ -581,12 +577,12 @@ int readParams(char *datFileName) {
 
 				// assign number of atoms directly, if specified in input file
 				if (Nkind > 0) grains[gCount].unitCell[grains[gCount].natoms-1].y = (float)Nkind;
-				for (i=0;i<muls->atomKinds;i++) 	
-					if (muls->Znums[i] == grains[gCount].unitCell[grains[gCount].natoms-1].Znum) break;
-				if (i == muls->atomKinds) {
-					muls->atomKinds++;
-					muls->Znums = (int *) realloc(muls->Znums,muls->atomKinds*sizeof(int));
-					muls->Znums[i] = grains[gCount].unitCell[grains[gCount].natoms-1].Znum;
+				for (i=0;i<superCrystal->GetNumberOfAtomTypes();i++) 	
+					if (superCrystal->GetAtomTypes()[i] == grains[gCount].unitCell[grains[gCount].natoms-1].Znum) break;
+				if (i == superCrystal->GetNumberOfAtomTypes()) {
+					superCrystal->GetNumberOfAtomTypes()++;
+					superCrystal->GetAtomTypes() = (int *) realloc(superCrystal->GetAtomTypes(),superCrystal->GetNumberOfAtomTypes()*sizeof(int));
+					superCrystal->GetAtomTypes()[i] = grains[gCount].unitCell[grains[gCount].natoms-1].Znum;
 				}
 			} /* end of if "atom:" */
 		} /* end of if gCount >=0 */
@@ -640,12 +636,12 @@ void makeSuperCell() {
 	int g,p,iatom,ix,iy,iz,atomCount = 0;
 	// atom *atomPtr;
 	// atomPtr = (atom *)malloc(sizeof(atom));
-	static double *axCell,*byCell,*czCell=NULL;
-	static double **Mm = NULL, **Mminv = NULL, **Mrot = NULL,**Mr=NULL,**Mr2=NULL;
-	static double **a = NULL,**b= NULL;
-	double maxLength,dx,dy,dz,d,dxs,dys,dzs;
+	static float_tt *axCell,*byCell,*czCell=NULL;
+	static float_tt **Mm = NULL, **Mminv = NULL, **Mrot = NULL,**Mr=NULL,**Mr2=NULL;
+	static float_tt **a = NULL,**b= NULL;
+	float_tt maxLength,dx,dy,dz,d,dxs,dys,dzs;
 	atom newAtom;
-	// double xpos,ypos,zpos;
+	// float_tt xpos,ypos,zpos;
 	int nxmin,nxmax,nymin,nymax,nzmin,nzmax;
 
 	/* claculate maximum length in supercell box, which is naturally 
@@ -658,14 +654,14 @@ void makeSuperCell() {
 	*/
 
 	if (Mm == NULL) {
-		Mm = double2D(3,3,"Mm");
-		Mminv = double2D(3,3,"Mminv");
-		Mrot = double2D(3,3,"Mrot");
-		Mr	 = double2D(3,3,"Mr");
-		Mr2   = double2D(3,3,"Mr");
+		Mm = float2D(3,3,"Mm");
+		Mminv = float2D(3,3,"Mminv");
+		Mrot = float2D(3,3,"Mrot");
+		Mr	 = float2D(3,3,"Mr");
+		Mr2   = float2D(3,3,"Mr");
 		axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
-		a = double2D(1,3,"a");
-		b = double2D(1,3,"b");
+		a = float2D(1,3,"a");
+		b = float2D(1,3,"b");
 	}
 
 	atomCount = superCell.natoms;
@@ -682,30 +678,30 @@ void makeSuperCell() {
 			// showMatrix(Mm,3,3,"M");
 			///////////////////////////////////////////////////////////////////
 
-			memset(Mrot[0],0,3*3*sizeof(double));
+			memset(Mrot[0],0,3*3*sizeof(float_tt));
 			Mrot[0][0] = 1.0; Mrot[1][1] = 1.0; Mrot[2][2] = 1.0; 
-			memcpy(Mr2[0],Mrot[0],3*3*sizeof(double));
+			memcpy(Mr2[0],Mrot[0],3*3*sizeof(float_tt));
 
 
-			memset(Mr[0],0,3*3*sizeof(double));
+			memset(Mr[0],0,3*3*sizeof(float_tt));
 			Mr[0][0] = 1.0; Mr[1][1] = cos(grains[g].tiltx); Mr[1][2] = sin(grains[g].tiltx); 
 			Mr[2][1] = -sin(grains[g].tiltx); Mr[2][2] = cos(grains[g].tiltx);
 			matrixProduct(Mrot,3,3,Mr,3,3,Mr2);
-			memcpy(Mrot[0],Mr2[0],3*3*sizeof(double));
+			memcpy(Mrot[0],Mr2[0],3*3*sizeof(float_tt));
 			// showMatrix(Mrot,3,3,"Mrotx");
 
-			memset(Mr[0],0,3*3*sizeof(double));
+			memset(Mr[0],0,3*3*sizeof(float_tt));
 			Mr[1][1] = 1.0; Mr[0][0] = cos(grains[g].tilty); Mr[0][2] = -sin(grains[g].tilty); 
 			Mr[2][0] = sin(grains[g].tilty); Mr[2][2] = cos(grains[g].tilty);
 			matrixProduct(Mrot,3,3,Mr,3,3,Mr2);
-			memcpy(Mrot[0],Mr2[0],3*3*sizeof(double));
+			memcpy(Mrot[0],Mr2[0],3*3*sizeof(float_tt));
 			// showMatrix(Mrot,3,3,"Mrotxy");
 
-			memset(Mr[0],0,3*3*sizeof(double));
+			memset(Mr[0],0,3*3*sizeof(float_tt));
 			Mr[2][2] = 1.0; Mr[0][0] = cos(grains[g].tiltz); Mr[0][1] = sin(grains[g].tiltz); 
 			Mr[1][0] = -sin(grains[g].tiltz); Mr[1][1] = cos(grains[g].tiltz);
 			matrixProduct(Mrot,3,3,Mr,3,3,Mr2);
-			memcpy(Mrot[0],Mr2[0],3*3*sizeof(double));		
+			memcpy(Mrot[0],Mr2[0],3*3*sizeof(float_tt));		
 			// showMatrix(Mrot,3,3,"Mrotxyz");
 
 			///////////////////////////////////////////////////////////////////
@@ -716,7 +712,7 @@ void makeSuperCell() {
 			*/
 			inverse_3x3(Mminv[0],Mm[0]);
 			matrixProduct(Mm,3,3,Mrot,3,3,Mr2);
-			memcpy(Mm[0],Mr2[0],3*3*sizeof(double));
+			memcpy(Mm[0],Mr2[0],3*3*sizeof(float_tt));
 			// showMatrix(Mm,3,3,"M");
 			inverse_3x3(Mr2[0],Mm[0]);
 
@@ -724,7 +720,7 @@ void makeSuperCell() {
 			* when creating the supercell by checking the number of unit cell vectors 
 			* necessary to reach every corner of the supercell box.
 			*/
-			memset(a[0],0,3*sizeof(double));
+			memset(a[0],0,3*sizeof(float_tt));
 			matrixProduct(a,1,3,Mr2,3,3,b);
 			// showMatrix(Mm,3,3,"M");
 			// showMatrix(Mminv,3,3,"M");
@@ -858,19 +854,19 @@ void makeSuperCell() {
 ****************************************************************/
 void makeAmorphous() {
 	int g,p,iatom,ix,iy,iz,ic,atomCount = 0,amorphSites,amorphAtoms;
-	static double *axCell,*byCell,*czCell=NULL;
-	static double **Mm = NULL;
-	double rCellx,rCelly,rCellz;
-	double d,r;
+	static float_tt *axCell,*byCell,*czCell=NULL;
+	static float_tt **Mm = NULL;
+	float_tt rCellx,rCelly,rCellz;
+	float_tt d,r;
 	atom *amorphCell;
 	// atom newAtom;
-	// double xpos,ypos,zpos;
+	// float_tt xpos,ypos,zpos;
 	int nx,ny,nz;
 	int *randArray,randCount;
 
 
 	if (Mm == NULL) {
-		Mm = double2D(3,3,"Mm");
+		Mm = float2D(3,3,"Mm");
 		axCell=Mm[0]; byCell=Mm[1]; czCell=Mm[2];
 	}
 
@@ -929,7 +925,7 @@ void makeAmorphous() {
 			* Now we have all the sites within the bounding planes on which we can put atoms
 			*/
 			/* the true number of amorphous atoms is # of sites / rFactor^3 */
-			amorphAtoms = (int)floor((double)amorphSites/pow(grains[g].rFactor,3.0));
+			amorphAtoms = (int)floor((float_tt)amorphSites/pow(grains[g].rFactor,3.0));
 			if (amorphAtoms > amorphSites) amorphAtoms = amorphSites;
 			randCount = amorphSites;
 			atomCount = superCell.natoms;
@@ -951,7 +947,7 @@ void makeAmorphous() {
 
 			for (ix=amorphAtoms;ix>0;ix--) {
 				do {
-					iy = (int)((double)rand()*(double)(randCount-1)/(double)(RAND_MAX));
+					iy = (int)((float_tt)rand()*(float_tt)(randCount-1)/(float_tt)(RAND_MAX));
 					if (iy >= randCount) iy = randCount-1;
 					if (iy < 0) iy = 0;
 					//	printf("%5d, iy: %d, sites: %d, atoms: %d  ",ix,iy,randCount,amorphAtoms);
@@ -1001,7 +997,7 @@ void makeAmorphous() {
 #define TRIAL_COUNT 1000000
 void makeSpecial(int distPlotFlag) {
 	int p,g,iatom,atomCount = 0,amorphAtoms;
-	double d,r,x,y,z,dist,volume;
+	float_tt d,r,x,y,z,dist,volume;
 	int i,j,Znum,count;
 	long seed;
 	float pos[3],center[3],grainBound[6];
@@ -1055,11 +1051,11 @@ void makeSpecial(int distPlotFlag) {
 					if (grainBound[5] < pos[0]) grainBound[5] = pos[0]; // zmax
 				}
 			}
-			center[0] /= (double)count;
-			center[1] /= (double)count;
-			center[2] /= (double)count;
-			volume = superCell.ax*superCell.by*superCell.cz*(double)count/(double)TRIAL_COUNT;
-			printf("Volume: %gA^3, %g %%\n",volume,(double)(100*count)/(double)TRIAL_COUNT);
+			center[0] /= (float_tt)count;
+			center[1] /= (float_tt)count;
+			center[2] /= (float_tt)count;
+			volume = superCell.ax*superCell.by*superCell.cz*(float_tt)count/(float_tt)TRIAL_COUNT;
+			printf("Volume: %gA^3, %g %%\n",volume,(float_tt)(100*count)/(float_tt)TRIAL_COUNT);
 			printf("boundaries: x: %g..%g, y: %g..%g, z: %g..%g\n",
 				grainBound[0],grainBound[1],grainBound[2], 
 				grainBound[3],grainBound[4],grainBound[5]); 
@@ -1130,12 +1126,12 @@ void makeSpecial(int distPlotFlag) {
 							if (trials % amorphAtoms == 0)
 								printf("Average trials per atom: %d times, success: %g %%\n",
 								trials/amorphAtoms,100.0*(atomCount-superCell.natoms)/
-								(double)amorphAtoms);
+								(float_tt)amorphAtoms);
 						} while (i < atomCount);  
 						// try until we find one that does not touch any other
 
 						// superCell.atoms[atomCount].dw = 0.0;
-						superCell.atoms[atomCount].dw = 0.45*28.0/(double)(2.0*Znum);
+						superCell.atoms[atomCount].dw = 0.45*28.0/(float_tt)(2.0*Znum);
 
 						superCell.atoms[atomCount].occ  = 1.0;
 						superCell.atoms[atomCount].q    = 0;
@@ -1177,11 +1173,11 @@ void makeSpecial(int distPlotFlag) {
 
 /* This function creates the single gaussian distruted x-values for the dopand atoms
 */
-double xDistrFun1(double xcenter,double width) {
+float_tt xDistrFun1(float_tt xcenter,float_tt width) {
 	static long idum = 0;
 	static int count = 0;
-	static double x2=0,xavg=0;
-	double x;
+	static float_tt x2=0,xavg=0;
+	float_tt x;
 
 	if (idum == 0) idum  = -(long)(time(NULL)); 
 
@@ -1193,7 +1189,7 @@ double xDistrFun1(double xcenter,double width) {
 		return x;
 	}
 	else {
-		printf("Statistics (%d): xavg=%g, x2dev=%g\n",count,xavg/(double)count,sqrt(x2/(double)count));
+		printf("Statistics (%d): xavg=%g, x2dev=%g\n",count,xavg/(float_tt)count,sqrt(x2/(float_tt)count));
 		xavg = 0;
 		x2 = 0;
 		return 0;
@@ -1204,12 +1200,12 @@ double xDistrFun1(double xcenter,double width) {
 * width1 i the distance between the 2 peaks
 * width 2 is the width of a single peak.
 */
-double xDistrFun2(double xcenter,double width1,double width2) {
+float_tt xDistrFun2(float_tt xcenter,float_tt width1,float_tt width2) {
 	static long idum = 0;
 	static long seed = 0;
 	static int count = 0;
-	static double x2=0,xavg=0;
-	double x,dx;
+	static float_tt x2=0,xavg=0;
+	float_tt x,dx;
 
 	if (idum == 0) idum  = -(long)(time(NULL)); 
 	if (seed == 0) seed  = -(long)(time(NULL)); 
@@ -1223,7 +1219,7 @@ double xDistrFun2(double xcenter,double width1,double width2) {
 		return x;
 	}
 	else {
-		printf("Statistics (%d): xavg=%g, x2dev=%g\n",count,xavg/(double)count,sqrt(x2/(double)count));
+		printf("Statistics (%d): xavg=%g, x2dev=%g\n",count,xavg/(float_tt)count,sqrt(x2/(float_tt)count));
 		xavg = 0;
 		x2 = 0;
 		return 0;
@@ -1233,24 +1229,29 @@ double xDistrFun2(double xcenter,double width1,double width2) {
 
 // one can run "xmgr -nxy disList.dat &" to view the data produced by this function
 #define DR 1.1
-void makeDistrPlot(atom *atoms,int natoms,double ax) {
+void makeDistrPlot(StructurePtr &crystal, float_tt ax) {
 	int j,i,count,ind;
 	int **list;
 	FILE *fp;
 
-	printf("Atom kinds: %d: ",muls->atomKinds);
-	for (i=0;i<muls->atomKinds;i++) printf(" %3d ",muls->Znums[i]);
+	unsigned atKinds=crystal->GetNumberOfAtomTypes();
+	unsigned natoms = crystal->GetNumberOfAtoms();
+
+	printf("Atom kinds: %d: ",atKinds);
+	for (i=0;i<atKinds;i++) printf(" %3d ",crystal->GetZnum(i));
 	printf("\n");
 
 	count = (int)(ax/DR+1);
-	list = int2D(muls->atomKinds,count,"list");
-	memset(list[0],0,count*muls->atomKinds*sizeof(int));
+	list = int2D(atKinds,count,"list");
+	memset(list[0],0,count*atKinds*sizeof(int));
+	atom _atom;
 	for (j=0;j<natoms;j++) {
-		ind = (int)(atoms[j].x/DR);
+		crystal->GetAtom(j,_atom);
+		ind = (int)(_atom.x/DR);
 		if (ind < 0) ind = 0;
 		if (ind >= count) ind = count;
-		for (i=0;i<muls->atomKinds;i++) if (muls->Znums[i] == atoms[j].Znum) break;
-		if (i==muls->atomKinds) {
+		for (i=0;i<atKinds;i++) if (crystal->GetZnum(i) == _atom.Znum) break;
+		if (i==atKinds) {
 			// printf("Error: wrong Z (%d)\n",atoms[j].Znum);
 		}
 		else list[i][ind]++;
@@ -1258,7 +1259,7 @@ void makeDistrPlot(atom *atoms,int natoms,double ax) {
 	fp = fopen("disList.dat","w");
 	for (j=0;j<count;j++) {
 		fprintf(fp,"%.3f ",j*DR);
-		for (i=0;i<muls->atomKinds;i++) fprintf(fp,"%d ",list[i][j]);
+		for (i=0;i<atKinds;i++) fprintf(fp,"%d ",list[i][j]);
 		fprintf(fp,"\n");
 	}
 }

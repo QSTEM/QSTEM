@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>382</width>
-    <height>200</height>
+    <width>384</width>
+    <height>150</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,8 +18,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>382</width>
-    <height>195</height>
+    <width>384</width>
+    <height>150</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -42,23 +42,16 @@
        <enum>QLayout::SetFixedSize</enum>
       </property>
       <item>
-       <widget class="QPushButton" name="LoadModel">
+       <widget class="QPushButton" name="LoadModelButton">
         <property name="text">
          <string>Load Model</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="EditModel">
+       <widget class="QPushButton" name="EditModelButton">
         <property name="text">
          <string>Edit Model</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="ModelParams">
-        <property name="text">
-         <string>Model Properties</string>
         </property>
        </widget>
       </item>
