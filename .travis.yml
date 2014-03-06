@@ -4,7 +4,7 @@ compiler: gcc
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq libfftw3-dev libboost1.49-dev libboost-filesystem1.49-dev libboost-test1.49-dev libboost-random1.49-dev libhdf5-serial-dev
+  - sudo apt-get install -qq libfftw3-dev libboost1.48-dev libboost-filesystem1.48-dev libboost-test1.48-dev libboost-random1.48-dev libhdf5-serial-dev
   - sudo pip install cpp-coveralls --use-mirrors
 
 before_script:
