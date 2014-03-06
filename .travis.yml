@@ -2,16 +2,9 @@ language: cpp
 script: cmake
 compiler: gcc 
 
-before_script:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libfftw3-dev libboost-dev libboost-filesystem-dev libboost-test-dev
-  - mkdir build
-  - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Release ..
-
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq libfftw3-dev libboost-dev libboost-filesystem-dev libboost-test-dev
+  - sudo apt-get install -qq libfftw3-dev libboost-dev libboost-filesystem-dev libboost-test-dev libhdf5-serial-dev
   - sudo pip install cpp-coveralls --use-mirrors
 
 before_script:
