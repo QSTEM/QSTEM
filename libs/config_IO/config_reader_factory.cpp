@@ -47,4 +47,27 @@ ConfigReaderPtr CConfigReaderFactory::GetReader(const std::string &filename)
   return ConfigReaderPtr();
 }
 
+  /*
+
+CConfigWriterFactory::CConfigWriterFactory()
+{
+	Register(".qsc",    &CQscWriter::Create);
+}
+
+void CConfigWriterFactory::Register(const std::string &extension, CreateWriterFn pfnCreate)
+{
+	m_FactoryMap[extension] = pfnCreate;
+}
+
+ConfigWriterPtr CConfigWriterFactory::GetWriter(const std::string &filename)
+{
+  boost::filesystem::path filepath( filename );
+  std::string extension = filepath.extension().string();
+  boost::algorithm::to_lower(extension);
+  FactoryMap::iterator it = m_FactoryMap.find(extension);
+  if( it != m_FactoryMap.end() )
+    return it->second(filepath);
+  return ConfigWriterPtr();
+}
+  */
 }

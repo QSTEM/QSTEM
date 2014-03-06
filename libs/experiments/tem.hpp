@@ -33,6 +33,8 @@ public:
   virtual void Run();
   virtual void DisplayParams();
   void SaveImages();
+  void CheckParams(){};
+  void DescribeParams(){};
 
 protected:
   virtual void WriteBeams(unsigned absoluteSlice);

@@ -29,6 +29,8 @@ class IExperiment
 {
 public:
   virtual void DisplayParams(){};
+  virtual void CheckParams()=0;
+  virtual void DescribeParams()=0;
   virtual void Run()=0;
 protected:
   unsigned m_printLevel;

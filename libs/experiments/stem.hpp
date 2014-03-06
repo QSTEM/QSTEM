@@ -31,6 +31,8 @@ public:
   CExperimentSTEM(const ConfigReaderPtr &configReader);
   void Run();
   void DisplayParams();
+  void CheckParams(){};
+  void DescribeParams(){};
 private:
   void SaveImages();
   virtual void CollectIntensity(unsigned absoluteSlice);

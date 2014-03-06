@@ -32,6 +32,8 @@ public:
   void Run();
   void DisplayParams();
   virtual void WriteBeams(unsigned absoluteSlice);
+  void CheckParams(){};
+  void DescribeParams(){};
 protected:
   void PostSliceProcess(unsigned absoluteSlice);
   void CollectIntensity(unsigned absoluteSlice);
