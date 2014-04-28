@@ -86,8 +86,9 @@ void initMuls();
 void writeIntPix(char *outFile,real **pict,int nx,int ny);
 void runMuls(int lstart);
 void saveLineScan(int run);
-void readBeams(FILE *fp);
+void readBeams(FILE *fpBeams);
 void doCBED();
+void doNBED();
 void doSTEM();
 void doTEM();
 void doMSCBED();
@@ -110,7 +111,7 @@ void usage() {
 int main(int argc, char *argv[]) {
 	int i; 
 	double timerTot;
-	char fileName[256]; 
+	char fileName[512]; 
 	char cinTemp[BUF_LEN];
 
 	timerTot = cputim();
@@ -129,7 +130,8 @@ int main(int argc, char *argv[]) {
 		sprintf(fileName,"stem.dat");
 	else
 		strcpy(fileName,argv[1]);
-	if (parOpen(fileName) == 0) {
+	if (parOpen(fileName) == 0) 
+	{
 		printf("could not open input file %s!\n",fileName);
 		usage();
 		exit(0);
@@ -160,6 +162,7 @@ int main(int argc, char *argv[]) {
 	  case TEM:    doTEM();    break;
 	  case MSCBED: doMSCBED(); break;
 	  case TOMO:   doTOMO();   break;
+	  case NBED:   doNBED();   break;
 	  // case REFINE: doREFINE(); break;
 	  default:
 		  printf("Mode not supported\n");
@@ -170,6 +173,9 @@ int main(int argc, char *argv[]) {
 	_CrtDumpMemoryLeaks();
 #endif
 
+	// Console.Read(); //  <--- Right here
+	printf( "DEBUG Main: Press any key to exit()" );
+	std::cin.ignore();
 	return 0;
 }
 
@@ -334,6 +340,7 @@ void displayParams() {
 	printf("* Running program STEM3 (version %.2f) in %s mode\n",VERSION,
 		(muls.mode == STEM) ? "STEM" : (muls.mode==TEM) ? "TEM" : 
 		(muls.mode == CBED) ? "CBED" : (muls.mode==TOMO)? "TOMO" : 
+		(muls.mode == NBED) ? "NBED" :
 		"???"); 
 	printf("* Date: %s, Time: %s\n",Date,Time);
 	printf("*****************************************************\n");
@@ -603,7 +610,7 @@ void readSFactLUT() {
 *
 ***********************************************************************/
 void readFile() {
-	char answer[256],*strptr;
+	char answer[256];
 	FILE *fpTemp;
 	float ax,by,c;
 	char buf[BUF_LEN],*strPtr;
@@ -626,8 +633,9 @@ void readFile() {
 		if (strstr(buf,"STEM")) muls.mode = STEM;
 		else if (strstr(buf,"TEM")) muls.mode = TEM;
 		else if (strstr(buf,"CBED")) muls.mode = CBED;
-		else if (strstr(buf,"TOMO")) muls.mode = TOMO;
-		else if (strstr(buf,"REFINE")) muls.mode = REFINE;
+		else if (strstr(buf, "NBED")) muls.mode = NBED;
+		else if (strstr(buf, "TOMO")) muls.mode = TOMO;
+		else if (strstr(buf, "REFINE")) muls.mode = REFINE;
 	}
 
 	muls.printLevel = 2;
@@ -641,15 +649,16 @@ void readFile() {
 	*/ 
 	//muls.fileBase = (char *)malloc(512);
 	//muls.atomPosFile = (char *)malloc(512);
-	if (!readparam("filename:",buf,1)) exit(0); sscanf(buf,"%s",muls.fileBase);
+	if ( !readparam( "filename:", buf, 1 ) )
+	{
+		perror( "Error:" );
+		printf( "readFile did not find crystal .cfg file for parsing." );
+		exit( 0 );
+	}
+	sscanf(buf,"%s",muls.fileBase);
 	// printf("buf: %s\n",buf);
 	// printf("fileBase: %s\n",muls.fileBase);
-	/*
-	while ((strptr = strchr(muls.fileBase,'"')) != NULL) {
-		if (strptr == muls.fileBase) sscanf(strptr+1,"%s",muls.fileBase);	
-		else *strptr = '\0';
-	}
-	*/
+
 	// search for second '"', in case the filename is in quotation marks:
 	if (muls.fileBase[0] == '"') {
 		strPtr = strchr(buf,'"');
@@ -658,10 +667,19 @@ void readFile() {
 		*strPtr = '\0';
 	}
 
+	// RAM: add support to read-in a single wavefunction
+	if ( readparam( "wavename:", buf, 1) )
+	{
+		sscanf(buf, "%s", muls.fileWaveIn);
+	}
+	if ( muls.fileWaveIn[0] == '"' ) 
+	{ // search for second '"', in case the filename is in quotation marks:
+		strPtr = strchr( buf, '"' );
+		strcpy( muls.fileWaveIn, strPtr + 1 );
+		strPtr = strchr( muls.fileWaveIn, '"' );
+		*strPtr = '\0';
+	}
 
-	// printf("fileBase: %s\n",muls.fileBase);
-
-	// printf("File Base: %s\n",muls.fileBase);
 	if (readparam("NCELLX:",buf,1)) sscanf(buf,"%d",&(muls.nCellX));
 	if (readparam("NCELLY:",buf,1)) sscanf(buf,"%d",&(muls.nCellY));
 
@@ -756,26 +774,32 @@ void readFile() {
 	*********************************************************************/
 	sprintf(muls.atomPosFile,muls.fileBase);
 	/* remove directory in front of file base: */
-	while ((strptr = strchr(muls.fileBase,'\\')) != NULL) strcpy(muls.fileBase,strptr+1);
+	while ((strPtr = strchr(muls.fileBase,'\\')) != NULL) strcpy(muls.fileBase,strPtr+1);
 
 	/* add a '_' to fileBase, if not existent */
+	// RAM: ERROR THIS CODE SEEMS TO BREAK IF ONE USES UNDERSCORES IN FILENAME
+	// CHANGE TO CHECK FOR UNDERSCORE AT END OF STRING
 	if (strrchr(muls.fileBase,'_') != muls.fileBase+strlen(muls.fileBase)-1) {
 		if ((strPtr = strchr(muls.fileBase,'.')) != NULL) sprintf(strPtr,"_");
 		else strcat(muls.fileBase,"_");
 	}
+
 	if (strchr(muls.atomPosFile,'.') == NULL) {
 		/*   
 		strPtr = strrchr(muls.atomPosFile,'_');
 		if (strPtr != NULL)
 		*(strPtr) = 0;
 		*/
-		/* take atomPosFile as is, or add an ending to it, if it has none yet
-		*/
-		if (strrchr(muls.atomPosFile,'.') == NULL) {
+		// take atomPosFile as is, or add an ending to it, if it has none yet
+		// RAM: This code can break if there's more than one period in a filename, TO DO: do strcmp's on last four/five characters instead
+		if (strrchr(muls.atomPosFile,'.') == NULL) 
+		{
 			sprintf(buf,"%s.cssr",muls.atomPosFile);
-			if ((fpTemp=fopen(buf,"r")) == NULL) {
+			if ((fpTemp=fopen(buf,"r")) == NULL) 
+			{
 				sprintf(buf,"%s.cfg",muls.atomPosFile);
-				if ((fpTemp=fopen(buf,"r")) == NULL) {
+				if ((fpTemp=fopen(buf,"r")) == NULL) 
+				{
 					printf("Could not find input file %s.cssr or %s.cfg\n",
 						muls.atomPosFile,muls.atomPosFile);
 					exit(0);
@@ -783,7 +807,8 @@ void readFile() {
 				strcat(muls.atomPosFile,".cfg");
 				fclose(fpTemp);
 			}
-			else {
+			else 
+			{
 				strcat(muls.atomPosFile,".cssr");
 				fclose(fpTemp);
 			}
@@ -1014,6 +1039,14 @@ void readFile() {
 		muls.scanXStop = muls.scanXStart;
 		muls.scanYStop = muls.scanYStart;
 		break;
+		/////////////////////////////////////////////////////////
+		// read the position for doing NBED: 
+	case NBED:
+		if (readparam("scan_x_start:", buf, 1)) sscanf(buf, "%g", &(muls.scanXStart));
+		if (readparam("scan_y_start:", buf, 1)) sscanf(buf, "%g", &(muls.scanYStart));
+		muls.scanXStop = muls.scanXStart;
+		muls.scanYStop = muls.scanYStart;
+		break;
 
 		/////////////////////////////////////////////////////////
 		// Read STEM scanning parameters 
@@ -1041,10 +1074,11 @@ void readFile() {
 		if (readparam("propagation progress interval:",buf,1)) 
 			sscanf(buf,"%d",&(muls.displayProgInterval));
 	}
-	muls.displayPotCalcInterval = 1000;
-	if (readparam("potential progress interval:",buf,1)) 
-		sscanf(buf,"%d",&(muls.displayPotCalcInterval));
-	// printf("Potential progress interval: %d\n",muls.displayPotCalcInterval);
+	muls.displayPotCalcInterval = 100000; // RAM: default, but normally read-in by .CFG file in next code fragment
+	if ( readparam( "potential progress interval:", buf, 1 ) )
+	{
+		sscanf( buf, "%d", &(muls.displayPotCalcInterval) );
+	}
 
 	/**********************************************************************
 	* Read STEM/CBED probe parameters 
@@ -1246,17 +1280,27 @@ void readFile() {
 		sscanf(buf,"%s",answer);
 		muls.showProbe = (tolower(answer[0]) == (int)'y');
 	}
+
+	// Setup folder for saved data
 	sprintf(muls.folder,"data");
 	if (readparam("Folder:",buf,1)) 
 		sscanf(buf," %s",muls.folder);
 
-	while ((strptr = strchr(muls.folder,'"')) != NULL) {
-		if (strptr == muls.folder) sscanf(strptr+1,"%s",muls.folder);	
-		else *strptr = '\0';
+	// search for second '"', in case the folder name is in quotation marks:
+	printf( "DEBUG stem3.readFile: folder is %s \n", muls.folder );
+	if ( muls.folder[0] == '"' ) {
+		strPtr = strchr( buf, '"' );
+		strcpy( muls.folder, strPtr + 1 );
+		strPtr = strchr( muls.folder, '"' );
+		*strPtr = '\0';
 	}
 
-	if (muls.folder[strlen(muls.folder)-1] == '/')
-		muls.folder[strlen(muls.folder)-1] = 0;
+	if ( muls.folder[strlen( muls.folder ) - 1] == '/' )
+	{
+		muls.folder[strlen( muls.folder ) - 1] = '\0';
+	}
+
+	// Web update
 	muls.webUpdate = 0;
 	if (readparam("update Web:",buf,1)) {
 		sscanf(buf,"%s",answer);
@@ -1466,9 +1510,18 @@ void readFile() {
 	   Old comment:
 		if cfgFile != NULL, the program will later write a the atomic config to this file */
 	//muls.cfgFile = NULL;
-	if (readparam("CFG-file:",buf,1)) 
+	// RAM Apr14: Fix this broken code by adding an else statement to generate a default cfg-file extension for TDS/tilted specimens
+	if ( readparam( "CFG-file:", buf, 1 ) )
 	{
-		sscanf(buf,"%s",muls.cfgFile);
+		printf( "Debug, MSC breakge for filename: %s", muls.cfgFile );
+		sscanf( buf, "%s", muls.cfgFile );
+	}
+	else
+	{
+		// RAM: Build a default filename with added _t to indicated tilted or tds crystal.
+		strcpy_s( muls.cfgFile, 512, muls.fileBase );
+		strcat_s( muls.cfgFile, 512, "t" );
+		printf( "DEBUG: tilt/tds default filename made = %s \n", muls.cfgFile );
 	}
 
 	/* allocate memory for wave function */
@@ -1524,7 +1577,7 @@ void doTOMO() {
 	double u[3],**Mm = NULL;
 	double theta = 0;
 	atom *atoms = NULL;
-	char cfgFile[64],stemFile[128],scriptFile[64],diffAnimFile[64];
+	char cfgFile[512],stemFile[512],scriptFile[64],diffAnimFile[64];
 	FILE *fpScript,*fpDiffAnim;
 
 
@@ -1652,13 +1705,349 @@ void doMSCBED() {
 }
 
 /************************************************************************
+* doNBED performs a NBED calculation
+*  -- added by Robert A. McLeod 04 April 2014
+*  -- designed to read an .IMG file as input and use that instead of a STEM probe
+*    otherwise code should be very similar to CBED. 
+*	From a programming perspective it would be better to update CBED to be more general, but since I share this code and don't own it, not so great.
+*
+***********************************************************************/
+
+void doNBED() 
+{
+	// RAM: image reading is found in imagelib_fftw3
+	// Basic idea is to use the writeIMG function in Matlab and use it to pass in a complex-value probe to stem3.exe which can be rastered like a CBED probe
+	// RAM: All we really need to do is initialize the WavePtr wave with a filename found by readFile() above ^^
+	// FIXME: With phonon calcs the original WavePtr is not being reloaded for each series, which produces some funky results.
+
+
+	int ix, iy, i, pCount, result;
+	FILE *avgFp, *fpWave, *fpPos, *fpNBED, *fpTest = 0;
+	double timer, timerTot;
+	double probeCenterX, probeCenterY, probeOffsetX, probeOffsetY;
+	char buf[BUF_LEN], avgName[32], systStr[64];
+	real t = 0;
+	real **avgPendelloesung = NULL;
+	int oldMulsRepeat1 = 1;
+	int oldMulsRepeat2 = 1;
+	long iseed = 0;
+	WavePtr wave = WavePtr(new WAVEFUNC(muls.nx, muls.ny, muls.resolutionX, muls.resolutionY));
+	ImageIOPtr imageIO = ImageIOPtr(new CImageIO(muls.nx, muls.ny, t, muls.resolutionX, muls.resolutionY));
+	std::vector<double> params(2);
+
+	//printf("Debug doNBED: wavefile: %s\n",muls.fileWaveIn);
+
+	// Try and test 
+	//fpWave = fopen(muls.fileWaveIn, "r+");
+	//printf("Debug doNBED1 \n");
+	//if( fpWave != NULL ) fclose(fpWave);
+	//printf("Debug doNBED2 \n");
+	// RAM: read-in the entry wave .IMG
+	wave->ReadWave(muls.fileWaveIn);
+
+	//printf("Debug doNBED3 \n");
+
+	muls.chisq = std::vector<double>(muls.avgRuns);
+
+	if (iseed == 0) iseed = -(long)time(NULL);
+
+	if (muls.lbeams) {
+		muls.pendelloesung = NULL;
+		if (avgPendelloesung == NULL) {
+			avgPendelloesung = float2D(muls.nbout,
+				muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
+				"pendelloesung");
+		}
+	}
+	probeCenterX = muls.scanXStart;
+	probeCenterY = muls.scanYStart;
+
+	timerTot = 0; /* cputim();*/
+	displayProgress(-1);
+
+	for (muls.avgCount = 0; muls.avgCount < muls.avgRuns; muls.avgCount++) {
+		muls.totalSliceCount = 0;
+		pCount = 0;
+		/* make sure we start at the beginning of the file
+		so we won't miss any line that contains a sequence,
+		because we will not do any EOF wrapping
+		*/
+		resetParamFile();
+
+		/* probe(&muls,xpos,ypos); */
+		/* make incident probe wave function with probe exactly in the center */
+		/* if the potential array is not big enough, the probe can
+		* then also be adjusted, so that it is off-center
+		*/
+
+		probeOffsetX = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
+		probeOffsetY = muls.sourceRadius*gasdev(&iseed)*SQRT_2;
+		muls.scanXStart = probeCenterX + probeOffsetX;
+		muls.scanYStart = probeCenterY + probeOffsetY;
+
+
+		// RAM: This is where I need to remove the existing STEM probe and in the future add some circular shift and crop?
+		// RAM: made a new function in stemlib, probeShiftAndCrop(&muls, wave, muls.scanXStart - muls.potOffsetX, muls.scanYStart - muls.potOffsetY)
+		// probe(&muls, wave, muls.scanXStart - muls.potOffsetX, muls.scanYStart - muls.potOffsetY);
+		probeShiftAndCrop(&muls, wave, muls.scanXStart - muls.potOffsetX, muls.scanYStart - muls.potOffsetY, muls.nx, muls.ny);
+		// RAM: function is empty for now (returns wave)
+
+		if (muls.saveLevel > 2) 
+		{
+			
+			sprintf(systStr, "%s/wave_probe.img", muls.folder);
+			wave->WriteWave(systStr);
+		}
+		// printf("Probe: (%g, %g)\n",muls.scanXStart,muls.scanYStart);
+
+
+		if (muls.sourceRadius > 0) {
+			if (muls.avgCount == 0) fpPos = fopen("probepos.dat", "w");
+			else fpPos = fopen("probepos.dat", "a");
+			if (fpPos == NULL) {
+				printf("Was unable to open file probepos.dat for writing\n");
+			}
+			else {
+				fprintf(fpPos, "%g %g\n", muls.scanXStart, muls.scanYStart);
+				fclose(fpPos);
+			}
+		}
+
+		if ((muls.showProbe) && (muls.avgCount == 0)) {
+#ifndef WIN32
+			//probePlot(&muls);
+			sprintf(buf, "ee %s/probePlot_0.jpg &", muls.folder);
+			system(buf);
+#endif
+		}
+		//muls.nslic0 = 0;
+
+		result = readparam("sequence: ", buf, 0);
+		while (result) {
+			if (((buf[0] < 'a') || (buf[0] > 'z')) &&
+				((buf[0] < '1') || (buf[0] > '9')) &&
+				((buf[0] < 'A') || (buf[0] > 'Z'))) {
+				// printf("Stacking sequence: %s\n",buf);
+				printf("Can only work with old stacking sequence\n");
+				break;
+			}
+			muls.mulsRepeat1 = 1;
+			muls.mulsRepeat2 = 1;
+			sscanf(buf, "%d %d", &muls.mulsRepeat1, &muls.mulsRepeat2);
+			for (i = 0; i<(int)strlen(buf); i++) buf[i] = 0;
+			if (muls.mulsRepeat2 < 1) muls.mulsRepeat2 = 1;
+			sprintf(muls.cin2, "%d", muls.mulsRepeat1);
+
+
+			/***********************************************************
+			* make sure we have enough memory for the pendelloesung plot
+			*/
+			if ((muls.lbeams) &&
+				((oldMulsRepeat1 != muls.mulsRepeat1) ||
+				(oldMulsRepeat2 != muls.mulsRepeat2))) {
+				oldMulsRepeat1 = muls.mulsRepeat1;
+				oldMulsRepeat2 = muls.mulsRepeat2;
+				if (muls.pendelloesung != NULL)
+					free(muls.pendelloesung[0]);
+				free(avgPendelloesung[0]);
+				muls.pendelloesung = NULL;
+				avgPendelloesung = float2D(muls.nbout,
+					muls.slices*oldMulsRepeat1*oldMulsRepeat2*muls.cellDiv,
+					"pendelloesung");
+			}
+			/*********************************************************/
+
+			// printf("Stacking sequence: %s\n",buf);
+
+
+			/************************************************
+			*make3DSlicesFFT(&muls,muls.slices,atomPosFile,NULL);
+			*exit(0);
+			************************************************/
+			if (muls.equalDivs) {
+				if (muls.scatFactor == CUSTOM)
+					make3DSlicesFT(&muls);
+				else
+					make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
+				initSTEMSlices(&muls, muls.slices);
+			}
+
+			muls.saveFlag = 0;
+			/****************************************
+			* do the (small) loop
+			*****************************************/
+			for (pCount = 0; pCount<muls.mulsRepeat2*muls.cellDiv; pCount++) {
+
+				// printf("pCount = %d\n",pCount);
+				/*******************************************************
+				* build the potential slices from atomic configuration
+				******************************************************/
+				if (!muls.equalDivs) {
+					if (muls.scatFactor == CUSTOM)
+						make3DSlicesFT(&muls);
+					else
+						make3DSlices(&muls, muls.slices, muls.atomPosFile, NULL);
+					initSTEMSlices(&muls, muls.slices);
+				}
+
+				timer = cputim();
+				// what probe should runMulsSTEM use here?
+				runMulsSTEM(&muls, wave);
+
+				printf("Thickness: %gA, int.=%g, time: %gsec\n",
+					wave->thickness, wave->intIntensity, cputim() - timer);
+
+				/***************** Only if Save level > 2: ****************/
+				if ((muls.avgCount == 0) && (muls.saveLevel > 2)) {
+					sprintf(systStr, "%s/wave_final.img", muls.folder);
+					wave->WriteWave(systStr);
+				}
+#ifdef VIB_IMAGE_TEST_CBED
+				wave->WriteWave(sysStr)
+#endif 
+					muls.totalSliceCount += muls.slices;
+
+			} // end of for pCount = 0... 
+			result = readparam("sequence: ", buf, 0);
+		}
+		/*    printf("Total CPU time = %f sec.\n", cputim()-timerTot ); */
+
+		sprintf(avgName, "%s/diff.img", muls.folder);
+		// TODO: Why are we reading in a DP at this point?  Do we have one yet?  
+		//     What happens if it isn't there?
+		// RAM: Assume these are Michael's comments above, this crashes because the diffraction pattern isn't there yet.  Provide if/else fix
+		fpTest = fopen( avgName, "rb" );
+		if ( fpTest != NULL )
+		{
+			printf( "DEBUG doNBED: Found filename %s \n", avgName );
+			fclose( fpTest ); // close file handle before opening it again in data_container.cpp
+			wave->ReadDiffPat( avgName );
+		}
+		else
+		{
+			printf( "DEBUG doNBED: Did not find filename %s \n", avgName );
+			wave->WriteDiffPat( avgName, "DEBUG Wave intensity" );
+		}
+			//fpWave = fopen(muls.fileWaveIn, "r+");
+			//printf("Debug doNBED1 \n");
+			//if( fpWave != NULL ) fclose(fpWave);
+
+		
+
+		if (muls.avgCount == 0) {
+			memcpy((void *)wave->avgArray[0], (void *)wave->diffpat[0],
+				(size_t)(muls.nx*muls.ny*sizeof(float_tt)));
+			/* move the averaged (raw data) file to the target directory as well */
+			sprintf(avgName, "%s/diffAvg_%d.img", muls.folder, muls.avgCount + 1);
+			sprintf(systStr, "mv %s/diff.img %s", muls.folder, avgName);
+			system(systStr);
+			if (muls.lbeams) {
+				for (iy = 0; iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv; iy++) {
+					for (ix = 0; ix<muls.nbout; ix++) {
+						avgPendelloesung[ix][iy] = muls.pendelloesung[ix][iy];
+					}
+				}
+			}
+		} // of if muls.avgCount == 0 ...
+		else {
+			muls.chisq[muls.avgCount - 1] = 0.0;
+			for (ix = 0; ix<muls.nx; ix++) for (iy = 0; iy<muls.ny; iy++) {
+				t = ((real)muls.avgCount*wave->avgArray[ix][iy] +
+					wave->diffpat[ix][iy]) / ((real)(muls.avgCount + 1));
+				muls.chisq[muls.avgCount - 1] += (wave->avgArray[ix][iy] - t)*(wave->avgArray[ix][iy] - t);
+				wave->avgArray[ix][iy] = t;
+
+			}
+			muls.chisq[muls.avgCount - 1] = muls.chisq[muls.avgCount - 1] / (double)(muls.nx*muls.ny);
+			sprintf(avgName, "%s/diffAvg_%d.img", muls.folder, muls.avgCount + 1);
+			params[0] = muls.tomoTilt;
+			params[1] = 1.0 / wavelength(muls.v0);
+			wave->WriteAvgArray(avgName, "Averaged Diffraction pattern, unit: 1/A", params);
+
+			muls.storeSeries = 1;
+			if (muls.saveLevel == 0)	muls.storeSeries = 0;
+			else if (muls.avgCount % muls.saveLevel != 0) muls.storeSeries = 0;
+
+			if (muls.storeSeries == 0) {
+				// printf("Removing old file \n");
+				sprintf(avgName, "%s/diffAvg_%d.img", muls.folder, muls.avgCount);
+				sprintf(systStr, "rm %s", avgName);
+				system(systStr);
+			}
+
+			/* write the data to a file */
+			if (muls.saveFlag >-1) {
+				sprintf(systStr, "%s/avgresults.dat", muls.folder);
+				if ((avgFp = fopen(systStr, "w")) == NULL)
+					printf("Sorry, could not open data file for averaging\n");
+				else {
+					for (ix = 0; ix<muls.avgCount; ix++) {
+						fprintf(avgFp, "%d %g\n", ix + 1, muls.chisq[ix]);
+					}
+					fclose(avgFp);
+				}
+			}
+			/*************************************************************/
+
+			/***********************************************************
+			* Average over the pendelloesung plot as well
+			*/
+			if (muls.lbeams) {
+				for (iy = 0; iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv; iy++) {
+					for (ix = 0; ix<muls.nbout; ix++) {
+						avgPendelloesung[ix][iy] =
+							((real)muls.avgCount*avgPendelloesung[ix][iy] +
+							muls.pendelloesung[ix][iy]) / (real)(muls.avgCount + 1);
+					}
+				}
+			}
+		} /* else ... if avgCount was greater than 0 */
+
+		if (muls.lbeams) {
+			/**************************************************************
+			* The diffraction spot intensities of the selected
+			* diffraction spots are now stored in the 2 dimensional array
+			* muls.pendelloesung[beam][slice].
+			* We can write the array to a file and display it, just for
+			* demonstration purposes
+			*************************************************************/
+			sprintf(systStr, "%s/pendelloesung.dat", muls.folder);
+			if ( (fpNBED = fopen( systStr, "w" )) != NULL ) {
+				printf("Writing Pendelloesung data\n");
+				for (iy = 0; iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv; iy++) {
+					/* write the thicknes in the first column of the file */
+					fprintf( fpNBED, "%g", iy*muls.c / ((float)(muls.slices*muls.cellDiv)) );
+					/* write the beam intensities in the following columns */
+					for (ix = 0; ix<muls.nbout; ix++) {
+						fprintf( fpNBED, "\t%g", avgPendelloesung[ix][iy] );
+					}
+					/* close the line, and start a new one for the next set of
+					* intensities
+					*/
+					fprintf( fpNBED, "\n" );
+				}
+				fclose( fpNBED );
+			}
+			else {
+				printf("Could not open file for pendelloesung plot\n");
+			}
+		} /* end of if lbemas ... */
+		displayProgress(1);
+	} /* end of for muls.avgCount=0.. */
+	//delete(wave);
+}
+/************************************************************************
+* End of doNBED()
+***********************************************************************/
+
+/************************************************************************
 * doCBED performs a CBED calculation
 *
 ***********************************************************************/
 
 void doCBED() {
 	int ix,iy,i,pCount,result;
-	FILE *avgFp,*fp,*fpPos=0;
+	FILE *avgFp, *fpCBED, *fpPos = 0, *fpTest = 0;
 	double timer,timerTot;
 	double probeCenterX,probeCenterY,probeOffsetX,probeOffsetY;
 	char buf[BUF_LEN],avgName[32],systStr[64];
@@ -1835,7 +2224,21 @@ void doCBED() {
 		sprintf(avgName,"%s/diff.img",muls.folder);
 		// TODO: Why are we reading in a DP at this point?  Do we have one yet?  
 		//     What happens if it isn't there?
-		wave->ReadDiffPat(avgName);
+		// RAM: fix to CBED code as well.  In the future doCBED and doNBED should be merged (pending C++ refactor)
+		fpTest = fopen(avgName, "rb");
+		if (fpTest != NULL)
+		{
+			printf("DEBUG doCBED: Found filename %s \n", avgName);
+			fclose(fpTest); // close file handle before opening it again in data_container.cpp
+			wave->ReadDiffPat(avgName);
+		}
+		else
+		{
+			printf("DEBUG doCBED: Did not find filename %s \n", avgName);
+			wave->WriteDiffPat(avgName, "DEBUG Wave intensity");
+		}
+		// RAM: old code
+		//wave->ReadDiffPat(avgName);
 
 		if (muls.avgCount == 0) {
 			memcpy((void *)wave->avgArray[0],(void *)wave->diffpat[0],
@@ -1915,21 +2318,21 @@ void doCBED() {
 			* demonstration purposes
 			*************************************************************/
 			sprintf(systStr,"%s/pendelloesung.dat",muls.folder);
-			if ((fp=fopen(systStr,"w")) !=NULL) {
+			if ( (fpCBED = fopen( systStr, "w" )) != NULL ) {
 				printf("Writing Pendelloesung data\n");
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+					fprintf( fpCBED, "%g", iy*muls.c / ((float)(muls.slices*muls.cellDiv)) );
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
-						fprintf(fp,"\t%g",avgPendelloesung[ix][iy]);
+						fprintf( fpCBED, "\t%g", avgPendelloesung[ix][iy] );
 					}
 					/* close the line, and start a new one for the next set of
 					* intensities
 					*/
-					fprintf(fp,"\n");
+					fprintf( fpCBED, "\n" );
 				}
-				fclose(fp);
+				fclose( fpCBED );
 			}
 			else {
 				printf("Could not open file for pendelloesung plot\n");
@@ -1951,7 +2354,7 @@ void doCBED() {
 void doTEM() {
 	const double pi=3.1415926535897;
 	int ix,iy,i,pCount,result;
-	FILE *avgFp,*fp; // *fpPos=0;
+	FILE *avgFp,*fpTEM; // *fpPos=0;
 	double timer,timerTot;
 	double x,y,ktx,kty;
 	char buf[BUF_LEN],avgName[256],systStr[512];
@@ -2281,22 +2684,22 @@ void doTEM() {
 			* demonstration purposes
 			*************************************************************/
 			sprintf(avgName,"%s/pendelloesung.dat",muls.folder);
-			if ((fp=fopen(avgName,"w")) !=NULL) {
+			if ( (fpTEM = fopen( avgName, "w" )) != NULL ) {
 				printf("Writing Pendelloesung data\n");
 				for (iy=0;iy<muls.slices*muls.mulsRepeat1*muls.mulsRepeat2*muls.cellDiv;iy++) {
 					/* write the thicknes in the first column of the file */
-					fprintf(fp,"%g",iy*muls.c/((float)(muls.slices*muls.cellDiv)));
+					fprintf( fpTEM, "%g", iy*muls.c / ((float)(muls.slices*muls.cellDiv)) );
 					/* write the beam intensities in the following columns */
 					for (ix=0;ix<muls.nbout;ix++) {
 						// store the AMPLITUDE:
-						fprintf(fp,"\t%g",sqrt(avgPendelloesung[ix][iy]/(muls.nx*muls.ny)));
+						fprintf( fpTEM, "\t%g", sqrt( avgPendelloesung[ix][iy] / (muls.nx*muls.ny) ) );
 					}
 					/* close the line, and start a new one for the next set of
 					* intensities
 					*/
-					fprintf(fp,"\n");
+					fprintf( fpTEM, "\n" );
 				}
-				fclose(fp);
+				fclose( fpTEM );
 			}
 			else {
 				printf("Could not open file for pendelloesung plot\n");

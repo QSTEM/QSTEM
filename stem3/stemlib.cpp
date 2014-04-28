@@ -159,7 +159,7 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 	static fftw_complex sum;
 	static int tZ, tnx, tny, tnz, tzOversample;  
 	static double tdx, tdy, tdz, tv0, tB;
-	FILE *fp;
+	FILE *fpBox;
 	int numRead = 0,dummy;
 
 
@@ -202,7 +202,7 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 		/* Open the file with the projected potential for this particular element
 		*/
 		sprintf(fileName,"potential_%d_B%d.prj",Znum,(int)(100.0*B));
-		if ((fp=fopen(fileName,"r")) == NULL) {
+		if ( (fpBox = fopen( fileName, "r" )) == NULL ) {
 			sprintf(systStr,"scatpot %s %d %g %d %d %d %g %g %g %d %g",
 				fileName,Znum,B,boxNx,boxNy,boxNz,ddx,ddy,ddz,OVERSAMPLINGZ,(*muls).v0);
 			if (muls->printLevel > 2) {
@@ -212,14 +212,14 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 			}
 			system(systStr);
 			for (dummy=0;dummy < 10000;dummy++);
-			if ((fp=fopen(fileName,"r")) == NULL) {
+			if ( (fpBox = fopen( fileName, "r" )) == NULL ) {
 				if (muls->printLevel >0)
 					printf("cannot calculate projected potential using scatpot - exit!\n");
 				exit(0);
 			}  
 
 		}
-		fgets(systStr,250,fp);
+		fgets( systStr, 250, fpBox );
 		sscanf(systStr,"%d %le %d %d %d %le %le %le %d %le\n",
 			&tZ, &tB, &tnx, &tny, &tnz, &tdx, &tdy, &tdz, &tzOversample, &tv0);
 		/* If the parameters in the file don't match the current ones,
@@ -244,16 +244,16 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 				}
 				/* Close the old file, Create a new potential file now 
 				*/
-				fclose(fp);
+				fclose( fpBox );
 				sprintf(systStr,"scatpot %s %d %g %d %d %d %g %g %g %d %g",
 					fileName,Znum,B,boxNx,boxNy,boxNz,ddx,ddy,ddz,OVERSAMPLINGZ,(*muls).v0);
 				system(systStr);
-				if ((fp=fopen(fileName,"r")) == NULL) {
+				if ( (fpBox = fopen( fileName, "r" )) == NULL ) {
 					if (muls->printLevel >0)
 						printf("cannot calculate projected potential using scatpot - exit!\n");
 					exit(0);
 				}  
-				fgets(systStr,250,fp);
+				fgets( systStr, 250, fpBox );
 		}
 
 		/* Finally we can read in the projected potential
@@ -261,24 +261,24 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 		if (B == 0) {
 			aBox[Znum].rpotential = float3D(boxNz,boxNx,boxNy,"atomBox");
 			numRead = fread(aBox[Znum].rpotential[0][0],sizeof(real),
-				(size_t)(boxNx*boxNy*boxNz),fp);	
+				(size_t)(boxNx*boxNy*boxNz), fpBox );
 		}
 		else {
 #if FLOAT_PRECISION == 1
 			aBox[Znum].potential = complex3Df(boxNz,boxNx,boxNy,"atomBox");
 			numRead = fread(aBox[Znum].potential[0][0],sizeof(fftwf_complex),
-				(size_t)(boxNx*boxNy*boxNz),fp);	
+				(size_t)(boxNx*boxNy*boxNz), fpBox );
 #else
 			aBox[Znum].potential = complex3D(boxNz,boxNx,boxNy,"atomBox");
 			numRead = fread(aBox[Znum].potential[0][0],sizeof(fftw_complex),
-				(size_t)(boxNx*boxNy*boxNz),fp);	
+				(size_t)(boxNx*boxNy*boxNz),fpBox);	
 #endif
 		}
 
 		/* writeImage_old(aBox[Znum].potential[0],boxNx,boxNy, 0.0,"potential.img");
 		system("showimage potential.img");
 		*/
-		fclose(fp);
+		fclose( fpBox );
 
 		if (numRead == boxNx*boxNy*boxNz) {
 			if (muls->printLevel > 1)
@@ -380,9 +380,9 @@ void atomBoxLookUp(fftw_complex *vlu,MULS *muls,int Znum,double x,double y,doubl
 * Call this function with center = NULL, if you don't
 * want the array to be shifted.
 ****************************************************/
-void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
+void make3DSlices(MULS *muls,int nlayer,char *fileIn,atom *center) {
 	// FILE *fpu2;
-	char filename[512];
+	char fileOut[512]; // RAM: this is terrible, why is fileName a function argument and here we have filename?  FIXED: rename function argument to fileIn and this to fileOut
 	int natom,iatom,iz;  /* number of atoms */
 	atom *atoms;
 	real dx,dy,dz;
@@ -477,9 +477,9 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			// the last parameter is handleVacancies.  If it is set to 1 vacancies 
 
 			// and multiple occupancies will be handled. 
-			atoms = readUnitCell(&natom,fileName,muls,1);
+			atoms = readUnitCell(&natom,fileIn,muls,1);
 			if (muls->printLevel>=3)
-				printf("Read %d atoms from %s, tds: %d\n",natom,fileName,muls->tds);
+				printf("Read %d atoms from %s, tds: %d\n",natom,fileIn,muls->tds);
 			muls->natom = natom;
 			muls->atoms = atoms;
 		}
@@ -530,8 +530,18 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 		/**********************************************************
 		* Sort the atoms in z.
 		*********************************************************/
+		// RAM I think this is not working correctly to output the file
+		// Muls passed in as *muls, so by pointer rather than by-value.
+		// Ok, and cfgFile is not set before here...  Look at Muls and see if there's been some variable confusion
+
+
+		printf( "DEBUG: stemlib::make3Dslices : muls.cfgFile = %s \n", muls->cfgFile );
+
 		qsort(atoms,natom,sizeof(atom),atomCompare);
-		if ((*muls).cfgFile != NULL) {
+
+
+		if ((*muls).cfgFile != NULL) 
+		{
 			sprintf(buf,"%s/%s",muls->folder,muls->cfgFile);
 			// append the TDS run number
 			if (strcmp(buf+strlen(buf)-4,".cfg") == 0) *(buf+strlen(buf)-4) = '\0';
@@ -541,7 +551,8 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			// printf("Will write CFG file <%s> (%d)\n",buf,muls->tds)
 			writeCFG(atoms,natom,buf,muls);
 
-			if (muls->readPotential) {
+			if (muls->readPotential) 
+			{
 				sprintf(buf,"nanopot %s/%s %d %d %d %s",muls->folder,muls->cfgFile,
 					ny,nx,muls->slices*muls->cellDiv,muls->folder);
 				system(buf);
@@ -1280,17 +1291,17 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			}
 
 #ifndef WIN32
-			sprintf(filename,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
+			sprintf(fileOut,"%s/%s%d.img",muls->folder,muls->fileBase,iz);
 #else
-			sprintf(filename,"%s\\%s%d.img",muls->folder,muls->fileBase,iz);
+			sprintf(fileOut,"%s\\%s%d.img",muls->folder,muls->fileBase,iz);
 #endif
 			if (muls->printLevel >= 3)
-				printf("Saving (complex) potential layer %d to file %s (r: %g..%g)\n",iz,filename,ddx,ddy); 
+				printf( "Saving (complex) potential layer %d to file %s (r: %g..%g)\n", iz, fileOut, ddx, ddy );
 
 			imageIO->SetThickness(muls->sliceThickness);
 			sprintf(buf,"Projected Potential (slice %d)",iz);		 
 			imageIO->SetComment(buf);
-			imageIO->WriteComplexImage((void **)muls->trans[iz],filename);
+			imageIO->WriteComplexImage( (void **)muls->trans[iz], fileOut );
 		} // loop through all slices
 	} /* end of if savePotential ... */
 	if (muls->saveTotalPotential) {
@@ -1306,16 +1317,18 @@ void make3DSlices(MULS *muls,int nlayer,char *fileName,atom *center) {
 			if (ddx>potVal) ddx = potVal; 
 		}
 #ifndef WIN32
-		sprintf(filename,"%s/%sProj.img",muls->folder,muls->fileBase);	
+		sprintf(fileOut,"%s/%sProj.img",muls->folder,muls->fileBase);	
 #else
-		sprintf(filename,"%s\\%sProj.img",muls->folder,muls->fileBase);	
+		// RAM DEBUG : this is overwriting the original config file, why?  is filename something else?
+		// RAM RESOLVED: both fileName and filename were defined above...
+		sprintf( fileOut, "%s\\%sProj.img", muls->folder, muls->fileBase );
 #endif
 		if (muls->printLevel >= 2)
-			printf("Saving total projected potential to file %s (r: %g..%g)\n",filename,ddx,ddy); 
+			printf( "Saving total projected potential to file %s (r: %g..%g)\n", fileOut, ddx, ddy );
 		imageIO->SetThickness(nlayer*muls->sliceThickness);
 		sprintf(buf,"Projected Potential (sum of %d slices)",muls->slices);
 		imageIO->SetComment(buf);
-		imageIO->WriteRealImage((void **)tempPot, fileName);
+		imageIO->WriteRealImage( (void **)tempPot, fileOut );
 	}
 
 } // end of make3DSlices
@@ -1924,6 +1937,18 @@ void writePix(char *outFile,fftw_complex **pict,MULS *muls,int iz) {
 *********************************************/
 
 #define SMOOTH_EDGE 5 // make a smooth edge on AIS aperture over +/-SMOOTH_EDGE pixels
+
+void probeShiftAndCrop(MULS *muls, WavePtr wave, double dx, double dy, double cnx, double cny)
+{
+	// Robert A. McLeod
+	// 09 April 2014
+	// This function takes an input wave and shifts it by [dx,dy] and crops it to [cnx,cny]
+	// In general the input wave should have wave.nx > nx + 2*abs(dx) and wave.ny > ny + 2*abs(dy) for a scanned system
+
+	// 
+	printf("Debug: probeShiftAndCrop does nothing at present\n");
+}
+
 void probe(MULS *muls, WavePtr wave, double dx, double dy)
 {
 	// static char *plotFile = "probePlot.dat",systStr[32];
@@ -2447,7 +2472,7 @@ int runMulsSTEM(MULS *muls, WavePtr wave) {
 				}
 			}
 			
-			if ((muls->mode == TEM) || ((muls->mode == CBED)&&(muls->saveLevel > 1))) 
+			if ( (muls->mode == TEM) || ((muls->mode == CBED) && (muls->saveLevel > 1)) || ((muls->mode == NBED) && (muls->saveLevel > 1)) )
 			{
 				// TODO (MCS 2013/04): this restructure probably broke this file saving - 
 				//   need to rewrite a function to save things for TEM/CBED?
@@ -2883,7 +2908,7 @@ void fft_normalize(void **array,int nx, int ny) {
 void showPotential(fftw_complex ***pot,int nz,int nx,int ny,double dx,double dy,double dz) {
 	char *fileName = "potential.dat";
 	char systStr[256];
-	FILE *fp;
+	FILE *fpPot;
 	int ix,iz;
 	static fftw_complex *data = NULL;
 	int length;
@@ -2912,22 +2937,22 @@ void showPotential(fftw_complex ***pot,int nz,int nx,int ny,double dx,double dy,
 		/*    printf("ix: %d, pot: %g\n",ix,data[ix]); */
 	}
 
-	if ((fp = fopen(fileName,"w")) == NULL) {
+	if ( (fpPot = fopen( fileName, "w" )) == NULL ) {
 		printf("Could not open %s for writing!\n",fileName);
 		return;
 	}
 	for (ix=0;ix<nx;ix++) {
 		r = sqrt(ix*ix*(dx*dx+dy*dy));
-		fprintf(fp,"%g",r);
-		fprintf(fp,"\t%g\t%g",data[ix][0],data[ix][1]);
+		fprintf( fpPot, "%g", r );
+		fprintf( fpPot, "\t%g\t%g", data[ix][0], data[ix][1] );
 		/*    for (iz = 0;iz < ((nz>10) ? 10 : nz);iz++) {
 		r = sqrt(ix*ix*(dx*dx+dy*dy)+iz*iz*dz*dz);      
-		fprintf(fp,"\t%g",pot[iz][ix][ix][0]*r);      
+		fprintf(fpPot,"\t%g",pot[iz][ix][ix][0]*r);      
 		}
 		*/
-		fprintf(fp,"\n");
+		fprintf( fpPot, "\n" );
 	}
-	fclose(fp);
+	fclose( fpPot );
 
 	sprintf(systStr,"xmgr -nxy %s &",fileName);
 	system(systStr);

@@ -129,6 +129,8 @@ public:
   char cin2[1024];				/* stacking sequence */
   char fileBase[512];
   char **filein;			/* array of input potential files */
+
+  char fileWaveIn[512];  // RAM: input .IMG file for entry wavefunction
   int lpartl, lstartl;	                /* flags indicating partial 
 					   coherence */
   char atomPosFile[512];
@@ -276,7 +278,7 @@ public:
   float_tt intIntensity;
   double imageGamma;
   char folder[1024];
-  int avgRuns;
+  int avgRuns; // RAM: What is this?
   int potential3D;
   int scatFactor;
   int Scherzer;

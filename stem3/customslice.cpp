@@ -321,21 +321,21 @@ void make3DSlicesFT(MULS *muls) {
  * plotVzr(pot,Nx,Nz);
  ********************************************************************/
 void plotVzr(fftw_complex **pot,int Nx,int Nz,double dx,MULS *muls) {
-  FILE *fp;
+  FILE *fpVzr;
   int ix,iz;
   char str[128];
   double p;
 
   sprintf(str,"%s/vz.dat",muls->folder);
-  fp =fopen(str,"w");
+  fpVzr = fopen( str, "w" );
  
   for (ix=Nx/2;ix<Nx;ix++) {
     for (iz=0,p=0.0;iz<Nz;iz++) p += pot[iz][ix][0];	
-    // fprintf(fp,"%g %g %g\n",(ix-Nx/2)*dx,p,p*(ix-Nx/2)*dx);
-    fprintf(fp,"%g %g\n",(ix-Nx/2)*dx,p*(ix-Nx/2)*dx);
+    // fprintf(fpVzr,"%g %g %g\n",(ix-Nx/2)*dx,p,p*(ix-Nx/2)*dx);
+	fprintf( fpVzr, "%g %g\n", (ix - Nx / 2)*dx, p*(ix - Nx / 2)*dx );
   }
 
-  fclose(fp);
+  fclose( fpVzr );
   sprintf(str,"xmgr -nxy %s/vz.dat &",muls->folder);
   system(str);
 }

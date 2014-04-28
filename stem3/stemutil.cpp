@@ -810,7 +810,7 @@ int ReadfeTable(int scatFlag)
    double w;
    char *cstatus;
    int n, zi, z;
-   FILE *fp;
+   FILE *fpTable;
    
    /* if the file has been read already then just return */
    if( feTableRead == 1 ) return(0);
@@ -820,7 +820,7 @@ int ReadfeTable(int scatFlag)
    else
      sprintf(fileName,"fparams.dat");
 
-   if( (fp = fopen(fileName, "r") ) == NULL)  {
+   if ( (fpTable = fopen( fileName, "r" )) == NULL )  {
 	printf("ReadfeTable() can't open file %s\n",fileName);
 	exit( 0 );
    }
@@ -845,7 +845,7 @@ int ReadfeTable(int scatFlag)
        
        /* find Z delimiter */
        do { 
-	 cstatus = fgets( cline, NCMAX, fp );
+		   cstatus = fgets( cline, NCMAX, fpTable );
 	 if( cstatus == NULL ) break;
        } while ( strncmp( cline, "Z=", 2 ) != 0 );
        if( cstatus == NULL ) break;
@@ -853,7 +853,7 @@ int ReadfeTable(int scatFlag)
        n += 1;
        sscanf( cline, "Z=%d,  chisq=%lf\n", &z, &w);
        for( j=0; j<na; j+=4 ) {
-	 fgets( cline, NCMAX, fp );
+		   fgets( cline, NCMAX, fpTable );
 	 for( i=0; i<4; i++) {
 	   sscanf(&cline[i*17],"%le", &fparams[z][i+j] );
 	 }
@@ -883,7 +883,7 @@ int ReadfeTable(int scatFlag)
 	      fparams[zi][NPDTMAX],zi);
        */
        
-       if (fgets(cline,NCMAX,fp) == NULL)
+	   if ( fgets( cline, NCMAX, fpTable ) == NULL )
 	 break;
        sscanf(cline,"%s %d %le %le %le %le %le %le %le %le",
 	      dummy,&z,&fparams[zi][0],&fparams[zi][2],
@@ -899,7 +899,7 @@ int ReadfeTable(int scatFlag)
      printf("Warning, only %d elements read in "
 	    "in feTableRead() (too small).\n", n );
    }
-   fclose( fp );
+   fclose( fpTable );
 
    feTableRead = 1;	/* remember that table has been read */
    return( n );

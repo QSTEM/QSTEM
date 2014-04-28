@@ -94,6 +94,7 @@ void WAVEFUNC::WriteAvgArray(const char *fileName, const char *comment,
 
 void WAVEFUNC::ReadWave(const char *fileName)
 {
+	// printf("Debug Wavefunc::ReadWave\n");
 	m_imageIO->ReadImage((void **)wave, nx, ny, fileName);
 }
 

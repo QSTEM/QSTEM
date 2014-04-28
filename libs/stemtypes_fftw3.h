@@ -39,6 +39,7 @@ QSTEM - image simulation for TEM/STEM/CBED
 #define REFINE  4
 #define MSCBED  5
 #define TOMO    6
+#define NBED    7
 
 ////////////////////////////////////////////////////////////////////////
 // Define physical constants

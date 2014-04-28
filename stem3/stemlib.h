@@ -32,6 +32,7 @@ QSTEM - image simulation for TEM/STEM/CBED
  * with parameters given in muls
  *********************************************/
 // int probe(MULS *muls,double dx, double dy);
+void probeShiftAndCrop(MULS *muls, WavePtr wave, double dx, double dy, double cnx, double cny);
 void probe(MULS *muls, WavePtr wave, double dx, double dy);
 void probePlot(MULS *muls, WavePtr wave);
 

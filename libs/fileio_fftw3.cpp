@@ -133,7 +133,7 @@ int atomCompareZYX(const void *atPtr1,const void *atPtr2) {
 ********************************************************/
 
 int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
-	FILE *fp;
+	FILE *writefp;
 	int j,i;
 	static char *elTable = {
 		"H HeLiBeB C N O F NeNaMgAlSiP S Cl"
@@ -150,8 +150,9 @@ int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
 			return 1;
 		}
 
-		fp = fopen(fileName, "w" );
-		if( fp == NULL ) {
+		printf( "DEBUG: writePDB: filename is %s \n", fileName );
+		writefp = fopen(fileName, "w" );
+		if( writefp == NULL ) {
 			printf("Cannot open file %s\n",fileName);
 			return 0;
 		}
@@ -161,26 +162,26 @@ int writePDB(atom *atoms,int natoms,char *fileName,MULS *muls) {
 		cz=muls->c;
 
 
-		fprintf(fp,"HEADER    libAtoms:Config_save_as_pdb; %d atoms\n",natoms);
-		fprintf(fp,"CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1\n",
+		fprintf( writefp,"HEADER    libAtoms:Config_save_as_pdb; %d atoms\n",natoms);
+		fprintf( writefp,"CRYST1%9.3f%9.3f%9.3f  90.00  90.00  90.00 P 1           1\n",
 			muls->ax,muls->by,muls->c);
 		elem[2] = '\0';
 		for (j=0;j<natoms;j++) {
 			elem[0] = elTable[2*atoms[j].Znum-2];
 			elem[1] = elTable[2*atoms[j].Znum-1];
 			if (elem[1] == ' ') elem[1] = '\0';
-			fprintf(fp,"ATOM   %4d %s",j+1,elem);
+			fprintf( writefp,"ATOM   %4d %s",j+1,elem);
 			for (i=strlen(elem);i<13;i++)
-				fprintf(fp," ");
-			fprintf(fp,"1   ");
-			fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x,atoms[j].y,atoms[j].z);
+				fprintf( writefp," ");
+			fprintf( writefp,"1   ");
+			fprintf( writefp," %8.3f%8.3f%8.3f\n",atoms[j].x,atoms[j].y,atoms[j].z);
 			/*
-			fprintf(fp," %8.3f%8.3f%8.3f\n",atoms[j].x/muls->ax,
+			fprintf( writefp," %8.3f%8.3f%8.3f\n",atoms[j].x/muls->ax,
 			atoms[j].y/muls->by,atoms[j].z/muls->c);
 			*/
 		} 
 
-		fclose(fp);
+		fclose( writefp );
 		return 1;
 
 }
@@ -201,7 +202,7 @@ int removeRedundantAtoms(atom *atoms,int natoms) {
 */
 
 int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
-	FILE *fp;
+	FILE *cfgfp;
 	int j;
 	/*
 	static char *elTable = {
@@ -220,11 +221,13 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 		return 1;
 	}
 
-	fp = fopen(fileName, "w" );
-	if( fp == NULL ) {
+	cfgfp = fopen(fileName, "w");
+	if (cfgfp == NULL) {
 		printf("Cannot open file %s\n",fileName);
 		return 0;
 	}
+
+	printf( "DEBUG: fileio_fftw2::writeCFG writing to file = %s \n", fileName );
 
 	// ax = muls->ax > MIN_EDGE_LENGTH ? muls->ax : MIN_EDGE_LENGTH;
 	// by = muls->by > MIN_EDGE_LENGTH ? muls->by : MIN_EDGE_LENGTH;
@@ -233,12 +236,12 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 	by = muls->by;
 	cz = muls->c;
 
-	fprintf(fp,"Number of particles = %d\n",natoms);
-	fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
-	fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
-	fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
-	fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
-	fprintf(fp,".NO_VELOCITY.\nentry_count = 6\n");
+	fprintf( cfgfp, "Number of particles = %d\n", natoms);
+	fprintf( cfgfp, "A = 1.0 Angstrom (basic length-scale)\n");
+	fprintf( cfgfp, "H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n", ax);
+	fprintf( cfgfp, "H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n", by);
+	fprintf( cfgfp, "H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n", cz);
+	fprintf( cfgfp, ".NO_VELOCITY.\nentry_count = 6\n");
 	printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
 
 
@@ -247,8 +250,8 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 	elem[1] = elTable[2*atoms[0].Znum-1];
 	// printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
 	if (elem[1] == ' ') elem[1] = '\0';
-	fprintf(fp,"%g\n%s\n",2.0*atoms[0].Znum,elem);
-	fprintf(fp,"%g %g %g %g %g %g\n",atoms[0].x/ax,atoms[0].y/by,atoms[0].z/cz,
+	fprintf( cfgfp, "%g\n%s\n", 2.0*atoms[0].Znum, elem);
+	fprintf( cfgfp, "%g %g %g %g %g %g\n", atoms[0].x / ax, atoms[0].y / by, atoms[0].z / cz,
 		atoms[0].dw,atoms[0].occ,atoms[0].q);
 
 
@@ -258,14 +261,14 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 			elem[0] = elTable[2*atoms[j].Znum-2];
 			elem[1] = elTable[2*atoms[j].Znum-1];
 			if (elem[1] == ' ') elem[1] = '\0';
-			fprintf(fp,"%g\n%s\n",2.0*atoms[j].Znum,elem);
+			fprintf(cfgfp, "%g\n%s\n", 2.0*atoms[j].Znum, elem);
 			// printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
 		}
-		fprintf(fp,"%g %g %g %g %g %g\n",atoms[j].x/ax,atoms[j].y/by,atoms[j].z/cz,
+		fprintf(cfgfp, "%g %g %g %g %g %g\n", atoms[j].x / ax, atoms[j].y / by, atoms[j].z / cz,
 			atoms[j].dw,atoms[j].occ,atoms[j].q);
 		// if (atoms[j].occ != 1) printf("Atom %d: occ = %g\n",j,atoms[j].occ);
 	} 
-	fclose(fp);
+	fclose(cfgfp);
 
 	return 1;
 }
@@ -275,7 +278,7 @@ int writeCFG(atom *atoms,int natoms,char *fileName,MULS *muls) {
 // the unit cell is assumed to be cubic
 int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileName,
 					   double a,double b,double c) {
-						   FILE *fp;
+						   FILE *fracfp;
 						   int j;
 						   /*
 						   static char *elTable = {
@@ -294,8 +297,8 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 							   return 1;
 						   }
 
-						   fp = fopen(fileName, "w" );
-						   if( fp == NULL ) {
+						   fracfp = fopen(fileName, "w");
+						   if (fracfp == NULL) {
 							   printf("Cannot open file %s\n",fileName);
 							   return 0;
 						   }
@@ -304,12 +307,12 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 						   by = b > MIN_EDGE_LENGTH ? b : MIN_EDGE_LENGTH;
 						   cz = c > MIN_EDGE_LENGTH ? c : MIN_EDGE_LENGTH;
 
-						   fprintf(fp,"Number of particles = %d\n",natoms);
-						   fprintf(fp,"A = 1.0 Angstrom (basic length-scale)\n");
-						   fprintf(fp,"H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n",ax);
-						   fprintf(fp,"H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n",by);
-						   fprintf(fp,"H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n",cz);
-						   fprintf(fp,".NO_VELOCITY.\nentry_count = 4\n");
+						   fprintf(fracfp, "Number of particles = %d\n", natoms);
+						   fprintf(fracfp, "A = 1.0 Angstrom (basic length-scale)\n");
+						   fprintf(fracfp, "H0(1,1) = %g A\nH0(1,2) = 0 A\nH0(1,3) = 0 A\n", ax);
+						   fprintf(fracfp, "H0(2,1) = 0 A\nH0(2,2) = %g A\nH0(2,3) = 0 A\n", by);
+						   fprintf(fracfp, "H0(3,1) = 0 A\nH0(3,2) = 0 A\nH0(3,3) = %g A\n", cz);
+						   fprintf(fracfp, ".NO_VELOCITY.\nentry_count = 4\n");
 						   printf("ax: %g, by: %g, cz: %g n: %d\n",ax,by,c,natoms);
 
 
@@ -318,8 +321,8 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 						   elem[1] = elTable[2*Znum[0]-1];
 						   // printf("ax: %g, by: %g, cz: %g n: %d\n",muls->ax,muls->by,muls->c,natoms);
 						   if (elem[1] == ' ') elem[1] = '\0';
-						   fprintf(fp,"%g\n%s\n",2.0*Znum[0],elem);
-						   fprintf(fp,"%g %g %g %g\n",pos[0]*a/ax,pos[1]*b/by,pos[2]*c/cz,dw[0]);
+						   fprintf(fracfp, "%g\n%s\n", 2.0*Znum[0], elem);
+						   fprintf(fracfp, "%g %g %g %g\n", pos[0] * a / ax, pos[1] * b / by, pos[2] * c / cz, dw[0]);
 
 
 
@@ -328,12 +331,12 @@ int writeCFGFractCubic(double *pos,int *Znum,double *dw,int natoms,char *fileNam
 								   elem[0] = elTable[2*Znum[j]-2];
 								   elem[1] = elTable[2*Znum[j]-1];
 								   if (elem[1] == ' ') elem[1] = '\0';
-								   fprintf(fp,"%g\n%s\n",2.0*Znum[j],elem);
+								   fprintf(fracfp, "%g\n%s\n", 2.0*Znum[j], elem);
 								   // printf("%d: %g\n%s\n",j,2.0*atoms[j].Znum,elem);
 							   }
-							   fprintf(fp,"%g %g %g %g\n",pos[3*j+0]*a/ax,pos[3*j+1]*b/by,pos[3*j+2]*c/cz,dw[j]);
+							   fprintf(fracfp, "%g %g %g %g\n", pos[3 * j + 0] * a / ax, pos[3 * j + 1] * b / by, pos[3 * j + 2] * c / cz, dw[j]);
 						   } 
-						   fclose(fp);
+						   fclose(fracfp);
 
 						   return 1;
 }
@@ -780,21 +783,21 @@ int readCFGCellParams(MULS *muls, double **Mm, char *fileName) {
 * CFG file and updates the cell parameters in the muls struct
 ***********************************************************************/
 int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
-	FILE *fp;
+	FILE *cellfp;
 	char s1[32],s2[32],s3[32],buf[NCMAX];
 	int spaceGrp = 1,ncoord;
 
-	fp = fopen(fileName, "r" );
-	if( fp == NULL ) {
+	cellfp = fopen(fileName, "r");
+	if (cellfp == NULL) {
 		printf("Cannot open file %s\n",fileName);
 		return 0;
 	}
 	/* read the cell parameters from first and secons line */
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+	ReadLine(cellfp, buf, NCMAX, "in ReadXYZcoord");
 	sscanf( buf, " %s %s %s",s1,s2,s3);
 	muls->ax = atof(s1); muls->by = atof(s2); muls->c = atof(s3);
 
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+	ReadLine(cellfp, buf, NCMAX, "in ReadXYZcoord");
 	sscanf( buf, " %s %s %s",s1,s2,s3);
 	muls->cAlpha = atof(s1); muls->cBeta  = atof(s2); muls->cGamma = atof(s3);
 	makeCellVectMuls(muls, Mm[0], Mm[1], Mm[2]);   
@@ -805,9 +808,9 @@ int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
 		printf("cannot interpret space group %d\n",spaceGrp);
 		exit(0);
 	}
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+	ReadLine(cellfp, buf, NCMAX, "in ReadXYZcoord");
 	ncoord = atoi(buf);
-	fclose(fp);
+	fclose(cellfp);
 	return ncoord;
 }
 
@@ -821,7 +824,7 @@ int readCSSRCellParams(MULS *muls, double **Mm, char *fileName) {
 
 int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
 	int printFlag = 0;
-	static FILE *fp=NULL;
+	static FILE *atomfp = NULL;
 	static int noVelocityFlag = 1,entryCount = 3,element = 1;
 	static char buf[NCMAX];
 	static double *atomData = NULL;
@@ -829,16 +832,16 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
 	int j;
 
 	if (flag < 0) {
-		if (fp != NULL) {
+		if (atomfp != NULL) {
 			parClose();   
 			parFpPull();  /* restore old parameter file pointer */      
-			fp = NULL;
+			atomfp = NULL;
 			setComment('%');
 		}
 		return -1;
 	}
 
-	if (fp == NULL) {
+	if (atomfp == NULL) {
 		parFpPush();  /* save old parameter file pointer */      
 		if (!parOpen(fileName)) {
 			printf("Could not open DAT input file %s\n",fileName);
@@ -848,13 +851,13 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
 		resetParamFile();  
 		// advance file pointer to last (known) header line
 		readparam("gamma =",buf,1);
-		fp = getFp();  /* get the file pointer from the parameter file routines */
+		atomfp = getFp();  /* get the file pointer from the parameter file routines */
 		atomData = (double *)malloc(entryCount*sizeof(double));
 	}
 
 	element = 0;
 	do {
-		if (fgets(buf,NCMAX,fp) == NULL) {
+		if (fgets(buf, NCMAX, atomfp) == NULL) {
 			if (printFlag) printf("Found end of file!\n");
 			return -1;
 		}
@@ -903,7 +906,7 @@ int readNextDATAtom(atom *newAtom, int flag, char *fileName) {
 *******************************************************************************/
 
 int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
-	static FILE *fp=NULL;
+	static FILE *fpNextCFG=NULL;
 	static int noVelocityFlag = 1,entryCount = 3,element = 1;
 	static char buf[NCMAX];
 	static double *atomData = NULL;
@@ -913,16 +916,16 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 
 
 	if (flag < 0) {
-		if (fp != NULL) {
+		if (fpNextCFG != NULL) {
 			parClose();   
-			parFpPull();  /* restore old parameter file pointer */      
-			fp = NULL;
+			parFpPull();  /* restore old parameter file pointer */
+			fpNextCFG = NULL;
 			setComment('%');
 		}
 		return -1;
 	}
 
-	if (fp == NULL) {
+	if (fpNextCFG == NULL) {
 		parFpPush();  /* save old parameter file pointer */      
 		if (!parOpen(fileName)) {
 			printf("Could not open CFG input file %s\n",fileName);
@@ -934,20 +937,20 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 		else noVelocityFlag = 0;
 		if (readparam("entry_count =",buf,1)) sscanf(buf,"%d",&entryCount);
 		if (!noVelocityFlag) entryCount+=3;
-		fp = getFp();  /* get the file pointer from the parameter file routines */
+		fpNextCFG = getFp();  /* get the file pointer from the parameter file routines */
 		atomData = (double *)malloc((entryCount+1)*sizeof(double));
 	}
 
-	if (fgets(buf,NCMAX,fp) == NULL) return -1;
+	if (fgets(buf, NCMAX, fpNextCFG) == NULL) return -1;
 	/* check, if this is a new mass number */
 	str = strnext(buf," \t");
 	if ((atof(buf) >= 1.0) && ((str==NULL) || (*str == '#'))) {
 		mass = atof(buf);
 		// printf("nV: %d, eC: %d (%g)\n",noVelocityFlag, entryCount,atof(buf));
-		if (fgets(buf,NCMAX,fp) == NULL) return -1;    
+		if (fgets(buf, NCMAX, fpNextCFG) == NULL) return -1;
 		element = getZNumber(buf); 
 		// printf("*** found element %d (%s %d) ***\n",element,buf,strlen(buf));
-		if (fgets(buf,NCMAX,fp) == NULL) return -1;
+		if (fgets(buf, NCMAX, fpNextCFG) == NULL) return -1;
 	}
 	str = buf;
 	// skip leading spaces:
@@ -993,32 +996,35 @@ int readNextCFGAtom(atom *newAtom, int flag, char *fileName) {
 * A ReadLine error will occur, if the end of file is reached prematurely.
 *******************************************************************************/
 int readNextCSSRAtom(atom *newAtom,int flag, char *fileName) {
-	static FILE *fp=NULL;
+	static FILE *fpNextCSSR = NULL;
 	static char buf[NCMAX];
 	int count;
 	static char element[32],s1[32],s2[32],s3[32];
 	double dw;
 
 	if (flag < 0) {
-		if (fp != NULL) fclose(fp);
-		fp = NULL;
+		if (fpNextCSSR != NULL) fclose(fpNextCSSR);
+		fpNextCSSR = NULL;
 		return 0;
 	}
 
-	if (fp == NULL) {
-		fp = fopen(fileName, "r" );
-		if( fp == NULL ) {
+	if ( fpNextCSSR == NULL) 
+	{
+		fpNextCSSR = fopen(fileName, "r");
+
+		if (fpNextCSSR == NULL) 
+		{
 			printf("Cannot open file %s\n",fileName);
 			exit( 0 );
 		}
 		// skip the header:
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpNextCSSR, buf, NCMAX, "in ReadXYZcoord");
+		ReadLine( fpNextCSSR, buf, NCMAX, "in ReadXYZcoord");
+		ReadLine( fpNextCSSR, buf, NCMAX, "in ReadXYZcoord");
+		ReadLine( fpNextCSSR, buf, NCMAX, "in ReadXYZcoord");
 	}
 
-	ReadLine( fp, buf, NCMAX, "in ReadXYZcoord()" );
+	ReadLine(fpNextCSSR, buf, NCMAX, "in ReadXYZcoord()");
 	/* for Si */
 	/*    dw = 0.444; */
 	sscanf(buf,"%d %s %s %s %s %d %d %d %d %d %d %d %d %lf",
@@ -1960,7 +1966,7 @@ atom *tiltBoxed(int ncoord,int *natom, MULS *muls,atom *atoms,int handleVacancie
 
 atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 	char buf[NCMAX], *str,element[16];
-	FILE *fp;
+	FILE *fpUnit;
 	real alpha,beta,gamma;
 	int ncoord,ncx,ncy,ncz,icx,icy,icz;
 	real dw,occ,dx,dy,dz,r;
@@ -1987,16 +1993,16 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 	ncy = muls->nCellY;
 	ncz = muls->nCellZ;
 	/******************************************************************/
-	fp = fopen(fileName, "r" );
-	if( fp == NULL ) {
+	fpUnit = fopen( fileName, "r" );
+	if ( fpUnit == NULL ) {
 		printf("Cannot open file %s\n",fileName);
 		exit( 0 );
 	}
 	if (format == FORMAT_CSSR) {
 
 		/* skip first line in first pass */
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
 
 		/************************************************************
 		* check angles, of cssr file (must be 90 degrees)
@@ -2021,7 +2027,7 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 			printf("cannot interpret space group %d\n",spaceGrp);
 			exit(0);
 		}
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
 		ncoord = atoi(buf);
 	}
 	else if (format == FORMAT_PDB) {
@@ -2037,7 +2043,7 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 		* The second line will determine a,b,c,alpha,beta,gamma
 		****************************************************************/
 
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
 		str = buf;
 		ncoord = 0;
 		do {
@@ -2049,7 +2055,7 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 			printf("Could not determine number of atmoms - quit\n");
 			exit(0);
 		}
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
 
 		/************************************************************
 		* check angles, of pdb file (must be 90 degrees)
@@ -2106,9 +2112,9 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 		exit(0);
 	}
 	if (format == FORMAT_CSSR) {
-		fclose( fp );
-		fp = fopen(fileName, "r" );
-		if( fp == NULL ) {
+		fclose( fpUnit );
+		fpUnit = fopen( fileName, "r" );
+		if ( fpUnit == NULL ) {
 			printf("Cannot open file %s\n",fileName);
 			exit( 0 );
 		}
@@ -2116,16 +2122,16 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 		/***********************************************************
 		* Read Header for .cssr and .pdb
 		***********************************************************/
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
 		/* printf(buf); */
 		sscanf( buf, " %s %s %s",s1,s2,s3);
 		/* printf("\n%s\n",s2); */
 		muls->ax = atof(s1);
 		muls->by = atof(s2);
 		muls->c = atof(s3);
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp,buf, NCMAX, "in ReadXYZcoord" );
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord" );
 	} /* end of if FORMAT_CSSR */
 	printf("Lattice parameters: ax=%g(%dx%g) by=%g(%dx%g) cz=%g(%dx%g)\n",
 		muls->ax*ncx,ncx,muls->ax,muls->by*ncy,ncy,muls->by,
@@ -2135,7 +2141,7 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 	* Read actual Data
 	***********************************************************/
 	for( i=0; i<ncoord; i++) {
-		ReadLine( fp, buf, NCMAX, "in ReadXYZcoord()" );
+		ReadLine( fpUnit, buf, NCMAX, "in ReadXYZcoord()" );
 		/* for Si */
 		/*    dw = 0.444; */
 		occ = 1.0F;
@@ -2204,7 +2210,7 @@ atom *readUnitCell_old(int *natom,char *fileName,MULS *muls) {
 			}
 		}
 	}
-	fclose( fp );
+	fclose( fpUnit );
 
 	*natom = ncoord*ncx*ncy*ncz;
 
@@ -2316,11 +2322,11 @@ int getZNumber(char *element) {
 
 #define CHARGE 0.0
 
-void writeFrameWork(FILE *fp,superCellBox superCell) {
+void writeFrameWork(FILE *fpFrame,superCellBox superCell) {
 	int i,id = 0,newId = 1;
 	double charge=0.0;
 
-	if (fp != NULL) fprintf(fp,"frame1 1 framework\n");
+	if ( fpFrame != NULL ) fprintf( fpFrame, "frame1 1 framework\n" );
 	for (i=0;i<superCell.natoms;i++) {
 		if (i==0) {
 			if (idArray == NULL) {
@@ -2371,13 +2377,13 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 	  default: charge = 0.0; 
 			}
 
-			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %c%c\n",id+1,superCell.atoms[i].x,
+			if ( fpFrame != NULL ) fprintf( fpFrame, "%d %7.3f %7.3f %7.3f %6.3f %6.3f %c%c\n", id + 1, superCell.atoms[i].x,
 				superCell.atoms[i].y,superCell.atoms[i].z,
 				massArray[superCell.atoms[i].Znum-1],charge,
 				elTable[2*superCell.atoms[i].Znum-2],elTable[2*superCell.atoms[i].Znum-1]);
 		}
 		else
-			if (fp != NULL) fprintf(fp,"%d %7.3f %7.3f %7.3f\n",id+1,superCell.atoms[i].x,
+		if ( fpFrame != NULL ) fprintf( fpFrame, "%d %7.3f %7.3f %7.3f\n", id + 1, superCell.atoms[i].x,
 			superCell.atoms[i].y,superCell.atoms[i].z);
 	}
 }
@@ -2390,7 +2396,7 @@ void writeFrameWork(FILE *fp,superCellBox superCell) {
 /* This function will write the amorphous data to the MD input file starting at 
 * atoms nstart and ending just before atom nstop.   
 */
-void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
+void writeAmorphous(FILE *fpAmorph,superCellBox superCell,int nstart,int nstop) {
 	int i,j,id;
 	int *idCountArray = NULL;
 	double charge,b,x,y,z;
@@ -2462,20 +2468,20 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 	  case 39: charge = 3.0; break;
 	  default: charge = 0.0; 
 			}
-			if (fp != NULL) {
-				fprintf(fp,"%c%c %d\n",elTable[2*idArray[id]-2],elTable[2*idArray[id]-1],idCountArray[id]);
-				fprintf(fp,"%d %7.3f %7.3f %7.3f %6.3f %6.3f %c%c\n",id+1,0.0,0.0,0.0,
+			if ( fpAmorph != NULL ) {
+				fprintf( fpAmorph, "%c%c %d\n", elTable[2 * idArray[id] - 2], elTable[2 * idArray[id] - 1], idCountArray[id] );
+				fprintf( fpAmorph, "%d %7.3f %7.3f %7.3f %6.3f %6.3f %c%c\n", id + 1, 0.0, 0.0, 0.0,
 					massArray[idArray[id]-1],charge,
 					elTable[2*idArray[id]-2],elTable[2*idArray[id]-1]);    
 			}
 		}
 	}
-	if (fp != NULL) fprintf(fp,"end\n");
+	if ( fpAmorph != NULL ) fprintf( fpAmorph, "end\n" );
 	/***********************************************************************
 	* The list of the potential parameters is next
 	*/
-	if (fp != NULL) {
-	fprintf(fp,"buckingham\n");
+	if ( fpAmorph != NULL ) {
+		fprintf( fpAmorph, "buckingham\n" );
 	for (id=0;id<=idArrayPtr;id++)
 		for (j=id;j<=idArrayPtr;j++) {
 			// The following parameters are from S. Garofalini, J. Am. Cer. Soc. 67, 133 (1987)
@@ -2493,15 +2499,15 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 	  default : b=0.0;
 			}
 			b = b*6.022e4;  // *1e-16*6.022e23*1e-3
-			fprintf(fp,"%d %d %g %g %g\n",id+1,j+1,A,b,C);
+			fprintf( fpAmorph, "%d %d %g %g %g\n", id + 1, j + 1, A, b, C );
 
 		}
-		fprintf(fp,"end\n");
+		fprintf( fpAmorph, "end\n" );
 
 		/*************************************************************************
 		* We can now write down the size of the MD cell:
 		*/
-		fprintf(fp,"%g %g %g 90 90 90 1 1 1\n",superCell.ax,superCell.by,superCell.cz);
+		fprintf( fpAmorph, "%g %g %g 90 90 90 1 1 1\n", superCell.ax, superCell.by, superCell.cz );
 
 		/****************************************************************************
 		* now list the position of each one of the atoms in the amorphous phase
@@ -2514,12 +2520,12 @@ void writeAmorphous(FILE *fp,superCellBox superCell,int nstart,int nstop) {
 			if (fabs(x-1.0) < 1e-5) x = 0.0;
 			if (fabs(y-1.0) < 1e-5) y = 0.0;
 			if (fabs(z-1.0) < 1e-5) z = 0.0;
-			fprintf(fp,"%c%c %7.5f %7.5f %7.5f\n",elTable[2*superCell.atoms[i].Znum-2],
+			fprintf( fpAmorph, "%c%c %7.5f %7.5f %7.5f\n", elTable[2 * superCell.atoms[i].Znum - 2],
 				elTable[2*superCell.atoms[i].Znum-1],x,y,z);
 		}
 		if (nstart > 0)
-			fprintf(fp,"frame1 %7.5f %7.5f %7.5f 1 0 0 0\n",superCell.cmx,superCell.cmy,superCell.cmz);
-		fprintf(fp,"end\n");
+			fprintf( fpAmorph, "frame1 %7.5f %7.5f %7.5f 1 0 0 0\n", superCell.cmx, superCell.cmy, superCell.cmz );
+		fprintf( fpAmorph, "end\n" );
 	}  // end of if fp != NULL
 }
 
@@ -2633,64 +2639,64 @@ double gasdev(long *idum)
 }
 
 void writeSTEMinput(char* stemFile,char *cfgFile,MULS *muls) {
-	FILE *fp;
+	FILE *fpSTEM;
 	char folder[64];
 
 
 	strcpy(folder,cfgFile);
 	folder[strlen(folder)-4] = 0;  // cut off .cfg ending
 
-	if ((fp=fopen(stemFile,"w")) == NULL) {
+	if ( (fpSTEM = fopen( stemFile, "w" )) == NULL ) {
 		printf("writeSTEMinput: Error opening file %s\n",stemFile);
 		exit(0);
 	}
 
-	fprintf(fp,"%% STEM input file for tomography series, cerated automatically by STEM\n\n");
+	fprintf( fpSTEM, "%% STEM input file for tomography series, cerated automatically by STEM\n\n" );
 
-	fprintf(fp,"mode: CBED\n");
-	fprintf(fp,"print level: 1\nsave level: %d\n",muls->saveLevel);
-	fprintf(fp,"filename: %s\n",cfgFile);
-	fprintf(fp,"NCELLX: %d\nNCELLY: %d\nNCELLZ: %d/%d\n",
+	fprintf( fpSTEM, "mode: CBED\n" );
+	fprintf( fpSTEM, "print level: 1\nsave level: %d\n", muls->saveLevel );
+	fprintf( fpSTEM, "filename: %s\n", cfgFile );
+	fprintf( fpSTEM, "NCELLX: %d\nNCELLY: %d\nNCELLZ: %d/%d\n",
 		muls->nCellX,muls->nCellY,muls->nCellZ,muls->cellDiv);
-	fprintf(fp,"v0: %g\n",muls->v0);
-	fprintf(fp,"tds: %s\n",muls->tds ? "yes" : "no");
-	fprintf(fp,"temperature: %g\n",muls->tds_temp);
-	fprintf(fp,"slice-thickness: %g\n",muls->sliceThickness);
-	fprintf(fp,"periodicXY: no\n");	
-	fprintf(fp,"periodicZ: no\n");
+	fprintf( fpSTEM, "v0: %g\n", muls->v0 );
+	fprintf( fpSTEM, "tds: %s\n", muls->tds ? "yes" : "no" );
+	fprintf( fpSTEM, "temperature: %g\n", muls->tds_temp );
+	fprintf( fpSTEM, "slice-thickness: %g\n", muls->sliceThickness );
+	fprintf( fpSTEM, "periodicXY: no\n" );
+	fprintf( fpSTEM, "periodicZ: no\n" );
 
 
-	fprintf(fp,"nx: %d\n",muls->nx); 
-	fprintf(fp,"ny: %d\n",muls->ny);      
-	fprintf(fp,"Cs: %g\n",muls->Cs*1e-7);	
-	fprintf(fp,"C5: %g\n",muls->C5);		
-	fprintf(fp,"Cc: %g\n",muls->Cc*1e-7);		
-	fprintf(fp,"dV/V: %g\n",muls->dE_E);	
-	fprintf(fp,"alpha: %g\n",muls->alpha);		
-	fprintf(fp,"AIS aperture: %g %% A\n",muls->aAIS); 
-	fprintf(fp,"smooth: %s\n",muls->ismoth ? "yes" : "no");		
-	fprintf(fp,"defocus: %g \n",muls->df0);
-	fprintf(fp,"Source Size (diameter): %g \n",2*muls->sourceRadius);
-	fprintf(fp,"gaussian: %s\n", muls->gaussFlag ? "yes" : "no");
-	fprintf(fp,"potential3D: %s \n", muls->potential3D ? "yes" : "no");
-	fprintf(fp,"atom radius: %g \n", muls->atomRadius);
-	fprintf(fp,"plot V(r)*r: yes \n");	
-	fprintf(fp,"bandlimit f_trans: yes\n");	
-	fprintf(fp,"save potential: no	\n");
-	fprintf(fp,"one time integration: yes \n");
+	fprintf( fpSTEM, "nx: %d\n", muls->nx );
+	fprintf( fpSTEM, "ny: %d\n", muls->ny );
+	fprintf( fpSTEM, "Cs: %g\n", muls->Cs*1e-7 );
+	fprintf( fpSTEM, "C5: %g\n", muls->C5 );
+	fprintf( fpSTEM, "Cc: %g\n", muls->Cc*1e-7 );
+	fprintf( fpSTEM, "dV/V: %g\n", muls->dE_E );
+	fprintf( fpSTEM, "alpha: %g\n", muls->alpha );
+	fprintf( fpSTEM, "AIS aperture: %g %% A\n", muls->aAIS );
+	fprintf( fpSTEM, "smooth: %s\n", muls->ismoth ? "yes" : "no" );
+	fprintf( fpSTEM, "defocus: %g \n", muls->df0 );
+	fprintf( fpSTEM, "Source Size (diameter): %g \n", 2 * muls->sourceRadius );
+	fprintf( fpSTEM, "gaussian: %s\n", muls->gaussFlag ? "yes" : "no" );
+	fprintf( fpSTEM, "potential3D: %s \n", muls->potential3D ? "yes" : "no" );
+	fprintf( fpSTEM, "atom radius: %g \n", muls->atomRadius );
+	fprintf( fpSTEM, "plot V(r)*r: yes \n" );
+	fprintf( fpSTEM, "bandlimit f_trans: yes\n" );
+	fprintf( fpSTEM, "save potential: no	\n" );
+	fprintf( fpSTEM, "one time integration: yes \n" );
 
-	fprintf(fp,"tomo tilt: %lf\n",muls->tomoTilt);
+	fprintf( fpSTEM, "tomo tilt: %lf\n", muls->tomoTilt );
 
 
-	fprintf(fp,"Display Gamma: 0 \n");    
-	fprintf(fp,"Folder: %s\n",folder);
-	fprintf(fp,"Runs for averaging: %d\n",muls->avgRuns); 
-	fprintf(fp,"Structure Factors: DT  \n");
-	fprintf(fp,"show Probe: %s \n",muls->showProbe ? "yes" : "no");	
-	fprintf(fp,"propagation progress interval: 10 \n");
-	fprintf(fp,"potential progress interval: 1000 \n");
-	fprintf(fp,"beams: n \n");       
-	fprintf(fp,"sequence: 1 1\n");
+	fprintf( fpSTEM, "Display Gamma: 0 \n" );
+	fprintf( fpSTEM, "Folder: %s\n", folder );
+	fprintf( fpSTEM, "Runs for averaging: %d\n", muls->avgRuns );
+	fprintf( fpSTEM, "Structure Factors: DT  \n" );
+	fprintf( fpSTEM, "show Probe: %s \n", muls->showProbe ? "yes" : "no" );
+	fprintf( fpSTEM, "propagation progress interval: 10 \n" );
+	fprintf( fpSTEM, "potential progress interval: 1000 \n" );
+	fprintf( fpSTEM, "beams: n \n" );
+	fprintf( fpSTEM, "sequence: 1 1\n" );
 
-	fclose(fp);
+	fclose( fpSTEM );
 }

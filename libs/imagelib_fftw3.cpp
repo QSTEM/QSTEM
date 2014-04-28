@@ -79,12 +79,13 @@ void CImageIO::WriteData(void **pix, const char *fileName)
 
 	if(!file.is_open()) 
 	{
-		sprintf(m_buf,"WriteData: Could open file %s for writing\n",fileName);
+		sprintf(m_buf,"WriteData: Could not open file %s for writing\n",fileName);
 		throw std::runtime_error(m_buf);
 	}
 
 	// TODO: should we write each element individually for clarity?
 	// write the 56-byte header
+	printf( "DEBUG: CImageIO::WriteData: filename is %s \n", fileName );
 	file.write(reinterpret_cast<const char*>(this), m_headerSize);
 	/*
 	fwrite((void *)&m_headerSize, 4, 1, fp);
@@ -110,38 +111,51 @@ void CImageIO::WriteData(void **pix, const char *fileName)
 
 void CImageIO::ReadHeader(const char *fileName)
 {
-  FILE *fp;
-  if ((fp = fopen(fileName,"rb"))==NULL)
+  FILE *fpHead;
+
+	
+  fpHead = fopen( fileName, "rb" );
+  if ( fpHead == NULL )
   {
+	  perror("Error");
+	  printf( "ReadHeader: Could not open file %s for reading header.\n", fileName );
+	  
       sprintf(m_buf, "Could not open file %s for reading header.\n",fileName);
 	  throw std::runtime_error(m_buf);
   }
-  fread((void*)this, 1, 56, fp);
+  
+
+  //printf("RH Debug 2 \n");
+  fread( (void*)this, 1, 56, fpHead );
   if (m_paramSize>0)
     {
       m_params=std::vector<double>(m_paramSize);
-      fread((void *)&m_params[0],sizeof(double),m_paramSize,fp);
+	  fread( (void *)&m_params[0], sizeof(double), m_paramSize, fpHead );
     }
   if (m_commentSize>0)
     {
-      fread((void*)m_buf, 1, m_commentSize, fp);
+	  fread( (void*)m_buf, 1, m_commentSize, fpHead );
       m_comment = std::string(m_buf);
     }
 
-  if (fp != NULL) fclose(fp);
+
+	 
+  if ( fpHead != NULL ) fclose( fpHead );
 }
 
 void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName) 
 {
-  FILE *fp;
+  FILE *fpImage;
   size_t nRead=0;
   int trial=0,maxTrial=3,freadError=0;
  
+  //printf("Debug A\n");
   // sets the important info from the header - most importantly, where to start reading the image.
   ReadHeader(fileName);
 
+  //printf("Debug B\n");
   do {
-    if ((fp = fopen(fileName,"rb"))==NULL) {
+	  if ( (fpImage = fopen( fileName, "rb" )) == NULL ) {
       printf("Could not open file %s for reading\n",fileName);
       /* wait a short while */
       while (nRead < 1e5) nRead++;
@@ -154,7 +168,7 @@ void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName)
       }
       
       // Seek to the location of the actual data
-      fseek(fp,56+(m_commentSize)+(2*m_paramSize),SEEK_SET);
+	  fseek( fpImage, 56 + (m_commentSize)+(2 * m_paramSize), SEEK_SET );
       
       // this is type-agnostic - the type interpretation is done by the
       //   function sending in the pointer.  It casts it as void for the reading,
@@ -162,23 +176,51 @@ void CImageIO::ReadImage(void **pix, int nx, int ny, const char *fileName)
       //   type of the data that it passed into this function.
       //   
       //   Complex data is determined/communicated by the m_complexFlag, which is read in the header.
-      nRead = fread(pix[0], sizeof(m_dataSize),(size_t)(nx*ny),fp);
-      if (nRead != nx*ny) 
-      {
-        freadError = 1;
-        sprintf(m_buf, "Error while reading data from file %s:"
-                " %d (of %d specified) elements read\n"
-                "EOF: %d, Ferror: %d, dataSize: %d\n",
-                fileName,nRead,nx*ny,feof(fp),ferror(fp),m_dataSize);
-        fclose(fp);
-        fp = NULL;
-        throw std::runtime_error(std::string(m_buf));
-      }
+	  // RAM: I am concerned that this does not read in the proper size in x for complex data, where x should be 2*
+	  // FIXED: added if/else test
+	  // printf( "DEBUG ReadImage m_complexFlag = %d \n", m_complexFlag );
+	  // printf( "DEBUG ReadImage (nx,ny) = %d, %d \n", m_nx, m_ny );
+	  // printf( "DEBUG ReadImage m_dataSize = %d \n", m_dataSize );
+	  // printf( "DEBUG ReadImage (size_t)(nx*ny) = %d \n", (size_t)(nx*ny) );
+
+	  // RAM: added if/else to fix complex image incomplete read bug
+	  if ( m_complexFlag == 0 )
+	  {
+		  printf( "DEBUG ReadImage parsing real data\n" );
+		  nRead = fread( pix[0], sizeof(m_dataSize), (size_t)(nx*ny), fpImage );
+		  if ( nRead != nx*ny )
+		  {
+			  freadError = 1;
+			  sprintf( m_buf, "Error while reading data from file %s:"
+				  " %d (of %d specified) elements read\n"
+				  "EOF: %d, Ferror: %d, dataSize: %d\n",
+				  fileName, nRead, nx*ny, feof( fpImage ), ferror( fpImage ), m_dataSize );
+			  fclose( fpImage );
+			  fpImage = NULL;
+			  throw std::runtime_error( std::string( m_buf ) );
+		  }
+	  }
+	  else
+	  { // RAM: complex data
+		  printf( "DEBUG ReadImage parsing complex data\n" );
+		  nRead = fread( pix[0], sizeof(m_dataSize), (size_t)(nx*ny*2), fpImage );
+		  if ( nRead != nx*ny*2 )
+		  {
+			  freadError = 1;
+			  sprintf( m_buf, "Error while reading data from file %s:"
+				  " %d (of %d specified) elements read\n"
+				  "EOF: %d, Ferror: %d, dataSize: %d\n",
+				  fileName, nRead, nx*ny, feof( fpImage ), ferror( fpImage ), m_dataSize );
+			  fclose( fpImage );
+			  fpImage = NULL;
+			  throw std::runtime_error( std::string( m_buf ) );
+		  }
+	  }
     }
     /* we will try three times to read this file. */
   }  while ((freadError > 0) && (++trial < maxTrial));
   
-  if (fp != NULL) fclose(fp);
+  if ( fpImage != NULL ) fclose( fpImage );
 }
 
 /*****************************************************************

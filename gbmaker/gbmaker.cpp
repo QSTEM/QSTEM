@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
 	char *str;
 	// atom *atomPtr;
 	int g,nstart,j,ak,count;
-	FILE *fp;
+	FILE *mainfp;
 	double charge;
 	int moldyFlag = 0;     // suppress creation of ..._moldy.in file
 	int distPlotFlag = 0;  // suppress creation of disList.dat
@@ -135,16 +135,16 @@ int main(int argc, char *argv[]) {
 				sprintf(moldyName,"%s",datFileName);
 				moldyName[strlen(datFileName)-4] = '\0';
 				strcat(moldyName,"_moldy.in");
-				if ((fp=fopen(moldyName,"w")) == NULL) {
+				if (( mainfp = fopen(moldyName,"w")) == NULL) {
 					printf("Could not open moldy input file %s!\n",moldyName);
 					exit(0);
 				}
 			}
 			else {
-				fp = NULL;
+				mainfp = NULL;
 			}
 			if (nGrains > 1) {
-				writeFrameWork(fp,superCell);
+				writeFrameWork(mainfp,superCell);
 				computeCenterofMass();
 				nstart = superCell.natoms;
 				switch (grains[g].amorphFlag) {
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
 				case 2: makeSpecial(distPlotFlag);
 					break;
 				}	
-				writeAmorphous(fp,superCell,nstart,superCell.natoms);
+				writeAmorphous(mainfp,superCell,nstart,superCell.natoms);
 			}
 			else {
 				switch (grains[g].amorphFlag) {
@@ -162,9 +162,9 @@ int main(int argc, char *argv[]) {
 				case 2: makeSpecial(distPlotFlag);
 					break;
 				}	
-				writeAmorphous(fp,superCell,0,superCell.natoms);
+				writeAmorphous( mainfp, superCell,0,superCell.natoms);
 			}
-			if (moldyFlag)	fclose(fp);
+			if (moldyFlag)	fclose( mainfp );
 
 
 		}	 
@@ -175,14 +175,14 @@ int main(int argc, char *argv[]) {
 		sprintf(moldyName,"%s",datFileName);
 		moldyName[strlen(datFileName)-4] = '\0';
 		strcat(moldyName,"_moldy.in");
-		if ((fp=fopen(moldyName,"w")) == NULL) {
+		if (( mainfp = fopen(moldyName,"w")) == NULL) {
 			printf("Could not open moldy input file %s!\n",moldyName);
 			exit(0);
 		}
 		// writeFrameWork(fp,superCell);
 		// computeCenterofMass();
 		// superCell2Moldy(fp,superCell);
-		fclose(fp);
+		fclose(mainfp);
 	} // end of: if moldyFlag ...
 	strcpy(outFileName,datFileName);
 
@@ -1236,7 +1236,7 @@ double xDistrFun2(double xcenter,double width1,double width2) {
 void makeDistrPlot(atom *atoms,int natoms,double ax) {
 	int j,i,count,ind;
 	int **list;
-	FILE *fp;
+	FILE *pltfp;
 
 	printf("Atom kinds: %d: ",muls->atomKinds);
 	for (i=0;i<muls->atomKinds;i++) printf(" %3d ",muls->Znums[i]);
@@ -1255,10 +1255,11 @@ void makeDistrPlot(atom *atoms,int natoms,double ax) {
 		}
 		else list[i][ind]++;
 	}
-	fp = fopen("disList.dat","w");
+	pltfp = fopen("disList.dat","w");
 	for (j=0;j<count;j++) {
-		fprintf(fp,"%.3f ",j*DR);
-		for (i=0;i<muls->atomKinds;i++) fprintf(fp,"%d ",list[i][j]);
-		fprintf(fp,"\n");
+		fprintf( pltfp,"%.3f ",j*DR);
+		for (i=0;i<muls->atomKinds;i++) fprintf( pltfp,"%d ",list[i][j]);
+		fprintf( pltfp,"\n");
 	}
+	fclose(pltfp);
 }
