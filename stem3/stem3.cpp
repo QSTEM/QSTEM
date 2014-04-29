@@ -1519,8 +1519,8 @@ void readFile() {
 	else
 	{
 		// RAM: Build a default filename with added _t to indicated tilted or tds crystal.
-		strcpy_s( muls.cfgFile, 512, muls.fileBase );
-		strcat_s( muls.cfgFile, 512, "t" );
+		strcpy( muls.cfgFile, muls.fileBase );
+		strcat( muls.cfgFile, "t" );
 		printf( "DEBUG: tilt/tds default filename made = %s \n", muls.cfgFile );
 	}
 
