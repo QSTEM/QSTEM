@@ -148,7 +148,9 @@ end
 % handles.directoryname
 handles.files = dir(sprintf('%s\\*.img',handles.directoryname));
 % handles.files.name
-set(handles.listbox_image,'String',{handles.files.name});
+% To view in workspace: assignin('base','names',sort_nat({handles.files.name}))
+% sort_nat does a natural sort, so images appear in order
+set(handles.listbox_image,'String',sort_nat({handles.files.name}));
 set(handles.listbox_image,'Value',1);
 handles = listbox_image_Callback(hObject, eventdata, handles,0,filename);
 guidata(hObject, handles);
