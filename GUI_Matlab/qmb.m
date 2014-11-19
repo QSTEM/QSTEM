@@ -24,7 +24,7 @@ function varargout = qmb(varargin)
 
 % Edit the above text to modify the response to help qmb
 
-% Last Modified by GUIDE v2.5 07-Sep-2012 13:45:28
+% Last Modified by GUIDE v2.5 21-Nov-2014 12:52:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -241,8 +241,8 @@ if ~isempty(handles.img)
 
     set(gca,'YDir','normal');
     colormap('gray');
-    xlabel('x in A');
-    ylabel('y in A');
+    xlabel('x in Å');
+    ylabel('y in Å');
     axis equal; axis tight;
     
     %    if isfield(handles,'maxX')
@@ -292,9 +292,12 @@ handles.Natoms = size(handles.atomPos,1);
 set(handles.uipanel2,'Title',sprintf('Model (%d atoms)',handles.Natoms));
 
 clear coords aType DW charge occ
+
 guidata(hObject, handles);
 % Update plot:
 pushbutton_UpdateModel_Callback(hObject, eventdata, handles);
+
+
 
 
 % --- Executes on button press in pushbutton_UpdateModel.
@@ -808,7 +811,13 @@ answer=inputdlg(prompt,'Define zone axis',numlines,defaultanswer);
 if length(answer) < 3
     return
 end
-zone = [str2num(answer{1}); str2num(answer{2}); str2num(answer{3})];
+
+if (strcmp(answer{1},'0') && strcmp(answer{2},'0') && strcmp(answer{3},'0'))
+    waitfor(errordlg({'[0 0 0] is an invalid zone axis! ','Setting to [0 0 1] instead.'}));
+    answer = {'0';'0';'1'};
+end
+    
+zone = [str2double(answer{1}); str2double(answer{2}); str2double(answer{3})];
 
 refZone = [0; 0; 1];
 [rotAngles,Mrot] = rotateZoneAxis(zone,handles.grain{grainIndex}.Mm,refZone);
@@ -820,6 +829,9 @@ handles.grain{grainIndex}.TiltZ = rotAngles(3);
 set(handles.edit_TiltX,'String',sprintf('%.3f',rotAngles(1)));
 set(handles.edit_TiltY,'String',sprintf('%.3f',rotAngles(2)));
 set(handles.edit_TiltZ,'String',sprintf('%.3f',rotAngles(3)));
+set(handles.info_h,'String',handles.grain{grainIndex}.zone(1));
+set(handles.info_k,'String',handles.grain{grainIndex}.zone(2));
+set(handles.info_l,'String',handles.grain{grainIndex}.zone(3));
 guidata(hObject, handles);
 pushbutton_UpdateGrains_Callback(hObject, eventdata, handles);
 
@@ -1133,6 +1145,9 @@ if ~isempty(coords)
     pushbutton_constructSuperCell(hObject, eventdata, handles)
 end
 
+% Set Zone Axis
+pushbutton_Zone_Callback(hObject, eventdata, handles);
+
 
 
 
@@ -1217,18 +1232,47 @@ end
 if isfield(handles.grain{grainIndex},'cfgName')
     set(handles.edit_CFGName,'String',handles.grain{grainIndex}.cfgName);
 else
-     set(handles.edit_CFGName,'String',' ');   
+    set(handles.edit_CFGName,'String',' ');   
 end
-set(handles.edit_TiltX,'String',handles.grain{grainIndex}.TiltX);
-set(handles.edit_TiltY,'String',handles.grain{grainIndex}.TiltY);
-set(handles.edit_TiltZ,'String',handles.grain{grainIndex}.TiltZ);
 
-set(handles.edit_OffsetX,'String',handles.grain{grainIndex}.OffsetX);
-set(handles.edit_OffsetY,'String',handles.grain{grainIndex}.OffsetY);
-set(handles.edit_OffsetZ,'String',handles.grain{grainIndex}.OffsetZ);
+if isfield(handles.grain{grainIndex},'TiltX')
+    set(handles.edit_TiltX,'String',handles.grain{grainIndex}.TiltX);
+    set(handles.edit_TiltY,'String',handles.grain{grainIndex}.TiltY);
+    set(handles.edit_TiltZ,'String',handles.grain{grainIndex}.TiltZ);
+else
+    set(handles.edit_TiltX,'String','0');
+    set(handles.edit_TiltY,'String','0');
+    set(handles.edit_TiltZ,'String','0');    
+end
 
-set(handles.edit_minZ,'String',handles.grain{grainIndex}.minZ);
-set(handles.edit_maxZ,'String',handles.grain{grainIndex}.maxZ);
+if isfield(handles.grain{grainIndex},'OffsetX')
+    set(handles.edit_OffsetX,'String',handles.grain{grainIndex}.OffsetX);
+    set(handles.edit_OffsetY,'String',handles.grain{grainIndex}.OffsetY);
+    set(handles.edit_OffsetZ,'String',handles.grain{grainIndex}.OffsetZ);
+else
+    set(handles.edit_OffsetX,'String','0');
+    set(handles.edit_OffsetY,'String','0');
+    set(handles.edit_OffsetZ,'String','0');
+end
+
+if isfield(handles.grain{grainIndex},'minZ')
+    set(handles.edit_minZ,'String',handles.grain{grainIndex}.minZ);
+    set(handles.edit_maxZ,'String',handles.grain{grainIndex}.maxZ);
+else
+    set(handles.edit_minZ,'String','0');
+    set(handles.edit_maxZ,'String','10');
+end
+
+if isfield(handles.grain{grainIndex},'zone')
+    set(handles.info_h,'String',handles.grain{grainIndex}.zone(1));
+    set(handles.info_k,'String',handles.grain{grainIndex}.zone(2));
+    set(handles.info_l,'String',handles.grain{grainIndex}.zone(3));
+else
+    set(handles.info_h,'String','0');
+    set(handles.info_k,'String','0');
+    set(handles.info_l,'String','1');
+end
+
 guidata(hObject, handles);
 
 
@@ -1782,3 +1826,156 @@ end
 
 
 
+
+
+
+function offsetEditAmount_Callback(hObject, eventdata, handles)
+% hObject    handle to offsetEditAmount (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of offsetEditAmount as text
+%        str2double(get(hObject,'String')) returns contents of offsetEditAmount as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function offsetEditAmount_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to offsetEditAmount (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in shift_up.
+function shift_up_Callback(hObject, eventdata, handles)
+% hObject    handle to shift_up (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+shiftAmount = str2double(get(handles.offsetEditAmount,'String'));
+newOffset = str2double(get(handles.edit_OffsetY,'String')) + shiftAmount;
+set(handles.edit_OffsetY,'String',num2str(newOffset));
+edit_OffsetY_Callback(hObject, eventdata, handles);
+
+% --- Executes on button press in shift_right.
+function shift_right_Callback(hObject, eventdata, handles)
+% hObject    handle to shift_right (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+shiftAmount = str2double(get(handles.offsetEditAmount,'String'));
+newOffset = str2double(get(handles.edit_OffsetX,'String')) + shiftAmount;
+set(handles.edit_OffsetX,'String',num2str(newOffset));
+edit_OffsetX_Callback(hObject, eventdata, handles);
+
+% --- Executes on button press in shift_down.
+function shift_down_Callback(hObject, eventdata, handles)
+% hObject    handle to shift_down (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+shiftAmount = str2double(get(handles.offsetEditAmount,'String'));
+newOffset = str2double(get(handles.edit_OffsetY,'String')) - shiftAmount;
+set(handles.edit_OffsetY,'String',num2str(newOffset));
+edit_OffsetY_Callback(hObject, eventdata, handles);
+
+% --- Executes on button press in shift_left.
+function shift_left_Callback(hObject, eventdata, handles)
+% hObject    handle to shift_left (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+shiftAmount = str2double(get(handles.offsetEditAmount,'String'));
+newOffset = str2double(get(handles.edit_OffsetX,'String')) - shiftAmount;
+set(handles.edit_OffsetX,'String',num2str(newOffset));
+edit_OffsetX_Callback(hObject, eventdata, handles);
+
+
+function info_k_Callback(hObject, eventdata, handles)
+% hObject    handle to info_k (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of info_k as text
+%        str2double(get(hObject,'String')) returns contents of info_k as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function info_k_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to info_k (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function info_h_Callback(hObject, eventdata, handles)
+% hObject    handle to info_h (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of info_h as text
+%        str2double(get(hObject,'String')) returns contents of info_h as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function info_h_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to info_h (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function info_l_Callback(hObject, eventdata, handles)
+% hObject    handle to info_l (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of info_l as text
+%        str2double(get(hObject,'String')) returns contents of info_l as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function info_l_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to info_l (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in rotate_clock.
+function rotate_clock_Callback(hObject, eventdata, handles)
+% hObject    handle to rotate_clock (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+rotateAmount = str2double(get(handles.offsetEditAmount,'String'));
+newTiltZ = str2double(get(handles.edit_TiltZ,'String')) - rotateAmount;
+set(handles.edit_TiltZ,'String',num2str(newTiltZ));
+edit_TiltZ_Callback(hObject, eventdata, handles);
+
+
+% --- Executes on button press in rotate_cclock.
+function rotate_cclock_Callback(hObject, eventdata, handles)
+% hObject    handle to rotate_cclock (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+rotateAmount = str2double(get(handles.offsetEditAmount,'String'));
+newTiltZ = str2double(get(handles.edit_TiltZ,'String')) + rotateAmount;
+set(handles.edit_TiltZ,'String',num2str(newTiltZ));
+edit_TiltZ_Callback(hObject, eventdata, handles);
