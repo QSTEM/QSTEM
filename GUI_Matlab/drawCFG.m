@@ -16,7 +16,7 @@ if nargin < 2
 end
 
 % Read the CFG file:
-[coords, aType, Mm] = readCFG(fileName,[0 0 0],2);
+[coords, aType, Mm, ~, ~, ~] = readCFG(fileName);
 
 % extract number of atoms:
 Natom = size(coords,1);

@@ -1,4 +1,4 @@
-% function writeCFG(fileName,Mm,aType,coords,shift,mode,DW,charge)
+% function writeCFG(fileName,Mm,aType,coords,shift,mode,DW,occ,charge)
 %
 % fileName:   name of cfg file
 % Mm:         metric matrix (for orthogonal unit cells or super structures
@@ -13,8 +13,9 @@
 %             1 = atom positions in coords are cartesian coordinates
 % DW:         Debye-Waller factor: this can be a single number or a vector
 %             with a separate value for each atom
+% occ:        vector with value of occupancy for each
 % charge:     vector with value of charge per atom
-function success = writeCFG(fileName,Mm,aType,coords,shift,mode,DW,charge)
+function success = writeCFG(fileName,Mm,aType,coords,shift,mode,DW,occ,charge)
 
 if nargin < 5
     shift = [0 0 0];
@@ -44,17 +45,20 @@ fprintf(fid,'Number of particles = %d\n',N);
 fprintf(fid,'A = 1.0 Angstrom (basic length-scale)\n');
 for ix=1:3
     for iy=1:3
-        fprintf(fid,'H0(%d,%d) = %g A\n',ix,iy,Mm(ix,iy));
+        fprintf(fid,'H0(%d,%d) = %10.3f A\n',ix,iy,Mm(iy,ix));
     end
 end
 fprintf(fid,'.NO_VELOCITY.\n');
-if nargin < 8
+if nargin < 7               % 6 or fewer arguments means no DW, occ, or charge
     fprintf(fid,'entry_count = 3\n');
 end
-if nargin == 8
+if nargin == 7              % 7 args means just DW included
+    fprintf(fid,'entry_count = 4\n');
+end
+if nargin == 8              % 8 args means DW and occ included
     fprintf(fid,'entry_count = 5\n');
 end
-if nargin > 8
+if nargin > 8               % 9 args means DW, occ, and charge all included
     fprintf(fid,'entry_count = 6\n');
 end
 
@@ -65,19 +69,22 @@ for ix=1:N
         atomType = at;
     end
     if mode == 1
-        fprintf(fid,'%.5f %.5f %.5f',mod((coords(ix,:)+shift)*Mminv,1));
+        fprintf(fid,'%.6f %.6f %.6f',mod((coords(ix,:)+shift)*Mminv,1));
     else
-        fprintf(fid,'%.5f %.5f %.5f',coords(ix,:));        
+        fprintf(fid,'%.6f %.6f %.6f',coords(ix,:));        
     end    
-    if nargin > 7
+    if nargin > 6           % nargs is at least 7, so write DW
         if length(DW) > 1
-            fprintf(fid,' %.2f 1',DW(ix));
+            fprintf(fid,' %.4f',DW(ix));
         else
-            fprintf(fid,' %.2f 1',DW);            
+            fprintf(fid,' %.4f',DW);            
         end
     end
-    if nargin > 8
-        fprintf(fid,' %.2f',charge(ix));                
+    if nargin > 7           % nargs is at least 8, so write occ, as well
+        fprintf(fid,' %.4f',occ(ix));
+    end
+    if nargin > 8           % nargs is at least 9, so write charge, too
+        fprintf(fid,' %.4f',charge(ix));                
     end
     fprintf(fid,'\n');
 end
