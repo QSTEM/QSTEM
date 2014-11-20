@@ -123,12 +123,16 @@ if (strcmp(ext,'.xtl') == 1)
 
     buf = fgets(fid);
     unitCell = sscanf(buf,'%f',6);
-    a     = unitCell(1);
-    b     = unitCell(2);
-    c     = unitCell(3);
-    alpha = unitCell(4)*pi/180;
-    beta  = unitCell(5)*pi/180;
-    gamma = unitCell(6)*pi/180;
+    a      = unitCell(1);
+    b      = unitCell(2);
+    c      = unitCell(3);
+    alpha  = unitCell(4); 
+    beta   = unitCell(5);  % in degrees
+    gamma  = unitCell(6);  % in degrees
+    alphar = alpha*pi/180; % in radians
+    betar  = beta*pi/180;  % in radians
+    gammar = gamma*pi/180; % in radians
+    
     fprintf('Found unit cell parameters: \na=%f, b=%f, c=%f, \nalpha=%f, beta=%f, gamma=%f\n',a,b,c,alpha,beta,gamma);
 
     % Now look for the atomic positions:
@@ -154,19 +158,19 @@ if (strcmp(ext,'.xtl') == 1)
     H00 = a;
     H01 = 0;
     H02 = 0;
-    H10 = b*cos(gamma);
-    H11 = b*sin(gamma);
+    H10 = b*cosd(gamma);    % do these calcs in degrees to avoid rounding errors
+    H11 = b*sind(gamma);    % do these calcs in degrees to avoid rounding errors
     H12 = 0;
     H20 = 0;
     H21 = 0;
     H22 = c;
     Mm = [H00 H01 H02;H10 H11 H12; H20 H21 H22];
-
+    
     % start a refinement to search for the correct matrix entries in the 3rd
     % row:
-    if (abs(alpha-pi/2) > 1e-4) ||  (abs(beta-pi/2) > 1e-4)
+    if (abs(alphar-pi/2) > 1e-4) ||  (abs(betar-pi/2) > 1e-4)
         H3 = Mm(3,:).';
-        [H3,chi2] = fminsearch(@(H3) refineMatrix(H3,Mm,alpha*180/pi,beta*180/pi,gamma*180/pi), H3);
+        [H3,chi2] = fminsearch(@(H3) refineMatrix(H3,Mm,alphar*180/pi,betar*180/pi,gammar*180/pi), H3);
         fprintf('found structure matrix with chi2 = %f\n',chi2);
         Mm(3,:) = H3.'*c/sqrt(sum(H3.^2));
         Mm(3,3) = abs(Mm(3,3));
@@ -364,9 +368,9 @@ end
 fclose(fid);
 
 
-function chi2 = refineMatrix(H3,H,alpha,beta,gamma)
+function chi2 = refineMatrix(H3,H,alphar,betar,gammar)
 H(3,:) = H3.';
-alphaP = acos(sum(H(2,:).*H(3,:))/sqrt(sum(H(2,:).^2)*sum(H(3,:).^2)))*180/pi;
-betaP =  acos(sum(H(1,:).*H(3,:))/sqrt(sum(H(1,:).^2)*sum(H(3,:).^2)))*180/pi;
-% fprintf('Angles of matrix: alpha = %.2f°, beta = %.2f°, gamma = %.2f°\n',alphaP,betaP,gammaP);
-chi2 = 100000*(alphaP-alpha)^2+(betaP-beta)^2;
+alpharP = acos(sum(H(2,:).*H(3,:))/sqrt(sum(H(2,:).^2)*sum(H(3,:).^2)))*180/pi;
+betarP =  acos(sum(H(1,:).*H(3,:))/sqrt(sum(H(1,:).^2)*sum(H(3,:).^2)))*180/pi;
+fprintf('Angles of matrix: alphar = %.2f°, betar = %.2f°, gammar = %.2f°\n',alpharP,betarP,gammarP);
+chi2 = 100000*(alpharP-alphar)^2+(betarP-betar)^2;
