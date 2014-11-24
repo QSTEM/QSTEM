@@ -39,9 +39,12 @@ BuildLog.htm
 *.log
 *.lastbuildstate
 *.cache
+*.sdf
+*.opensdf
 
 # binaries
 /bin
+/test_bin
 
 # build-generated CMake garbage
 /CMakeFiles
@@ -55,3 +58,4 @@ CMakeCache.txt
 # but include the ones from any testing directory
 #    these are for the unit tests.
 !/tests/data/*.img
+*.asv
